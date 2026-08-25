@@ -1,0 +1,3092 @@
+{
+  "schema": "eacl-demo.aws-estate.v1",
+  "capturedAt": "2026-08-25T10:02:57.822Z",
+  "profile": "petrus-prod",
+  "region": "us-east-1",
+  "accountIdentity": {
+    "UserId": "843761893873",
+    "Account": "843761893873",
+    "Arn": "arn:aws:iam::843761893873:root"
+  },
+  "filters": {
+    "resources": "Names, aliases, origins, domains, or tags containing eacl or demo",
+    "dns": "Non-TXT records below eacl.dev",
+    "ec2": "Pending/running/stopping/stopped instances tagged with an eacl/demo key or value"
+  },
+  "resources": {
+    "stacks": [
+      {
+        "StackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-serverless-domain/6f25f3a0-9d87-11f1-9107-12826034c1f1",
+        "StackName": "demo-eacl-datahike-serverless-domain",
+        "StackStatus": "UPDATE_COMPLETE",
+        "CreationTime": "2026-08-21T17:40:43.691000+00:00",
+        "LastUpdatedTime": "2026-08-24T15:00:09.798000+00:00",
+        "resources": [
+          {
+            "LogicalResourceId": "DomainAliasIpv4",
+            "PhysicalResourceId": "serverless-datahike.demo.eacl.dev",
+            "ResourceType": "AWS::Route53::RecordSet",
+            "LastUpdatedTimestamp": "2026-08-21T17:47:34.700000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "DomainAliasIpv6",
+            "PhysicalResourceId": "serverless-datahike.demo.eacl.dev",
+            "ResourceType": "AWS::Route53::RecordSet",
+            "LastUpdatedTimestamp": "2026-08-21T17:47:34.610000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "DomainCertificate",
+            "PhysicalResourceId": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+            "ResourceType": "AWS::CertificateManager::Certificate",
+            "LastUpdatedTimestamp": "2026-08-21T17:43:26.585000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ServerlessDistribution",
+            "PhysicalResourceId": "EYDAU1XQ7KZLQ",
+            "ResourceType": "AWS::CloudFront::Distribution",
+            "LastUpdatedTimestamp": "2026-08-24T15:01:21.944000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "StaticSiteBucket",
+            "PhysicalResourceId": "demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo",
+            "ResourceType": "AWS::S3::Bucket",
+            "LastUpdatedTimestamp": "2026-08-24T14:48:48.962000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "StaticSiteBucketPolicy",
+            "PhysicalResourceId": "demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo",
+            "ResourceType": "AWS::S3::BucketPolicy",
+            "LastUpdatedTimestamp": "2026-08-24T14:52:00.331000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "StaticSiteOriginAccessControl",
+            "PhysicalResourceId": "E29VKUK6WR2RQ0",
+            "ResourceType": "AWS::CloudFront::OriginAccessControl",
+            "LastUpdatedTimestamp": "2026-08-24T14:48:35.772000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "StaticSiteRewriteFunction",
+            "PhysicalResourceId": "arn:aws:cloudfront::843761893873:function/demo-eacl-datahike-serverless-domain-static-rewrite",
+            "ResourceType": "AWS::CloudFront::Function",
+            "LastUpdatedTimestamp": "2026-08-24T14:48:37.725000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          }
+        ]
+      },
+      {
+        "StackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761",
+        "StackName": "demo-eacl-datahike-lambda-reader",
+        "StackStatus": "UPDATE_COMPLETE",
+        "CreationTime": "2026-08-21T15:24:58.643000+00:00",
+        "LastUpdatedTime": "2026-08-24T17:28:55.670000+00:00",
+        "resources": [
+          {
+            "LogicalResourceId": "BenchmarkAlias",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:benchmark",
+            "ResourceType": "AWS::Lambda::Alias",
+            "LastUpdatedTimestamp": "2026-08-24T17:28:59.807000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "BenchmarkUrl",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:benchmark",
+            "ResourceType": "AWS::Lambda::Url",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:37.839000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "BenchmarkUrlFunctionPermission",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-BenchmarkUrlFunctionPermission-9PAShqP0zqJ7",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:39.215000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "BenchmarkUrlInvokePermission",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-BenchmarkUrlInvokePermission-Q2GrKGdo83bW",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:43.660000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "CandidateVersion",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:133",
+            "ResourceType": "AWS::Lambda::Version",
+            "LastUpdatedTimestamp": "2026-08-24T17:27:57.378000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ErrorAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-ErrorAlarm-LYQ0MDSVds0W",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-21T15:25:38.455000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "LiveAlias",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:live",
+            "ResourceType": "AWS::Lambda::Alias",
+            "LastUpdatedTimestamp": "2026-08-24T17:28:59.872000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "LiveUrl",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:live",
+            "ResourceType": "AWS::Lambda::Url",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:37.937000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "LiveUrlFunctionPermission",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-LiveUrlFunctionPermission-b67W1N1z5ZAR",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:39.287000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "LiveUrlInvokePermission",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-LiveUrlInvokePermission-OjtWFSnfGcmG",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-21T16:06:39.566000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "OperationsDashboard",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-reader",
+            "ResourceType": "AWS::CloudWatch::Dashboard",
+            "LastUpdatedTimestamp": "2026-08-24T13:46:26.587000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ProjectedMonthlyCostAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-ProjectedMonthlyCostAlarm-n00U2sJ3c2dy",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-24T13:46:26.644000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ReaderCacheBucket",
+            "PhysicalResourceId": "demo-eacl-datahik-readercachebucke-fucenilrmipn--use1-az4--x-s3",
+            "ResourceType": "AWS::S3Express::DirectoryBucket",
+            "LastUpdatedTimestamp": "2026-08-24T13:26:16.138000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ReaderCacheExtensionLayer",
+            "PhysicalResourceId": "arn:aws:lambda:us-east-1:843761893873:layer:ReaderCacheExtensionLayer:5",
+            "ResourceType": "AWS::Lambda::LayerVersion",
+            "LastUpdatedTimestamp": "2026-08-24T17:25:13.964000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ReaderFunction",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-reader",
+            "ResourceType": "AWS::Lambda::Function",
+            "LastUpdatedTimestamp": "2026-08-24T17:25:56.373000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ReaderLogGroup",
+            "PhysicalResourceId": "/aws/lambda/demo-eacl-datahike-lambda-reader-reader",
+            "ResourceType": "AWS::Logs::LogGroup",
+            "LastUpdatedTimestamp": "2026-08-21T15:25:16.665000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ReaderRole",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-ReaderRole-Pxn0RZew3DD1",
+            "ResourceType": "AWS::IAM::Role",
+            "LastUpdatedTimestamp": "2026-08-24T13:26:33.996000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "ThrottleAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-ThrottleAlarm-IIiA3UYHylYU",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-21T18:03:34.964000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "UrlServerErrorAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-lambda-reader-UrlServerErrorAlarm-ymJnvBLvc90K",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-21T15:25:38.439000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          }
+        ]
+      },
+      {
+        "StackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f",
+        "StackName": "demo-eacl-datahike-monitoring",
+        "StackStatus": "UPDATE_COMPLETE",
+        "CreationTime": "2026-08-13T09:57:37.535000+00:00",
+        "LastUpdatedTime": "2026-08-13T21:03:57.397000+00:00",
+        "resources": [
+          {
+            "LogicalResourceId": "AlarmTopic",
+            "PhysicalResourceId": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms",
+            "ResourceType": "AWS::SNS::Topic",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:13.345000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "AllowSnsToInvokeCapacityController",
+            "PhysicalResourceId": "demo-eacl-datahike-monitoring-AllowSnsToInvokeCapacityController-2DGEABWxy7bH",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-13T12:06:33.732000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "AllowSnsToInvokeNotifier",
+            "PhysicalResourceId": "demo-eacl-datahike-monitoring-AllowSnsToInvokeNotifier-MGufT8Q8EyQS",
+            "ResourceType": "AWS::Lambda::Permission",
+            "LastUpdatedTimestamp": "2026-08-13T09:59:05.168000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerErrorAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-capacity-controller-failed",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:25.578000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerFunction",
+            "PhysicalResourceId": "demo-eacl-datahike-capacity-controller",
+            "ResourceType": "AWS::Lambda::Function",
+            "LastUpdatedTimestamp": "2026-08-13T21:04:09.441000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerLogGroup",
+            "PhysicalResourceId": "/aws/lambda/demo-eacl-datahike-capacity-controller",
+            "ResourceType": "AWS::Logs::LogGroup",
+            "LastUpdatedTimestamp": "2026-08-13T14:40:56.077000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerRetryPolicy",
+            "PhysicalResourceId": "demo-eacl-datahike-capacity-controller|$LATEST",
+            "ResourceType": "AWS::Lambda::EventInvokeConfig",
+            "LastUpdatedTimestamp": "2026-08-13T12:22:56.500000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerRole",
+            "PhysicalResourceId": "demo-eacl-datahike-capacity-controller",
+            "ResourceType": "AWS::IAM::Role",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:14.157000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacityControllerSubscription",
+            "PhysicalResourceId": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms:dd7b233f-c3d7-48af-948f-0c8e450c645d",
+            "ResourceType": "AWS::SNS::Subscription",
+            "LastUpdatedTimestamp": "2026-08-13T12:06:35.835000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "CapacitySuspendDocument",
+            "PhysicalResourceId": "demo-eacl-datahike-capacity-suspend",
+            "ResourceType": "AWS::SSM::Document",
+            "LastUpdatedTimestamp": "2026-08-13T14:40:56.328000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "CpuCreditAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-low-cpu-credits",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:15.770000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "HighCpuAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-high-cpu",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:15.708000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "InstanceManagementPolicy",
+            "PhysicalResourceId": "demo--Insta-oWVaSsPdpbzC",
+            "ResourceType": "AWS::IAM::Policy",
+            "LastUpdatedTimestamp": "2026-08-13T12:06:08.225000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "InstanceMetricPolicy",
+            "PhysicalResourceId": "demo--Insta-YmkJcLzICY8v",
+            "ResourceType": "AWS::IAM::Policy",
+            "LastUpdatedTimestamp": "2026-08-13T09:58:40.306000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "InstanceStatusAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-instance-unresponsive",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:15.864000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "MemoryPressureAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-low-memory",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:15.953000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "MonitoringDashboard",
+            "PhysicalResourceId": "demo-eacl-datahike",
+            "ResourceType": "AWS::CloudWatch::Dashboard",
+            "LastUpdatedTimestamp": "2026-08-13T14:48:59.299000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "NotifierFunction",
+            "PhysicalResourceId": "demo-eacl-datahike-telegram-notifier",
+            "ResourceType": "AWS::Lambda::Function",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:17.375000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "NotifierLogGroup",
+            "PhysicalResourceId": "/aws/lambda/demo-eacl-datahike-telegram-notifier",
+            "ResourceType": "AWS::Logs::LogGroup",
+            "LastUpdatedTimestamp": "2026-08-13T14:40:55.914000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "NotifierRole",
+            "PhysicalResourceId": "demo-eacl-datahike-telegram-notifier",
+            "ResourceType": "AWS::IAM::Role",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:13.680000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicHealthAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-public-health-failed",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:41:15.772000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicHealthCheck",
+            "PhysicalResourceId": "2a5202a6-60fb-45e4-9923-5a9786d664c1",
+            "ResourceType": "AWS::Route53::HealthCheck",
+            "LastUpdatedTimestamp": "2026-08-13T14:40:56.415000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "S3GetCostCriticalAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-s3-get-cost-critical",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:48:55.737000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "S3GetCostWarningAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-s3-get-cost-warning",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:48:55.818000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "S3PutCostCriticalAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-s3-put-cost-critical",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:48:55.668000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "S3PutCostWarningAlarm",
+            "PhysicalResourceId": "demo-eacl-datahike-s3-put-cost-warning",
+            "ResourceType": "AWS::CloudWatch::Alarm",
+            "LastUpdatedTimestamp": "2026-08-13T14:48:55.697000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "TelegramBotToken",
+            "PhysicalResourceId": "arn:aws:secretsmanager:us-east-1:843761893873:secret:demo/eacl/datahike/telegram-oM4WGQ",
+            "ResourceType": "AWS::SecretsManager::Secret",
+            "LastUpdatedTimestamp": "2026-08-13T14:40:56.124000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "TelegramSubscription",
+            "PhysicalResourceId": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms:25819dda-0dbd-484e-8944-07617f952db6",
+            "ResourceType": "AWS::SNS::Subscription",
+            "LastUpdatedTimestamp": "2026-08-13T09:59:07.048000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          }
+        ]
+      },
+      {
+        "StackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1",
+        "StackName": "demo-eacl-datahike",
+        "StackStatus": "UPDATE_COMPLETE",
+        "CreationTime": "2026-08-12T15:13:38.171000+00:00",
+        "LastUpdatedTime": "2026-08-13T21:02:59.139000+00:00",
+        "resources": [
+          {
+            "LogicalResourceId": "DataBucket",
+            "PhysicalResourceId": "demo-eacl-datahike-v2-843761893873-us-east-1",
+            "ResourceType": "AWS::S3::Bucket",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:39.925000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "DataBucketPolicy",
+            "PhysicalResourceId": "demo-eacl-datahike-v2-843761893873-us-east-1",
+            "ResourceType": "AWS::S3::BucketPolicy",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:42.947000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "DatahikeInstanceProfile",
+            "PhysicalResourceId": "demo-eacl-datahike-DatahikeInstanceProfile-ccCHz4mCpcxN",
+            "ResourceType": "AWS::IAM::InstanceProfile",
+            "LastUpdatedTimestamp": "2026-08-13T09:06:13.258000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "DatahikeRole",
+            "PhysicalResourceId": "demo-eacl-datahike-DatahikeRole-78J1esVepYAG",
+            "ResourceType": "AWS::IAM::Role",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:58.138000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "MODIFIED"
+            }
+          },
+          {
+            "LogicalResourceId": "DemoElasticIp",
+            "PhysicalResourceId": "54.163.189.23",
+            "ResourceType": "AWS::EC2::EIP",
+            "LastUpdatedTimestamp": "2026-08-13T21:03:08.529000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "DemoInstance",
+            "PhysicalResourceId": "i-04761ff3afba454ab",
+            "ResourceType": "AWS::EC2::Instance",
+            "LastUpdatedTimestamp": "2026-08-13T21:03:06.181000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "MODIFIED"
+            }
+          },
+          {
+            "LogicalResourceId": "DemoVpc",
+            "PhysicalResourceId": "vpc-04d77fa150bcd3ed0",
+            "ResourceType": "AWS::EC2::VPC",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:26.227000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "ImportedKeyPair",
+            "PhysicalResourceId": "demo-eacl-datahike-operator",
+            "ResourceType": "AWS::EC2::KeyPair",
+            "LastUpdatedTimestamp": "2026-08-13T09:03:19.778000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "MODIFIED"
+            }
+          },
+          {
+            "LogicalResourceId": "InstanceSecurityGroup",
+            "PhysicalResourceId": "sg-0afe95e621ee18ff0",
+            "ResourceType": "AWS::EC2::SecurityGroup",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:28.270000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "InternetGateway",
+            "PhysicalResourceId": "igw-0d349cabe0dd9bb5f",
+            "ResourceType": "AWS::EC2::InternetGateway",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:40.704000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicDefaultRoute",
+            "PhysicalResourceId": "rtb-0be9407b918905318|0.0.0.0/0",
+            "ResourceType": "AWS::EC2::Route",
+            "LastUpdatedTimestamp": "2026-08-12T15:14:10.281000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicRouteTable",
+            "PhysicalResourceId": "rtb-0be9407b918905318",
+            "ResourceType": "AWS::EC2::RouteTable",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:38.365000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicRouteTableAssociation",
+            "PhysicalResourceId": "rtbassoc-0e9061f50d7385532",
+            "ResourceType": "AWS::EC2::SubnetRouteTableAssociation",
+            "LastUpdatedTimestamp": "2026-08-12T15:14:02.623000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "PublicSubnet",
+            "PhysicalResourceId": "subnet-0bf3ebe11472453b6",
+            "ResourceType": "AWS::EC2::Subnet",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:28.558000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "IN_SYNC"
+            }
+          },
+          {
+            "LogicalResourceId": "S3GatewayEndpoint",
+            "PhysicalResourceId": "vpce-0f4da2496adcf8004",
+            "ResourceType": "AWS::EC2::VPCEndpoint",
+            "LastUpdatedTimestamp": "2026-08-13T14:42:44.980000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          },
+          {
+            "LogicalResourceId": "VpcGatewayAttachment",
+            "PhysicalResourceId": "IGW|vpc-04d77fa150bcd3ed0",
+            "ResourceType": "AWS::EC2::VPCGatewayAttachment",
+            "LastUpdatedTimestamp": "2026-08-13T09:03:36.181000+00:00",
+            "ResourceStatus": "UPDATE_COMPLETE",
+            "DriftInformation": {
+              "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "FunctionName": "demo-eacl-datahike-lambda-reader-reader",
+        "FunctionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader",
+        "Runtime": "java25",
+        "Architectures": [
+          "arm64"
+        ],
+        "LastModified": "2026-08-24T17:25:39.000+0000",
+        "Version": "$LATEST",
+        "MemorySize": 1024,
+        "Timeout": 35,
+        "PackageType": "Zip",
+        "Role": "arn:aws:iam::843761893873:role/demo-eacl-datahike-lambda-reader-ReaderRole-Pxn0RZew3DD1",
+        "CodeSha256": "rZHGWF+VpasvacSKgLnWAxR9TWQn7bdXyLvhCK0Qhdk=",
+        "aliases": [
+          {
+            "AliasArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:benchmark",
+            "Name": "benchmark",
+            "FunctionVersion": "133",
+            "Description": "Disposable-version target used for controlled cold starts."
+          },
+          {
+            "AliasArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:live",
+            "Name": "live",
+            "FunctionVersion": "133",
+            "Description": "Stable public alias updated only after candidate verification."
+          }
+        ],
+        "functionUrls": [
+          {
+            "FunctionUrl": "https://oi5pefqghvh37j2ffrgjonvbjy0jvbpj.lambda-url.us-east-1.on.aws/",
+            "FunctionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:benchmark",
+            "AuthType": "NONE",
+            "CreationTime": "2026-08-21T16:06:36.920134081Z",
+            "LastModifiedTime": "2026-08-21T16:06:36.920134081Z",
+            "InvokeMode": "BUFFERED"
+          },
+          {
+            "FunctionUrl": "https://5tqpr2yjsrujdabeix6gfkis540xoplq.lambda-url.us-east-1.on.aws/",
+            "FunctionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:live",
+            "AuthType": "NONE",
+            "Cors": {
+              "AllowHeaders": [
+                "accept",
+                "content-type",
+                "x-request-id"
+              ],
+              "AllowMethods": [
+                "GET",
+                "POST"
+              ],
+              "AllowOrigins": [
+                "*"
+              ],
+              "MaxAge": 86400
+            },
+            "CreationTime": "2026-08-21T16:06:37.026779569Z",
+            "LastModifiedTime": "2026-08-21T16:06:37.026779569Z",
+            "InvokeMode": "BUFFERED"
+          }
+        ]
+      },
+      {
+        "FunctionName": "demo-eacl-datahike-telegram-notifier",
+        "FunctionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-telegram-notifier",
+        "Runtime": "python3.13",
+        "Architectures": [
+          "arm64"
+        ],
+        "LastModified": "2026-08-13T14:41:16.456+0000",
+        "Version": "$LATEST",
+        "MemorySize": 128,
+        "Timeout": 15,
+        "PackageType": "Zip",
+        "Role": "arn:aws:iam::843761893873:role/demo-eacl-datahike-telegram-notifier",
+        "CodeSha256": "vfrb2IxXlCW6/16iVad5nscI+ZMtt7qVuoyaqp9ES7Q=",
+        "aliases": [],
+        "functionUrls": []
+      },
+      {
+        "FunctionName": "demo-eacl-datahike-capacity-controller",
+        "FunctionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-capacity-controller",
+        "Runtime": "python3.13",
+        "Architectures": [
+          "arm64"
+        ],
+        "LastModified": "2026-08-13T21:04:03.000+0000",
+        "Version": "$LATEST",
+        "MemorySize": 128,
+        "Timeout": 30,
+        "PackageType": "Zip",
+        "Role": "arn:aws:iam::843761893873:role/demo-eacl-datahike-capacity-controller",
+        "CodeSha256": "gdb5Bri8RQuw1D7+gsjDHMSwSDBE4im4BPXmrkOwA0Y=",
+        "aliases": [],
+        "functionUrls": []
+      }
+    ],
+    "tables": [],
+    "buckets": [
+      {
+        "Name": "demo-eacl-datahike-843761893873-us-east-1",
+        "CreationDate": "2026-08-12T15:13:46+00:00",
+        "BucketArn": "arn:aws:s3:::demo-eacl-datahike-843761893873-us-east-1",
+        "location": {
+          "LocationConstraint": null
+        },
+        "versioning": {
+          "Status": "Enabled"
+        },
+        "encryption": {
+          "ServerSideEncryptionConfiguration": {
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                },
+                "BucketKeyEnabled": false,
+                "BlockedEncryptionTypes": {
+                  "EncryptionType": [
+                    "SSE-C"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "publicAccessBlock": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": true,
+            "IgnorePublicAcls": true,
+            "BlockPublicPolicy": true,
+            "RestrictPublicBuckets": true
+          }
+        }
+      },
+      {
+        "Name": "demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo",
+        "CreationDate": "2026-08-24T14:48:38+00:00",
+        "BucketArn": "arn:aws:s3:::demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo",
+        "location": {
+          "LocationConstraint": null
+        },
+        "versioning": null,
+        "encryption": {
+          "ServerSideEncryptionConfiguration": {
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                },
+                "BucketKeyEnabled": false,
+                "BlockedEncryptionTypes": {
+                  "EncryptionType": [
+                    "SSE-C"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "publicAccessBlock": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": true,
+            "IgnorePublicAcls": true,
+            "BlockPublicPolicy": true,
+            "RestrictPublicBuckets": true
+          }
+        }
+      },
+      {
+        "Name": "demo-eacl-datahike-v2-843761893873-us-east-1",
+        "CreationDate": "2026-08-13T14:42:28+00:00",
+        "BucketArn": "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1",
+        "location": {
+          "LocationConstraint": null
+        },
+        "versioning": null,
+        "encryption": {
+          "ServerSideEncryptionConfiguration": {
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                },
+                "BucketKeyEnabled": false,
+                "BlockedEncryptionTypes": {
+                  "EncryptionType": [
+                    "SSE-C"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "publicAccessBlock": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": true,
+            "IgnorePublicAcls": true,
+            "BlockPublicPolicy": true,
+            "RestrictPublicBuckets": true
+          }
+        }
+      }
+    ],
+    "alarms": {
+      "metricAlarms": [
+        {
+          "AlarmName": "demo-eacl-datahike-capacity-controller-failed",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-capacity-controller-failed",
+          "AlarmDescription": "The automatic S3 cost circuit breaker failed and will be retried; inspect the controller and SSM command logs immediately.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T14:22:57.132000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Controller failure alarm acceptance test complete",
+          "StateUpdatedTimestamp": "2026-08-13T14:25:27.572000+02:00",
+          "MetricName": "Errors",
+          "Namespace": "AWS/Lambda",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "FunctionName",
+              "Value": "demo-eacl-datahike-capacity-controller"
+            }
+          ],
+          "Period": 60,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 1,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-13T14:25:27.572000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-high-cpu",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-high-cpu",
+          "AlarmDescription": "Average instance CPU remained at or above 85 percent for fifteen minutes.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T12:05:31.686000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 3 datapoints [33.533792000533076 (13/08/26 20:21:00)] was not greater than or equal to the threshold (85.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T20:26:40.703+0000\",\"startDate\":\"2026-08-13T20:11:00.000+0000\",\"statistic\":\"Average\",\"period\":300,\"recentDatapoints\":[95.68144222681345,96.15590483641846,33.533792000533076],\"threshold\":85.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T20:21:00.000+0000\",\"sampleCount\":1.0,\"value\":33.533792000533076}]}",
+          "StateUpdatedTimestamp": "2026-08-13T22:26:40.704000+02:00",
+          "MetricName": "CPUUtilization",
+          "Namespace": "AWS/EC2",
+          "Statistic": "Average",
+          "Dimensions": [
+            {
+              "Name": "InstanceId",
+              "Value": "i-04761ff3afba454ab"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 3,
+          "DatapointsToAlarm": 3,
+          "Threshold": 85,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "missing",
+          "StateTransitionedTimestamp": "2026-08-13T22:26:40.704000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-instance-unresponsive",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-instance-unresponsive",
+          "AlarmDescription": "EC2 instance or system status checks failed for two minutes.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T12:05:31.673000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 2 out of the last 2 datapoints [0.0 (13/08/26 09:58:00), 0.0 (13/08/26 09:57:00)] were not greater than or equal to the threshold (1.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T09:59:35.371+0000\",\"startDate\":\"2026-08-13T09:57:00.000+0000\",\"statistic\":\"Maximum\",\"period\":60,\"recentDatapoints\":[0.0,0.0],\"threshold\":1.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T09:58:00.000+0000\",\"sampleCount\":1.0,\"value\":0.0}]}",
+          "StateUpdatedTimestamp": "2026-08-13T11:59:35.373000+02:00",
+          "MetricName": "StatusCheckFailed",
+          "Namespace": "AWS/EC2",
+          "Statistic": "Maximum",
+          "Dimensions": [
+            {
+              "Name": "InstanceId",
+              "Value": "i-04761ff3afba454ab"
+            }
+          ],
+          "Period": 60,
+          "EvaluationPeriods": 2,
+          "DatapointsToAlarm": 2,
+          "Threshold": 1,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "missing",
+          "StateTransitionedTimestamp": "2026-08-13T11:59:35.373000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-lambda-reader-ErrorAlarm-LYQ0MDSVds0W",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ErrorAlarm-LYQ0MDSVds0W",
+          "AlarmDescription": "Serverless Datahike reader returned Lambda errors.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-21T17:25:37.843000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [],
+          "AlarmActions": [],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [0.0 (24/08/26 10:33:00)] was not greater than the threshold (0.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-24T10:38:51.105+0000\",\"startDate\":\"2026-08-24T10:33:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[0.0],\"threshold\":0.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-24T10:33:00.000+0000\",\"sampleCount\":156.0,\"value\":0.0}]}",
+          "StateUpdatedTimestamp": "2026-08-24T12:38:51.107000+02:00",
+          "MetricName": "Errors",
+          "Namespace": "AWS/Lambda",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "FunctionName",
+              "Value": "demo-eacl-datahike-lambda-reader-reader"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 0,
+          "ComparisonOperator": "GreaterThanThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-24T12:38:51.107000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-lambda-reader-ProjectedMonthlyCostAlarm-n00U2sJ3c2dy",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ProjectedMonthlyCostAlarm-n00U2sJ3c2dy",
+          "AlarmDescription": "Projected reader Lambda request and compute cost exceeds $5/month.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-24T15:46:25.913000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [],
+          "AlarmActions": [],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: no datapoints were received for 1 period and 1 missing datapoint was treated as [NonBreaching].",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-21T15:26:40.113+0000\",\"period\":86400,\"recentDatapoints\":[],\"threshold\":5.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-20T15:26:00.000+0000\"}]}",
+          "StateUpdatedTimestamp": "2026-08-21T17:26:40.115000+02:00",
+          "Dimensions": [],
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 5,
+          "ComparisonOperator": "GreaterThanThreshold",
+          "TreatMissingData": "notBreaching",
+          "Metrics": [
+            {
+              "Id": "duration",
+              "MetricStat": {
+                "Metric": {
+                  "Namespace": "AWS/Lambda",
+                  "MetricName": "Duration",
+                  "Dimensions": [
+                    {
+                      "Name": "FunctionName",
+                      "Value": "demo-eacl-datahike-lambda-reader-reader"
+                    }
+                  ]
+                },
+                "Period": 86400,
+                "Stat": "Sum"
+              },
+              "ReturnData": false
+            },
+            {
+              "Id": "invocations",
+              "MetricStat": {
+                "Metric": {
+                  "Namespace": "AWS/Lambda",
+                  "MetricName": "Invocations",
+                  "Dimensions": [
+                    {
+                      "Name": "FunctionName",
+                      "Value": "demo-eacl-datahike-lambda-reader-reader"
+                    }
+                  ]
+                },
+                "Period": 86400,
+                "Stat": "Sum"
+              },
+              "ReturnData": false
+            },
+            {
+              "Id": "projected",
+              "Expression": "((duration/1000)*(1024/1024)*0.0000133334+(invocations*0.0000002))*31",
+              "Label": "Projected monthly Lambda USD",
+              "ReturnData": true
+            }
+          ],
+          "StateTransitionedTimestamp": "2026-08-21T17:26:40.115000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-lambda-reader-ThrottleAlarm-IIiA3UYHylYU",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ThrottleAlarm-IIiA3UYHylYU",
+          "AlarmDescription": "Serverless Datahike reader requests were throttled by AWS Lambda concurrency capacity.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-21T20:03:34.273000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [],
+          "AlarmActions": [],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [0.0 (24/08/26 13:36:00)] was not greater than the threshold (0.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-24T13:41:46.515+0000\",\"startDate\":\"2026-08-24T13:36:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[0.0],\"threshold\":0.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-24T13:36:00.000+0000\",\"sampleCount\":1.0,\"value\":0.0}]}",
+          "StateUpdatedTimestamp": "2026-08-24T15:41:46.516000+02:00",
+          "MetricName": "Throttles",
+          "Namespace": "AWS/Lambda",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "FunctionName",
+              "Value": "demo-eacl-datahike-lambda-reader-reader"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 0,
+          "ComparisonOperator": "GreaterThanThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-24T15:41:46.516000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-lambda-reader-UrlServerErrorAlarm-ymJnvBLvc90K",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-UrlServerErrorAlarm-ymJnvBLvc90K",
+          "AlarmDescription": "Public serverless reader URL returned a 5xx response.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-21T17:25:37.874000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [],
+          "AlarmActions": [],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: no datapoints were received for 1 period and 1 missing datapoint was treated as [NonBreaching].",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-24T15:18:15.284+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[],\"threshold\":0.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-24T15:13:00.000+0000\"}]}",
+          "StateUpdatedTimestamp": "2026-08-24T17:18:15.285000+02:00",
+          "MetricName": "Url5xxCount",
+          "Namespace": "AWS/Lambda",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "FunctionName",
+              "Value": "demo-eacl-datahike-lambda-reader-reader"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 0,
+          "ComparisonOperator": "GreaterThanThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-24T17:18:15.285000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-low-cpu-credits",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-low-cpu-credits",
+          "AlarmDescription": "T4g CPU credit balance remained at or below the reserve for ten minutes.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T12:05:31.720000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 2 datapoints [26.527743283333333 (13/08/26 09:54:00)] was not less than or equal to the threshold (24.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T09:59:59.092+0000\",\"startDate\":\"2026-08-13T09:49:00.000+0000\",\"statistic\":\"Average\",\"period\":300,\"recentDatapoints\":[23.54982255,26.527743283333333],\"threshold\":24.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T09:54:00.000+0000\",\"sampleCount\":1.0,\"value\":26.527743283333333}]}",
+          "StateUpdatedTimestamp": "2026-08-13T11:59:59.093000+02:00",
+          "MetricName": "CPUCreditBalance",
+          "Namespace": "AWS/EC2",
+          "Statistic": "Average",
+          "Dimensions": [
+            {
+              "Name": "InstanceId",
+              "Value": "i-04761ff3afba454ab"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 2,
+          "DatapointsToAlarm": 2,
+          "Threshold": 24,
+          "ComparisonOperator": "LessThanOrEqualToThreshold",
+          "TreatMissingData": "missing",
+          "StateTransitionedTimestamp": "2026-08-13T11:59:59.093000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-low-memory",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-low-memory",
+          "AlarmDescription": "Available host memory remained below 20 percent for five minutes, or memory telemetry stopped.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T12:05:31.662000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 5 datapoints [68.60405691189169 (13/08/26 10:01:00)] was not less than the threshold (20.0) and 4 missing datapoints were treated as [Breaching] (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T10:03:19.510+0000\",\"startDate\":\"2026-08-13T10:01:00.000+0000\",\"statistic\":\"Average\",\"period\":60,\"recentDatapoints\":[68.60405691189169],\"threshold\":20.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T10:01:00.000+0000\",\"sampleCount\":1.0,\"value\":68.60405691189169}]}",
+          "StateUpdatedTimestamp": "2026-08-13T12:03:19.512000+02:00",
+          "MetricName": "mem_available_percent",
+          "Namespace": "CWAgent",
+          "Statistic": "Average",
+          "Dimensions": [
+            {
+              "Name": "InstanceId",
+              "Value": "i-04761ff3afba454ab"
+            }
+          ],
+          "Period": 60,
+          "EvaluationPeriods": 5,
+          "DatapointsToAlarm": 5,
+          "Threshold": 20,
+          "ComparisonOperator": "LessThanThreshold",
+          "TreatMissingData": "breaching",
+          "StateTransitionedTimestamp": "2026-08-13T12:03:19.512000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-public-health-failed",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-public-health-failed",
+          "AlarmDescription": "Global Route53 health check could not reach the public HTTPS health endpoint.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T12:05:31.629000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 3 datapoints [1.0 (13/08/26 21:35:00)] was not less than the threshold (1.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T21:36:08.668+0000\",\"startDate\":\"2026-08-13T21:33:00.000+0000\",\"statistic\":\"Minimum\",\"period\":60,\"recentDatapoints\":[0.0,0.0,1.0],\"threshold\":1.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T21:35:00.000+0000\",\"sampleCount\":3.0,\"value\":1.0}]}",
+          "StateUpdatedTimestamp": "2026-08-13T23:36:08.670000+02:00",
+          "MetricName": "HealthCheckStatus",
+          "Namespace": "AWS/Route53",
+          "Statistic": "Minimum",
+          "Dimensions": [
+            {
+              "Name": "HealthCheckId",
+              "Value": "2a5202a6-60fb-45e4-9923-5a9786d664c1"
+            }
+          ],
+          "Period": 60,
+          "EvaluationPeriods": 3,
+          "DatapointsToAlarm": 3,
+          "Threshold": 1,
+          "ComparisonOperator": "LessThanThreshold",
+          "TreatMissingData": "breaching",
+          "StateTransitionedTimestamp": "2026-08-13T23:36:08.670000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-s3-get-cost-critical",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-get-cost-critical",
+          "AlarmDescription": "Datahike S3 GETs reached 31250 in five minutes, a $109.50/month request-cost run rate if sustained.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T16:48:55.126000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [29163.0 (13/08/26 19:59:00)] was not greater than or equal to the threshold (31250.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T20:04:50.149+0000\",\"startDate\":\"2026-08-13T19:59:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[29163.0],\"threshold\":31250.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T19:59:00.000+0000\",\"sampleCount\":29163.0,\"value\":29163.0}]}",
+          "StateUpdatedTimestamp": "2026-08-13T22:04:50.151000+02:00",
+          "MetricName": "GetRequests",
+          "Namespace": "AWS/S3",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "BucketName",
+              "Value": "demo-eacl-datahike-v2-843761893873-us-east-1"
+            },
+            {
+              "Name": "FilterId",
+              "Value": "DatahikeStore"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 31250,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-13T22:04:50.151000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-s3-get-cost-warning",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-get-cost-warning",
+          "AlarmDescription": "Datahike S3 GETs reached 10417 in five minutes, a $36.50/month request-cost run rate if sustained.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T16:48:55.224000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [7301.0 (24/08/26 14:11:00)] was not greater than or equal to the threshold (10417.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-24T14:16:58.028+0000\",\"startDate\":\"2026-08-24T14:11:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[7301.0],\"threshold\":10417.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-24T14:11:00.000+0000\",\"sampleCount\":7301.0,\"value\":7301.0}]}",
+          "StateUpdatedTimestamp": "2026-08-24T16:16:58.030000+02:00",
+          "MetricName": "GetRequests",
+          "Namespace": "AWS/S3",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "BucketName",
+              "Value": "demo-eacl-datahike-v2-843761893873-us-east-1"
+            },
+            {
+              "Name": "FilterId",
+              "Value": "DatahikeStore"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 10417,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-24T16:16:58.030000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-s3-put-cost-critical",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-put-cost-critical",
+          "AlarmDescription": "Datahike S3 PUTs reached 2500 in five minutes, a $109.50/month request-cost run rate if sustained.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T16:48:55.095000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [306.0 (13/08/26 16:49:00)] was not greater than or equal to the threshold (2500.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T16:54:35.653+0000\",\"startDate\":\"2026-08-13T16:49:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[306.0],\"threshold\":2500.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T16:49:00.000+0000\",\"sampleCount\":306.0,\"value\":306.0}]}",
+          "StateUpdatedTimestamp": "2026-08-13T18:54:35.656000+02:00",
+          "MetricName": "PutRequests",
+          "Namespace": "AWS/S3",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "BucketName",
+              "Value": "demo-eacl-datahike-v2-843761893873-us-east-1"
+            },
+            {
+              "Name": "FilterId",
+              "Value": "DatahikeStore"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 2500,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-13T18:54:35.656000+02:00"
+        },
+        {
+          "AlarmName": "demo-eacl-datahike-s3-put-cost-warning",
+          "AlarmArn": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-put-cost-warning",
+          "AlarmDescription": "Datahike S3 PUTs reached 834 in five minutes, a $36.50/month request-cost run rate if sustained.",
+          "AlarmConfigurationUpdatedTimestamp": "2026-08-13T16:48:55.093000+02:00",
+          "ActionsEnabled": true,
+          "OKActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "AlarmActions": [
+            "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms"
+          ],
+          "InsufficientDataActions": [],
+          "StateValue": "OK",
+          "StateReason": "Threshold Crossed: 1 out of the last 1 datapoints [306.0 (13/08/26 16:49:00)] was not greater than or equal to the threshold (834.0) (minimum 1 datapoint for ALARM -> OK transition).",
+          "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-08-13T16:54:39.786+0000\",\"startDate\":\"2026-08-13T16:49:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[306.0],\"threshold\":834.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-08-13T16:49:00.000+0000\",\"sampleCount\":306.0,\"value\":306.0}]}",
+          "StateUpdatedTimestamp": "2026-08-13T18:54:39.789000+02:00",
+          "MetricName": "PutRequests",
+          "Namespace": "AWS/S3",
+          "Statistic": "Sum",
+          "Dimensions": [
+            {
+              "Name": "BucketName",
+              "Value": "demo-eacl-datahike-v2-843761893873-us-east-1"
+            },
+            {
+              "Name": "FilterId",
+              "Value": "DatahikeStore"
+            }
+          ],
+          "Period": 300,
+          "EvaluationPeriods": 1,
+          "DatapointsToAlarm": 1,
+          "Threshold": 834,
+          "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+          "TreatMissingData": "notBreaching",
+          "StateTransitionedTimestamp": "2026-08-13T18:54:39.789000+02:00"
+        }
+      ],
+      "compositeAlarms": []
+    },
+    "topics": [
+      {
+        "TopicArn": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms",
+        "subscriptions": [
+          {
+            "SubscriptionArn": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms:dd7b233f-c3d7-48af-948f-0c8e450c645d",
+            "Protocol": "lambda",
+            "Endpoint": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-capacity-controller",
+            "Owner": "843761893873"
+          },
+          {
+            "SubscriptionArn": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms:25819dda-0dbd-484e-8944-07617f952db6",
+            "Protocol": "lambda",
+            "Endpoint": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-telegram-notifier",
+            "Owner": "843761893873"
+          }
+        ]
+      }
+    ],
+    "secrets": [
+      {
+        "ARN": "arn:aws:secretsmanager:us-east-1:843761893873:secret:demo/eacl/datahike/telegram-oM4WGQ",
+        "Name": "demo/eacl/datahike/telegram",
+        "Description": "Telegram bot token for EACL Datahike CloudWatch notifications.",
+        "LastChangedDate": "2026-08-13T11:59:51.203000+02:00",
+        "LastAccessedDate": "2026-08-24T02:00:00+02:00",
+        "CreatedDate": "2026-08-13T11:58:24.719000+02:00",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "TelegramBotToken"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-telegram"
+          }
+        ],
+        "valueCaptured": false
+      }
+    ],
+    "taggedResources": [
+      {
+        "ResourceARN": "arn:aws:s3:::demo-eacl-datahike-843761893873-us-east-1",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-serverless-domain"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-serverless-domain/6f25f3a0-9d87-11f1-9107-12826034c1f1"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DomainCertificate"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-public-health-failed",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "PublicHealthAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-public-health-failed"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-put-cost-critical",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "S3PutCostCriticalAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-s3-put-cost-critical"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:route-table/rtb-0be9407b918905318",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "PublicRouteTable"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike.routes"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:logs:us-east-1:843761893873:log-group:/aws/lambda/demo-eacl-datahike-capacity-controller",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "CapacityControllerLogGroup"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-capacity-controller"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-get-cost-critical",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "S3GetCostCriticalAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-s3-get-cost-critical"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-put-cost-warning",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "S3PutCostWarningAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-s3-put-cost-warning"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ProjectedMonthlyCostAlarm-n00U2sJ3c2dy",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ProjectedMonthlyCostAlarm"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch::843761893873:dashboard/demo-eacl-datahike-lambda-reader-reader",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "OperationsDashboard"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-capacity-controller",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "CapacityControllerFunction"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-capacity-controller"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DataBucket"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-instance-unresponsive",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "InstanceStatusAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-instance-unresponsive"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:subnet/subnet-0bf3ebe11472453b6",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "PublicSubnet"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike.public"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:vpc-endpoint/vpce-0f4da2496adcf8004",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "S3GatewayEndpoint"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:logs:us-east-1:843761893873:log-group:/aws/lambda/demo-eacl-datahike-telegram-notifier",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "NotifierLogGroup"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-telegram-notifier"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:secretsmanager:us-east-1:843761893873:secret:demo/eacl/datahike/telegram-oM4WGQ",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "TelegramBotToken"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-telegram"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-low-cpu-credits",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "CpuCreditAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-low-cpu-credits"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-low-memory",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "MemoryPressureAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-low-memory"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:s3:::demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-serverless-domain"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-serverless-domain/6f25f3a0-9d87-11f1-9107-12826034c1f1"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-static-ui"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "StaticSiteBucket"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:sns:us-east-1:843761893873:demo-eacl-datahike-alarms",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "AlarmTopic"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-alarms"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-serverless-domain/6f25f3a0-9d87-11f1-9107-12826034c1f1",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudfront::843761893873:distribution/EYDAU1XQ7KZLQ",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-capacity-controller-failed",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "CapacityControllerErrorAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-capacity-controller-failed"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:vpc/vpc-04d77fa150bcd3ed0",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DemoVpc"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike.vpc"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-telegram-notifier",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "NotifierFunction"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-telegram-notifier"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ErrorAlarm-LYQ0MDSVds0W",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ErrorAlarm"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:internet-gateway/igw-0d349cabe0dd9bb5f",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "InternetGateway"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike.igw"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ssm:us-east-1:843761893873:document/demo-eacl-datahike-capacity-suspend",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "CapacitySuspendDocument"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-capacity-suspend"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f",
+        "Tags": []
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-ThrottleAlarm-IIiA3UYHylYU",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ThrottleAlarm"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:instance/i-04761ff3afba454ab",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DemoInstance"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:key-pair/key-07cda2924941c127e",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-operator"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "CostCenter",
+            "Value": "eacl-datahike-serverless"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ReaderFunction"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-lambda-reader-UrlServerErrorAlarm-ymJnvBLvc90K",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "UrlServerErrorAlarm"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:elastic-ip/eipalloc-0bd76345f5c728f34",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DemoElasticIp"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-high-cpu",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "HighCpuAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-high-cpu"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:route53:::healthcheck/2a5202a6-60fb-45e4-9923-5a9786d664c1",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-public-health"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:ec2:us-east-1:843761893873:security-group/sg-0afe95e621ee18ff0",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "InstanceSecurityGroup"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudfront::843761893873:function/demo-eacl-datahike-serverless-domain-static-rewrite",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch:us-east-1:843761893873:alarm:demo-eacl-datahike-s3-get-cost-warning",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "S3GetCostWarningAlarm"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike-s3-get-cost-warning"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:cloudwatch::843761893873:dashboard/demo-eacl-datahike",
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-monitoring"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-monitoring/69ff5730-96fd-11f1-93f6-121a4259779f"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "MonitoringDashboard"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:logs:us-east-1:843761893873:log-group:/aws/lambda/demo-eacl-datahike-lambda-reader-reader",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ReaderLogGroup"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          }
+        ]
+      },
+      {
+        "ResourceARN": "arn:aws:s3express:us-east-1:843761893873:bucket/demo-eacl-datahik-readercachebucke-fucenilrmipn--use1-az4--x-s3",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike-lambda-reader"
+          },
+          {
+            "Key": "Contents",
+            "Value": "one-last-write-wins-eacl-cache-object"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-lambda-reader/78530570-9d74-11f1-b0ff-121e41b6e761"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-reader"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "ReaderCacheBucket"
+          }
+        ]
+      }
+    ],
+    "distributions": [
+      {
+        "Id": "EYDAU1XQ7KZLQ",
+        "ARN": "arn:aws:cloudfront::843761893873:distribution/EYDAU1XQ7KZLQ",
+        "Status": "Deployed",
+        "DomainName": "d1hfgknwkzo8a1.cloudfront.net",
+        "LastModifiedTime": "2026-08-24T15:00:16.578000+00:00",
+        "Enabled": true,
+        "Aliases": {
+          "Quantity": 1,
+          "Items": [
+            "serverless-datahike.demo.eacl.dev"
+          ]
+        },
+        "Origins": {
+          "Quantity": 2,
+          "Items": [
+            {
+              "Id": "LambdaLiveOrigin",
+              "DomainName": "5tqpr2yjsrujdabeix6gfkis540xoplq.lambda-url.us-east-1.on.aws",
+              "OriginPath": "",
+              "CustomHeaders": {
+                "Quantity": 0
+              },
+              "CustomOriginConfig": {
+                "HTTPPort": 80,
+                "HTTPSPort": 443,
+                "OriginProtocolPolicy": "https-only",
+                "OriginSslProtocols": {
+                  "Quantity": 1,
+                  "Items": [
+                    "TLSv1.2"
+                  ]
+                },
+                "OriginReadTimeout": 60,
+                "OriginKeepaliveTimeout": 60
+              },
+              "ConnectionAttempts": 3,
+              "ConnectionTimeout": 10,
+              "OriginShield": {
+                "Enabled": false
+              },
+              "OriginAccessControlId": ""
+            },
+            {
+              "Id": "StaticSiteOrigin",
+              "DomainName": "demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo.s3.us-east-1.amazonaws.com",
+              "OriginPath": "",
+              "CustomHeaders": {
+                "Quantity": 0
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": "",
+                "OriginReadTimeout": 30
+              },
+              "ConnectionAttempts": 3,
+              "ConnectionTimeout": 10,
+              "OriginShield": {
+                "Enabled": false
+              },
+              "OriginAccessControlId": "E29VKUK6WR2RQ0"
+            }
+          ]
+        },
+        "DefaultCacheBehavior": {
+          "TargetOriginId": "StaticSiteOrigin",
+          "TrustedSigners": {
+            "Enabled": false,
+            "Quantity": 0
+          },
+          "TrustedKeyGroups": {
+            "Enabled": false,
+            "Quantity": 0
+          },
+          "ViewerProtocolPolicy": "redirect-to-https",
+          "AllowedMethods": {
+            "Quantity": 3,
+            "Items": [
+              "HEAD",
+              "GET",
+              "OPTIONS"
+            ],
+            "CachedMethods": {
+              "Quantity": 3,
+              "Items": [
+                "HEAD",
+                "GET",
+                "OPTIONS"
+              ]
+            }
+          },
+          "SmoothStreaming": false,
+          "Compress": true,
+          "LambdaFunctionAssociations": {
+            "Quantity": 0
+          },
+          "FunctionAssociations": {
+            "Quantity": 1,
+            "Items": [
+              {
+                "FunctionARN": "arn:aws:cloudfront::843761893873:function/demo-eacl-datahike-serverless-domain-static-rewrite",
+                "EventType": "viewer-request"
+              }
+            ]
+          },
+          "FieldLevelEncryptionId": "",
+          "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+          "ResponseHeadersPolicyId": "67f7725c-6f97-4210-82d7-5512b31e9d03",
+          "GrpcConfig": {
+            "Enabled": false
+          }
+        },
+        "CacheBehaviors": {
+          "Quantity": 2,
+          "Items": [
+            {
+              "PathPattern": "/datahike/assets/*",
+              "TargetOriginId": "StaticSiteOrigin",
+              "TrustedSigners": {
+                "Enabled": false,
+                "Quantity": 0
+              },
+              "TrustedKeyGroups": {
+                "Enabled": false,
+                "Quantity": 0
+              },
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": {
+                "Quantity": 3,
+                "Items": [
+                  "HEAD",
+                  "GET",
+                  "OPTIONS"
+                ],
+                "CachedMethods": {
+                  "Quantity": 3,
+                  "Items": [
+                    "HEAD",
+                    "GET",
+                    "OPTIONS"
+                  ]
+                }
+              },
+              "SmoothStreaming": false,
+              "Compress": true,
+              "LambdaFunctionAssociations": {
+                "Quantity": 0
+              },
+              "FunctionAssociations": {
+                "Quantity": 0
+              },
+              "FieldLevelEncryptionId": "",
+              "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+              "ResponseHeadersPolicyId": "67f7725c-6f97-4210-82d7-5512b31e9d03",
+              "GrpcConfig": {
+                "Enabled": false
+              }
+            },
+            {
+              "PathPattern": "/datahike/api/*",
+              "TargetOriginId": "LambdaLiveOrigin",
+              "TrustedSigners": {
+                "Enabled": false,
+                "Quantity": 0
+              },
+              "TrustedKeyGroups": {
+                "Enabled": false,
+                "Quantity": 0
+              },
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": {
+                "Quantity": 7,
+                "Items": [
+                  "HEAD",
+                  "DELETE",
+                  "POST",
+                  "GET",
+                  "OPTIONS",
+                  "PUT",
+                  "PATCH"
+                ],
+                "CachedMethods": {
+                  "Quantity": 3,
+                  "Items": [
+                    "HEAD",
+                    "GET",
+                    "OPTIONS"
+                  ]
+                }
+              },
+              "SmoothStreaming": false,
+              "Compress": true,
+              "LambdaFunctionAssociations": {
+                "Quantity": 0
+              },
+              "FunctionAssociations": {
+                "Quantity": 0
+              },
+              "FieldLevelEncryptionId": "",
+              "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+              "OriginRequestPolicyId": "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+              "ResponseHeadersPolicyId": "67f7725c-6f97-4210-82d7-5512b31e9d03",
+              "GrpcConfig": {
+                "Enabled": false
+              }
+            }
+          ]
+        },
+        "ViewerCertificate": {
+          "CloudFrontDefaultCertificate": false,
+          "ACMCertificateArn": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+          "SSLSupportMethod": "sni-only",
+          "MinimumProtocolVersion": "TLSv1.2_2021",
+          "Certificate": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+          "CertificateSource": "acm"
+        }
+      }
+    ],
+    "hostedZones": [
+      {
+        "zone": {
+          "Id": "/hostedzone/Z05228481ZHF8BAKXOZB2",
+          "Name": "eacl.dev.",
+          "CallerReference": "48ce9e9f-333b-4c86-bee3-6298460e134e",
+          "Config": {
+            "Comment": "EACL: Enterprise Access ControL",
+            "PrivateZone": false
+          },
+          "ResourceRecordSetCount": 11
+        },
+        "records": [
+          {
+            "Name": "eacl.dev.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "185.199.108.153"
+              },
+              {
+                "Value": "185.199.109.153"
+              },
+              {
+                "Value": "185.199.110.153"
+              },
+              {
+                "Value": "185.199.111.153"
+              }
+            ]
+          },
+          {
+            "Name": "eacl.dev.",
+            "Type": "AAAA",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "2606:50c0:8000::153"
+              },
+              {
+                "Value": "2606:50c0:8001::153"
+              },
+              {
+                "Value": "2606:50c0:8002::153"
+              },
+              {
+                "Value": "2606:50c0:8003::153"
+              }
+            ]
+          },
+          {
+            "Name": "eacl.dev.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+              {
+                "Value": "ns-849.awsdns-42.net."
+              },
+              {
+                "Value": "ns-1168.awsdns-18.org."
+              },
+              {
+                "Value": "ns-54.awsdns-06.com."
+              },
+              {
+                "Value": "ns-2026.awsdns-61.co.uk."
+              }
+            ]
+          },
+          {
+            "Name": "eacl.dev.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+              {
+                "Value": "ns-849.awsdns-42.net. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+              }
+            ]
+          },
+          {
+            "Name": "demo.eacl.dev.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "54.163.189.23"
+              }
+            ]
+          },
+          {
+            "Name": "serverless-datahike.demo.eacl.dev.",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "d1hfgknwkzo8a1.cloudfront.net.",
+              "EvaluateTargetHealth": false
+            }
+          },
+          {
+            "Name": "serverless-datahike.demo.eacl.dev.",
+            "Type": "AAAA",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "d1hfgknwkzo8a1.cloudfront.net.",
+              "EvaluateTargetHealth": false
+            }
+          },
+          {
+            "Name": "_9f3dac70e26bf058d481b2298319dcc9.serverless-datahike.demo.eacl.dev.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "_5e86304b9bfa27c6af537b09085a286a.jkddzztszm.acm-validations.aws."
+              }
+            ]
+          },
+          {
+            "Name": "explorer.eacl.dev.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "theronic.github.io"
+              }
+            ]
+          },
+          {
+            "Name": "www.eacl.dev.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+              {
+                "Value": "eacl.dev"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "certificates": [
+      {
+        "CertificateArn": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+        "DomainName": "serverless-datahike.demo.eacl.dev",
+        "SubjectAlternativeNames": [
+          "serverless-datahike.demo.eacl.dev"
+        ],
+        "Status": "ISSUED",
+        "Type": "AMAZON_ISSUED",
+        "KeyAlgorithm": "RSA-2048",
+        "SignatureAlgorithm": "SHA256WITHRSA",
+        "InUseBy": [
+          "arn:aws:cloudfront::843761893873:distribution/EYDAU1XQ7KZLQ"
+        ],
+        "NotBefore": "2026-08-21T02:00:00+02:00",
+        "NotAfter": "2027-03-07T01:59:59+02:00",
+        "RenewalEligibility": "ELIGIBLE"
+      }
+    ],
+    "instances": [
+      {
+        "InstanceId": "i-04761ff3afba454ab",
+        "InstanceType": "t4g.large",
+        "ImageId": "ami-02c4144237becae44",
+        "Architecture": "arm64",
+        "LaunchTime": "2026-08-13T09:06:16+00:00",
+        "State": {
+          "Code": 16,
+          "Name": "running"
+        },
+        "IamInstanceProfile": {
+          "Arn": "arn:aws:iam::843761893873:instance-profile/demo-eacl-datahike-DatahikeInstanceProfile-ccCHz4mCpcxN",
+          "Id": "AIPA4I5BAYHY7T2TLM4FJ"
+        },
+        "SubnetId": "subnet-0bf3ebe11472453b6",
+        "VpcId": "vpc-04d77fa150bcd3ed0",
+        "SecurityGroups": [
+          {
+            "GroupId": "sg-0afe95e621ee18ff0",
+            "GroupName": "demo-eacl-datahike-InstanceSecurityGroup-hPzK2qZ4b3eO"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DemoInstance"
+          },
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "AttachTime": "2026-08-13T09:06:16+00:00",
+              "DeleteOnTermination": true,
+              "Status": "attached",
+              "VolumeId": "vol-0f89b55a3ce8a0b69",
+              "EbsCardIndex": 0
+            }
+          }
+        ]
+      }
+    ],
+    "volumes": [
+      {
+        "VolumeId": "vol-0f89b55a3ce8a0b69",
+        "AvailabilityZone": "us-east-1a",
+        "CreateTime": "2026-08-13T09:06:17.007000+00:00",
+        "Encrypted": true,
+        "KmsKeyId": "[aws-managed-or-customer-key-arn-redacted]",
+        "Size": 20,
+        "SnapshotId": "snap-01f98e274548cbfd4",
+        "State": "in-use",
+        "VolumeType": "gp3",
+        "Attachments": [
+          {
+            "DeleteOnTermination": true,
+            "EbsCardIndex": 0,
+            "VolumeId": "vol-0f89b55a3ce8a0b69",
+            "InstanceId": "i-04761ff3afba454ab",
+            "Device": "/dev/sda1",
+            "State": "attached",
+            "AttachTime": "2026-08-13T09:06:16+00:00"
+          }
+        ]
+      }
+    ],
+    "addresses": [
+      {
+        "AllocationId": "eipalloc-0bd76345f5c728f34",
+        "AssociationId": "eipassoc-02e8ad13a6bd208e7",
+        "Domain": "vpc",
+        "InstanceId": "i-04761ff3afba454ab",
+        "NetworkInterfaceId": "eni-095ff9e2d334c6b58",
+        "PublicIp": "54.163.189.23",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "aws:cloudformation:stack-name",
+            "Value": "demo-eacl-datahike"
+          },
+          {
+            "Key": "aws:cloudformation:stack-id",
+            "Value": "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike/65066220-9660-11f1-9f9d-1296f31f05d1"
+          },
+          {
+            "Key": "aws:cloudformation:logical-id",
+            "Value": "DemoElasticIp"
+          },
+          {
+            "Key": "Name",
+            "Value": "demo-eacl-datahike"
+          }
+        ]
+      }
+    ],
+    "snapshots": [],
+    "images": [],
+    "backupVaults": [],
+    "budgets": [],
+    "anomalyMonitors": [],
+    "anomalySubscriptions": []
+  },
+  "publicIdentities": [
+    {
+      "hostname": "demo.eacl.dev",
+      "addresses": [
+        "54.163.189.23"
+      ]
+    },
+    {
+      "hostname": "serverless-datahike.demo.eacl.dev",
+      "addresses": [
+        "52.85.25.68",
+        "52.85.25.107",
+        "52.85.25.54",
+        "52.85.25.38"
+      ]
+    },
+    {
+      "hostname": "explorer.eacl.dev",
+      "addresses": [
+        "theronic.github.io.",
+        "185.199.111.153",
+        "185.199.108.153",
+        "185.199.110.153",
+        "185.199.109.153"
+      ]
+    }
+  ],
+  "commandFailures": {}
+}

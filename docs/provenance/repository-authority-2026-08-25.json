@@ -1,0 +1,48 @@
+{
+  "schema": "eacl-demo.repository-authority.v1",
+  "verifiedAt": "2026-08-25T10:10:33Z",
+  "canonicalRepository": "theronic/eacl-demo",
+  "local": {
+    "directory": "/Users/petrus/code/eacl/eacl-demo",
+    "insideWorkTree": true,
+    "branch": "main",
+    "head": null,
+    "unborn": true,
+    "origin": {
+      "fetch": "https://github.com/theronic/eacl-demo.git",
+      "push": "https://github.com/theronic/eacl-demo.git"
+    }
+  },
+  "github": {
+    "id": 1345904214,
+    "nodeId": "R_kgDOUDjeVg",
+    "name": "eacl-demo",
+    "fullName": "theronic/eacl-demo",
+    "private": false,
+    "owner": {
+      "login": "theronic",
+      "id": 1011676,
+      "nodeId": "MDQ6VXNlcjEwMTE2NzY=",
+      "type": "User"
+    },
+    "htmlUrl": "https://github.com/theronic/eacl-demo",
+    "apiUrl": "https://api.github.com/repos/theronic/eacl-demo",
+    "defaultBranch": "main",
+    "archived": false,
+    "disabled": false,
+    "visibility": "public",
+    "createdAt": "2026-08-25T09:00:21Z"
+  },
+  "remoteProbe": {
+    "lsRemoteSucceeded": true,
+    "refs": [],
+    "interpretation": "The GitHub repository is reachable and empty; the local repository is likewise unborn."
+  },
+  "authority": {
+    "productCode": "theronic/eacl-demo",
+    "deploymentWorkflow": "theronic/eacl-demo",
+    "deploymentBranch": "demos",
+    "eaclCore": "dependency-only through the exact reachable commit pinned by each eacl-demo revision",
+    "siblingRepositories": "evidence, extraction sources, or immutable dependencies only; never deployment authorities"
+  }
+}

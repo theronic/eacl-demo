@@ -1,0 +1,32 @@
+{
+  "data": {
+    "status": "ready",
+    "datahike": {
+      "revision": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+      "storeBackend": "s3",
+      "freshness": "retained-snapshot"
+    }
+  },
+  "meta": {
+    "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+    "requestId": "40962444-9d0b-4ee0-a40e-261269fe8dbf",
+    "basis": {
+      "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+      "branch": "db",
+      "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+      "revision": 536872941,
+      "sourceId": {
+        "storeBackend": "s3",
+        "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+      },
+      "backend": "datahike",
+      "kind": "ordinary",
+      "sourceLifecycle": {
+        "application": "eacl-datahike-demo",
+        "storeBackend": "s3",
+        "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+      },
+      "capturedAt": "2026-08-25T10:06:55.413022045Z"
+    }
+  }
+}

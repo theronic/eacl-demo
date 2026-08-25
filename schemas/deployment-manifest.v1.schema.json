@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/deployment-manifest.v1.schema.json",
+  "title": "EACL demo deployment manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "contractVersion",
+    "deploymentId",
+    "generatedAt",
+    "demo",
+    "eacl",
+    "artifacts",
+    "profiles"
+  ],
+  "properties": {
+    "schema": {
+      "const": "eacl-demo.deployment-manifest.v1"
+    },
+    "contractVersion": {
+      "const": "explorer.v1"
+    },
+    "deploymentId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}-[0-9a-f]{12}$"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "demo": {
+      "$ref": "#/$defs/demoSource"
+    },
+    "eacl": {
+      "$ref": "#/$defs/eaclSource"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "demoSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "sha"],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/theronic/eacl-demo.git"
+        },
+        "sha": {
+          "$ref": "#/$defs/sha1"
+        }
+      }
+    },
+    "eaclSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "sha", "lock"],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/theronic/eacl.git"
+        },
+        "sha": {
+          "$ref": "#/$defs/sha1"
+        },
+        "lock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "committedAtDemoSha"],
+          "properties": {
+            "path": {
+              "const": "dependencies/eacl-core.lock.json"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "committedAtDemoSha": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "sha256"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

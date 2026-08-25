@@ -1,0 +1,303 @@
+{
+  "data": {
+    "capabilities": {
+      "schemaWrite": false,
+      "seedWrite": false,
+      "cacheEvict": false
+    },
+    "quickSubjects": [
+      {
+        "id": "super-user",
+        "label": "Super user"
+      },
+      {
+        "id": "user-1",
+        "label": "User 1"
+      },
+      {
+        "id": "user-2",
+        "label": "User 2"
+      }
+    ],
+    "totals": {
+      "servers": 1000000,
+      "accounts": 228,
+      "teams": 903,
+      "vpcs": 452,
+      "users": 1586
+    },
+    "pageSizeOptions": [
+      10,
+      20,
+      50,
+      100,
+      250,
+      500,
+      1000
+    ],
+    "schema": {
+      "relationCount": 13,
+      "permissionCount": 20,
+      "childPaths": {
+        "user": [
+          {
+            "resourceType": "account",
+            "relation": "owner"
+          },
+          {
+            "resourceType": "platform",
+            "relation": "super_admin"
+          },
+          {
+            "resourceType": "server",
+            "relation": "shared_admin"
+          },
+          {
+            "resourceType": "team",
+            "relation": "leader"
+          },
+          {
+            "resourceType": "vpc",
+            "relation": "shared_admin"
+          }
+        ],
+        "account": [
+          {
+            "resourceType": "account",
+            "relation": "parent"
+          },
+          {
+            "resourceType": "server",
+            "relation": "account"
+          },
+          {
+            "resourceType": "team",
+            "relation": "account"
+          },
+          {
+            "resourceType": "vpc",
+            "relation": "account"
+          }
+        ],
+        "platform": [
+          {
+            "resourceType": "account",
+            "relation": "platform"
+          }
+        ],
+        "server": [
+          {
+            "resourceType": "server",
+            "relation": "parent"
+          }
+        ],
+        "team": [
+          {
+            "resourceType": "server",
+            "relation": "team"
+          }
+        ],
+        "vpc": [
+          {
+            "resourceType": "server",
+            "relation": "vpc"
+          }
+        ]
+      },
+      "links": [
+        {
+          "source": "account",
+          "target": "user",
+          "label": "owner"
+        },
+        {
+          "source": "account",
+          "target": "account",
+          "label": "parent"
+        },
+        {
+          "source": "account",
+          "target": "platform",
+          "label": "platform"
+        },
+        {
+          "source": "platform",
+          "target": "user",
+          "label": "super_admin"
+        },
+        {
+          "source": "server",
+          "target": "account",
+          "label": "account"
+        },
+        {
+          "source": "server",
+          "target": "server",
+          "label": "parent"
+        },
+        {
+          "source": "server",
+          "target": "user",
+          "label": "shared_admin"
+        },
+        {
+          "source": "server",
+          "target": "team",
+          "label": "team"
+        },
+        {
+          "source": "server",
+          "target": "vpc",
+          "label": "vpc"
+        },
+        {
+          "source": "team",
+          "target": "account",
+          "label": "account"
+        },
+        {
+          "source": "team",
+          "target": "user",
+          "label": "leader"
+        },
+        {
+          "source": "vpc",
+          "target": "account",
+          "label": "account"
+        },
+        {
+          "source": "vpc",
+          "target": "user",
+          "label": "shared_admin"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "account",
+          "permissions": [
+            "admin",
+            "view"
+          ]
+        },
+        {
+          "id": "platform",
+          "permissions": [
+            "view"
+          ]
+        },
+        {
+          "id": "server",
+          "permissions": [
+            "admin",
+            "view"
+          ]
+        },
+        {
+          "id": "team",
+          "permissions": [
+            "admin",
+            "view"
+          ]
+        },
+        {
+          "id": "user",
+          "permissions": []
+        },
+        {
+          "id": "vpc",
+          "permissions": [
+            "admin",
+            "view"
+          ]
+        }
+      ],
+      "source": "definition user {}\n\ndefinition platform {\n  relation super_admin: user\n  permission view = super_admin\n}\n\ndefinition account {\n  relation owner: user\n  relation platform: platform\n  relation parent: account\n\n  permission admin = owner + parent->admin + platform->super_admin\n  permission view = admin + parent->admin\n}\n\ndefinition team {\n  relation account: account\n  relation leader: user\n\n  permission admin = account->admin + leader\n  permission view = admin\n}\n\ndefinition vpc {\n  relation account: account\n  relation shared_admin: user\n\n  permission admin = account->admin + shared_admin\n  permission view = admin\n}\n\ndefinition server {\n  relation account: account\n  relation team: team\n  relation vpc: vpc\n  relation shared_admin: user\n  relation parent: server\n\n  permission admin = account->admin + shared_admin\n  permission view = admin + parent->view + account->view + team->view + vpc->view + shared_admin\n}",
+      "resourceTypes": [
+        "account",
+        "platform",
+        "server",
+        "team",
+        "vpc"
+      ],
+      "permissionsByType": {
+        "account": [
+          "admin",
+          "view"
+        ],
+        "platform": [
+          "view"
+        ],
+        "server": [
+          "admin",
+          "view"
+        ],
+        "team": [
+          "admin",
+          "view"
+        ],
+        "vpc": [
+          "admin",
+          "view"
+        ]
+      },
+      "presets": [
+        {
+          "id": "default",
+          "label": "Non-recursive",
+          "schema": "definition user {}\n\ndefinition platform {\n  relation super_admin: user\n  permission view = super_admin\n}\n\ndefinition account {\n  relation owner: user\n  relation platform: platform\n\n  permission admin = owner + platform->super_admin\n  permission view = admin\n}\n\ndefinition team {\n  relation account: account\n  relation leader: user\n\n  permission admin = account->admin + leader\n  permission view = admin\n}\n\ndefinition vpc {\n  relation account: account\n  relation shared_admin: user\n\n  permission admin = account->admin + shared_admin\n  permission view = admin\n}\n\ndefinition server {\n  relation account: account\n  relation team: team\n  relation vpc: vpc\n  relation shared_admin: user\n\n  permission admin = account->admin + shared_admin\n  permission view = admin + account->view + team->view + vpc->view + shared_admin\n}"
+        },
+        {
+          "id": "recursive",
+          "label": "Recursive",
+          "schema": "definition user {}\n\ndefinition platform {\n  relation super_admin: user\n  permission view = super_admin\n}\n\ndefinition account {\n  relation owner: user\n  relation platform: platform\n  relation parent: account\n\n  permission admin = owner + parent->admin + platform->super_admin\n  permission view = admin + parent->admin\n}\n\ndefinition team {\n  relation account: account\n  relation leader: user\n\n  permission admin = account->admin + leader\n  permission view = admin\n}\n\ndefinition vpc {\n  relation account: account\n  relation shared_admin: user\n\n  permission admin = account->admin + shared_admin\n  permission view = admin\n}\n\ndefinition server {\n  relation account: account\n  relation team: team\n  relation vpc: vpc\n  relation shared_admin: user\n  relation parent: server\n\n  permission admin = account->admin + shared_admin\n  permission view = admin + parent->view + account->view + team->view + vpc->view + shared_admin\n}"
+        }
+      ],
+      "resourceCount": 6
+    },
+    "seed": {
+      "status": "ready",
+      "serversAdded": 0,
+      "serversCompleted": 0,
+      "serversTarget": 0,
+      "totalServers": 1000000,
+      "label": null,
+      "error": null
+    },
+    "status": "ready",
+    "consistency": {
+      "default": "minimize-latency",
+      "supported": [
+        "at-exact-snapshot",
+        "at-least-as-fresh",
+        "minimize-latency"
+      ],
+      "fullyConsistent": false,
+      "fullyConsistentReason": "Each reader process retains its own snapshot. Refresh captures the latest head visible to the process handling that request; browser-wide exact pinning requires retained commit history and basis-token propagation.",
+      "atExactSnapshotDateSelection": false,
+      "atExactSnapshotDateSelectionReason": "Unavailable: this Datahike database was created with :keep-history? false; d/as-of requires :keep-history? true."
+    },
+    "defaultPageSize": 20
+  },
+  "meta": {
+    "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+    "requestId": "c1903492-3601-4cc8-8cf0-1599651dfec9",
+    "basis": {
+      "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+      "branch": "db",
+      "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+      "revision": 536872941,
+      "sourceId": {
+        "storeBackend": "s3",
+        "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+      },
+      "backend": "datahike",
+      "kind": "ordinary",
+      "sourceLifecycle": {
+        "application": "eacl-datahike-demo",
+        "storeBackend": "s3",
+        "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+      },
+      "capturedAt": "2026-08-25T10:06:55.413022045Z"
+    }
+  }
+}

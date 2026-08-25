@@ -1,0 +1,88 @@
+{
+  "schema": "eacl-demo.build-status.v1",
+  "capturedAt": "2026-08-25T09:54:32Z",
+  "environment": {
+    "os": "Darwin 26.4.1",
+    "architecture": "arm64",
+    "node": "v25.9.0",
+    "npm": "11.12.1",
+    "java": "OpenJDK 26.0.2",
+    "clojureCli": "1.12.5.1645"
+  },
+  "method": {
+    "siblingProtection": "Builds ran from disposable rsync mirrors unless an existing project nREPL was required. No source checkout was cleaned, reset, staged, committed, or overwritten.",
+    "clojureTests": "Clojure tests and namespace compilation were invoked through nREPL with :reload.",
+    "interpretation": "A passing Darwin arm64 build is source-state evidence only and does not qualify any Linux or Lambda artifact."
+  },
+  "results": {
+    "eacl-core": {
+      "status": "failed",
+      "command": "clj-nrepl-eval CI-equivalent cognitect.test-runner battery through existing port 7794",
+      "summary": "846 tests and 46,325 assertions ran; 5 failures and 0 errors.",
+      "details": [
+        "eacl.characterization-fixture-test/generated-conversion-boundary-is-complete-and-cross-runtime-test reported missing required :clj-java converters.",
+        "eacl.formal.mutation-control-test/registry-mechanisms-name-and-execute-their-targets-test reported one surviving generated-java-boundary-restores-reflection mutant and a 34/35 score, producing four assertions failures."
+      ]
+    },
+    "datahike-demo": {
+      "status": "passed",
+      "command": "npm run build in a disposable mirror",
+      "summary": "SolidJS client production build and Clojure tools.build uberjar completed successfully.",
+      "details": [
+        "Vite transformed 589 modules.",
+        "The server resolved mutable 8.0.0-SNAPSHOT EACL artifacts from Clojars; this is buildable but not an acceptable release lock."
+      ]
+    },
+    "datomic-demo": {
+      "status": "passed",
+      "command": "npm run build in a disposable mirror; server tests through existing nREPL port 8898 with every test namespace reloaded",
+      "summary": "SolidJS client built; 21 server tests and 128 assertions passed with 0 failures and 0 errors.",
+      "details": [
+        "The repository's npm build covers the client only, so the server nREPL battery was run separately."
+      ]
+    },
+    "datalevin-demo": {
+      "status": "failed",
+      "command": "npm run build in a disposable mirror with the current Core checkout mounted at the declared local-root location",
+      "summary": "SolidJS client built, but Clojure tools.build uberjar compilation failed.",
+      "details": [
+        "eacl-datahike-demo.storage-gc could not locate clojure.core.async on the declared classpath.",
+        "The current local-root dependency closure is incomplete and cannot be treated as a clean remote-consumer release."
+      ]
+    },
+    "jank-demo": {
+      "status": "passed-host-only",
+      "command": "./bin/verify-toolchain; ./bin/check-build; npm run demo:build in a disposable mirror",
+      "summary": "Pinned toolchain, source audit, OpenSSL, performance budgets, debug and optimized tests, debug/optimized execution, static AOT execution, reserved-namespace rejection, and client build passed.",
+      "details": [
+        "Debug and optimized phases each ran 138 tests and 3,462 assertions with 0 failures and 0 errors.",
+        "This used the recorded macOS arm64/Homebrew Jank closure and therefore does not qualify Linux x86_64, Amazon Linux 2023, or Lambda."
+      ]
+    },
+    "datascript-explorer": {
+      "status": "failed",
+      "command": "Start clojure -M:dev:nrepl, reload shadow server/API namespaces, compile :app and :test through nREPL",
+      "summary": "Both Shadow CLJS builds returned :error.",
+      "details": [
+        "The JavaScript dependency react required through cljsjs/react.cljs was unavailable in /Users/petrus/code/eacl-explorer/node_modules.",
+        "The checkout has no npm dependency lock declaring/installing the required React runtime."
+      ]
+    },
+    "datalevin-fork": {
+      "status": "not-applicable",
+      "reason": "Dependency checkout recorded for provenance; it is not itself an existing public demo surface in this change."
+    },
+    "rama-adapter": {
+      "status": "not-applicable",
+      "reason": "Adjacent adapter repository recorded for completeness; it is outside the registered demo profiles."
+    },
+    "spicedb-adapter": {
+      "status": "not-applicable",
+      "reason": "Adjacent adapter repository recorded for completeness; it is outside the registered demo profiles."
+    },
+    "eacl-demo": {
+      "status": "not-implemented",
+      "reason": "The canonical repository is unborn and contains planning/provenance material only at this capture point."
+    }
+  }
+}

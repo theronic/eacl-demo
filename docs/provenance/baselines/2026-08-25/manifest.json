@@ -1,0 +1,276 @@
+{
+  "schema": "eacl-demo.legacy-baselines.v1",
+  "capturedAt": "2026-08-25T10:09:49.648Z",
+  "captureDate": "2026-08-25",
+  "method": {
+    "screenshots": "Full-page screenshots captured after DOMContentLoaded and a four-second readiness wait in the connected Chromium-family browser.",
+    "api": "Direct bounded GET requests with JSON parsing and response/file SHA-256 digests.",
+    "datascript": "The browser-only legacy app has no health/bootstrap HTTP API; 404 probes plus rendered browser-state JSON record that limitation."
+  },
+  "surfaces": {
+    "datahike-ec2": {
+      "reachable": true,
+      "uiUrl": "https://demo.eacl.dev/datahike/",
+      "screenshot": {
+        "file": "datahike-ec2.png",
+        "bytes": 200788,
+        "sha256": "2a33732c5b6c158323e95bbd32c6b2157af0f974e4135e5ba477ba0c07303c33"
+      },
+      "health": {
+        "url": "https://demo.eacl.dev/datahike/api/health",
+        "finalUrl": "https://demo.eacl.dev/datahike/api/health",
+        "status": 200,
+        "ok": true,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "application/json;charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:47 GMT",
+          "etag": null,
+          "server": null,
+          "via": "1.1 Caddy",
+          "x-cache": null
+        },
+        "sha256": "08184835d925ea802a29c6bb285e45798ad430322fc4d30254467efdc6191c02",
+        "rawResponseSha256": "08184835d925ea802a29c6bb285e45798ad430322fc4d30254467efdc6191c02",
+        "file": "datahike-ec2-health.json",
+        "fileSha256": "5ebf1beb3e79df16976480911d4358ad92056494813b69e96ea82ac17efab818",
+        "identity": {
+          "status": "ready",
+          "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+          "basis": {
+            "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "branch": "db",
+            "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "revision": 536872941,
+            "sourceId": {
+              "storeBackend": "tiered",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "backend": "datahike",
+            "kind": "ordinary",
+            "sourceLifecycle": {
+              "application": "eacl-datahike-demo",
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "capturedAt": "2026-08-24T12:56:18.906700139Z"
+          },
+          "totals": null
+        }
+      },
+      "bootstrap": {
+        "url": "https://demo.eacl.dev/datahike/api/bootstrap",
+        "finalUrl": "https://demo.eacl.dev/datahike/api/bootstrap",
+        "status": 200,
+        "ok": true,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "application/json;charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:47 GMT",
+          "etag": null,
+          "server": null,
+          "via": "1.1 Caddy",
+          "x-cache": null
+        },
+        "sha256": "a623ae08bc1639dc52593555be6d6748e28d7fc2705e1df5d9a003753b484c31",
+        "rawResponseSha256": "a623ae08bc1639dc52593555be6d6748e28d7fc2705e1df5d9a003753b484c31",
+        "file": "datahike-ec2-bootstrap.json",
+        "fileSha256": "7351c8407fa4610dc31dc7f5029d17b17aea0d96830c37a54512794373078365",
+        "identity": {
+          "status": "ready",
+          "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+          "basis": {
+            "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "branch": "db",
+            "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "revision": 536872941,
+            "sourceId": {
+              "storeBackend": "tiered",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "backend": "datahike",
+            "kind": "ordinary",
+            "sourceLifecycle": {
+              "application": "eacl-datahike-demo",
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "capturedAt": "2026-08-24T12:56:18.906700139Z"
+          },
+          "totals": {
+            "servers": 1000000,
+            "accounts": 228,
+            "teams": 903,
+            "vpcs": 452,
+            "users": 1586
+          }
+        }
+      }
+    },
+    "datahike-serverless": {
+      "reachable": true,
+      "uiUrl": "https://serverless-datahike.demo.eacl.dev/datahike/",
+      "screenshot": {
+        "file": "datahike-serverless.png",
+        "bytes": 191041,
+        "sha256": "1d764f61fe8559736c576ba5f5d5cb052ea6aa3c9daa2a3e60d285aa44d904a7"
+      },
+      "health": {
+        "url": "https://serverless-datahike.demo.eacl.dev/datahike/api/health",
+        "finalUrl": "https://serverless-datahike.demo.eacl.dev/datahike/api/health",
+        "status": 200,
+        "ok": true,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:48 GMT",
+          "etag": null,
+          "server": null,
+          "via": "1.1 7a5553180d96d8153b8d55509cdefd14.cloudfront.net (CloudFront)",
+          "x-cache": "Miss from cloudfront"
+        },
+        "sha256": "350328713c402a888ad6d75de957638d9f0d590275eae6b9b81afed690dc7bd4",
+        "rawResponseSha256": "350328713c402a888ad6d75de957638d9f0d590275eae6b9b81afed690dc7bd4",
+        "file": "datahike-serverless-health.json",
+        "fileSha256": "07f54d4434ea327fc13a30374b96a05f7812569634cee42e36982859ba7b1589",
+        "identity": {
+          "status": "ready",
+          "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+          "basis": {
+            "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "branch": "db",
+            "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "revision": 536872941,
+            "sourceId": {
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "backend": "datahike",
+            "kind": "ordinary",
+            "sourceLifecycle": {
+              "application": "eacl-datahike-demo",
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "capturedAt": "2026-08-25T10:06:55.413022045Z"
+          },
+          "totals": null
+        }
+      },
+      "bootstrap": {
+        "url": "https://serverless-datahike.demo.eacl.dev/datahike/api/bootstrap",
+        "finalUrl": "https://serverless-datahike.demo.eacl.dev/datahike/api/bootstrap",
+        "status": 200,
+        "ok": true,
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:48 GMT",
+          "etag": null,
+          "server": null,
+          "via": "1.1 ebe92d3e89de3ef8b0381e14c0650700.cloudfront.net (CloudFront)",
+          "x-cache": "Miss from cloudfront"
+        },
+        "sha256": "2dd5ad0e22f02c614729432c7c507f522a84b3796659a9821cd948908a5e418d",
+        "rawResponseSha256": "2dd5ad0e22f02c614729432c7c507f522a84b3796659a9821cd948908a5e418d",
+        "file": "datahike-serverless-bootstrap.json",
+        "fileSha256": "374d6abe592a4b7a1da4dc6dcd9022d26201692fc2459a6b74c5f3a9a11fd3a6",
+        "identity": {
+          "status": "ready",
+          "revision": "h6a7df54b-1cb0-5529-9aff-504a79627f73.c0",
+          "basis": {
+            "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "branch": "db",
+            "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+            "revision": 536872941,
+            "sourceId": {
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "backend": "datahike",
+            "kind": "ordinary",
+            "sourceLifecycle": {
+              "application": "eacl-datahike-demo",
+              "storeBackend": "s3",
+              "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+            },
+            "capturedAt": "2026-08-25T10:06:55.413022045Z"
+          },
+          "totals": {
+            "servers": 1000000,
+            "accounts": 228,
+            "teams": 903,
+            "vpcs": 452,
+            "users": 1586
+          }
+        }
+      }
+    },
+    "datascript-browser": {
+      "reachable": true,
+      "uiUrl": "https://explorer.eacl.dev/",
+      "screenshot": {
+        "file": "datascript-explorer.png",
+        "bytes": 62037,
+        "sha256": "bf9c187ebc18e2ce5cec9cf4b4b11d3bac0dc3477ddc8805175903ad81af8fb2"
+      },
+      "browserState": {
+        "file": "datascript-browser-state.json",
+        "bytes": 5461,
+        "sha256": "b9f9f1064245b292f56ba8f71951aa6af0470c71ca6ae54487bfab692c2f803e"
+      },
+      "health": {
+        "url": "https://explorer.eacl.dev/api/health",
+        "finalUrl": "https://explorer.eacl.dev/api/health",
+        "status": 404,
+        "ok": false,
+        "headers": {
+          "cache-control": null,
+          "content-type": "text/html; charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:49 GMT",
+          "etag": "W/\"6a88701c-24a3\"",
+          "server": "GitHub.com",
+          "via": "1.1 varnish",
+          "x-cache": "MISS"
+        },
+        "sha256": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368",
+        "bodyBytes": 9379,
+        "bodySha256": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368",
+        "expected": "not-supported-browser-only"
+      },
+      "bootstrap": {
+        "url": "https://explorer.eacl.dev/api/bootstrap",
+        "finalUrl": "https://explorer.eacl.dev/api/bootstrap",
+        "status": 404,
+        "ok": false,
+        "headers": {
+          "cache-control": null,
+          "content-type": "text/html; charset=utf-8",
+          "date": "Tue, 25 Aug 2026 10:09:49 GMT",
+          "etag": "W/\"6a88701a-24a3\"",
+          "server": "GitHub.com",
+          "via": "1.1 varnish",
+          "x-cache": "MISS"
+        },
+        "sha256": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368",
+        "bodyBytes": 9379,
+        "bodySha256": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368",
+        "expected": "not-supported-browser-only"
+      }
+    }
+  },
+  "notPubliclyReachable": [
+    {
+      "profile": "datomic",
+      "reason": "No deployed public Datomic demo was present in the captured AWS/DNS estate."
+    },
+    {
+      "profile": "datalevin",
+      "reason": "No deployed public Datalevin demo was present in the captured AWS/DNS estate."
+    },
+    {
+      "profile": "jank",
+      "reason": "No deployed public Jank demo was present in the captured AWS/DNS estate."
+    }
+  ]
+}
