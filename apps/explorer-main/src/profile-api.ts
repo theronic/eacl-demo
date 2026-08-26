@@ -63,6 +63,8 @@ interface WireEnvelope<T> {
   meta: {
     requestId: string;
     basis: ProfileDescriptor["basis"] | null;
+    elapsedMs?: number;
+    cacheStatus?: ApiMeta["cacheStatus"];
   };
 }
 
@@ -155,7 +157,20 @@ export function createProfileApi(profile: ExplorerProfile): {
     data: T,
     requestId: string,
     basis: ProfileDescriptor["basis"] | null,
-  ): ApiSuccess<T> => ({ data, meta: presentMeta(profile, requestId, basis) });
+    elapsedMs?: number,
+    cacheStatus?: ApiMeta["cacheStatus"],
+  ): ApiSuccess<T> => ({
+    data,
+    meta: presentMeta(profile, requestId, basis, elapsedMs, cacheStatus),
+  });
+  const wireEnvelope = <T, U>(data: T, result: WireEnvelope<U>): ApiSuccess<T> =>
+    envelope(
+      data,
+      result.meta.requestId,
+      result.meta.basis,
+      result.meta.elapsedMs,
+      result.meta.cacheStatus,
+    );
 
   const dispatcher: ApiDispatcher = async <T>(
     path: string,
@@ -195,7 +210,7 @@ export function createProfileApi(profile: ExplorerProfile): {
         operations: {},
         capturedAt: new Date().toISOString(),
       };
-      return envelope(snapshot, result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(snapshot, result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/subjects") {
@@ -224,7 +239,7 @@ export function createProfileApi(profile: ExplorerProfile): {
           nextOffset: result.data!.pageInfo.hasNextPage ? nextOffset : null,
         },
       };
-      return envelope(page, result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(page, result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/lookup-resources") {
@@ -239,7 +254,7 @@ export function createProfileApi(profile: ExplorerProfile): {
         ...(body.after ? { cursor: identifier(body.after) } : {}),
         consistency,
       }, signal);
-      return envelope(objectPage(result.data!), result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(objectPage(result.data!), result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/count-resources") {
@@ -258,7 +273,7 @@ export function createProfileApi(profile: ExplorerProfile): {
         limit: result.data!.ceiling,
         truncated: !result.data!.exact,
       };
-      return envelope(count, result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(count, result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/lookup-subjects") {
@@ -273,7 +288,7 @@ export function createProfileApi(profile: ExplorerProfile): {
         ...(body.after ? { cursor: identifier(body.after) } : {}),
         consistency,
       }, signal);
-      return envelope(objectPage(result.data!), result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(objectPage(result.data!), result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/check-permission") {
@@ -283,9 +298,11 @@ export function createProfileApi(profile: ExplorerProfile): {
         resourceType: nestedIdentifier(body, "resource", "type"),
         resourceId: nestedIdentifier(body, "resource", "id"),
         permission: identifier(body.permission),
+        cache: body.cache !== false,
+        populateCache: body.populateCache !== false,
         consistency,
       }, signal);
-      return envelope({ allowed: result.data!.allowed } as PermissionDecision, result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope({ allowed: result.data!.allowed } as PermissionDecision, result) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/read-relationships") {
@@ -294,6 +311,8 @@ export function createProfileApi(profile: ExplorerProfile): {
         subjectId: nestedIdentifier(body, "subject", "id"),
         relation: identifier(body.relation),
         pageSize: number(body.pageSize, 20),
+        cache: body.cache !== false,
+        populateCache: body.populateCache !== false,
         ...(body.after ? { cursor: identifier(body.after) } : {}),
         consistency,
       }, signal);
@@ -310,6 +329,8 @@ export function createProfileApi(profile: ExplorerProfile): {
             resourceType: item.type,
             resourceId: item.id,
             permission: identifier(body.permission),
+            cache: body.cache !== false,
+            populateCache: body.populateCache !== false,
             consistency,
           }, signal);
           allowed = decision.data!.allowed;
@@ -330,7 +351,7 @@ export function createProfileApi(profile: ExplorerProfile): {
           endCursor: result.data!.pageInfo.endCursor,
         },
       };
-      return envelope(page, result.meta.requestId, result.meta.basis) as ApiSuccess<T>;
+      return wireEnvelope(page, result) as ApiSuccess<T>;
     }
 
     throw new ApiError(404, { error: { code: "route-not-found", message: "The Explorer operation is not available." } });
@@ -365,7 +386,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
       { id: "user-1", label: "User 1" },
       { id: "user-2", label: "User 2" },
     ],
-    pageSizeOptions: [10, 20, 50, 100],
+    pageSizeOptions: [10, 20, 50, 100, 250, 500, 1000],
     defaultPageSize: 20,
     consistency: {
       default: current,
@@ -425,6 +446,8 @@ function presentMeta(
   profile: ExplorerProfile,
   requestId: string,
   basis: ProfileDescriptor["basis"] | null,
+  elapsedMs?: number,
+  cacheStatus?: ApiMeta["cacheStatus"],
 ): ApiMeta {
   const active = basis ?? {
     id: profile.deployment.deploymentId,
@@ -435,6 +458,8 @@ function presentMeta(
   return {
     revision: active.id,
     requestId,
+    ...(elapsedMs === undefined ? {} : { elapsedMs }),
+    ...(cacheStatus === undefined ? {} : { cacheStatus }),
     basis: {
       id: active.id,
       backend: profile.backend,

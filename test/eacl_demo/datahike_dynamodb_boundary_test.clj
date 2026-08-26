@@ -43,8 +43,9 @@
   (let [service (fixture (constantly {:ok true}))]
     (let [response (boundary/invoke! service (request "authorize" :post))]
       (is (true? (:ok response)))
-      (is (= #{:contractVersion :operation :requestId :identity :basis}
-             (set (keys (:meta response))))))
+      (is (= #{:contractVersion :operation :requestId :identity :basis :elapsedMs}
+             (set (keys (:meta response)))))
+      (is (number? (get-in response [:meta :elapsedMs]))))
     (is (= "method-not-allowed"
            (get-in (boundary/invoke! service (request "authorize" :get))
                    [:error :code])))

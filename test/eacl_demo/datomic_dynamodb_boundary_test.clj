@@ -54,8 +54,9 @@
     (doseq [consistency [nil "current" "minimize"]]
       (let [response (boundary/invoke! profile (request consistency))]
         (is (true? (:ok response)))
-        (is (= #{:contractVersion :operation :requestId :identity :basis}
+        (is (= #{:contractVersion :operation :requestId :identity :basis :elapsedMs}
                (set (keys (:meta response)))))
+        (is (number? (get-in response [:meta :elapsedMs])))
         (is (= :fixed-snapshot (get-in response [:data :snapshot])))
         (is (= "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
                (get-in response [:meta :basis :id])))))

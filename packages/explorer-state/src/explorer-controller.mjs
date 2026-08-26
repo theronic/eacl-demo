@@ -3,8 +3,8 @@ import { assertDescriptorIdentity } from "./profile-controller.mjs";
 const PANEL_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const PORTABLE_FIELDS = new Set(["subject", "subjectType", "resourceType", "resourceId", "permission", "relation", "view"]);
 const THEMES = new Set(["system", "light", "dark"]);
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PREFERENCES = Object.freeze({ theme: "system", pageSize: 25, cacheEnabled: true, consistencyMode: "current", expanded: [] });
+const MAX_PAGE_SIZE = 1000;
+const DEFAULT_PREFERENCES = Object.freeze({ theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "current", expanded: [] });
 let announcementSequence = 0;
 
 /**
@@ -294,7 +294,7 @@ function normalizePreferencesForDescriptor(preferences, descriptor) {
 
 function validatePreferences(preferences) {
   if (!THEMES.has(preferences.theme)) throw new TypeError("invalid theme preference");
-  if (!Number.isSafeInteger(preferences.pageSize) || preferences.pageSize < 1 || preferences.pageSize > MAX_PAGE_SIZE) throw new TypeError("page size must be between 1 and 100");
+  if (!Number.isSafeInteger(preferences.pageSize) || preferences.pageSize < 1 || preferences.pageSize > MAX_PAGE_SIZE) throw new TypeError("page size must be between 1 and 1000");
   if (typeof preferences.cacheEnabled !== "boolean") throw new TypeError("cache preference must be boolean");
   if (typeof preferences.consistencyMode !== "string" || preferences.consistencyMode.length > 32) throw new TypeError("invalid consistency preference");
   if (!Array.isArray(preferences.expanded) || preferences.expanded.some((value) => typeof value !== "string" || value.length > 64)) throw new TypeError("invalid expanded panel preferences");

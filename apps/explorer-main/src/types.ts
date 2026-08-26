@@ -1,4 +1,4 @@
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 250, 500, 1000] as const;
 export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 export type CacheStatus = "hit" | "miss" | "disabled";
 export type Theme = "light" | "dark";

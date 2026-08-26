@@ -1,0 +1,142 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import test from "node:test";
+
+const repository = resolve(import.meta.dirname, "..");
+const demoSource = resolve(repository, "apps/explorer-main/src");
+const datahikeSource = resolve(repository, "../eacl-datahike-demo/client/src");
+const datomicSource = resolve(repository, "../eacl-datomic-solidjs/client/src");
+
+const exactDatahikeFiles = new Map([
+  ["components/CachePanel.tsx", "adf3234cabdde70c1f4298f483859afd5c980f38074daf4a098132f5056e25c8"],
+  ["components/Common.tsx", "d80701afde3816fd76eee67400b6e83c909ff959aa07633aa2ba142dea6306d1"],
+  ["components/ResourceTree.tsx", "8fd77cc8d24d1d6b808f9b5b5c9b9ac86deacd5c4d5db8770cdaf24963c2ea2a"],
+  ["components/SchemaGraph.tsx", "98709de62da77c47dbf35999b9bd69c5ba6f716ec178690f54a0ecbb64aa0c00"],
+  ["components/SchemaPanel.tsx", "810d04b29c479d8403a6b02ed0f6494c3870e1cb9940fc45eb86a2382bae3abe"],
+  ["components/SubjectsPanel.tsx", "33aa1e21caf18f0b678307d533ee1199f3a90590c581c3c0f13f0ac368c3e630"],
+  ["format.ts", "f0bfe6aa90b3708ecb82647f3977481bc6db23844f21a0f292b6ef10359445d0"],
+  ["preferences.ts", "edb035663ef3cbd0c8e3f7a13d72b6af3aa03e721f8bef48f7b860930cd98632"],
+]);
+
+test("unchanged Explorer components remain byte-identical to the current Datahike Explorer", () => {
+  for (const [relative, canonicalHash] of exactDatahikeFiles) {
+    assert.equal(sha(file(resolve(demoSource, relative))), canonicalHash, relative);
+    const sibling = resolve(datahikeSource, relative);
+    if (existsSync(sibling)) assert.equal(sha(file(sibling)), canonicalHash, `source ${relative}`);
+  }
+});
+
+test("the stylesheet is exactly Datahike plus Datomic permission-decision rules", () => {
+  const demo = file(resolve(demoSource, "styles.css"));
+  const withoutDecisionRules = demo.replace(
+    /\n\n\/\* DATOMIC_PERMISSION_DECISIONS_START \*\/[\s\S]*?\/\* DATOMIC_PERMISSION_DECISIONS_END \*\/\n\n/u,
+    "\n\n",
+  );
+  assert.equal(
+    sha(withoutDecisionRules),
+    "341ac588e8347cfa93867406dd0c02e081ec56ef38efa1f5fd81cce85bb6dfb9",
+  );
+  const decisionRules = between(
+    demo,
+    ".permission-decisions {",
+    "/* DATOMIC_PERMISSION_DECISIONS_END */",
+  ).trimEnd();
+  assert.equal(
+    sha(decisionRules),
+    "2558a71d874afeffba820e267829eb70a62776648d78f73135dd258d19c4e4b8",
+  );
+  if (existsSync(resolve(datahikeSource, "styles.css"))) {
+    assert.equal(withoutDecisionRules, file(resolve(datahikeSource, "styles.css")));
+  }
+  if (existsSync(resolve(datomicSource, "styles.css"))) {
+    const datomic = file(resolve(datomicSource, "styles.css"));
+    assert.equal(
+      decisionRules,
+      between(datomic, ".permission-decisions {", ".active-summary {").trimEnd(),
+    );
+  }
+});
+
+test("canonical layout order is unchanged except for the profile selector", () => {
+  const explorer = file(resolve(demoSource, "Explorer.tsx"));
+  assertOrdered(explorer, [
+    "<Header backendLabel={props.backendLabel} storageLabel={props.storageLabel} />",
+    "{props.profileSelector}",
+    "<SchemaPanel />",
+    "<CachePanel />",
+    "<ConsistencyPanel />",
+    '<main class="panel-grid">',
+    "<SubjectsPanel />",
+    "<ResourceTreePanel />",
+    "<DetailPanel />",
+    '<footer class="app-footer">',
+  ]);
+  assert.doesNotMatch(explorer, /dashboard|report|verified profile facts|storage stats/iu);
+
+  const selector = file(resolve(demoSource, "components/ProfileSelector.tsx"));
+  assert.equal((selector.match(/type="radio"/gu) ?? []).length, 2);
+  assert.doesNotMatch(selector, /<select|<option/iu);
+  assert.match(selector, /Backend &amp; Storage/u);
+});
+
+test("Detail is the union of Datomic decisions and Datahike query semantics", () => {
+  const detail = file(resolve(demoSource, "components/DetailPanel.tsx"));
+  for (const feature of [
+    "PermissionDecisions",
+    "Can active subject?",
+    "PermissionDecisionRow",
+    "app.populateCache()",
+    "app.activeQueryBasis()",
+    "app.basisGeneration()",
+    "app.queryGeneration()",
+    "JSON.stringify(app.consistency())",
+    "app.runQuery<PermissionDecision>",
+    "app.runQuery<ObjectPage>",
+    "<MetaTiming",
+  ]) assert.match(detail, new RegExp(escapeRegExp(feature), "u"), feature);
+  assert.ok(detail.indexOf("<PermissionDecisions") < detail.indexOf("<For\n              each={permissions()}"));
+});
+
+test("original paging and timing metadata are present end to end", () => {
+  const types = file(resolve(demoSource, "types.ts"));
+  assert.match(types, /PAGE_SIZE_OPTIONS = \[10, 20, 50, 100, 250, 500, 1000\] as const/u);
+  const profileApi = file(resolve(demoSource, "profile-api.ts"));
+  for (const feature of ["elapsedMs?: number", "cacheStatus?: ApiMeta", "result.meta.elapsedMs", "result.meta.cacheStatus", "populateCache: body.populateCache !== false"]) {
+    assert.match(profileApi, new RegExp(escapeRegExp(feature), "u"), feature);
+  }
+  const schema = file(resolve(repository, "schemas/explorer.v1.schema.json"));
+  assert.match(schema, /"elapsedMs": \{"type": "number", "minimum": 0\}/u);
+  assert.match(schema, /"cacheStatus": \{"enum": \["hit", "miss", "disabled"\]\}/u);
+});
+
+function file(path) {
+  return readFileSync(path, "utf8");
+}
+
+function sha(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function between(value, startText, endText) {
+  const start = value.indexOf(startText);
+  const end = value.indexOf(endText, start + startText.length);
+  assert.notEqual(start, -1, startText);
+  assert.notEqual(end, -1, endText);
+  return value.slice(start, end);
+}
+
+function assertOrdered(value, fragments) {
+  let position = -1;
+  for (const fragment of fragments) {
+    const next = value.indexOf(fragment, position + 1);
+    assert.notEqual(next, -1, fragment);
+    assert.ok(next > position, fragment);
+    position = next;
+  }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}

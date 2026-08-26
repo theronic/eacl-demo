@@ -1,7 +1,7 @@
 const STORAGE_KEY = "eacl-demo.preferences.v1";
 const THEMES = new Set(["system", "light", "dark"]);
 const CONSISTENCY = new Set(["current", "minimize", "authoritative", "at-least", "exact", "historical-date"]);
-export const defaultUiPreferences = Object.freeze({ version: 1, theme: "system", pageSize: 25, cacheEnabled: true, consistencyMode: "current", expanded: [] });
+export const defaultUiPreferences = Object.freeze({ version: 1, theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "current", expanded: [] });
 
 export function readUiPreferences(storage = globalThis.localStorage) {
   try {
@@ -59,7 +59,7 @@ export function createThemeController({
 
 export function validateUiPreferences(value) {
   if (!value || value.version !== 1 || !THEMES.has(value.theme)) throw new TypeError("invalid UI preference version or theme");
-  if (!Number.isSafeInteger(value.pageSize) || value.pageSize < 1 || value.pageSize > 100) throw new TypeError("invalid UI page size");
+  if (!Number.isSafeInteger(value.pageSize) || value.pageSize < 1 || value.pageSize > 1000) throw new TypeError("invalid UI page size");
   if (typeof value.cacheEnabled !== "boolean" || !CONSISTENCY.has(value.consistencyMode)) throw new TypeError("invalid UI cache or consistency preference");
   if (!Array.isArray(value.expanded) || value.expanded.some((item) => typeof item !== "string" || item.length > 64)) throw new TypeError("invalid expanded UI preferences");
   return { version: 1, theme: value.theme, pageSize: value.pageSize, cacheEnabled: value.cacheEnabled, consistencyMode: value.consistencyMode, expanded: [...new Set(value.expanded)].slice(0, 32) };

@@ -6,9 +6,9 @@ const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]*$/u;
 const BODY_FIELDS = Object.freeze({
   "list-subjects": { optional: ["type", "pageSize", "cursor"] },
   "get-object": { required: ["type", "id"], optional: ["consistency"] },
-  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "consistency"] },
-  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "consistency"] },
-  "authorize": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["consistency"] },
+  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency"] },
+  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency"] },
+  "authorize": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", "consistency"] },
   "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency"] },
   "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency"] },
   "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", "consistency"] },

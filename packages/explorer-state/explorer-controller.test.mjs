@@ -73,11 +73,11 @@ test("panel failures and cancellation do not erase settled sibling data", async 
 test("preferences are bounded and unsupported consistency normalizes to current", async () => {
   const environment = createMockTransportEnvironment("datomic-dynamodb");
   const controller = createExplorerController({ transportFactory: environment.transportFactory, initialPreferences: { consistencyMode: "exact" } });
-  assert.equal(explorerDefaults.maximumPageSize, 100);
+  assert.equal(explorerDefaults.maximumPageSize, 1000);
   await controller.switchProfile(environment.profile);
   assert.equal(controller.getState().preferences.consistencyMode, "current");
-  assert.throws(() => controller.setPreferences({ pageSize: 1000 }), /between 1 and 100/u);
-  assert.deepEqual(controller.setPreferences({ pageSize: 100, theme: "dark", expanded: ["schema", "schema"] }).expanded, ["schema"]);
+  assert.throws(() => controller.setPreferences({ pageSize: 1001 }), /between 1 and 1000/u);
+  assert.deepEqual(controller.setPreferences({ pageSize: 1000, theme: "dark", expanded: ["schema", "schema"] }).expanded, ["schema"]);
   await controller.close();
 });
 

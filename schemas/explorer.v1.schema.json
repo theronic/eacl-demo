@@ -29,7 +29,7 @@
     },
     "pageInfo": {
       "type": "object", "additionalProperties": false, "required": ["hasNextPage", "endCursor", "pageSize"],
-      "properties": {"hasNextPage": {"type": "boolean"}, "endCursor": {"type": ["string", "null"], "maxLength": 4096}, "pageSize": {"type": "integer", "minimum": 0, "maximum": 100}},
+      "properties": {"hasNextPage": {"type": "boolean"}, "endCursor": {"type": ["string", "null"], "maxLength": 4096}, "pageSize": {"type": "integer", "minimum": 0, "maximum": 1000}},
       "allOf": [
         {"if": {"properties": {"hasNextPage": {"const": true}}}, "then": {"properties": {"endCursor": {"type": "string", "minLength": 1}}}},
         {"if": {"properties": {"hasNextPage": {"const": false}}}, "then": {"properties": {"endCursor": {"type": "null"}}}}
@@ -37,11 +37,11 @@
     },
     "objectPage": {
       "type": "object", "additionalProperties": false, "required": ["items", "pageInfo"],
-      "properties": {"items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/object"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
+      "properties": {"items": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/object"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
     },
     "relationshipPage": {
       "type": "object", "additionalProperties": false, "required": ["items", "pageInfo"],
-      "properties": {"items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/relationship"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
+      "properties": {"items": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/relationship"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
     },
     "objectResult": {
       "type": "object", "additionalProperties": false, "required": ["object"],
@@ -172,7 +172,8 @@
       "properties": {
         "contractVersion": {"const": "explorer.v1"}, "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
         "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]},
-        "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]}
+        "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]},
+        "elapsedMs": {"type": "number", "minimum": 0}, "cacheStatus": {"enum": ["hit", "miss", "disabled"]}
       }
     },
     "success": {

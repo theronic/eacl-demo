@@ -18,7 +18,7 @@ test("subject and relationship cursor pages are bounded and reversible", async (
   await operations.listSubjects({ direction: "previous" });
   const subjectCalls = environment.calls.filter(({ operation }) => operation === "list-subjects");
   assert.deepEqual(subjectCalls.map(({ input }) => input.cursor ?? null), [null, "opaque-next", null]);
-  assert.equal(subjectCalls.every(({ input }) => input.pageSize === 25), true);
+  assert.equal(subjectCalls.every(({ input }) => input.pageSize === 20), true);
   await operations.listRelationships({ resourceType: "server", resourceId: "server-1", relation: "owner" });
   await operations.listRelationships({ resourceType: "server", resourceId: "server-1", relation: "owner", direction: "next" });
   assert.equal(Object.keys(operations.getState().pagers).length, 2);
