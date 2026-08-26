@@ -27,7 +27,16 @@ test("CloudFront behavior order and cache policy keep static and APIs isolated",
   assert.match(template, /ApiCachePolicy:[\s\S]*DefaultTTL: 0\s*\n\s*MaxTTL: 0\s*\n\s*MinTTL: 0/u);
   assert.equal((template.match(/CachePolicyId: !Ref ApiCachePolicy/gu) ?? []).length, 5);
   assert.match(template, /DefaultCacheBehavior:[\s\S]*CachePolicyId: !Ref StaticCachePolicy[\s\S]*TargetOriginId: static/u);
+  assert.match(template, /DefaultCacheBehavior:[\s\S]*FunctionAssociations:\s*\n\s*- EventType: viewer-request\s*\n\s*FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN[\s\S]*TargetOriginId: static/u);
   assert.match(template, /PathPattern: datascript\/\*[\s\S]*CachePolicyId: !Ref StaticCachePolicy[\s\S]*TargetOriginId: static/u);
+  assert.doesNotMatch(template, /unsafe-eval/u);
+});
+
+test("legacy Datahike entry paths render the current backend explorer", () => {
+  for (const uri of ["/datahike", "/datahike/"]) {
+    const event = request(uri, "GET");
+    assert.equal(context.handler(event).uri, "/index.html");
+  }
 });
 
 test("every enabled Lambda origin must name a nonnumeric alias", () => {

@@ -9,12 +9,20 @@ if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) throw new RangeE
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://127.0.0.1").pathname);
-    const relative = pathname === "/" ? "index.html" : pathname === "/datascript/" ? "datascript/index.html" : pathname.slice(1);
+    const relative = ["/", "/datahike", "/datahike/"].includes(pathname)
+      ? "index.html"
+      : pathname === "/datascript/"
+        ? "datascript/index.html"
+        : pathname.slice(1);
     const candidate = path.resolve(root, relative);
     if (!candidate.startsWith(`${root}${path.sep}`)) throw new Error("path escapes static root");
     if (!(await stat(candidate)).isFile()) throw new Error("not a file");
     const bytes = await readFile(candidate);
-    response.writeHead(200, { "content-type": contentType(candidate), "cache-control": "no-store" });
+    response.writeHead(200, {
+      "content-type": contentType(candidate),
+      "cache-control": "no-store",
+      "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self' blob:; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+    });
     response.end(bytes);
   } catch {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });

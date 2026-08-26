@@ -5,6 +5,8 @@ import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
 const node = process.execPath;
+const generated = await run(node, ["scripts/generate-runtime-validators.mjs", "--check"]);
+if (generated.code !== 0) throw new Error(`runtime validator verification failed with exit ${generated.code}`);
 const builds = [
   [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-main/vite.config.ts"]],
   [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-datascript/vite.config.ts"]],
@@ -37,6 +39,10 @@ for (const relative of await enumerate(target)) {
 for (const file of files) {
   if (!["index.html", "datascript/index.html"].includes(file.path) && file.cacheClass !== "immutable") {
     throw new Error(`static deployment file is neither an entry document nor content-addressed: ${file.path}`);
+  }
+  if (file.path.endsWith(".js")) {
+    const source = (await readFile(path.join(target, file.path))).toString("utf8");
+    if (/\b(?:eval|Function)\s*\(/u.test(source)) throw new Error(`static JavaScript requires dynamic code generation forbidden by the production CSP: ${file.path}`);
   }
 }
 const assembledWorker = files.find(({ path: relative }) => relative === workerRelative);
