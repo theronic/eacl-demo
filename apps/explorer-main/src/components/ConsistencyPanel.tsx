@@ -4,7 +4,6 @@ import type { ConsistencyMode } from "../types";
 import { ButtonSpinner, DisclosureButton, ErrorBlock } from "./Common";
 
 const consistencyModeOrder = [
-  "current",
   "minimize-latency",
   "at-least-as-fresh",
   "at-exact-snapshot",

@@ -46,24 +46,30 @@
   ([request operation identity basis data]
    (success-envelope request operation identity basis data nil nil))
   ([request operation identity basis data elapsed-ms cache-status]
-  {:ok true
-   :meta (cond-> {:contractVersion "explorer.v1"
-                  :operation operation
-                  :requestId (:request-id request)
-                  :identity identity
-                  :basis basis}
-           (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
-           (some? cache-status) (assoc :cacheStatus cache-status))
-   :data data}))
+   {:ok true
+    :meta (cond-> (if (= "authorize" operation)
+                    {:revision (or (:id basis) (:deploymentId identity))
+                     :requestId (:request-id request)}
+                    {:contractVersion "explorer.v1"
+                     :operation operation
+                     :requestId (:request-id request)
+                     :identity identity
+                     :basis basis})
+            (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
+            (some? cache-status) (assoc :cacheStatus cache-status))
+    :data data}))
 
 (defn failure-envelope
   [request operation identity basis code]
   {:ok false
-   :meta {:contractVersion "explorer.v1"
-          :operation operation
-          :requestId (:request-id request)
-          :identity identity
-          :basis basis}
+   :meta (if (= "authorize" operation)
+           {:revision (or (:id basis) (:deploymentId identity))
+            :requestId (:request-id request)}
+           {:contractVersion "explorer.v1"
+            :operation operation
+            :requestId (:request-id request)
+            :identity identity
+            :basis basis})
    :error {:code code
            :message (case code
                       "route-not-found" "The route is not available."

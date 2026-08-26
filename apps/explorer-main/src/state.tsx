@@ -128,7 +128,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     preferences.populateCache,
   );
   const [consistencyMode, setConsistencySignal] =
-    createSignal<ConsistencyMode>("current");
+    createSignal<ConsistencyMode>("minimize-latency");
   const [atLeastAsFreshAs, setAtLeastAsFreshAsSignal] = createSignal("");
   const consistency = createMemo<ConsistencyRequest>(() => ({
     mode: consistencyMode(),

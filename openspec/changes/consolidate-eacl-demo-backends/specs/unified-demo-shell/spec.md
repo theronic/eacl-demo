@@ -30,8 +30,8 @@ For a backend with multiple enabled storage profiles, the registry SHALL select 
 The explorer SHALL render controls and explanations from the active descriptor's declared capabilities and limits. Shared components MUST NOT infer behavior from backend-name conditionals. Unsupported mutation, consistency, snapshot, cache, pagination, or diagnostic controls SHALL be hidden or disabled with an accurate explanation.
 
 #### Scenario: Fixed Datomic snapshot loads
-- **WHEN** the Datomic descriptor advertises only its fixed current snapshot
-- **THEN** the explorer SHALL omit exact-history, at-least, fully-consistent, and live-refresh controls and explain that the Lambda dataset is immutable for that deployment
+- **WHEN** the Datomic descriptor advertises only its fixed deployment snapshot
+- **THEN** the explorer SHALL omit the meaningless `current` choice together with exact-history, at-least, fully-consistent, and live-refresh controls; the existing minimize-latency label MAY represent the only executable read path
 
 ### Requirement: Selection switching isolates profile-owned state
 Changing either selector SHALL abort or logically invalidate prior in-flight work, clear basis-, cursor-, page-, cache-view-, seed-, and error-state owned by the old profile, and preserve only portable semantic selection and presentation preferences. A response from an earlier profile or client epoch MUST NOT update the new view.

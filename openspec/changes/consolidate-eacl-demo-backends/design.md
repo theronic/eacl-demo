@@ -127,7 +127,7 @@ statements remain exact-resource scoped.
 
 ### 5. `explorer.v1` is capability-driven and N/N-1 compatible
 
-Every success/error/descriptor includes exact profile, backend, storage, `eacl-sha`, `demo-sha`, artifact/deployment/data identity, capabilities, limits, and limitations. The UI identity-checks the route response.
+Health/bootstrap descriptors include exact profile, backend, storage, `eacl-sha`, `demo-sha`, artifact/deployment/data identity, capabilities, limits, and limitations, and the UI identity-checks them before ordinary use. Ordinary responses keep the earlier Explorer's compact metadata shape instead of repeating deployment facts on every operation.
 
 Independent rollout means the shell may be N while one profile is N-1. Contract additions are optional/capability-discovered for one compatibility window. Incompatible semantics introduce `/api/v2` and dual support; they do not require a fleet-atomic release. The selector visibly reports each actually deployed source pair and its last deployment outcome.
 
@@ -180,7 +180,7 @@ against S3.
 
 Provisioning uses a temporary private transactor/EC2 lifecycle to create the database, install history-preserving schema, seed exactly one million resources, verify indexes/manifest/exemplars/final basis, record recovery identity, then stop the transactor and terminate compute. Relevant authorization attributes do not set `:db/noHistory true`; the qualification records multiple seed bases and proves normal-Peer `d/as-of` and history behavior before teardown.
 
-Serving calls `d/connect` with `read-only=true`, captures `fixed-db = d/db(conn)` once per environment, and constructs direct EACL Datomic snapshots over `fixed-db`. Request validation advertises/accepts current/minimize-latency semantics only. It rejects fully-consistent, at-least-as-fresh, at-exact-snapshot, history-date, and live refresh before the generic source operations; instrumentation proves serving never calls `d/sync` or transact.
+Serving calls `d/connect` with `read-only=true`, captures `fixed-db = d/db(conn)` once per environment, and constructs direct EACL Datomic snapshots over `fixed-db`. The UI exposes only the meaningful minimize-latency label for that one executable path; the wire may retain `current` as a backwards-compatible input alias but does not present it as a separate semantic choice. It rejects fully-consistent, at-least-as-fresh, at-exact-snapshot, history-date, and live refresh before the generic source operations; instrumentation proves serving never calls `d/sync` or transact.
 
 The table/database is immutable after publication. Data refresh is blue/green per profile: qualify a new data identity and function version, then move only that alias/descriptor. Retaining storage history does not change the Lambda's fixed-current public contract. The future live/history-capable Datomic EC2 serving deployment is outside this change.
 

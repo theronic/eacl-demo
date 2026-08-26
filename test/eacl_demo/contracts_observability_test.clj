@@ -52,6 +52,21 @@
     (is (= 0 (:Errors record)))
     (is (not (.contains (json/write-str record) "must-never-appear")))))
 
+(deftest compact-datomic-authorization-keeps-operation-telemetry-test
+  (let [response {:statusCode 200
+                  :body (json/write-str
+                         {:ok true
+                          :meta {:revision "datomic:fixture:42"
+                                 :requestId "request-compact"
+                                 :elapsedMs 0.8
+                                 :cacheStatus "hit"}
+                          :data {:allowed true}})}
+        [record] (capture #(observability/observe-response!
+                           context response 2000000000))]
+    (is (= "authorize" (:operation record)))
+    (is (= "request-compact" (:requestId record)))
+    (is (= "success" (:outcome record)))))
+
 (deftest typed-storage-timeout-and-health-failure-metrics-are-distinct-test
   (let [response {:statusCode 504
                   :body (json/write-str

@@ -104,19 +104,18 @@
                                       :subjectId "user-1"
                                       :relation "owner"})
                              [:items 0 :id])))
-              (is (true? (:allowed
-                          (invoke handlers "authorize" snapshot
-                                  {:subjectType "user" :subjectId "user-1"
-                                   :resourceType "account"
-                                   :resourceId "account-0"
-                                   :permission "admin"}))))
-              (is (= "subject-not-found"
-                     (:reasonCode
-                      (invoke handlers "authorize" snapshot
-                              {:subjectType "user" :subjectId "unknown"
-                               :resourceType "account"
-                               :resourceId "account-0"
-                               :permission "admin"}))))
+              (is (= {:allowed true}
+                     (invoke handlers "authorize" snapshot
+                             {:subjectType "user" :subjectId "user-1"
+                              :resourceType "account"
+                              :resourceId "account-0"
+                              :permission "admin"})))
+              (is (= {:allowed false}
+                     (invoke handlers "authorize" snapshot
+                             {:subjectType "user" :subjectId "unknown"
+                              :resourceType "account"
+                              :resourceId "account-0"
+                              :permission "admin"})))
               (is (= ["account-0"]
                      (mapv :id
                            (:items

@@ -15,8 +15,9 @@ const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
 /**
  * Same-origin browser transport for one immutable, enabled server profile.
- * Every response is schema checked and rebound to the exact registry identity
- * before it can reach explorer state.
+ * Every response is schema checked and correlated to its request. Profile
+ * identity is established by the health/bootstrap handshake before ordinary
+ * Explorer operations can run.
  */
 export function createServerProfileTransport({
   profile,
@@ -112,9 +113,18 @@ export function createServerProfileTransport({
 
 export function validateEnvelopeBinding(profile, envelope, operation, requestId, status = null) {
   if (!envelope || typeof envelope !== "object" || !envelope.meta) throw publicError("invalid-response", "The profile returned an invalid response.", false);
-  if (envelope.meta.operation !== operation || envelope.meta.requestId !== requestId) throw publicError("identity-mismatch", "The profile response did not match this request.", false);
-  const identity = envelope.meta.identity;
-  assertDescriptorIdentity(profile, { identity, profile: { backend: profile.backend, storage: profile.storage } });
+  if (envelope.meta.requestId !== requestId) throw publicError("identity-mismatch", "The profile response did not match this request.", false);
+  const compactAuthorization = profile.id === "datomic-dynamodb"
+    && operation === "authorize"
+    && typeof envelope.meta.revision === "string"
+    && envelope.meta.operation === undefined
+    && envelope.meta.identity === undefined
+    && envelope.meta.basis === undefined;
+  if (!compactAuthorization) {
+    if (envelope.meta.operation !== operation) throw publicError("identity-mismatch", "The profile response did not match this request.", false);
+    const identity = envelope.meta.identity;
+    assertDescriptorIdentity(profile, { identity, profile: { backend: profile.backend, storage: profile.storage } });
+  }
   if (status !== null) {
     if (!Number.isInteger(status) || status < 200 || status > 599) throw publicError("invalid-response", "The profile returned an invalid HTTP status.", false);
     if (envelope.ok === true && status !== 200) throw publicError("invalid-response", "The profile success status was invalid.", false);

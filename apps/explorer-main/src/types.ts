@@ -3,7 +3,6 @@ export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 export type CacheStatus = "hit" | "miss" | "disabled";
 export type Theme = "light" | "dark";
 export type ConsistencyMode =
-  | "current"
   | "minimize-latency"
   | "at-least-as-fresh"
   | "at-exact-snapshot";

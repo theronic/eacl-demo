@@ -44,7 +44,11 @@ The Lambda SHALL use Datomic Pro supporting read-only connections and a `datomic
 - **THEN** health/bootstrap/representative reads SHALL succeed directly from DynamoDB at the recorded immutable basis
 
 ### Requirement: Historical and synchronized consistency are unavailable
-The profile SHALL advertise only current/fixed-snapshot selection. It MUST reject at-exact-snapshot, at-least-as-fresh, fully-consistent, historical-date, and live-refresh operations before invoking the generic Datomic source paths, and serving execution MUST NOT call `d/sync` or transact.
+The profile SHALL serve its fixed deployment snapshot through the minimize-latency path and SHALL NOT expose a separate `current` choice because both names select the identical retained value. It MUST reject at-exact-snapshot, at-least-as-fresh, fully-consistent, historical-date, and live-refresh operations before invoking the generic Datomic source paths, and serving execution MUST NOT call `d/sync` or transact.
+
+#### Scenario: Permission decision is returned
+- **WHEN** Datomic authorization completes
+- **THEN** its public data SHALL contain only `allowed`, and metadata SHALL contain only revision, request ID, and optional elapsed/cache fields
 
 #### Scenario: Exact snapshot is requested
 - **WHEN** a client submits an exact token or historical locator
