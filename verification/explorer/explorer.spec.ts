@@ -126,7 +126,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       consistencyModes: ["current", "minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
     },
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
-    dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
+    dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
   };
   const apiRequests: Array<{ operation: string; requestId: string | null; payloadHash: string | null }> = [];
 
@@ -154,7 +154,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       "get-object": { object },
       "list-relationships": { items: [{ resourceType: input.resourceType, resourceId: input.resourceId, relation: input.relation ?? "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo },
       "reverse-relationships": { items: [object], pageInfo },
-      authorize: { subjectType: input.subjectType, subjectId: input.subjectId, resourceType: input.resourceType, resourceId: input.resourceId, permission: input.permission, allowed: true, reasonCode: "granted", path: [{ kind: "direct", label: "fixture grant", allowed: true }] },
+      authorize: { allowed: true },
       "lookup-resources": { items: [{ type: input.resourceType, id: "server-1", displayName: "Server one", attributes: [] }], pageInfo },
       "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
       "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
@@ -166,13 +166,9 @@ test("an enabled publication opens the schema-validated server explorer over the
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        ok: true,
         meta: {
-          contractVersion: "explorer.v1",
           requestId,
-          operation,
-          identity,
-          basis,
+          revision: basis.id,
           elapsedMs: 1.25,
           cacheStatus: input.cache === false ? "disabled" : "hit",
         },

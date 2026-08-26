@@ -10,7 +10,6 @@
 (def ^:private contract-version "explorer.v1")
 (def ^:private maximum-message-bytes 65536)
 (def ^:private maximum-client-epoch 2147483647)
-(def ^:private seed-batch-size 1000)
 (def ^:private maximum-cursors 4096)
 (def ^:private default-page-size 25)
 (def ^:private default-count-ceiling 1000)
@@ -447,14 +446,12 @@
             request))
         (vals (:waiters @lifecycle))))
 
-(defn- seed-batch! [request runtime remaining completed accumulator]
+(defn- seed-fixture! [request runtime]
   (js/setTimeout
    (fn []
      (if-let [progress-request (active-initialization-request)]
        (try
-         (let [batch (vec (take seed-batch-size remaining))
-               tail (drop (count batch) remaining)
-               records (mapcat :records batch)
+         (let [records (mapcat :records (fixture/small-fixture-bundles))
                objects (into [] (comp (filter #(= :object (:kind %)))
                                       (map (fn [record]
                                              {:eacl/id (get-in record [:object :id])})))
@@ -462,27 +459,27 @@
                relationships (into [] (comp (filter #(= :relationship (:kind %)))
                                             (map relationship))
                                    records)
-               next-accumulator (reduce add-record accumulator records)
-               next-completed (+ completed (count batch))]
+               accumulator (reduce add-record
+                                   {:objects {} :subjects [] :relationships []}
+                                   records)]
+           (post-progress! progress-request "fixture-seed" 0
+                           "Seeding the deterministic fixture into browser memory.")
            (when (seq objects)
              (ds/transact! (:connection runtime) objects))
            (when (seq relationships)
              (eacl/create-relationships! (:client runtime) relationships))
-           (if (< next-completed fixture/small-resource-count)
-             (do
-               (post-progress! progress-request "fixture-seed" next-completed "Seeding the deterministic fixture into browser memory.")
-               (seed-batch! progress-request runtime tail next-completed next-accumulator))
-             (let [ready-runtime (assoc runtime
-                                        :objects (:objects next-accumulator)
-                                        :subjects (:subjects next-accumulator)
-                                        :relationships (:relationships next-accumulator))
-                   state @lifecycle
-                   waiters (vals (:waiters state))]
-               (when (= (:clientEpoch progress-request) (:epoch state))
-                 (swap! lifecycle assoc :runtime ready-runtime :initialization nil :waiters {})
-                 (post-progress! progress-request "ready" fixture/small-resource-count "The deterministic 10,000-resource fixture is ready.")
-                 (doseq [waiter waiters]
-                   (js/setTimeout #(dispatch! waiter ready-runtime) 0))))))
+           (let [ready-runtime (assoc runtime
+                                      :objects (:objects accumulator)
+                                      :subjects (:subjects accumulator)
+                                      :relationships (:relationships accumulator))
+                 state @lifecycle
+                 waiters (vals (:waiters state))]
+             (when (= (:clientEpoch progress-request) (:epoch state))
+               (swap! lifecycle assoc :runtime ready-runtime :initialization nil :waiters {})
+               (post-progress! progress-request "ready" fixture/small-resource-count
+                               "The deterministic 10,000-resource fixture is ready.")
+               (doseq [waiter waiters]
+                 (js/setTimeout #(dispatch! waiter ready-runtime) 0)))))
          (catch :default _
            (let [state @lifecycle
                  waiters (vals (:waiters state))]
@@ -491,7 +488,8 @@
                (failure! waiter nil "internal-error"
                          "The browser-local fixture could not be initialized.")))))
        (do
-         (post-progress! request "canceled" completed "Fixture initialization was canceled and its worker-owned state was released.")
+         (post-progress! request "canceled" 0
+                         "Fixture initialization was canceled and its worker-owned state was released.")
          (swap! lifecycle assoc :initialization nil :runtime nil :waiters {}))))
    0))
 
@@ -508,8 +506,7 @@
       (swap! lifecycle assoc :initialization {:requestId (:requestId request)} :runtime nil)
       (post-progress! request "fixture-generation" 0 "Generating the deterministic canonical fixture inside this worker.")
       (eacl/write-schema! client fixture/schema)
-      (seed-batch! request runtime (fixture/small-fixture-bundles) 0
-                   {:objects {} :subjects [] :relationships []}))
+      (seed-fixture! request runtime))
     (catch :default _
       (swap! lifecycle assoc :initialization nil :runtime nil :waiters {})
       (failure! request nil "internal-error"
