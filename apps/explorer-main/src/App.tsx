@@ -11,7 +11,6 @@ import catalogData from "../../../packages/contracts/backend-storage.v1.json";
 import availabilityData from "../../../registry/profile-registry.v1.json";
 import profileData from "../../../packages/contracts/profiles.v1.json";
 import { choicesForBackend } from "../../../packages/explorer-state/src/availability.mjs";
-import { loadBenchmarkEvidence } from "../../../packages/explorer-state/src/benchmark-publication.mjs";
 import {
   composeProfileRegistry,
   createFailClosedRegistry,
@@ -188,20 +187,16 @@ export default function App(props: ExplorerAppProps): JSX.Element {
 
   const refreshProfilePublications = async () => {
     try {
-      const [loaded, benchmarks] = await Promise.all([
-        loadProfilePublications({
-          baseUrl: window.location.href,
-          profileDefinitions: profileData,
-          baseRegistry: availabilityData,
-          signal: publicationController.signal,
-        }),
-        loadBenchmarkEvidence({ baseUrl: window.location.href, signal: publicationController.signal }),
-      ]);
+      const loaded = await loadProfilePublications({
+        baseUrl: window.location.href,
+        profileDefinitions: profileData,
+        baseRegistry: availabilityData,
+        signal: publicationController.signal,
+      });
       const composed = await (composeProfileRegistry as any)({
         baseRegistry: availabilityData,
         profileDefinitions: profileData,
         publications: loaded.publications,
-        evidenceRecords: benchmarks.evidenceRecords,
       });
       if (publicationController.signal.aborted) return;
       setRegistry(composed.registry);
