@@ -9,6 +9,7 @@ import profileDefinitions from "../packages/contracts/profiles.v1.json" with { t
 import responseSchema from "../schemas/explorer-response.v1.schema.json" with { type: "json" };
 import { createRuntimeBoundaryValidator } from "../packages/contracts/src/runtime-validation.mjs";
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
+import { summarizeDemoSmoke } from "./lib/demo-smoke-result.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const validateLiveResponse = createRuntimeBoundaryValidator(
@@ -87,11 +88,12 @@ async function deployProfile(profileId, profile) {
 
   const current = awsJson(["lambda", "get-function-configuration",
                            "--function-name", profile.functionName]);
+  const deploymentId = `demos:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
     EACL_ARTIFACT_SHA256: artifactSha,
     EACL_CORE_SHA: eaclSha(),
     EACL_DEMO_SHA: demoSha(),
-    EACL_DEPLOYMENT_ID: `demos:${demoSha()}:${profileId}`
+    EACL_DEPLOYMENT_ID: deploymentId
   };
   const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-deploy-"));
   try {
@@ -110,16 +112,20 @@ async function deployProfile(profileId, profile) {
     aws(["lambda", "update-alias", "--function-name", profile.functionName,
          "--name", "candidate", "--function-version", update.Version,
          "--description", `demos:${demoSha()}:${artifactSha}`]);
-    const smoke = await smokeProfile(profileId, profile.functionName, temporary);
+    const smoke = await smokeProfile(profileId, profile.functionName, temporary, {
+      profileId,
+      demoSha: demoSha(),
+      eaclSha: eaclSha(),
+      artifactSha256: artifactSha,
+      deploymentId
+    });
     await publishProfile({
       profileId,
       artifactKind: "lambda-version",
       artifactSha,
       artifactVersion: update.Version,
-      dataManifestSha: profileId === "datahike-s3"
-        ? "a97c5b2ecac32012bdd37963348d840c5d405ad2858c0136eb17006ba97167b8"
-        : "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a",
-      evidence: createHash("sha256").update(smoke).digest("hex")
+      dataManifestSha: smoke.dataManifestSha,
+      evidence: createHash("sha256").update(smoke.evidence).digest("hex")
     });
     process.stdout.write(`deployed ${profileId} version ${update.Version} sha256:${artifactSha}\n`);
   } finally {
@@ -127,7 +133,7 @@ async function deployProfile(profileId, profile) {
   }
 }
 
-async function smokeProfile(profileId, functionName, temporary) {
+async function smokeProfile(profileId, functionName, temporary, expectedIdentity) {
   const health = await invokeProfile({ profileId, functionName, temporary,
     operation: "health", method: "GET", input: null });
   assertHealthy(profileId, health);
@@ -155,7 +161,7 @@ async function smokeProfile(profileId, functionName, temporary) {
       mutation.envelope.error?.code !== "route-not-found") {
     throw new Error(`${profileId} mutation denial smoke failed`);
   }
-  return JSON.stringify([health, bootstrap, ...decisions, mutation]);
+  return summarizeDemoSmoke({ profileId, expectedIdentity, health, bootstrap, decisions, mutation });
 }
 
 async function invokeProfile({ profileId, functionName, temporary,
