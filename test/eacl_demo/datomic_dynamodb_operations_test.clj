@@ -67,6 +67,7 @@
                 (is (true? (get-in first-page [:pageInfo :hasNextPage])))
                 (is (= ["user-2"] (mapv :id (:items second-page))))
                 (is (false? (get-in second-page [:pageInfo :hasNextPage])))
+                (is (nil? (get-in second-page [:pageInfo :endCursor])))
                 (is (= "cursor-scope-mismatch"
                        (:code (ex-data
                                (try
