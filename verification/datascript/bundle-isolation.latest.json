@@ -2,16 +2,16 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-DPuy7ws5.js",
+    "entry": "assets/index-BRD0cVFX.js",
     "files": [
       ".vite/manifest.json",
-      "assets/index-DGlnvLp7.css",
-      "assets/index-DPuy7ws5.js",
-      "assets/index-DPuy7ws5.js.map",
+      "assets/index-BRD0cVFX.js",
+      "assets/index-BRD0cVFX.js.map",
+      "assets/index-DbqER3Zu.css",
       "index.html"
     ],
-    "scriptBytes": 561861,
-    "scriptSha256": "68619353fd5642e2424d9f9c25218abe875be5803b919a6054bbae8d715e19c6",
+    "scriptBytes": 562326,
+    "scriptSha256": "00fb23893867213b6400d28fca25808c3c4b66114d1cf8e3dba1e92e78223756",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/ServerExplorer.tsx",

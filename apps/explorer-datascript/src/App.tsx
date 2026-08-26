@@ -81,12 +81,18 @@ export default function App() {
   });
 
   return (
-    <main>
+    <main class="app-shell">
       <ExplorerHeader
-        eyebrow="EACL v8 · browser-local DataScript"
-        title="Explore authorization without sending fixture data to a server."
-        description="This separately loaded entry verifies a content-addressed ClojureScript worker, then keeps its DataScript database, EACL adapter, cursors, cache, and authorization operations inside that worker."
-        actions={<ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />}
+        eyebrow="EACL v8 + DataScript + Browser Memory + SolidJS"
+        title="🦅 EACL Explorer"
+        description="Reactive authorization over explicit, inspectable browser-local queries."
+        actions={<>
+          <nav class="explorer-header__sources" aria-label="Source repositories">
+            <a class="explorer-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
+            <a class="explorer-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
+          </nav>
+          <ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />
+        </>}
       />
       <Show when={publication().phase === "loading"}>
         <PanelBoundary id="datascript-publication" title="Verifying DataScript deployment" busy>

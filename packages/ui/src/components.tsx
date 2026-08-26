@@ -47,8 +47,7 @@ export function ProfileSelector(props: {
   return (
     <section class="selector-card" aria-labelledby="profile-selector-heading">
       <div class="section-heading">
-        <span aria-hidden="true">01</span>
-        <div><h2 id="profile-selector-heading">Runtime profile</h2><p>Choose a backend, then a supported storage layer.</p></div>
+        <div><p class="panel-kicker">Runtime profile</p><h2 id="profile-selector-heading">Backend &amp; storage</h2><p>Choose a backend, then one of its supported storage layers.</p></div>
       </div>
       <div class="selectors">
         <label>
@@ -57,7 +56,6 @@ export function ProfileSelector(props: {
             <For each={props.backends}>{(backend) => <option value={backend.id}>{backend.label}</option>}</For>
           </select>
         </label>
-        <div class="connector" aria-hidden="true">→</div>
         <label>
           <span>Storage</span>
           <select
@@ -134,7 +132,7 @@ export function PanelBoundary(props: {
   children: JSX.Element;
 }) {
   return (
-    <section class="panel-card" aria-labelledby={`${props.id}-heading`} aria-busy={props.busy === true}>
+    <section class="panel-card" data-panel-id={props.id} aria-labelledby={`${props.id}-heading`} aria-busy={props.busy === true}>
       <div class="panel-heading">
         <div><h2 id={`${props.id}-heading`} tabindex="-1">{props.title}</h2><Show when={props.summary}><p>{props.summary}</p></Show></div>
         <Show when={props.actions}><div class="panel-actions">{props.actions}</div></Show>

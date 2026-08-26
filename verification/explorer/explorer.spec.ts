@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route("**/registry/benchmark-evidence/index.v1.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(emptyBenchmarkIndex) }));
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Compare the same authorization model");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("EACL Explorer");
 });
 
 test.afterEach(async () => {
@@ -57,6 +57,14 @@ test("two-step selection, canonical normalization, and keyboard focus remain usa
   expect(focus.tag).not.toBe("BODY");
   expect(focus.outlineStyle).not.toBe("none");
   expect(focus.outlineWidth).not.toBe("0px");
+});
+
+test("DataScript remains a separate browser entry", async ({ page }) => {
+  await page.getByRole("combobox", { name: "Backend", exact: true }).selectOption("datascript");
+  const link = page.getByRole("link", { name: "Open DataScript explorer in a new tab" });
+  await expect(link).toHaveAttribute("href", "/datascript/");
+  await expect(link).toHaveAttribute("target", "_blank");
+  await expect(link).toHaveAttribute("rel", "noopener noreferrer");
 });
 
 test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ page }) => {

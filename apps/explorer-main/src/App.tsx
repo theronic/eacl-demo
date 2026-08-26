@@ -102,11 +102,18 @@ export default function App() {
   };
 
   return (
-    <main>
+    <main class="app-shell">
       <ExplorerHeader
-        title="Compare the same authorization model across real storage engines."
-        description="Choose an EACL backend, then one storage layer that is actually supported by it."
-        actions={<ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />}
+        eyebrow={`EACL v8 + ${selectedBackend().label} + ${storageOptions().find(({ id }) => id === selection().storage)?.label ?? selection().storage} + SolidJS`}
+        title="🦅 EACL Explorer"
+        description="Reactive authorization over explicit, inspectable HTTP queries."
+        actions={<>
+          <nav class="explorer-header__sources" aria-label="Source repositories">
+            <a class="explorer-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
+            <a class="explorer-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
+          </nav>
+          <ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />
+        </>}
       />
       <ProfileSelector
         backends={catalog.backends}
@@ -140,11 +147,12 @@ export default function App() {
         storageLabel={storageOptions().find(({ id }) => id === selection().storage)?.label ?? selection().storage}
         choices={profileChoices()}
       />
-      <Show when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment ? selectedProfile() : null}>{(profile) => (
-        profile().backend === "datascript"
-          ? <section class="datascript-entry-callout" aria-labelledby="datascript-entry-heading"><h2 id="datascript-entry-heading">Browser-local explorer</h2><p>The DataScript runtime is isolated in its own entry and worker bundle.</p><a class="button" href="/datascript/">Open DataScript explorer</a></section>
-          : <ServerExplorer profile={profile() as any} />
-      )}</Show>
+      <Show
+        when={selection().backend === "datascript"}
+        fallback={<Show when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment ? selectedProfile() : null}>{(profile) => <ServerExplorer profile={profile() as any} />}</Show>}
+      >
+        <section class="datascript-entry-callout" aria-labelledby="datascript-entry-heading"><h2 id="datascript-entry-heading">Browser-local explorer</h2><p>The DataScript runtime is isolated in its own entry and worker bundle.</p><a class="button" href="/datascript/" target="_blank" rel="noopener noreferrer">Open DataScript explorer in a new tab</a></section>
+      </Show>
     </main>
   );
 }
