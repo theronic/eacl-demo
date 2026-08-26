@@ -19,7 +19,7 @@
   (boundary/descriptor
    {:identity identity
     :runtime {:execution "lambda" :name "java25" :architecture "arm64"
-              :snapStart "disabled"}
+              :snapStart "enabled"}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 10000
               :serverCount 9922
@@ -33,7 +33,7 @@
      :mutationLocality "none"
      :limitations ["read-only" "ephemeral" "no-durability"
                    "lifecycle-rebuild" "unequal-dataset-scale"
-                   "unsupported-consistency" "no-snapstart"]}
+                   "unsupported-consistency"]}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value 1}
              {:name "responseBodyBytes" :value 1048576}

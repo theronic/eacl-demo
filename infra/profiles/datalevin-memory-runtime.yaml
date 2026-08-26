@@ -8,7 +8,7 @@ Metadata:
     Architecture: arm64
     Storage: memory
     SnapshotBehavior: request-snapshot
-    SnapStartPolicy: disabled-for-first-live-demo
+    SnapStartPolicy: published-version-preinitialized-reader
 
 Parameters:
   FunctionName:
@@ -99,7 +99,8 @@ Resources:
     Type: AWS::Lambda::Function
     DependsOn: LogGroup
     Properties:
-      Architectures: [arm64]
+      Architectures:
+        - arm64
       Code:
         S3Bucket: !Ref ArtifactBucket
         S3Key: !Ref ArtifactKey
@@ -122,7 +123,7 @@ Resources:
       Role: !GetAtt ExecutionRole.Arn
       Runtime: java25
       SnapStart:
-        ApplyOn: None
+        ApplyOn: PublishedVersions
       Timeout: 60
       TracingConfig:
         Mode: PassThrough
@@ -181,4 +182,4 @@ Outputs:
   Storage:
     Value: memory
   SnapStartEnabled:
-    Value: "false"
+    Value: "true"

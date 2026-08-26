@@ -11,12 +11,16 @@ import java.io.OutputStream;
 public final class LambdaHandler implements RequestStreamHandler {
   private static final IFn REQUIRE = Clojure.var("clojure.core", "require");
   private static final IFn READ = Clojure.var("clojure.core", "read-string");
+  private static final IFn INITIALIZE;
   private static final IFn HANDLE;
 
   static {
     REQUIRE.invoke(READ.invoke("eacl-demo.datalevin-memory.lambda-handler"));
+    INITIALIZE = Clojure.var(
+        "eacl-demo.datalevin-memory.lambda-handler", "initialize-runtime!");
     HANDLE = Clojure.var(
         "eacl-demo.datalevin-memory.lambda-handler", "handle-request-stream");
+    INITIALIZE.invoke();
   }
 
   @Override

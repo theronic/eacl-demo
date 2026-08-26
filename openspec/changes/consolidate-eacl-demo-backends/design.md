@@ -17,7 +17,7 @@ Several platform facts determine the design:
 
 1. Datomic Pro read-only connections return one fixed database/log value and support `d/db`, `d/log`, and `d/release`, not live synchronization. The current EACL Datomic source advertises modes whose authoritative/at-least/exact paths call `d/sync`. Therefore the read-only Lambda must serve direct snapshots over one captured `d/db` value and reject those modes before the generic source path. The underlying schema/storage still retains normal Datomic transaction history for the later separately qualified live EC2 demo.
 2. The Datahike DynamoDB adapter path still needs repair for typed failures, consistent publication reads, unprocessed keys, deadlines, and real AWS behavior. DynamoDB Local cannot prove those properties.
-3. Datalevin in-memory mode uses native resources and rebuilds its packaged fixture for each cold Lambda environment. SnapStart remains disabled unless a later native-handle restore qualification justifies it.
+3. Datalevin in-memory mode uses native resources and takes about 21 seconds to rebuild its packaged fixture in a fresh Lambda environment. Managed Java 25 supports SnapStart, so the candidate realizes the immutable reader during Lambda initialization, snapshots only a quiescent ready database, and is publishable only when AWS reports `OptimizationStatus=On` and the restored candidate passes the bounded operation smoke.
 4. Jank compiles natively. Lambda requires a Linux binary matching the configured architecture. `provided.al2023` supports x86_64 and arm64 custom runtimes, but AWS SnapStart excludes OS-only runtimes and container images. Upstream Jank currently exercises Linux release builds on GitHub's x64 `ubuntu-24.04` runner, not its arm64 runner, so Linux x86_64/AL2023 is the defensible initial target. Jank should start through AOT and does not need SnapStart.
 5. AWS Budgets data is delayed; immediate DynamoDB cost defense must use on-demand maximums and CloudWatch consumption/throttle/write signals.
 6. The current Datahike deployment already contains a tested Telegram notifier path using SNS, Lambda, an AWS-held token, and end-to-end ALARM/OK tests. Consolidation should generalize that implementation and reuse the token rather than introduce GitHub-held Telegram credentials.
@@ -72,7 +72,7 @@ The first selector is a stable backend ID. The second is filtered by enabled reg
 | --- | --- | --- | --- |
 | Datahike | S3, DynamoDB | managed Java arm64 Lambda; SnapStart disabled until a storage-specific restore lifecycle qualifies | exactly 1,000,000 for both |
 | Datomic | DynamoDB | managed Java Lambda, read-only Peer | exactly 1,000,000 |
-| Datalevin | in-memory LMDB | managed Java Lambda; rebuilt on cold environment, SnapStart disabled | exactly 10,000 |
+| Datalevin | in-memory LMDB | managed Java 25 arm64 Lambda; preinitialized published-version SnapStart | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
 | DataScript | browser memory | ClojureScript Web Worker | exactly 10,000 by default |
 
@@ -202,7 +202,7 @@ double-builds and Java 25 kernel-load audits. That closes only the artifact
 boundary; provisioning, seeding, history proof, actual Lambda execution,
 memory selection, and staged publication remain open.
 
-### 9. Datalevin is an ephemeral cold-rebuilt Lambda
+### 9. Datalevin is an ephemeral SnapStarted in-memory Lambda
 
 The active artifact is a Java 25/arm64 ZIP built from the pinned maintained
 fork commit `a7e29c25` and the pinned AL2023-compatible native JAR whose ABI
@@ -218,12 +218,19 @@ the active implementation uses bounded 5,000-record batches (three object and
 eight relationship transactions). After object publication it scans the
 `:eacl/id` index once and resolves every relationship endpoint from that local
 map, instead of crossing the native LMDB boundary roughly 77,000 times. The
-ordinary candidate smoke prints wall time for the first health invocation so
-cold behavior is measured on every deployment. SnapStart stays disabled:
-enabling it would be a separate native handle/restore decision, not a
-requirement for this demo.
+two non-SnapStart deployment measurements remained 21.8 and 21.3 seconds, so
+the endpoint-index optimization is not represented as a material startup win.
 
-Initial qualification evaluates quiesced pre-checkpoint native state versus full post-restore in-memory construction, within AWS restore-hook limits. Repeated restore/eviction/concurrency/handle/lock/load evidence chooses the strategy. Ordinary merges do not rerun the campaign; they build, deploy, and smoke the already qualified topology.
+The Java handler now forces the otherwise lazy immutable reader during Lambda
+initialization and the function enables SnapStart only on published versions.
+CI waits for the exact version to become active, requires AWS to report
+`OptimizationStatus=On`, then invokes the restored alias through health,
+bootstrap, allow, deny, and mutation-denial smoke before publishing its profile
+record. The first restored health wall time is printed on every deployment.
+The data remains native in-memory LMDB; SnapStart changes startup lifecycle,
+not storage or durability. Broader repeated restore/eviction/load evidence can
+still harden the topology later, but formal verification is not a merge gate
+for this demo.
 
 ### 10. DataScript remains a separate worker-backed entry
 
@@ -365,9 +372,9 @@ storage identifiers, exception messages/stacks, and credentials are forbidden.
 Records are byte-bounded, telemetry failure cannot change the request or
 initialization result, and log groups use bounded retention. The closed signal
 set is requests, errors, duration, initialization, restore, throttles, timeouts,
-OOM, and storage access. The current JVM profiles do not use SnapStart and
-therefore emit `Initialization=1, Restore=0`; a future restore hook must replace
-that claim with separately qualified restore telemetry.
+OOM, and storage access. Datahike and Datomic emit initialization rather than
+restore signals. Datalevin publishes only an AWS-optimized SnapStart version
+and measures its first restored health request in deployment smoke.
 
 Each enabled server profile requires seven exact-profile/function alarms
 (duration, errors, health, initialization, OOM, throttles, and timeouts) feeding

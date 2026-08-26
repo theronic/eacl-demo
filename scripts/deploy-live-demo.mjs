@@ -21,15 +21,18 @@ const target = process.argv[2];
 const profiles = {
   "datahike-s3": {
     artifact: "dist/datahike-s3/function.jar",
-    functionName: "eacl-demo-datahike-s3-live"
+    functionName: "eacl-demo-datahike-s3-live",
+    snapStart: false
   },
   "datomic-dynamodb": {
     artifact: "dist/datomic-dynamodb/function.jar",
-    functionName: "eacl-demo-datomic-dynamodb-live"
+    functionName: "eacl-demo-datomic-dynamodb-live",
+    snapStart: false
   },
   "datalevin-memory": {
     artifact: "dist/datalevin-memory/function.jar",
-    functionName: "eacl-demo-datalevin-memory-live"
+    functionName: "eacl-demo-datalevin-memory-live",
+    snapStart: true
   }
 };
 
@@ -99,8 +102,11 @@ async function deployProfile(profileId, profile) {
   try {
     const environmentFile = path.join(temporary, "environment.json");
     await writeFile(environmentFile, `${JSON.stringify({ Variables: variables })}\n`, { mode: 0o600 });
-    aws(["lambda", "update-function-configuration", "--function-name", profile.functionName,
-         "--environment", `file://${environmentFile}`]);
+    const configuration = ["lambda", "update-function-configuration",
+      "--function-name", profile.functionName,
+      "--environment", `file://${environmentFile}`];
+    if (profile.snapStart) configuration.push("--snap-start", "ApplyOn=PublishedVersions");
+    aws(configuration);
     aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
     const update = awsJson([
       "lambda", "update-function-code", "--function-name", profile.functionName,
@@ -109,6 +115,16 @@ async function deployProfile(profileId, profile) {
     ]);
     if (!/^[1-9][0-9]*$/.test(update.Version)) throw new Error("Lambda did not publish a version");
     aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
+    if (profile.snapStart) {
+      aws(["lambda", "wait", "published-version-active", "--function-name",
+           profile.functionName, "--qualifier", update.Version]);
+      const published = awsJson(["lambda", "get-function-configuration",
+        "--function-name", profile.functionName, "--qualifier", update.Version]);
+      if (published.SnapStart?.ApplyOn !== "PublishedVersions" ||
+          published.SnapStart?.OptimizationStatus !== "On") {
+        throw new Error("Datalevin SnapStart version is not optimized");
+      }
+    }
     aws(["lambda", "update-alias", "--function-name", profile.functionName,
          "--name", "candidate", "--function-version", update.Version,
          "--description", `demos:${demoSha()}:${artifactSha}`]);
@@ -137,12 +153,14 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
   const health = await invokeProfile({ profileId, functionName, temporary,
     operation: "health", method: "GET", input: null });
   assertHealthy(profileId, health);
-  process.stdout.write(`${profileId} candidate cold health ${health.wallMs}ms\n`);
+  process.stdout.write(`${profileId} candidate ${profileId === "datalevin-memory" ? "restore" : "cold"} health ${health.wallMs}ms\n`);
   const bootstrap = await invokeProfile({ profileId, functionName, temporary,
     operation: "bootstrap", method: "GET", input: null });
   if (bootstrap.statusCode !== 200 || !("data" in bootstrap.envelope) ||
       "error" in bootstrap.envelope ||
-      bootstrap.envelope.data?.identity?.profileId !== profileId) {
+      bootstrap.envelope.data?.identity?.profileId !== profileId ||
+      bootstrap.envelope.data?.runtime?.snapStart !==
+        (profileId === "datalevin-memory" ? "enabled" : "disabled")) {
     throw new Error(`${profileId} bootstrap smoke failed`);
   }
   const decisions = [];

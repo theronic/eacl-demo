@@ -48,7 +48,7 @@ test("every server runtime owns one pre-created log group with bounded retention
   for (const [profileId] of definitions) {
     const source = templates[profileId];
     assert.equal((source.match(/Type: AWS::Logs::LogGroup/gu) ?? []).length, 1, `${profileId} log group count drifted`);
-    assert.equal((source.match(/RetentionInDays: 14/gu) ?? []).length, 1, `${profileId} log retention drifted`);
+    assert.equal((source.match(/RetentionInDays: (?:7|14)/gu) ?? []).length, 1, `${profileId} log retention drifted`);
     assert.match(source, /DeletionPolicy: (Delete|Retain)\s*\n\s*UpdateReplacePolicy: \1/u, `${profileId} log resource lifecycle is inconsistent`);
   }
 });

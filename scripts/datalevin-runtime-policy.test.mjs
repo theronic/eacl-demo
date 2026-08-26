@@ -3,21 +3,29 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
 
-const [template, telemetrySchema, lifecycleSource, runtimeSource, readerSource] = await Promise.all([
+const [template, telemetrySchema, lifecycleSource, runtimeSource, readerSource, handlerSource, javaHandlerSource, deploySource] = await Promise.all([
   readFile(new URL("../infra/profiles/datalevin-memory-runtime.yaml", import.meta.url), "utf8"),
   readFile(new URL("../schemas/datalevin-runtime-telemetry.v1.schema.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../services/datalevin-memory/src/eacl_demo/datalevin_memory/lifecycle.clj", import.meta.url), "utf8"),
   readFile(new URL("../services/datalevin-memory/src/eacl_demo/datalevin_memory/runtime.clj", import.meta.url), "utf8"),
-  readFile(new URL("../services/datalevin-memory/src/eacl_demo/datalevin_memory/reader.clj", import.meta.url), "utf8")
+  readFile(new URL("../services/datalevin-memory/src/eacl_demo/datalevin_memory/reader.clj", import.meta.url), "utf8"),
+  readFile(new URL("../services/datalevin-memory/src/eacl_demo/datalevin_memory/lambda_handler.clj", import.meta.url), "utf8"),
+  readFile(new URL("../services/datalevin-memory/java/eacl_demo/datalevin_memory/LambdaHandler.java", import.meta.url), "utf8"),
+  readFile(new URL("../scripts/deploy-live-demo.mjs", import.meta.url), "utf8")
 ]);
 
-test("Datalevin live target is managed Java 25 arm64 without SnapStart", () => {
+test("Datalevin live target is a preinitialized managed Java 25 arm64 SnapStart version", () => {
   assert.match(template, /^\s{6}Runtime: java25$/mu);
-  assert.match(template, /^\s{6}Architectures: \[arm64\]$/mu);
-  assert.match(template, /^\s{6}SnapStart:\s*\n\s{8}ApplyOn: None$/mu);
+  assert.match(template, /^\s{6}Architectures:\s*\n\s{8}- arm64$/mu);
+  assert.match(template, /^\s{6}SnapStart:\s*\n\s{8}ApplyOn: PublishedVersions$/mu);
   assert.match(template, /Type: AWS::Lambda::Version/u);
   assert.match(template, /FunctionVersion: !GetAtt CandidateVersion\.Version/u);
   assert.doesNotMatch(template, /provided\.|x86_64|PackageType: Image/u);
+  assert.match(handlerSource, /defn initialize-runtime!/u);
+  assert.match(javaHandlerSource, /INITIALIZE\.invoke\(\)/u);
+  assert.match(deploySource, /published-version-active/u);
+  assert.match(deploySource, /OptimizationStatus !== "On"/u);
+  assert.match(deploySource, /runtime\?\.snapStart !==/u);
 });
 
 test("Datalevin uses true in-memory topology without remote or filesystem serving", () => {
