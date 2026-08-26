@@ -32,7 +32,7 @@
            (get-in descriptor [:capabilities :cacheBehavior])))
     (is (= "none" (get-in descriptor [:capabilities :mutationLocality])))
     (is (= #{"read-only" "no-history-api" "unsupported-consistency"
-             "snapstart-unqualified"}
+             "no-snapstart"}
            (set (get-in descriptor [:capabilities :limitations]))))
     (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 1000000 (get-in descriptor [:dataset :logicalResourceCount])))

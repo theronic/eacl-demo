@@ -94,7 +94,7 @@
   [snapshot]
   (let [{:keys [max-tx]} (d/read-snapshot-revision-info
                           (datalevin-eacl/db snapshot))]
-    {:behavior "request-owned-native-snapshot"
+    {:behavior "request-snapshot"
      :id (str "datalevin:" max-tx)
      :capturedAt (str (Instant/now))
      :fixedForEnvironment false}))

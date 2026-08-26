@@ -7,7 +7,7 @@ Metadata:
     Runtime: java25
     Architecture: arm64
     Storage: memory
-    SnapshotBehavior: request-owned-native-snapshot
+    SnapshotBehavior: request-snapshot
     SnapStartPolicy: disabled-for-first-live-demo
 
 Parameters:

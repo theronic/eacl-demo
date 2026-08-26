@@ -6,9 +6,16 @@ import path from "node:path";
 import process from "node:process";
 import baseRegistry from "../registry/profile-registry.v1.json" with { type: "json" };
 import profileDefinitions from "../packages/contracts/profiles.v1.json" with { type: "json" };
+import responseSchema from "../schemas/explorer-response.v1.schema.json" with { type: "json" };
+import { createRuntimeBoundaryValidator } from "../packages/contracts/src/runtime-validation.mjs";
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
+const validateLiveResponse = createRuntimeBoundaryValidator(
+  { responseSchema },
+  "https://demo.eacl.dev/schemas/explorer-response.v1.schema.json",
+  "liveDeploymentResponse"
+);
 const target = process.argv[2];
 const profiles = {
   "datahike-s3": {
@@ -124,6 +131,12 @@ async function smokeProfile(profileId, functionName, temporary) {
   const health = await invokeProfile({ profileId, functionName, temporary,
     operation: "health", method: "GET", input: null });
   assertHealthy(profileId, health);
+  const bootstrap = await invokeProfile({ profileId, functionName, temporary,
+    operation: "bootstrap", method: "GET", input: null });
+  if (bootstrap.statusCode !== 200 || bootstrap.envelope.ok !== true ||
+      bootstrap.envelope.data?.identity?.profileId !== profileId) {
+    throw new Error(`${profileId} bootstrap smoke failed`);
+  }
   const decisions = [];
   for (const [subjectId, expected] of [["user-1", true], ["user-2", false]]) {
     const response = await invokeProfile({ profileId, functionName, temporary,
@@ -142,7 +155,7 @@ async function smokeProfile(profileId, functionName, temporary) {
       mutation.envelope.error?.code !== "route-not-found") {
     throw new Error(`${profileId} mutation denial smoke failed`);
   }
-  return JSON.stringify([health, ...decisions, mutation]);
+  return JSON.stringify([health, bootstrap, ...decisions, mutation]);
 }
 
 async function invokeProfile({ profileId, functionName, temporary,
@@ -161,7 +174,8 @@ async function invokeProfile({ profileId, functionName, temporary,
        "--cli-binary-format", "raw-in-base64-out", "--payload", `fileb://${eventFile}`,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
-  return { statusCode: response.statusCode, envelope: JSON.parse(response.body) };
+  return { statusCode: response.statusCode,
+    envelope: validateLiveResponse(JSON.parse(response.body)) };
 }
 
 function assertHealthy(profileId, response) {

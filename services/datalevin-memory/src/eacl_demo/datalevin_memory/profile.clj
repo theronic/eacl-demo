@@ -26,11 +26,12 @@
     :capabilities
     {:operations (vec (sort closed-operations))
      :consistencyModes ["current"]
-     :snapshotBehavior "request-owned-native-snapshot"
+     :snapshotBehavior "request-snapshot"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only-public-api" "current-basis-only"
-                   "ephemeral-environment" "snapstart-disabled"]}
+     :limitations ["read-only" "ephemeral" "no-durability"
+                   "lifecycle-rebuild" "unequal-dataset-scale"
+                   "unsupported-consistency" "no-snapstart"]}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value 1}
              {:name "responseBodyBytes" :value 1048576}

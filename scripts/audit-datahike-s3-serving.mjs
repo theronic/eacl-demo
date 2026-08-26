@@ -64,6 +64,6 @@ assert.doesNotMatch(konserve,
   "custom backing reaches an upstream mutator or enumerator");
 const profile = await readFile(path.join(sourceDirectory, "profile.clj"), "utf8");
 assert.match(profile, /:snapStart "disabled"/u, "unqualified S3 reader lifecycle must not claim SnapStart");
-assert.match(profile, /"snapstart-unqualified"/u);
+assert.match(profile, /"no-snapstart"/u);
 assert.doesNotMatch(profile, /:snapStart "enabled"/u);
 process.stdout.write(`${JSON.stringify({ schema: "eacl-demo.datahike-s3-serving-audit.v1", records }, null, 2)}\n`);

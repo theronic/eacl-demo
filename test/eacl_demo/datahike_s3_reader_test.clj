@@ -44,7 +44,7 @@
           :operations #{"health" "bootstrap"}
           :memory-mib 2048})]
     (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
-    (is (some #{"snapstart-unqualified"}
+    (is (some #{"no-snapstart"}
               (get-in descriptor [:capabilities :limitations])))))
 
 (deftest open-reader-connects-only-and-captures-one-released-immutable-snapshot-test

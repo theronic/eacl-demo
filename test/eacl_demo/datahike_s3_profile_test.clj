@@ -30,7 +30,7 @@
            (get-in descriptor [:capabilities :cacheBehavior])))
     (is (= "none" (get-in descriptor [:capabilities :mutationLocality])))
     (is (= #{"read-only" "no-history-api" "unequal-dataset-scale"
-             "unsupported-consistency" "snapstart-unqualified"}
+             "unsupported-consistency" "no-snapstart"}
            (set (get-in descriptor [:capabilities :limitations]))))
     (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 1001584 (get-in descriptor [:dataset :logicalResourceCount])))

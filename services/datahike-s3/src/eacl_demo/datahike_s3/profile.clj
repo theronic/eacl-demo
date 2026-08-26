@@ -35,7 +35,7 @@
      :cacheBehavior "environment-local"
      :mutationLocality "none"
      :limitations ["read-only" "no-history-api" "unequal-dataset-scale"
-                   "unsupported-consistency" "snapstart-unqualified"]}
+                   "unsupported-consistency" "no-snapstart"]}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value 1}
              {:name "responseBodyBytes" :value 1048576}

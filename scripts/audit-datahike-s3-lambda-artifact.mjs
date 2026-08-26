@@ -124,7 +124,7 @@ assert.match(writerSource, /defmethod writer\/delete-database[\s\S]*?denied!/u);
 assert.match(operationsSource,
   /"bootstrap" \(fn \[\{:keys \[basis\]\}\] \(assoc descriptor :basis basis\)\)/u);
 assert.match(profileSource, /:snapStart "disabled"/u);
-assert.match(profileSource, /"snapstart-unqualified"/u);
+assert.match(profileSource, /"no-snapstart"/u);
 assert.doesNotMatch(profileSource, /:snapStart "enabled"/u);
 assert.doesNotMatch(servingSources,
   /\bd\/transact\b|eacl\/(?:write-schema!|write-relationships!|delete-object!)|datahike-eacl\/(?:expire-cache!|prepare-cache-coherence!)|konserve[^\s/]*\/(?:assoc|dissoc|delete|put)/u,

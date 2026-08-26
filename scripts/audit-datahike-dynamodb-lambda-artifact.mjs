@@ -118,7 +118,7 @@ assert.match(sources.retry, /\(<= 1 \(:max-attempts value\) 8\)/u);
 assert.match(sources.operations,
   /"bootstrap" \(fn \[\{:keys \[basis\]\}\] \(assoc descriptor :basis basis\)\)/u);
 assert.match(sources.profile, /:snapStart "disabled"/u);
-assert.match(sources.profile, /"snapstart-unqualified"/u);
+assert.match(sources.profile, /"no-snapstart"/u);
 assert.doesNotMatch(sources.profile, /:snapStart "enabled"/u);
 assert.doesNotMatch(servingSources,
   /\bd\/transact\b|eacl\/(?:write-schema!|write-relationships!|delete-object!)|datahike-eacl\/(?:expire-cache!|prepare-cache-coherence!)|PutItemRequest|DeleteItemRequest|CreateTableRequest|UpdateTableRequest|TransactWriteItemsRequest|BatchWriteItemRequest/u,
