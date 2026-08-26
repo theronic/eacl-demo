@@ -82,6 +82,14 @@ test("canonical layout order is unchanged except for the profile selector", () =
   assert.match(selector, /Backend &amp; Storage/u);
 });
 
+test("consistency controls retain the original Explorer vocabulary", () => {
+  const panel = file(resolve(demoSource, "components/ConsistencyPanel.tsx"));
+  const state = file(resolve(demoSource, "state.tsx"));
+  assert.doesNotMatch(panel, /["']current["']/u);
+  assert.match(panel, /"minimize-latency"/u);
+  assert.match(state, /createSignal<ConsistencyMode>\("minimize-latency"\)/u);
+});
+
 test("DataScript has no independent presentation component or stylesheet", () => {
   assert.equal(
     file(resolve(repository, "apps/explorer-datascript/index.html")),

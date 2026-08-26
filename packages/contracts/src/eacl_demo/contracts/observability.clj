@@ -184,8 +184,10 @@
                                 (:body response) "")
                               :key-fn keyword)
           ok? (true? (:ok body))
-          operation (safe-value (get-in body [:meta :operation])
-                                operations "unknown")
+          operation (if (string? (get-in body [:meta :revision]))
+                      "authorize"
+                      (safe-value (get-in body [:meta :operation])
+                                  operations "unknown"))
           request-id (safe-value (get-in body [:meta :requestId])
                                  request-id-pattern "invalid")
           error-code (when-not ok?

@@ -18,7 +18,7 @@
   #{:version :operation :query :after :basis-id :expires-at-ms})
 
 (declare bounded-scan-count decode-subject-cursor eacl-consistency encode-subject-cursor fail! guarded
-         object-entities object-exists? relationship-datoms relationship-query
+         object-entities relationship-datoms relationship-query
          subject-entities wire-object wire-page-info wire-relationship
          wire-relationship-page)
 
@@ -137,39 +137,23 @@
      "authorize"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
-        (let [database (datomic-eacl/db snapshot)
-              subject-known? (object-exists? database (:subjectType input)
-                                             (:subjectId input) :subject)
-              resource-known? (object-exists? database (:resourceType input)
-                                              (:resourceId input) nil)
-              decision (when (and subject-known? resource-known?)
-                         (eacl/check-permission
-                          snapshot
-                          {:subject (eacl/spice-object
-                                     (keyword (:subjectType input))
-                                     (:subjectId input))
-                           :permission (keyword (:permission input))
-                           :resource (eacl/spice-object
-                                      (keyword (:resourceType input))
-                                      (:resourceId input))
-                           :cache? (not= false (:cache input))
-                           :populate-cache? (not= false (:populateCache input))
-                           :consistency (eacl-consistency input)}))
+        (let [decision
+              (eacl/check-permission
+               snapshot
+               {:subject (eacl/spice-object
+                          (keyword (:subjectType input))
+                          (:subjectId input))
+                :permission (keyword (:permission input))
+                :resource (eacl/spice-object
+                           (keyword (:resourceType input))
+                           (:resourceId input))
+                :cache? (not= false (:cache input))
+                :populate-cache? (not= false (:populateCache input))
+                :consistency (eacl-consistency input)})
               allowed? (true? (:allowed? decision))]
           (check-active!)
           (response-meta/with-cache-status
-           {:subjectType (:subjectType input)
-            :subjectId (:subjectId input)
-            :resourceType (:resourceType input)
-            :resourceId (:resourceId input)
-            :permission (:permission input)
-            :allowed allowed?
-            :reasonCode (cond
-                          (not subject-known?) "subject-not-found"
-                          (not resource-known?) "object-not-found"
-                          allowed? "granted"
-                          :else "denied")
-            :path []}
+           {:allowed allowed?}
            decision
            (not= false (:cache input))))))
 
@@ -316,13 +300,6 @@
    :id (str id)
    :displayName (str id)
    :attributes []})
-
-(defn- object-exists?
-  [database type id required-role]
-  (let [entity (d/entity database [:eacl/id id])]
-    (and (= (keyword type) (:eacl.demo/type entity))
-         (or (nil? required-role)
-             (contains? (set (:eacl.demo/roles entity)) required-role)))))
 
 (defn- subject-entities
   [database type]

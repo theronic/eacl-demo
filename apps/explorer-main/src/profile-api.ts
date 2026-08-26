@@ -62,7 +62,8 @@ interface WireEnvelope<T> {
   error?: { code: string; message: string; details?: unknown };
   meta: {
     requestId: string;
-    basis: ProfileDescriptor["basis"] | null;
+    revision?: string;
+    basis?: ProfileDescriptor["basis"] | null;
     elapsedMs?: number;
     cacheStatus?: ApiMeta["cacheStatus"];
   };
@@ -160,7 +161,7 @@ export function createProfileApi(
     if (schema) return schema;
     const active = await loadDescriptor(signal);
     const result = await wire<WireSchema>("get-schema", {
-      consistency: preferredConsistency(active, "current"),
+      consistency: preferredConsistency(active, "minimize-latency"),
     }, signal);
     schema = presentSchema(result.data!);
     return schema;
@@ -169,7 +170,7 @@ export function createProfileApi(
   const envelope = <T>(
     data: T,
     requestId: string,
-    basis: ProfileDescriptor["basis"] | null,
+    basis: ProfileDescriptor["basis"] | null | undefined,
     elapsedMs?: number,
     cacheStatus?: ApiMeta["cacheStatus"],
   ): ApiSuccess<T> => ({
@@ -315,7 +316,15 @@ export function createProfileApi(
         populateCache: body.populateCache !== false,
         consistency,
       }, signal);
-      return wireEnvelope({ allowed: result.data!.allowed } as PermissionDecision, result) as ApiSuccess<T>;
+      return {
+        data: { allowed: result.data!.allowed } as PermissionDecision,
+        meta: {
+          revision: result.meta.revision ?? result.meta.basis?.id ?? active.basis.id,
+          requestId: result.meta.requestId,
+          ...(result.meta.elapsedMs === undefined ? {} : { elapsedMs: result.meta.elapsedMs }),
+          ...(result.meta.cacheStatus === undefined ? {} : { cacheStatus: result.meta.cacheStatus }),
+        },
+      } as ApiSuccess<T>;
     }
 
     if (url.pathname === "/api/eacl/read-relationships") {
@@ -379,10 +388,10 @@ export function createProfileApi(
 }
 
 function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bootstrap {
-  const supported = descriptor.capabilities.consistencyModes
+  const supported = [...new Set(descriptor.capabilities.consistencyModes
     .map(presentConsistency)
-    .filter((mode): mode is ConsistencyMode => mode !== null);
-  const current = supported.includes("current") ? "current" : (supported[0] ?? "current");
+    .filter((mode): mode is ConsistencyMode => mode !== null))];
+  const defaultMode = supported[0] ?? "minimize-latency";
   return {
     status: "ready",
     seed: {
@@ -402,7 +411,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
     pageSizeOptions: [10, 20, 50, 100, 250, 500, 1000],
     defaultPageSize: 20,
     consistency: {
-      default: current,
+      default: defaultMode,
       supported,
       fullyConsistent: false,
       fullyConsistentReason: "This public Explorer uses the read bases advertised by the selected profile.",
@@ -458,7 +467,7 @@ function presentSchema(schema: WireSchema): SchemaInfo {
 function presentMeta(
   profile: ExplorerProfile,
   requestId: string,
-  basis: ProfileDescriptor["basis"] | null,
+  basis: ProfileDescriptor["basis"] | null | undefined,
   elapsedMs?: number,
   cacheStatus?: ApiMeta["cacheStatus"],
 ): ApiMeta {
@@ -487,7 +496,7 @@ function presentMeta(
 }
 
 function presentConsistency(value: string): ConsistencyMode | null {
-  if (value === "current") return "current";
+  if (value === "current") return "minimize-latency";
   if (value === "minimize") return "minimize-latency";
   if (value === "at-least") return "at-least-as-fresh";
   if (value === "exact") return "at-exact-snapshot";
@@ -498,7 +507,7 @@ function consistencyMode(value: unknown): ConsistencyMode {
   if (value && typeof value === "object" && "mode" in value) {
     return identifier((value as { mode: unknown }).mode) as ConsistencyMode;
   }
-  return "current";
+  return "minimize-latency";
 }
 
 function preferredConsistency(descriptor: ProfileDescriptor, mode: ConsistencyMode): string {

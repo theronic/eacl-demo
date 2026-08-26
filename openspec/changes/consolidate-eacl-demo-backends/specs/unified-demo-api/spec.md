@@ -11,12 +11,12 @@ All profiles SHALL implement `explorer.v1` logical operations and normalized dat
 - **WHEN** the current shell contacts a healthy N-1 profile during a non-atomic rollout
 - **THEN** it SHALL use the compatible descriptor/operations without inventing unsupported fields or requiring fleet coordination
 
-### Requirement: Success and failure envelopes identify exact sources
-Every success SHALL return `data` plus metadata containing contract version, request ID, profile identity, EACL Core SHA, demo SHA, deployment/artifact identity, and basis/elapsed/cache fields when meaningful. Every failure SHALL return a stable code, safe message, retryability, bounded safe details, and request/profile/source metadata when available.
+### Requirement: Bootstrap identifies exact sources and ordinary responses stay compact
+Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA, deployment/artifact identity, dataset identity, and basis before ordinary operations. Ordinary Explorer responses SHALL retain the prior consumer-facing metadata shape: revision, request ID, and elapsed/cache fields when meaningful. They MUST NOT repeat deployment identity, contract version, operation, or a structured basis in every permission response. Every failure SHALL return a stable code, safe message, retryability, bounded safe details, and compact request metadata when available.
 
 #### Scenario: Permission check succeeds
 - **WHEN** a permission check completes
-- **THEN** its envelope SHALL identify the exact profile and immutable source/artifact pair that served it
+- **THEN** it SHALL return only the allowed decision plus revision, request ID, and optional elapsed/cache metadata, relying on the already validated profile bootstrap for deployment identity
 
 #### Scenario: Internal exception occurs
 - **WHEN** an adapter throws unexpectedly
@@ -55,7 +55,7 @@ A profile SHALL advertise only modes executable through its production topology.
 
 #### Scenario: Datomic fixed snapshot is served
 - **WHEN** the Datomic Lambda uses a read-only connection's fixed `d/db` value
-- **THEN** it SHALL advertise current/fixed-snapshot behavior only and reject exact-history, at-least, fully-consistent, and live-refresh requests without calling Datomic synchronization
+- **THEN** it SHALL expose no meaningless `current` choice, use the fixed lowest-latency snapshot internally, and reject exact-history, at-least, fully-consistent, and live-refresh requests without calling Datomic synchronization
 
 ### Requirement: Cancellation deadlines and overload are typed
 Server operations SHALL have bounded deadlines, cancellation, and concurrency admission. Disconnect/cancellation, deadline, storage throttle, and busy admission SHALL remain distinct safe errors where the runtime can distinguish them.

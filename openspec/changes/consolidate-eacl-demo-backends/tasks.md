@@ -86,6 +86,7 @@
 - [x] 6.12 Prove DataScript authorization and fixture data remain browser-local and public network calls are not made for its operations.
 - [x] 6.13 Prove DataScript, ClojureScript worker, and DataScript-only dependencies are absent from the main server-profile bundle.
 - [x] 6.14 Build the main and DataScript static entries into one static artifact in the same unprivileged job so they never race on the static bucket prefix.
+- [x] 6.15 Restore the original Explorer consistency labels and compact Datomic permission response shape, leaving deployment identity in the validated health/bootstrap handshake.
 
 ## 7. Qualification harness and fast merge smoke
 
@@ -136,6 +137,7 @@
 - [ ] 9.13 Publish immutable function, fixed-basis data, descriptor, and evidence identities and enable the profile only after staged qualification passes.
 - [ ] 9.14 Prove with the temporary normal Peer that relevant attributes do not use :db/noHistory true and that recorded prior bases support expected d/as-of and history results.
 - [x] 9.15 Document the future non-read-only Datomic EC2 demo as a separate out-of-scope serving deployment that may use the retained history rather than broadening this Lambda profile.
+- [x] 9.16 Measure the live fixed-snapshot cache path, remove redundant Datomic existence reads from authorization, and retain a regression test for the compact decision result.
 
 ## 10. Datalevin memory profile
 

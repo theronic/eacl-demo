@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const schema = JSON.parse(await readFile(new URL("../../schemas/explorer.v1.schema.json", import.meta.url), "utf8"));
-const required = ["object", "relationship", "pageInfo", "objectPage", "relationshipPage", "objectResult", "count", "authorizationDecision", "schema", "cacheInfo", "basis", "health", "bootstrap", "success", "failure"];
+const required = ["object", "relationship", "pageInfo", "objectPage", "relationshipPage", "objectResult", "count", "authorizationDecision", "permissionDecision", "schema", "cacheInfo", "basis", "health", "bootstrap", "profileSuccess", "compactAuthorizationSuccess", "profileFailure", "compactAuthorizationFailure"];
 
 test("explorer.v1 exposes every required closed wire definition", () => {
   for (const name of required) {
@@ -21,7 +21,9 @@ test("identity binds profile, both sources, artifact, deployment, and data", () 
 });
 
 test("success data is closed and correlated with its operation", () => {
-  const variants = schema.$defs.success.allOf[0].oneOf;
+  const variants = schema.$defs.profileSuccess.allOf[0].oneOf;
   assert.equal(variants.length, 13);
   assert.deepEqual(variants.map(({ properties }) => properties.meta.properties.operation.const), ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]);
+  assert.deepEqual(schema.$defs.compactResponseMeta.required, ["revision", "requestId"]);
+  assert.equal(schema.$defs.compactAuthorizationSuccess.properties.data.$ref, "#/$defs/permissionDecision");
 });

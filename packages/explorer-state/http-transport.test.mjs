@@ -77,6 +77,32 @@ test("POST bodies carry the exact payload hash and validated request scope", asy
   assert.equal(observed.init.cache, "no-store");
 });
 
+test("Datomic authorization accepts the original compact decision metadata after bootstrap identity validation", async () => {
+  const datomicProfile = {
+    ...profile,
+    id: "datomic-dynamodb",
+    backend: "datomic",
+    storage: "dynamodb",
+    route: "/api/v1/datomic-dynamodb",
+    deployment: { ...profile.deployment },
+  };
+  const transport = createTransport(async () => response({
+    ok: true,
+    meta: { revision: "datomic:fixture:42", requestId: "compact-1", elapsedMs: 0.8, cacheStatus: "hit" },
+    data: { allowed: true },
+  }), { profile: datomicProfile });
+  const envelope = await transport.request("authorize", {}, { requestId: "compact-1" });
+  assert.deepEqual(envelope.data, { allowed: true });
+  assert.equal(envelope.meta.identity, undefined);
+  assert.equal(envelope.meta.basis, undefined);
+  const wrongProfile = createTransport(async () => response({
+    ok: true,
+    meta: { revision: "basis-1", requestId: "compact-2" },
+    data: { allowed: true },
+  }));
+  await assert.rejects(wrongProfile.request("authorize", {}, { requestId: "compact-2" }), /match|identity/u);
+});
+
 test("response operation, request, deployment, and status drift all fail closed", async () => {
   const variants = [
     success("authorize", "wrong", {}),
