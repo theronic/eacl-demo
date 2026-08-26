@@ -7,5 +7,9 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: "line",
-  use: { ...devices["Desktop Chrome"], trace: "retain-on-failure" }
+  use: { trace: "retain-on-failure" },
+  projects: [
+    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile-chromium", use: { viewport: { width: 390, height: 844 } } },
+  ],
 });

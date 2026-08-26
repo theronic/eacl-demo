@@ -1,4 +1,4 @@
-import { Show, type JSX } from "solid-js";
+import { Show, type Accessor, type JSX } from "solid-js";
 import { CachePanel } from "./components/CachePanel";
 import { ConsistencyPanel } from "./components/ConsistencyPanel";
 import { DetailPanel } from "./components/DetailPanel";
@@ -46,6 +46,7 @@ export function Explorer(props: {
   backendLabel: string;
   storageLabel: string;
   profileSelector: JSX.Element;
+  startupMessage?: Accessor<string | null>;
 }): JSX.Element {
   const app = useAppState();
   const hasBootstrap = () => Boolean(app.bootstrapData());
@@ -59,8 +60,8 @@ export function Explorer(props: {
           <section class="startup-status" role="status" aria-live="polite">
             <span class="button-spinner" aria-hidden="true" />
             <div class="startup-status__copy">
-              <strong>Starting the AWS Lambda reader</strong>
-              <span>Waiting for a direct health check · {startupSeconds()}s</span>
+              <strong>Starting the {props.backendLabel} reader</strong>
+              <span>{props.startupMessage?.() ?? "Waiting for a direct health check"} · {startupSeconds()}s</span>
             </div>
           </section>
         </main>
@@ -133,7 +134,7 @@ export function Explorer(props: {
       <footer class="app-footer">
         <p class="app-footer__copy">
           EACL authorization runs on {props.backendLabel}; the explorer receives
-          only bounded HTTP results.
+          only bounded results.
         </p>
         <Show when={!app.permission()}>
           <EmptyState>No permission is available in the active schema.</EmptyState>
