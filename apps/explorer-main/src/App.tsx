@@ -116,6 +116,16 @@ export default function App(): JSX.Element {
     registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
 
   const selectBackend = (backend: BackendId) => {
+    if (backend === "datascript") {
+      window.open("/datascript/", "_blank", "noopener,noreferrer");
+      setSelection({ ...selection() });
+      queueMicrotask(() => {
+        document.querySelector<HTMLInputElement>(
+          'input[name="explorer-backend"][value="datascript"]',
+        )?.focus();
+      });
+      return;
+    }
     shouldApplyRegistryDefault = false;
     const next = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend)) as Selection;
     setSelection(next);

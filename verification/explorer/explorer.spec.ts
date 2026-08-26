@@ -53,11 +53,14 @@ test("two-step selection, canonical normalization, and keyboard focus remain usa
 });
 
 test("DataScript remains a separate browser entry", async ({ page }) => {
-  await page.getByRole("radio", { name: "DataScript", exact: true }).check();
-  const link = page.getByRole("link", { name: "Open DataScript explorer in a new tab" });
-  await expect(link).toHaveAttribute("href", "/datascript/");
-  await expect(link).toHaveAttribute("target", "_blank");
-  await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  const originalUrl = page.url();
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("radio", { name: "DataScript", exact: true }).click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(/\/datascript\//u);
+  await expect(page).toHaveURL(originalUrl);
+  await expect(page.getByRole("radio", { name: "Datahike", exact: true })).toBeChecked();
+  await popup.close();
 });
 
 test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ page }) => {
