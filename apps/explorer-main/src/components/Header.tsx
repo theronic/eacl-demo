@@ -58,7 +58,7 @@ export function Header(props: { backendLabel: string; storageLabel: string }): J
     <header class="app-header">
       <div class="app-header__intro">
         <p class="eyebrow">
-          EACL v8 + {props.backendLabel} + {props.storageLabel} + SolidJS
+          EACL v8 + {props.backendLabel} + {props.storageLabel}
         </p>
         <h1 class="app-title">🦅 EACL Explorer</h1>
         <p class="app-subtitle">

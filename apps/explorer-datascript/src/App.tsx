@@ -83,7 +83,7 @@ export default function App() {
   return (
     <main class="app-shell">
       <ExplorerHeader
-        eyebrow="EACL v8 + DataScript + Browser Memory + SolidJS"
+        eyebrow="EACL v8 + DataScript + Browser Memory"
         title="🦅 EACL Explorer"
         description="Reactive authorization over explicit, inspectable browser-local queries."
         actions={<>

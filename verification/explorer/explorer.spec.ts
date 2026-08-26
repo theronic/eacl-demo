@@ -33,6 +33,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/registry/benchmark-evidence/index.v1.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(emptyBenchmarkIndex) }));
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("EACL Explorer");
+  await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
 });
 
 test.afterEach(async () => {

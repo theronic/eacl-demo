@@ -50,6 +50,7 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   await page.route("**/registry/profiles/datascript-browser-memory.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(publication) }));
 
   await page.goto(process.env.EACL_DATASCRIPT_URL ?? "http://127.0.0.1:4174/datascript/");
+  await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Read basis" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".metadata-list")).toHaveCount(0);

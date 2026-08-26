@@ -132,8 +132,8 @@ export function Explorer(props: {
       </Show>
       <footer class="app-footer">
         <p class="app-footer__copy">
-          EACL authorization runs on {props.backendLabel}; SolidJS receives only
-          bounded HTTP results.
+          EACL authorization runs on {props.backendLabel}; the explorer receives
+          only bounded HTTP results.
         </p>
         <Show when={!app.permission()}>
           <EmptyState>No permission is available in the active schema.</EmptyState>

@@ -262,7 +262,7 @@ function StandaloneExplorer(props: {
     <div class="app-shell" data-theme={theme()}>
       <header class="app-header">
         <div class="app-header__intro">
-          <p class="eyebrow">EACL v8 + {props.backendLabel} + {props.storageLabel} + SolidJS</p>
+          <p class="eyebrow">EACL v8 + {props.backendLabel} + {props.storageLabel}</p>
           <h1 class="app-title">🦅 EACL Explorer</h1>
           <p class="app-subtitle">Reactive authorization over explicit, inspectable HTTP queries.</p>
         </div>
