@@ -27,6 +27,7 @@
               :snapStart "disabled"}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 1000000
+              :serverCount 998417
               :manifestSha256 data-manifest-sha256}
     :basis basis
     :capabilities

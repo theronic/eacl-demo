@@ -60,7 +60,7 @@ export function Explorer(props: {
           <section class="startup-status" role="status" aria-live="polite">
             <span class="button-spinner" aria-hidden="true" />
             <div class="startup-status__copy">
-              <strong>Starting the {props.backendLabel} reader</strong>
+              <strong>Starting {props.startupMessage ? "DataScript" : props.backendLabel}</strong>
               <span>{props.startupMessage?.() ?? "Waiting for a direct health check"} · {startupSeconds()}s</span>
             </div>
           </section>

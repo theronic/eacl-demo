@@ -1,6 +1,6 @@
 ## Purpose
 
-Define a qualification-gated EACL/Datalevin in-memory demonstration in a managed Java Lambda using SnapStart and native lifecycle safety.
+Define an EACL/Datalevin in-memory demonstration in a managed Java Lambda with an honest ephemeral lifecycle and bounded cold initialization.
 
 ## ADDED Requirements
 
@@ -29,15 +29,15 @@ The currently qualified embedded Datalevin topology MUST NOT automatically quali
 - **WHEN** an exception occurs after snapshot acquisition during page realization
 - **THEN** the owned read snapshot SHALL still be released exactly once and the response SHALL be a typed safe error
 
-### Requirement: Production-safe ephemeral source lifecycle
-The profile SHALL define and qualify an external, deployment-bound source-lifecycle and monotonic revision-watermark strategy that satisfies the EACL Datalevin adapter across rebuild, restore, rollback, and concurrent Lambda environments. A process-local test atom or an undocumented bypass MUST NOT be accepted as production persistence.
+### Requirement: Honest environment-local source lifecycle
+The profile SHALL bind its deterministic fixture and deployment identity in bootstrap while keeping the Datalevin revision watermark inside the execution environment that owns the in-memory database. It MUST NOT describe that process-local watermark as durable persistence or coordinate it through another storage service.
 
 #### Scenario: Old deployment is restored
 - **WHEN** an operator moves the alias back to a prior immutable dataset/artifact
-- **THEN** the configured lifecycle/watermark SHALL either recognize the exact prior source safely or require an explicit lifecycle rotation; it SHALL not accept a revision regression under an unchanged lifecycle
+- **THEN** the old function version SHALL rebuild its own exact packaged fixture and advertise its own deployment/basis; it SHALL not share mutable database state with the newer environment
 
-### Requirement: SnapStart lifecycle strategy is selected by evidence
-The deployment SHALL evaluate both (a) quiesced pre-checkpoint in-memory initialization with validated/reopened native resources after restore and (b) checkpointing only JVM/class state followed by complete in-memory creation/seed in `afterRestore`. The selected strategy SHALL pass repeated publish/restore waves, simultaneous environments, forced eviction, native handle/lock checks, fixture identity, semantic conformance, and representative load. Any `afterRestore` work MUST complete within AWS's ten-second limit.
+### Requirement: Cold initialization is bounded and measurable
+The current deployment SHALL leave SnapStart disabled and rebuild its native in-memory database once per cold Lambda environment. Fixture parsing and writes SHALL use bounded batches, and the ordinary candidate smoke SHALL report wall time to first healthy response. A future SnapStart experiment may evaluate pre-checkpoint handles or after-restore rebuild only after native restore safety and AWS hook limits pass independently.
 
 #### Scenario: Pre-checkpoint handle passes one smoke test only
 - **WHEN** a snapshotted native handle succeeds once but lacks repeated restore, eviction, lock, and load evidence
@@ -54,11 +54,11 @@ After readiness, the service SHALL expose only shared read routes and SHALL prev
 - **WHEN** a caller attempts to reseed the in-memory database
 - **THEN** the route SHALL be rejected before any transaction and the current fixture/basis SHALL remain unchanged
 
-### Requirement: SnapStart-compatible managed Lambda configuration
-The profile SHALL use a supported managed Java runtime, published function versions, an alias, and SnapStart. It MUST NOT combine SnapStart with provisioned concurrency, EFS, S3 Files, a container image, an OS-only runtime, or ephemeral storage above 512 MB.
+### Requirement: Managed Lambda configuration
+The profile SHALL use a supported managed Java runtime, published function versions, an alias, and no EFS or durable database attachment. SnapStart MUST remain disabled until separate native-handle restore evidence passes.
 
 #### Scenario: Infrastructure requests an incompatible feature
-- **WHEN** a plan enables provisioned concurrency or oversized ephemeral storage for the SnapStart function
+- **WHEN** a plan enables SnapStart without the required native restore evidence
 - **THEN** validation SHALL fail before deployment
 
 ### Requirement: Smallest fitting Datalevin memory is measured

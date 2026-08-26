@@ -36,6 +36,7 @@
            (set (get-in descriptor [:capabilities :limitations]))))
     (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 1000000 (get-in descriptor [:dataset :logicalResourceCount])))
+    (is (= 998417 (get-in descriptor [:dataset :serverCount])))
     (is (= profile/data-manifest-sha256
            (get-in descriptor [:dataset :manifestSha256])))))
 

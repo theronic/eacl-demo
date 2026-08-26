@@ -80,13 +80,13 @@ test("progress is bounded to active IDs and malformed addressable events reject 
   await assert.rejects(pending, (error) => error.code === "validation-error");
 });
 
-test("operations are blocked before initialization and every response stays bound to the publication", async () => {
+test("operations are blocked before initialization and responses stay request-correlated", async () => {
   const worker = fakeWorker();
   const transport = createDataScriptWorkerTransport({ worker, expectedIdentity, validateEvent: identity });
   assert.throws(() => transport.request("health", {}), (error) => error.code === "identity-mismatch");
   await initialize(worker, transport);
   const pending = transport.request("health", {});
-  worker.emit(response(worker.sent[1], { ready: true }, "health", { ...expectedIdentity, artifactSha256: "e".repeat(64) }));
+  worker.emit({ ...response(worker.sent[1], { ready: true }), response: { data: { ready: true }, meta: { revision: "worker:1", requestId: "wrong" } } });
   await assert.rejects(pending, (error) => error.code === "identity-mismatch");
 });
 
@@ -103,10 +103,10 @@ function fakeWorker() {
   };
 }
 
-function response(request, data, operation = request.operation, responseIdentity = expectedIdentity) {
+function response(request, data) {
   return {
     ...base(request), type: "response",
-    response: { ok: true, meta: { requestId: request.requestId, operation, identity: responseIdentity }, data }
+    response: { data, meta: { revision: "worker:1", requestId: request.requestId } }
   };
 }
 

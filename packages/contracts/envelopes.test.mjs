@@ -14,20 +14,19 @@ const context = {
   basis: { behavior: "request-snapshot", id: "basis-1", capturedAt: "2026-08-25T12:00:00Z", fixedForEnvironment: false }
 };
 
-test("success carries the complete immutable request and deployment identity", () => {
-  const envelope = createSuccess(context, { subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "view", allowed: true, reasonCode: "granted", path: [] });
+test("success uses the original compact Explorer envelope", () => {
+  const envelope = createSuccess(context, { allowed: true });
   assert.equal(validate.server(envelope), envelope);
-  assert.deepEqual(envelope.meta.identity, context.identity);
-  assert.equal(envelope.meta.requestId, context.requestId);
-  assert.equal(envelope.meta.operation, context.operation);
+  assert.deepEqual(envelope, { data: { allowed: true }, meta: { revision: "basis-1", requestId: "request-1" } });
 });
 
-test("failure uses the same identity and only stable catalog semantics", () => {
-  const envelope = createFailure(context, "throttled", ["dependency=dynamodb"]);
+test("failure uses the same compact metadata and stable catalog semantics", () => {
+  const envelope = createFailure(context, "throttled");
   assert.equal(validate.server(envelope), envelope);
-  assert.deepEqual(envelope.meta.identity, context.identity);
-  assert.equal(envelope.error.message, "A dependency throttled the request.");
-  assert.equal(envelope.error.retryable, true);
+  assert.deepEqual(envelope, {
+    error: { code: "throttled", message: "A dependency throttled the request." },
+    meta: { revision: "basis-1", requestId: "request-1" }
+  });
   assert.equal(httpStatusForError("throttled"), 429);
 });
 

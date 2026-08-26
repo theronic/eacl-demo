@@ -100,10 +100,13 @@
   "Emits one closed request record from an internally generated Function URL
   response. Response messages, inputs, paths, credentials, exception text, and
   storage identifiers are never copied into the log."
-  [context response started-ns]
-  (attempt-telemetry!
-   #(let [{:keys [ok? operation request-id error-code status-code]}
-          (observation-from-response response)
+  ([context response started-ns]
+   (observe-response! context nil response started-ns))
+  ([context event response started-ns]
+   (attempt-telemetry!
+   #(let [event-operation (operation-from-event context event)
+          {:keys [ok? operation request-id error-code status-code]}
+          (observation-from-response response event-operation)
           error? (not ok?)
           throttle? (= "throttled" error-code)
           timeout? (= "deadline-exceeded" error-code)
@@ -135,7 +138,7 @@
          "OOM" 0
          "Storage" (if storage? 1 0)}))
       (when (and error? (= "health" operation))
-        (emit-record! (alarm-record context "health"))))))
+        (emit-record! (alarm-record context "health")))))))
 
 (defn observe-exception!
   "Emits a safe request record for an exception that escaped the response
@@ -178,14 +181,14 @@
         (emit-record! (alarm-record context "health"))))))
 
 (defn- observation-from-response
-  [response]
+  [response event-operation]
   (try
     (let [body (json/read-str (if (string? (:body response))
                                 (:body response) "")
                               :key-fn keyword)
-          ok? (true? (:ok body))
-          operation (if (string? (get-in body [:meta :revision]))
-                      "authorize"
+          ok? (and (contains? body :data) (not (contains? body :error)))
+          operation (if (not= "unknown" event-operation)
+                      event-operation
                       (safe-value (get-in body [:meta :operation])
                                   operations "unknown"))
           request-id (safe-value (get-in body [:meta :requestId])

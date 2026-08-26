@@ -45,7 +45,7 @@ test("required restore and memory below 20 percent fail qualification", async ()
 
 function passingTransport(memory = { peakBytes: 70, memoryLimitBytes: 100 }) {
   return {
-    async request(operation) { return { ok: true, meta: { operation }, data: {} }; },
+    async request(operation) { return { meta: { revision: "basis-1", requestId: `request-${operation}` }, data: {} }; },
     async metrics() { return memory; },
     async release() { return true; }
   };

@@ -36,6 +36,24 @@
 
 (declare rejected decode-body parse-input encode-envelope json-safe byte-count)
 
+(defn event-request-id
+  "Returns the same bounded request ID for normal and rejected Function URL events."
+  [event]
+  (let [headers (:headers event)
+        client-request-id
+        (when (map? headers)
+          (some (fn [[key value]]
+                  (when (and (or (string? key) (keyword? key))
+                             (= "x-eacl-request-id"
+                                (str/lower-case (name key))))
+                    value))
+                headers))
+        aws-request-id (get-in event [:requestContext :requestId])]
+    (cond
+      (http/valid-request-id? client-request-id) client-request-id
+      (http/valid-request-id? aws-request-id) aws-request-id
+      :else "invalid")))
+
 (defn normalize-event
   "Converts one closed Function URL v2 event into the internal JVM request.
   JSON is decoded only after transport limits and media type checks pass."
@@ -51,16 +69,12 @@
     (rejected "validation-error")
     :else
     (let [http (get-in event [:requestContext :http])
-          aws-request-id (get-in event [:requestContext :requestId])
           method (when (string? (:method http))
                    (-> (:method http) str/lower-case keyword))
           headers (into {} (map (fn [[key value]]
                                   [(str/lower-case (name key)) value]))
                         (:headers event))
-          client-request-id (get headers "x-eacl-request-id")
-          request-id (if (http/valid-request-id? client-request-id)
-                       client-request-id
-                       aws-request-id)
+          request-id (event-request-id event)
           body-result (decode-body (:body event) (:isBase64Encoded event))]
       (cond
         (not (map? http)) (rejected "validation-error")
@@ -107,7 +121,10 @@
   ([envelope allowed-method]
    (let [body (encode-envelope envelope)
          code (get-in envelope [:error :code])
-         status (if (:ok envelope) 200 (get status-by-code code 500))
+         status (if (and (contains? envelope :data)
+                         (not (contains? envelope :error)))
+                  200
+                  (get status-by-code code 500))
          headers (cond-> {"content-type" "application/json; charset=utf-8"
                           "cache-control" "no-store"
                           "x-content-type-options" "nosniff"}
@@ -117,6 +134,19 @@
       :headers headers
       :body body
       :isBase64Encoded false})))
+
+(defn internal-error-response
+  "Produces the same compact public failure shape when a handler itself fails."
+  [event revision]
+  (create-response
+   {:error {:code "internal-error"
+            :message "The request failed internally."}
+    :meta {:revision (if (and (string? revision)
+                              (not-empty revision)
+                              (<= (byte-count revision) 256))
+                       revision
+                       "invalid")
+           :requestId (event-request-id event)}}))
 
 (defn- parse-input
   [body]
@@ -156,12 +186,9 @@
       body
       (json/write-str
        (json-safe
-        {:ok false
-         :meta (:meta envelope)
+        {:meta (:meta envelope)
          :error {:code "response-too-large"
-                 :message "The bounded response could not be produced."
-                 :retryable false
-                 :details []}})))))
+                 :message "The bounded response could not be produced."}})))))
 
 (defn- json-safe
   [value]

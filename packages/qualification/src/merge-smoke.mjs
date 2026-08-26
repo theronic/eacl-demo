@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import { assertEnvelopeIdentity, assertIdentity, successfulData } from "./runner.mjs";
+import { assertEnvelope, assertIdentity, successfulData } from "./runner.mjs";
 
 const MUTATION_DENIAL_CODES = new Set(["route-not-found", "method-not-allowed"]);
 
@@ -11,33 +11,33 @@ export async function runMergeSmoke({ transport, expectedIdentity, target, allow
   const startedAt = clock();
   const cases = [];
   await smokeCase(cases, "health", async () => {
-    const response = assertEnvelopeIdentity(await transport.request("health", {}), "health", expectedIdentity);
+    const response = assertEnvelope(await transport.request("health", {}), "health");
     const health = successfulData(response, "health");
     assertIdentity(health.identity, expectedIdentity);
     if (health.ready !== true || health.status !== "ready") throw new Error("profile health is not ready");
   });
   await smokeCase(cases, "bootstrap-identity", async () => {
-    const response = assertEnvelopeIdentity(await transport.request("bootstrap", {}), "bootstrap", expectedIdentity);
+    const response = assertEnvelope(await transport.request("bootstrap", {}), "bootstrap");
     const bootstrap = successfulData(response, "bootstrap");
     assertIdentity(bootstrap.identity, expectedIdentity);
   });
   await smokeCase(cases, "allowed-authorization", async () => {
     const input = demandInput(allowedDemand);
-    const response = assertEnvelopeIdentity(await transport.request("authorize", input), "authorize", expectedIdentity);
+    const response = assertEnvelope(await transport.request("authorize", input), "authorize");
     const decision = successfulData(response, "authorize");
     assertDecisionScope(decision, input);
     if (decision.allowed !== true) throw new Error("allowed exemplar was denied");
   });
   await smokeCase(cases, "denied-authorization", async () => {
     const input = demandInput(deniedDemand);
-    const response = assertEnvelopeIdentity(await transport.request("authorize", input), "authorize", expectedIdentity);
+    const response = assertEnvelope(await transport.request("authorize", input), "authorize");
     const decision = successfulData(response, "authorize");
     assertDecisionScope(decision, input);
     if (decision.allowed !== false) throw new Error("denied exemplar was allowed");
   });
   await smokeCase(cases, "mutation-denial", async () => {
-    const response = assertEnvelopeIdentity(await transport.request("seed", {}), "seed", expectedIdentity);
-    if (response?.ok !== false || !MUTATION_DENIAL_CODES.has(response.error?.code)) throw new Error("public seed mutation was not route/method denied");
+    const response = assertEnvelope(await transport.request("seed", {}), "seed");
+    if (!response || !("error" in response) || "data" in response || !MUTATION_DENIAL_CODES.has(response.error?.code)) throw new Error("public seed mutation was not route/method denied");
   });
   const failed = cases.filter(({ status }) => status === "failed").length;
   const report = {
@@ -103,14 +103,11 @@ function demandInput(demand) {
   return {
     subjectType: demand.subject.type, subjectId: demand.subject.id,
     resourceType: demand.resource.type, resourceId: demand.resource.id,
-    permission: demand.permission, consistency: "current"
+    permission: demand.permission
   };
 }
 
-function assertDecisionScope(decision, input) {
-  for (const key of ["subjectType", "subjectId", "resourceType", "resourceId", "permission"]) {
-    if (decision?.[key] !== input[key]) throw new Error("authorization response does not match the merge-smoke request scope");
-  }
+function assertDecisionScope(decision) {
   if (typeof decision.allowed !== "boolean") throw new Error("authorization response is invalid");
 }
 

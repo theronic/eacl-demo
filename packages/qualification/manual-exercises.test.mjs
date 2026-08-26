@@ -42,7 +42,7 @@ test("closed transport-fault campaign requires exact errors and recovers", async
     clock: clock(),
     transport: {
       request: async (operation) => response(operation, operation === "health" ? { ready: true, status: "ready", identity } : { identity }),
-      probeFault: async (kind) => kind === "client-cancel" ? { kind, aborted: true } : { kind, aborted: false, status: expected.get(kind)[0], envelope: { ok: false, error: { code: expected.get(kind)[1] } } },
+      probeFault: async (kind) => kind === "client-cancel" ? { kind, aborted: true } : { kind, aborted: false, status: expected.get(kind)[0], envelope: { error: { code: expected.get(kind)[1], message: "Rejected." } } },
       release: async () => true
     }
   });
@@ -179,6 +179,6 @@ test("memory evidence requires the lifecycle matching the bound SnapStart state"
   assert.match(warmOnly.memory.reason, /no cold initialization sample/u);
 });
 
-function response(operation, data) { return { ok: true, meta: { operation, requestId: `request-${operation}`, identity }, data }; }
-function responseWithIdentity(operation, data, responseIdentity) { return { ok: true, meta: { operation, requestId: `request-${operation}`, identity: responseIdentity }, data }; }
+function response(operation, data) { return { meta: { revision: "basis-1", requestId: `request-${operation}` }, data }; }
+function responseWithIdentity(operation, data, responseIdentity) { return { meta: { revision: "basis-1", requestId: `request-${operation}` }, data }; }
 function clock() { const values = ["2026-08-26T10:00:00Z", "2026-08-26T10:01:00Z"]; return () => values.shift() ?? values.at(-1); }

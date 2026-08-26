@@ -19,8 +19,10 @@ test("public failures ignore backend messages, stacks, and credential-shaped dia
   const error = Object.assign(new Error(`transport failed with ${credential}`), { code: "throttled", stack: `stack ${credential}`, publicDetails: ["dependency=dynamodb", `credential=${credential}`] });
   const failure = createSafeFailure(context, error);
   const encoded = JSON.stringify(failure);
-  assert.equal(failure.error.message, "A dependency throttled the request.");
-  assert.deepEqual(failure.error.details, ["dependency=dynamodb"]);
+  assert.deepEqual(failure.error, {
+    code: "throttled",
+    message: "A dependency throttled the request."
+  });
   assert.equal(encoded.includes(credential), false);
   assert.equal(encoded.includes("transport failed"), false);
 });

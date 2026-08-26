@@ -34,6 +34,7 @@
            (set (get-in descriptor [:capabilities :operations]))))
     (is (= basis (:basis descriptor)))
     (is (= 1000000 (get-in descriptor [:dataset :logicalResourceCount])))
+    (is (= 998417 (get-in descriptor [:dataset :serverCount])))
     (is (= profile/data-manifest-sha256
            (get-in descriptor [:dataset :manifestSha256])))
     (is (some #{"no-history-api"}

@@ -53,7 +53,8 @@
           :handlers handlers})]
     (doseq [consistency [nil "current" "minimize"]]
       (let [response (boundary/invoke! profile (request consistency))]
-        (is (true? (:ok response)))
+        (is (contains? response :data))
+        (is (not (contains? response :error)))
         (is (= #{:revision :requestId :elapsedMs}
                (set (keys (:meta response)))))
         (is (number? (get-in response [:meta :elapsedMs])))
@@ -83,9 +84,10 @@
                          "historical-date" "fully-consistent" "live-refresh"
                          "future-sync-mode"]]
       (let [response (boundary/invoke! profile (request consistency))]
-        (is (false? (:ok response)))
+        (is (contains? response :error))
+        (is (not (contains? response :data)))
         (is (= "unsupported-consistency" (get-in response [:error :code])))
-        (is (nil? (get-in response [:meta :basis])))))
+        (is (= #{:revision :requestId} (set (keys (:meta response)))))))
     (is (zero? @captures))
     (is (zero? @handler-calls))))
 

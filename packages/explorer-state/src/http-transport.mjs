@@ -79,7 +79,7 @@ export function createServerProfileTransport({
       const contentType = response.headers?.get?.("content-type")?.toLowerCase() ?? "";
       if (!contentType.startsWith("application/json")) throw publicError("invalid-response", "The profile returned an invalid response.", false);
       const envelope = validateResponse(await readBoundedJsonResponse(response, { maximumBytes: maximumResponseBytes }));
-      validateEnvelopeBinding(profile, envelope, operation, requestId, response.status);
+      validateEnvelopeBinding(envelope, requestId, response.status);
       return envelope;
     } catch (error) {
       if (bounded.timedOut()) throw publicError("deadline-exceeded", "The profile request exceeded its client deadline.", true);
@@ -93,9 +93,9 @@ export function createServerProfileTransport({
     async bootstrap(options = {}) {
       const { requestId: _ignoredRequestId, ...startupOptions } = options;
       const health = await request("health", {}, startupOptions);
-      if (health.ok !== true) throw publicError(health.error.code, health.error.message, health.error.retryable);
+      if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
       const bootstrap = await request("bootstrap", {}, startupOptions);
-      if (bootstrap.ok !== true) throw publicError(bootstrap.error.code, bootstrap.error.message, bootstrap.error.retryable);
+      if (bootstrap.error) throw publicError(bootstrap.error.code, bootstrap.error.message, retryableError(bootstrap.error.code));
       validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
       assertDescriptorIdentity(profile, bootstrap.data);
       return bootstrap.data;
@@ -111,24 +111,16 @@ export function createServerProfileTransport({
   });
 }
 
-export function validateEnvelopeBinding(profile, envelope, operation, requestId, status = null) {
+export function validateEnvelopeBinding(envelope, requestId, status = null) {
   if (!envelope || typeof envelope !== "object" || !envelope.meta) throw publicError("invalid-response", "The profile returned an invalid response.", false);
   if (envelope.meta.requestId !== requestId) throw publicError("identity-mismatch", "The profile response did not match this request.", false);
-  const compactAuthorization = profile.id === "datomic-dynamodb"
-    && operation === "authorize"
-    && typeof envelope.meta.revision === "string"
-    && envelope.meta.operation === undefined
-    && envelope.meta.identity === undefined
-    && envelope.meta.basis === undefined;
-  if (!compactAuthorization) {
-    if (envelope.meta.operation !== operation) throw publicError("identity-mismatch", "The profile response did not match this request.", false);
-    const identity = envelope.meta.identity;
-    assertDescriptorIdentity(profile, { identity, profile: { backend: profile.backend, storage: profile.storage } });
-  }
+  const success = "data" in envelope && !("error" in envelope);
+  const failure = "error" in envelope && !("data" in envelope);
+  if (!success && !failure) throw publicError("invalid-response", "The profile returned an invalid response.", false);
   if (status !== null) {
     if (!Number.isInteger(status) || status < 200 || status > 599) throw publicError("invalid-response", "The profile returned an invalid HTTP status.", false);
-    if (envelope.ok === true && status !== 200) throw publicError("invalid-response", "The profile success status was invalid.", false);
-    if (envelope.ok === false && status < 400) throw publicError("invalid-response", "The profile failure status was invalid.", false);
+    if (success && status !== 200) throw publicError("invalid-response", "The profile success status was invalid.", false);
+    if (failure && status < 400) throw publicError("invalid-response", "The profile failure status was invalid.", false);
   }
   return envelope;
 }
@@ -175,4 +167,8 @@ function publicError(code, publicMessage, retryable) {
   error.publicMessage = publicMessage;
   error.retryable = retryable;
   return error;
+}
+
+function retryableError(code) {
+  return new Set(["cancelled", "canceled", "deadline-exceeded", "overloaded", "throttled", "dependency-unavailable"]).has(code);
 }

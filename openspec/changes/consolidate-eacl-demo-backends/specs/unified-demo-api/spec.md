@@ -12,7 +12,7 @@ All profiles SHALL implement `explorer.v1` logical operations and normalized dat
 - **THEN** it SHALL use the compatible descriptor/operations without inventing unsupported fields or requiring fleet coordination
 
 ### Requirement: Bootstrap identifies exact sources and ordinary responses stay compact
-Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA, deployment/artifact identity, dataset identity, and basis before ordinary operations. Ordinary Explorer responses SHALL retain the prior consumer-facing metadata shape: revision, request ID, and elapsed/cache fields when meaningful. They MUST NOT repeat deployment identity, contract version, operation, or a structured basis in every permission response. Every failure SHALL return a stable code, safe message, retryability, bounded safe details, and compact request metadata when available.
+Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA, deployment/artifact identity, dataset identity, and basis before ordinary operations. Every backend SHALL then use the same prior consumer-facing envelope: success is `{data, meta}`, failure is `{error, meta}`, and metadata is revision, request ID, and elapsed/cache fields when meaningful. Ordinary responses MUST NOT repeat an `ok` flag, deployment identity, contract version, operation, structured basis, retryability, authorization reason, or explanation path. Every failure SHALL return only a stable code, safe message, and compact request metadata when available; clients infer retry behavior from the stable code.
 
 #### Scenario: Permission check succeeds
 - **WHEN** a permission check completes
@@ -62,7 +62,7 @@ Server operations SHALL have bounded deadlines, cancellation, and concurrency ad
 
 #### Scenario: DynamoDB throttles a read
 - **WHEN** a recognized throttle exhausts bounded deadline-aware retry
-- **THEN** the profile SHALL return retryable `storage-throttled`, never not-found authorization data
+- **THEN** the profile SHALL return `throttled`, which the client recognizes as retryable, never not-found authorization data
 
 ### Requirement: Responses are deterministic and bounded
 Normalized ordering, pages, count truncation, object/relationship representation, cache status, and errors SHALL have one documented meaning. Bodies/diagnostics SHALL have maximum sizes.

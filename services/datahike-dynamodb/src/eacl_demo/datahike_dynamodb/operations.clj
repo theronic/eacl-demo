@@ -159,18 +159,7 @@
               allowed? (true? (:allowed? decision))]
           (check-active!)
           (response-meta/with-cache-status
-           {:subjectType (:subjectType input)
-            :subjectId (:subjectId input)
-            :resourceType (:resourceType input)
-            :resourceId (:resourceId input)
-            :permission (:permission input)
-            :allowed allowed?
-            :reasonCode (cond
-                          (not subject-known?) "subject-not-found"
-                          (not resource-known?) "object-not-found"
-                          allowed? "granted"
-                          :else "denied")
-            :path []}
+           {:allowed allowed?}
            decision
            (not= false (:cache input))))))
 

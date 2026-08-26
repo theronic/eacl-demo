@@ -1,4 +1,4 @@
-import { assertEnvelopeIdentity, assertIdentity, successfulData } from "./runner.mjs";
+import { assertEnvelope, assertIdentity, successfulData } from "./runner.mjs";
 import exemplars from "../../../fixtures/exemplars.v1.json" with { type: "json" };
 
 const SYNTHETICS = Object.freeze(["health", "bootstrap", "exemplar"]);
@@ -18,8 +18,8 @@ export async function runObservabilitySynthetics({
   const checked = [];
 
   await check("health", async () => {
-    const envelope = assertEnvelopeIdentity(
-      await transport.request("health", {}), "health", expectedIdentity
+    const envelope = assertEnvelope(
+      await transport.request("health", {}), "health"
     );
     const data = successfulData(envelope, "health");
     assertIdentity(data.identity, expectedIdentity);
@@ -29,8 +29,8 @@ export async function runObservabilitySynthetics({
   });
 
   await check("bootstrap", async () => {
-    const envelope = assertEnvelopeIdentity(
-      await transport.request("bootstrap", {}), "bootstrap", expectedIdentity
+    const envelope = assertEnvelope(
+      await transport.request("bootstrap", {}), "bootstrap"
     );
     const data = successfulData(envelope, "bootstrap");
     assertIdentity(data.identity, expectedIdentity);
@@ -38,17 +38,15 @@ export async function runObservabilitySynthetics({
 
   await check("exemplar", async () => {
     const { demand, expected } = EXEMPLAR;
-    const envelope = assertEnvelopeIdentity(
+    const envelope = assertEnvelope(
       await transport.request("authorize", {
         subjectType: demand.subject.type,
         subjectId: demand.subject.id,
         resourceType: demand.resource.type,
         resourceId: demand.resource.id,
-        permission: demand.permission,
-        consistency: "current"
+        permission: demand.permission
       }),
-      "authorize",
-      expectedIdentity
+      "authorize"
     );
     const data = successfulData(envelope, "authorize");
     if (data.allowed !== expected.allowed) {

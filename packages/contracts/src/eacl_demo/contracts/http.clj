@@ -46,6 +46,37 @@
        (<= (alength (.getBytes ^String value StandardCharsets/UTF_8))
            maximum-request-id-bytes)))
 
+(defn success-envelope
+  "The original Explorer response contract shared by every backend."
+  ([request identity basis data]
+   (success-envelope request identity basis data nil nil))
+  ([request identity basis data elapsed-ms cache-status]
+   {:data data
+    :meta (cond-> {:revision (or (:id basis) (:deploymentId identity))
+                   :requestId (:request-id request)}
+            (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
+            (some? cache-status) (assoc :cacheStatus cache-status))}))
+
+(defn failure-envelope
+  "The original compact Explorer error contract shared by every backend."
+  [request identity basis code]
+  {:error {:code code
+           :message (case code
+                      "route-not-found" "The route is not available."
+                      "method-not-allowed" "The HTTP method is not allowed."
+                      "unsupported-consistency" "The consistency mode is not supported."
+                      "cancelled" "The request was cancelled."
+                      "deadline-exceeded" "The request deadline was exceeded."
+                      "overloaded" "The profile has reached its admission limit."
+                      "throttled" "A dependency throttled the request."
+                      "dependency-unavailable" "A required dependency is unavailable."
+                      "storage-missing" "Required immutable storage data is missing."
+                      "storage-corrupt" "Required immutable storage data failed integrity checks."
+                      "internal-error" "The request failed internally."
+                      "The request is invalid.")}
+   :meta {:revision (or (:id basis) (:deploymentId identity))
+          :requestId (:request-id request)}})
+
 (declare value-error)
 
 (defn normalize-input

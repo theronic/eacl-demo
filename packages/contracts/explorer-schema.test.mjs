@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const schema = JSON.parse(await readFile(new URL("../../schemas/explorer.v1.schema.json", import.meta.url), "utf8"));
-const required = ["object", "relationship", "pageInfo", "objectPage", "relationshipPage", "objectResult", "count", "authorizationDecision", "permissionDecision", "schema", "cacheInfo", "basis", "health", "bootstrap", "profileSuccess", "compactAuthorizationSuccess", "profileFailure", "compactAuthorizationFailure"];
+const required = ["object", "relationship", "pageInfo", "objectPage", "relationshipPage", "objectResult", "count", "permissionDecision", "schema", "cacheInfo", "basis", "health", "bootstrap", "responseMeta", "success", "failure"];
 
 test("explorer.v1 exposes every required closed wire definition", () => {
   for (const name of required) {
@@ -14,16 +14,16 @@ test("explorer.v1 exposes every required closed wire definition", () => {
   }
 });
 
-test("identity binds profile, both sources, artifact, deployment, and data", () => {
+test("bootstrap binds identity while every response uses one compact metadata shape", () => {
   assert.deepEqual(schema.$defs.identity.required, ["profileId", "demoSha", "eaclSha", "artifactSha256", "deploymentId", "dataManifestSha256"]);
-  assert.equal(schema.$defs.responseMeta.properties.contractVersion.const, "explorer.v1");
-  assert.equal(schema.$defs.responseMeta.required.includes("operation"), true);
+  assert.deepEqual(schema.$defs.responseMeta.required, ["revision", "requestId"]);
+  assert.deepEqual(Object.keys(schema.$defs.responseMeta.properties), ["revision", "requestId", "elapsedMs", "cacheStatus"]);
 });
 
-test("success data is closed and correlated with its operation", () => {
-  const variants = schema.$defs.profileSuccess.allOf[0].oneOf;
-  assert.equal(variants.length, 13);
-  assert.deepEqual(variants.map(({ properties }) => properties.meta.properties.operation.const), ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]);
-  assert.deepEqual(schema.$defs.compactResponseMeta.required, ["revision", "requestId"]);
-  assert.equal(schema.$defs.compactAuthorizationSuccess.properties.data.$ref, "#/$defs/permissionDecision");
+test("success and failure contain no consolidation-only envelope fields", () => {
+  assert.deepEqual(schema.$defs.success.required, ["meta", "data"]);
+  assert.deepEqual(schema.$defs.failure.required, ["error", "meta"]);
+  assert.equal("ok" in schema.$defs.success.properties, false);
+  assert.equal("retryable" in schema.$defs.failure.properties.error.properties, false);
+  assert.deepEqual(Object.keys(schema.$defs.failure.properties.error.properties), ["code", "message"]);
 });

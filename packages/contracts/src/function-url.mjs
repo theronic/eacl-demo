@@ -17,7 +17,9 @@ export function normalizeFunctionUrlEvent(event) {
 }
 
 export function createFunctionUrlResponse(envelope, { allowedMethods = null } = {}) {
-  const statusCode = envelope.ok ? 200 : httpStatusForError(envelope.error.code);
+  const statusCode = "data" in envelope && !("error" in envelope)
+    ? 200
+    : httpStatusForError(envelope.error.code);
   const headers = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" };
   if (statusCode === 405 && Array.isArray(allowedMethods) && allowedMethods.length > 0) headers.allow = [...allowedMethods].sort().join(", ");
   return { statusCode, headers, body: JSON.stringify(envelope), isBase64Encoded: false };

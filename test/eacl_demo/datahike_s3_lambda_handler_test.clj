@@ -75,13 +75,14 @@
         denied-body (json/read-str (:body denied) :key-fn keyword)]
     (is (= 200 (:statusCode health)))
     (is (= "ready" (get-in health-body [:data :status])))
-    (is (= basis (get-in health-body [:meta :basis])))
+    (is (= (:id basis) (get-in health-body [:meta :revision])))
+    (is (= #{:data :meta} (set (keys health-body))))
     (is (= "disabled"
            (get-in runtime [:descriptor :runtime :snapStart])))
     (is (= 404 (:statusCode denied)))
     (is (= "route-not-found" (get-in denied-body [:error :code])))
-    (is (= "datahike-s3"
-           (get-in denied-body [:meta :identity :profileId])))))
+    (is (= "demo-test" (get-in denied-body [:meta :revision])))
+    (is (= #{:error :meta} (set (keys denied-body))))))
 
 (deftest malformed-function-url-events-return-a-redacted-envelope-test
   (let [runtime (handler/initialize environment fake-reader)
@@ -92,7 +93,7 @@
                   10000)
         body (json/read-str (:body response) :key-fn keyword)]
     (is (= 400 (:statusCode response)))
-    (is (= false (:ok body)))
     (is (= "validation-error" (get-in body [:error :code])))
-    (is (= "datahike-s3" (get-in body [:meta :identity :profileId])))
+    (is (= "demo-test" (get-in body [:meta :revision])))
+    (is (= #{:error :meta} (set (keys body))))
     (is (not (.contains ^String (:body response) "secret")))))

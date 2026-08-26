@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import { assertEnvelopeIdentity, assertIdentity, successfulData } from "./runner.mjs";
+import { assertEnvelope, assertIdentity, successfulData } from "./runner.mjs";
 
 export async function runProductionRecheck({ transport, expectedIdentity, target, clock = () => new Date().toISOString() }) {
   if (!transport || typeof transport.request !== "function") throw new TypeError("production recheck transport is required");
@@ -9,13 +9,13 @@ export async function runProductionRecheck({ transport, expectedIdentity, target
   const startedAt = clock();
   const cases = [];
   await recheckCase(cases, "health", async () => {
-    const response = assertEnvelopeIdentity(await transport.request("health", {}), "health", expectedIdentity);
+    const response = assertEnvelope(await transport.request("health", {}), "health");
     const health = successfulData(response, "health");
     assertIdentity(health.identity, expectedIdentity);
     if (health.ready !== true || health.status !== "ready") throw new Error("production profile health is not ready");
   });
   await recheckCase(cases, "bootstrap-identity", async () => {
-    const response = assertEnvelopeIdentity(await transport.request("bootstrap", {}), "bootstrap", expectedIdentity);
+    const response = assertEnvelope(await transport.request("bootstrap", {}), "bootstrap");
     const bootstrap = successfulData(response, "bootstrap");
     assertIdentity(bootstrap.identity, expectedIdentity);
   });

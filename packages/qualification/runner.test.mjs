@@ -36,7 +36,7 @@ test("HTTP transport applies staged authorization but never exposes it", async (
   const target = qualificationTarget({ kind: "staged-origin", baseUrl: "https://origin.example/api/v1/datahike-s3", profileId: "datahike-s3", authorize: async () => ({ authorization: "Bearer sensitive" }) });
   const transport = createHttpQualificationTransport(target, { fetchImpl: async (url, init) => {
     calls.push({ url, init });
-    return { status: 200, async text() { return JSON.stringify({ ok: true, meta: { operation: "authorize", requestId: init.headers["x-eacl-request-id"] }, data: {} }); } };
+    return { status: 200, async text() { return JSON.stringify({ meta: { revision: "basis-1", requestId: init.headers["x-eacl-request-id"] }, data: {} }); } };
   } });
   await transport.request("authorize", { subjectId: "user-1" });
   assert.equal(calls[0].init.headers.authorization, "Bearer sensitive");
@@ -50,7 +50,7 @@ test("HTTP transport applies staged authorization but never exposes it", async (
 
   const mismatched = createHttpQualificationTransport(target, { fetchImpl: async () => ({
     status: 200,
-    async text() { return JSON.stringify({ ok: true, meta: { operation: "authorize", requestId: "wrong" }, data: {} }); }
+    async text() { return JSON.stringify({ meta: { revision: "basis-1", requestId: "wrong" }, data: {} }); }
   }) });
   await assert.rejects(() => mismatched.request("authorize", {}), /correlation mismatch/u);
   await mismatched.release();
@@ -75,7 +75,7 @@ test("HTTP transport fault probes are closed, bounded, hashed, correlated, and c
     else if (init.headers["content-type"] === "text/plain") [status, code] = [415, "unsupported-media-type"];
     else if (init.body.length > 65536) [status, code] = [413, "request-too-large"];
     else [status, code] = [400, "validation-error"];
-    return { status, async text() { return JSON.stringify({ ok: false, meta: { requestId: init.headers["x-eacl-request-id"] }, error: { code } }); } };
+    return { status, async text() { return JSON.stringify({ meta: { revision: "basis-1", requestId: init.headers["x-eacl-request-id"] }, error: { code, message: "Rejected." } }); } };
   } });
   for (const kind of ["invalid-json", "oversized-body", "unsupported-media-type", "wrong-method", "mutation-route", "client-cancel"]) {
     const result = await transport.probeFault(kind);
@@ -99,7 +99,7 @@ test("runner binds exact identity, distinguishes unsupported from failed, and re
     expectedIdentity: identity,
     now: sequenceClock(),
     createTransport: async () => ({
-      async request(operation) { return { ok: true, meta: { operation, identity }, data: descriptor }; },
+      async request(operation) { return { meta: { revision: "basis-1", requestId: `request-${operation}` }, data: descriptor }; },
       async release() { releases += 1; return true; }
     }),
     cases: [
@@ -120,7 +120,7 @@ test("identity mismatch fails before ordinary qualification cases", async () => 
   const report = await runQualification({
     target: qualificationTarget({ kind: "local", baseUrl: "http://localhost:8080/api/v1/datahike-s3", profileId: "datahike-s3" }),
     expectedIdentity: identity,
-    createTransport: async () => ({ request: async (operation) => ({ ok: true, meta: { operation, identity: { ...identity, eaclSha: "e".repeat(40) } }, data: { ...descriptor, identity: { ...identity, eaclSha: "e".repeat(40) } } }), release: async () => true }),
+    createTransport: async () => ({ request: async (operation) => ({ meta: { revision: "basis-1", requestId: `request-${operation}` }, data: { ...descriptor, identity: { ...identity, eaclSha: "e".repeat(40) } } }), release: async () => true }),
     cases: [{ id: "never", category: "authorization", run: async () => { ran = true; } }]
   });
   assert.equal(report.result, "fail");

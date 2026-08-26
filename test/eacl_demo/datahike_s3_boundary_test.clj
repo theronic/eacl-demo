@@ -18,6 +18,7 @@
               :snapStart "disabled"}
     :dataset {:fixtureId "legacy-datahike-s3-unattested"
               :logicalResourceCount 1001584
+              :serverCount 1000000
               :manifestSha256 (apply str (repeat 64 "d"))}
     :basis {:behavior "request-snapshot" :id "basis-1"
             :capturedAt "2026-08-25T12:00:00Z"
@@ -73,13 +74,12 @@
 (deftest closed-prefix-envelope-and-snapshot-test
   (let [{:keys [boundary release-count]} (configured-boundary {})
         result (boundary/invoke! boundary (request "authorize" :post))]
-    (is (:ok result))
-    (is (= "authorize" (get-in result [:meta :operation])))
-    (is (= identity (get-in result [:meta :identity])))
-    (is (= #{:contractVersion :operation :requestId :identity :basis :elapsedMs}
+    (is (contains? result :data))
+    (is (not (contains? result :error)))
+    (is (= #{:revision :requestId :elapsedMs}
            (set (keys (:meta result)))))
     (is (number? (get-in result [:meta :elapsedMs])))
-    (is (= {:id "basis-1"} (get-in result [:meta :basis])))
+    (is (= "basis-1" (get-in result [:meta :revision])))
     (is (= 1 @release-count))
     (is (zero? (boundary/active-count boundary)))
     (is (= "route-not-found"
@@ -204,6 +204,6 @@
       (is (= "overloaded" (get-in overloaded [:error :code])))
       (is (= 1 (boundary/active-count boundary))))
     (deliver continue true)
-    (is (:ok @first))
+    (is (contains? @first :data))
     (is (= 1 @release-count))
     (is (zero? (boundary/active-count boundary)))))

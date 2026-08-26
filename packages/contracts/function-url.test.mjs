@@ -13,7 +13,7 @@ test("reference adapter passes the reusable Function URL event suite", async () 
 });
 
 test("Function URL responses use stable status and security headers", () => {
-  const success = createFunctionUrlResponse(createSuccess(context, { subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "view", allowed: true, reasonCode: "granted", path: [] }));
+  const success = createFunctionUrlResponse(createSuccess(context, { allowed: true }));
   assert.equal(success.statusCode, 200);
   assert.equal(success.headers["cache-control"], "no-store");
   assert.equal(success.headers["x-content-type-options"], "nosniff");

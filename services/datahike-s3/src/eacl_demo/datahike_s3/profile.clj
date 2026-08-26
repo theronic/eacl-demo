@@ -27,6 +27,7 @@
               :snapStart "disabled"}
     :dataset {:fixtureId "legacy-datahike-s3-20260824-basis-6a7df54b"
               :logicalResourceCount 1001584
+              :serverCount 1000000
               :manifestSha256 data-manifest-sha256}
     :basis basis
     :capabilities

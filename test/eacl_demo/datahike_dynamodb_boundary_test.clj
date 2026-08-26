@@ -42,8 +42,9 @@
 (deftest closed-route-and-method-table-test
   (let [service (fixture (constantly {:ok true}))]
     (let [response (boundary/invoke! service (request "authorize" :post))]
-      (is (true? (:ok response)))
-      (is (= #{:contractVersion :operation :requestId :identity :basis :elapsedMs}
+      (is (contains? response :data))
+      (is (not (contains? response :error)))
+      (is (= #{:revision :requestId :elapsedMs}
              (set (keys (:meta response)))))
       (is (number? (get-in response [:meta :elapsedMs]))))
     (is (= "method-not-allowed"
@@ -112,7 +113,7 @@
                     service
                     (request "authorize" :post
                              {:deadline-ms 900 :cancelled? cancelled?}))]
-      (is (true? (:ok response)))
+      (is (contains? response :data))
       (is (= 900 (:deadline-ms @captured)))
       (is (identical? cancelled? (:cancelled? @captured)))))
 
@@ -127,7 +128,9 @@
                               :retryable true}))))
           response (boundary/invoke! service (request "authorize" :post))]
       (is (= "throttled" (get-in response [:error :code])))
-      (is (true? (get-in response [:error :retryable])))))
+      (is (= "A dependency throttled the request."
+             (get-in response [:error :message])))
+      (is (= #{:code :message} (set (keys (:error response)))))))
 
   (testing "late cancellation wins over a handler success"
     (let [cancelled (atom false)

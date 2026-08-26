@@ -137,9 +137,11 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
   const health = await invokeProfile({ profileId, functionName, temporary,
     operation: "health", method: "GET", input: null });
   assertHealthy(profileId, health);
+  process.stdout.write(`${profileId} candidate cold health ${health.wallMs}ms\n`);
   const bootstrap = await invokeProfile({ profileId, functionName, temporary,
     operation: "bootstrap", method: "GET", input: null });
-  if (bootstrap.statusCode !== 200 || bootstrap.envelope.ok !== true ||
+  if (bootstrap.statusCode !== 200 || !("data" in bootstrap.envelope) ||
+      "error" in bootstrap.envelope ||
       bootstrap.envelope.data?.identity?.profileId !== profileId) {
     throw new Error(`${profileId} bootstrap smoke failed`);
   }
@@ -148,8 +150,9 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
     const response = await invokeProfile({ profileId, functionName, temporary,
       operation: "authorize", method: "POST",
       input: { subjectType: "user", subjectId, resourceType: "account",
-        resourceId: "account-0", permission: "admin", consistency: "current" } });
-    if (response.statusCode !== 200 || response.envelope.ok !== true ||
+        resourceId: "account-0", permission: "admin" } });
+    if (response.statusCode !== 200 || !("data" in response.envelope) ||
+        "error" in response.envelope ||
         response.envelope.data?.allowed !== expected) {
       throw new Error(`${profileId} ${expected ? "allow" : "deny"} smoke failed`);
     }
@@ -157,7 +160,8 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
   }
   const mutation = await invokeProfile({ profileId, functionName, temporary,
     operation: "seed", method: "POST", input: {} });
-  if (mutation.statusCode !== 404 || mutation.envelope.ok !== false ||
+  if (mutation.statusCode !== 404 || !("error" in mutation.envelope) ||
+      "data" in mutation.envelope ||
       mutation.envelope.error?.code !== "route-not-found") {
     throw new Error(`${profileId} mutation denial smoke failed`);
   }
@@ -176,17 +180,20 @@ async function invokeProfile({ profileId, functionName, temporary,
       http: { method } }, isBase64Encoded: false,
     body: input === null ? null : JSON.stringify(input)
   }));
+  const started = Date.now();
   aws(["lambda", "invoke", "--function-name", `${functionName}:candidate`,
        "--cli-binary-format", "raw-in-base64-out", "--payload", `fileb://${eventFile}`,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
   return { statusCode: response.statusCode,
-    envelope: validateLiveResponse(JSON.parse(response.body)) };
+    envelope: validateLiveResponse(JSON.parse(response.body)),
+    wallMs: Date.now() - started };
 }
 
 function assertHealthy(profileId, response) {
   const body = response.envelope;
-  if (response.statusCode !== 200 || body.ok !== true || body.data?.ready !== true ||
+  if (response.statusCode !== 200 || !("data" in body) || "error" in body ||
+      body.data?.ready !== true ||
       body.data?.identity?.demoSha !== demoSha() ||
       body.data?.identity?.eaclSha !== eaclSha()) {
     throw new Error(`${profileId} health smoke failed`);
