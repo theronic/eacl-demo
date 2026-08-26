@@ -31,6 +31,13 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101.0.LTS
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
       - run: npm ci
       - run: npm run build:static-site
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
@@ -57,7 +64,7 @@ jobs:
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
-          java-version: 25.0.4+101
+          java-version: 25.0.4+101.0.LTS
       - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
         with:
           cli: 1.12.5.1664
@@ -86,7 +93,7 @@ jobs:
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
-          java-version: 25.0.4+101
+          java-version: 25.0.4+101.0.LTS
       - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
         with:
           cli: 1.12.5.1664
@@ -130,7 +137,7 @@ jobs:
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
-          java-version: 25.0.4+101
+          java-version: 25.0.4+101.0.LTS
       - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
         with:
           cli: 1.12.5.1664
