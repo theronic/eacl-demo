@@ -151,7 +151,7 @@
 - [ ] 10.6 Qualify both the quiesced pre-checkpoint and after-restore rebuild strategies, including repeated restores, simultaneous environments, eviction, stale handles, cancellation, failures, and load.
 - [ ] 10.7 Treat SnapStart as a future optional optimization that cannot be enabled until native-handle restore safety passes; it is not required for the current demo.
 - [ ] 10.8 Sweep memory and publish the smallest passing managed-Java configuration and immutable descriptor.
-- [x] 10.9 Reduce cold initialization transactions from roughly one hundred to eleven by seeding objects and relationships in bounded 5,000-record batches, and print the first candidate health wall time in the ordinary deployment smoke.
+- [x] 10.9 Reduce cold initialization transactions from roughly one hundred to eleven with bounded 5,000-record batches, replace roughly 77,000 relationship endpoint lookups with one post-object `:eacl/id` index scan, and print the first candidate health wall time in the ordinary deployment smoke.
 
 ## 11. Jank Amazon Linux x86_64 profile
 

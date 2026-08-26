@@ -215,10 +215,13 @@ Each cold environment parses the packaged 10,000-resource NDJSON fixture,
 installs the schema, and writes 10,080 objects plus 38,613 relationships. The
 original consolidation performed roughly one hundred 500-record transactions;
 the active implementation uses bounded 5,000-record batches (three object and
-eight relationship transactions). The ordinary candidate smoke prints wall
-time for the first health invocation so cold behavior is measured on every
-deployment. SnapStart stays disabled: enabling it would be a separate native
-handle/restore decision, not a requirement for this demo.
+eight relationship transactions). After object publication it scans the
+`:eacl/id` index once and resolves every relationship endpoint from that local
+map, instead of crossing the native LMDB boundary roughly 77,000 times. The
+ordinary candidate smoke prints wall time for the first health invocation so
+cold behavior is measured on every deployment. SnapStart stays disabled:
+enabling it would be a separate native handle/restore decision, not a
+requirement for this demo.
 
 Initial qualification evaluates quiesced pre-checkpoint native state versus full post-restore in-memory construction, within AWS restore-hook limits. Repeated restore/eviction/concurrency/handle/lock/load evidence chooses the strategy. Ordinary merges do not rerun the campaign; they build, deploy, and smoke the already qualified topology.
 
