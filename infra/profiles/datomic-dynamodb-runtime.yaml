@@ -111,7 +111,7 @@ Resources:
       Runtime: java25
       SnapStart:
         ApplyOn: None
-      Timeout: 30
+      Timeout: 60
       TracingConfig:
         Mode: PassThrough
       Tags:
@@ -129,7 +129,7 @@ Resources:
   CandidateVersion:
     Type: AWS::Lambda::Version
     Properties:
-      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256} memory:${MemorySize}"
       FunctionName: !Ref Function
 
   CandidateAlias:
@@ -142,6 +142,7 @@ Resources:
 
   CandidateFunctionUrl:
     Type: AWS::Lambda::Url
+    DependsOn: CandidateAlias
     Properties:
       AuthType: AWS_IAM
       InvokeMode: BUFFERED

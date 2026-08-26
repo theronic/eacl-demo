@@ -26,7 +26,7 @@
 
 (defonce ^:private runtime
   (delay
-    (let [environment (System/getenv)]
+    (let [environment (into {} (System/getenv))]
       (observability/initialize-with-telemetry!
        (observability/runtime-context "datahike-dynamodb" environment)
        #(initialize environment)))))
@@ -91,7 +91,7 @@
 (defn handle-request-stream
   [^InputStream input ^OutputStream output ^Context context]
   (let [writer (io/writer output :encoding "UTF-8")
-        environment (System/getenv)
+        environment (into {} (System/getenv))
         telemetry-context (observability/runtime-context "datahike-dynamodb"
                                                          environment)
         started (System/nanoTime)

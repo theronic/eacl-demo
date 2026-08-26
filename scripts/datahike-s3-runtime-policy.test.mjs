@@ -21,7 +21,11 @@ test("candidate bytes, existing store, and source are immutable inputs", () => {
   assert.match(template, /S3ObjectVersion: !Ref ArtifactVersion/u);
   assert.match(template,
     /AllowedPattern: "\^artifacts\/datahike-s3\/\[0-9a-f\]\{40\}/u);
-  assert.match(template, /DataBucketNameMatchesArn:/u);
+  assert.match(template,
+    /DataBucketArn:[\s\S]*?AllowedPattern: "\^arn:\[a-z0-9-\]\+:s3:::/u);
+  assert.doesNotMatch(template,
+    /Rules:[\s\S]*?Fn::(?:Split|Select)/u,
+    "CloudFormation Rules support only the documented rule functions");
   assert.match(template, /EACL_DATAHIKE_BUCKET: !Ref DataBucket/u);
   assert.match(template, /EACL_DATAHIKE_STORE_ID: !Ref StoreId/u);
   for (const name of [

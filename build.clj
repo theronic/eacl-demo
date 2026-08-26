@@ -23,6 +23,7 @@
    ["packages/contracts/src/eacl_demo/contracts/observability.clj"
     "eacl_demo/contracts/observability.clj"]])
 (def datahike-s3-java-dirs ["services/datahike-s3/java"])
+(def contract-source-dir "packages/contracts/src")
 (def datahike-dynamodb-class-dir
   "target/datahike-dynamodb-lambda/classes")
 (def datahike-dynamodb-uber-file
@@ -55,6 +56,17 @@
    "^test(?:/.*)?$"
    ".*\\.(?:cljs|js|mjs|html)$"])
 
+(defn- compile-service!
+  [basis class-dir source-dirs]
+  ;; Lambda cold starts must not spend tens of seconds compiling application
+  ;; namespaces from source. Compile only this workspace's closed service and
+  ;; transport namespaces; dependency JARs remain untouched.
+  (b/compile-clj
+   {:basis basis
+    :src-dirs (vec (distinct (conj source-dirs contract-source-dir)))
+    :class-dir class-dir
+    :sort :topo}))
+
 (defn datahike-s3-lambda
   [_]
   (let [{:keys [exit]}
@@ -76,6 +88,7 @@
     (b/copy-file {:src "fixtures/schema-wire.v1.json"
                   :target (str datahike-s3-class-dir
                                "/schema-wire.v1.json")})
+    (compile-service! basis datahike-s3-class-dir datahike-s3-source-dirs)
     (b/javac
      {:basis basis
       :src-dirs datahike-s3-java-dirs
@@ -115,6 +128,8 @@
     (b/copy-file {:src "fixtures/schema-wire.v1.json"
                   :target (str datahike-dynamodb-class-dir
                                "/schema-wire.v1.json")})
+    (compile-service! basis datahike-dynamodb-class-dir
+                      datahike-dynamodb-source-dirs)
     (b/javac
      {:basis basis
       :src-dirs datahike-dynamodb-java-dirs
@@ -151,6 +166,7 @@
                  :target-dir datomic-class-dir})
     (b/copy-file {:src "fixtures/schema-wire.v1.json"
                   :target (str datomic-class-dir "/schema-wire.v1.json")})
+    (compile-service! basis datomic-class-dir datomic-source-dirs)
     (b/javac
      {:basis basis
       :src-dirs datomic-java-dirs
@@ -242,6 +258,8 @@
                      [datalevin-memory-fixture "fixture-10000.ndjson"]])]
       (b/copy-file {:src src
                     :target (str datalevin-memory-class-dir "/" target)}))
+    (compile-service! basis datalevin-memory-class-dir
+                      datalevin-memory-source-dirs)
     (b/javac
      {:basis basis
       :src-dirs datalevin-memory-java-dirs

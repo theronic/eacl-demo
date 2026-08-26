@@ -9,7 +9,7 @@
 
 (def ^:private maximum-line-chars 1500000)
 (def ^:private maximum-batches 10000)
-(def ^:private seed-batch-delay-millis 500)
+(def ^:private seed-batch-delay-millis 50)
 (def ^:private sha256-pattern #"sha256:[0-9a-f]{64}")
 (def ^:private region-pattern #"[a-z]{2}(?:-[a-z0-9]+)+-[0-9]")
 (def ^:private table-pattern #"eacl-demo-datomic-[a-z0-9-]{3,80}")
@@ -46,8 +46,8 @@
             completed
             (with-open [reader (io/reader System/in :encoding "UTF-8")]
               (reduce
-               (fn [count line]
-                 (when (or (>= count maximum-batches)
+               (fn [batch-count line]
+                 (when (or (>= batch-count maximum-batches)
                            (zero? (count line))
                            (> (alength (.getBytes ^String line "UTF-8"))
                               maximum-line-chars))
@@ -65,7 +65,7 @@
                    ;; The storage cap and throttle alarms remain authoritative.
                    (when (= :committed (:status result))
                      (Thread/sleep seed-batch-delay-millis))
-                   (inc count)))
+                   (inc batch-count)))
                0 (line-seq reader)))
             result
             (seed/finalize-seed!

@@ -56,9 +56,8 @@ test("serving permissions are confined to each profile's declared storage and lo
   assert.doesNotMatch(datomicRole, /s3:|datahike/u);
   assert.match(datomicRuntime, /Role: !Ref ExecutionRoleArn/u);
 
-  assert.match(datalevin, /s3:GetObjectVersion/u);
-  assert.match(datalevin, /s3:VersionId: !Ref RuntimeStateObjectVersion/u);
-  assert.doesNotMatch(datalevin, /s3:(?:Put|Delete|List)|dynamodb:/u);
+  assert.doesNotMatch(datalevin, /s3:|dynamodb:/u);
+  assert.deepEqual(actions(datalevin, "logs"), ["logs:CreateLogStream", "logs:PutLogEvents"]);
 
   assert.doesNotMatch(jank, /(?:s3|dynamodb|ec2|elasticfilesystem):/u);
 });

@@ -18,7 +18,7 @@
 
 (defonce ^:private runtime
   (delay
-    (let [environment (System/getenv)]
+    (let [environment (into {} (System/getenv))]
       (observability/initialize-with-telemetry!
        (observability/runtime-context "datalevin-memory" environment)
        #(initialize environment)))))
@@ -100,7 +100,7 @@
   [^InputStream input ^OutputStream output ^Context context]
   (let [writer (io/writer output :encoding "UTF-8")
         telemetry-context (observability/runtime-context
-                           "datalevin-memory" (System/getenv))
+                           "datalevin-memory" (into {} (System/getenv)))
         started (System/nanoTime)
         event* (atom nil)]
     (try

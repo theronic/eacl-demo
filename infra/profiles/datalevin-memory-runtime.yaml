@@ -141,7 +141,7 @@ Resources:
   CandidateVersion:
     Type: AWS::Lambda::Version
     Properties:
-      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256} memory:${MemorySize} timeout:60"
       FunctionName: !Ref Function
 
   CandidateAlias:
@@ -154,6 +154,7 @@ Resources:
 
   CandidateFunctionUrl:
     Type: AWS::Lambda::Url
+    DependsOn: CandidateAlias
     Properties:
       AuthType: AWS_IAM
       InvokeMode: BUFFERED

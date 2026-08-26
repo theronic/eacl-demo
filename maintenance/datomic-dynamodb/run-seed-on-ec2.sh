@@ -65,7 +65,7 @@ curl --fail --silent --show-error --location \
   --output datomic-pro.zip
 printf '%s  %s\n' "$EACL_DATOMIC_DISTRIBUTION_SHA256" datomic-pro.zip | sha256sum --check --strict
 [[ "$(stat --format=%s datomic-pro.zip)" == "$EACL_DATOMIC_DISTRIBUTION_BYTES" ]]
-unzip -q datomic-pro.zip
+unzip -oq datomic-pro.zip
 [[ -x "$EACL_DATOMIC_DISTRIBUTION_ROOT/bin/transactor" ]]
 
 cat > transactor.properties <<EOF
@@ -80,8 +80,8 @@ aws-peer-role=$EACL_DATOMIC_ROLE_NAME
 memory-index-threshold=32m
 memory-index-max=512m
 object-cache-max=1g
-write-concurrency=2
-read-concurrency=4
+write-concurrency=8
+read-concurrency=8
 index-parallelism=1
 data-dir=$work_dir/data
 log-dir=$work_dir/log

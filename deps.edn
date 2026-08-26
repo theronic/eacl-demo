@@ -80,7 +80,9 @@
     org.clojure/data.json {:mvn/version "2.5.2"}}}
   :datomic-maintenance
   {:extra-paths ["maintenance/datomic-dynamodb/src"
-                 "infra/data"]}
+                 "infra/data"]
+   :extra-deps
+   {software.amazon.awssdk/apache-client {:mvn/version "2.32.26"}}}
   :build
   {:deps {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
    :ns-default build}

@@ -72,14 +72,6 @@ Parameters:
     Default: candidate
     AllowedPattern: "^(?![0-9]+$)[A-Za-z0-9_-]{1,128}$"
 
-Rules:
-  DataBucketNameMatchesArn:
-    Assertions:
-      - Assert: !Equals
-          - !Select [1, !Split ["s3:::", !Ref DataBucketArn]]
-          - !Ref DataBucket
-        AssertDescription: DataBucketArn must identify exactly DataBucket.
-
 Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -183,7 +175,7 @@ Resources:
   CandidateVersion:
     Type: AWS::Lambda::Version
     Properties:
-      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256} memory:${MemorySize}"
       FunctionName: !Ref Function
 
   CandidateAlias:
@@ -196,6 +188,7 @@ Resources:
 
   CandidateFunctionUrl:
     Type: AWS::Lambda::Url
+    DependsOn: CandidateAlias
     Properties:
       AuthType: AWS_IAM
       InvokeMode: BUFFERED

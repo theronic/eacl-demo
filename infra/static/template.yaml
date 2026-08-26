@@ -148,6 +148,9 @@ Resources:
       FunctionCode: |
         function handler(event) {
           var request = event.request;
+          if (request.uri === '/datascript' || request.uri === '/datascript/') {
+            request.uri = '/datascript/index.html';
+          }
           if (request.method === 'POST') {
             var hash = request.headers['x-amz-content-sha256'];
             if (!hash || !/^[a-f0-9]{64}$/.test(hash.value)) {
@@ -226,7 +229,6 @@ Resources:
           HeaderBehavior: whitelist
           Headers:
             - content-type
-            - x-amz-content-sha256
             - x-eacl-request-id
         Name: !Sub "${AWS::StackName}-api"
         QueryStringsConfig:
@@ -272,6 +274,9 @@ Resources:
             CachedMethods: [GET, HEAD]
             CachePolicyId: !Ref StaticCachePolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             ViewerProtocolPolicy: redirect-to-https
           - !If
@@ -374,6 +379,7 @@ Resources:
               OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
+                OriginReadTimeout: 60
             - !Ref AWS::NoValue
           - !If
             - HasDatahikeDynamodb
@@ -382,6 +388,7 @@ Resources:
               OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
+                OriginReadTimeout: 60
             - !Ref AWS::NoValue
           - !If
             - HasDatomicDynamodb
@@ -390,6 +397,7 @@ Resources:
               OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
+                OriginReadTimeout: 60
             - !Ref AWS::NoValue
           - !If
             - HasDatalevinMemory
@@ -398,6 +406,7 @@ Resources:
               OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
+                OriginReadTimeout: 60
             - !Ref AWS::NoValue
           - !If
             - HasJankMemory
@@ -406,6 +415,7 @@ Resources:
               OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
               CustomOriginConfig:
                 OriginProtocolPolicy: https-only
+                OriginReadTimeout: 60
             - !Ref AWS::NoValue
         PriceClass: PriceClass_100
         ViewerCertificate:

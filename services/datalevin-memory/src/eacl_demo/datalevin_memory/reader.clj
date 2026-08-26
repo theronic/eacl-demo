@@ -5,7 +5,11 @@
             [clojure.java.io :as io]
             [datalevin.core :as d]
             [eacl.core :as eacl]
-            [eacl.datalevin.core :as datalevin-eacl])
+            [eacl.datalevin.core :as datalevin-eacl]
+            [eacl.datalevin.schema :as datalevin-schema]
+            [eacl.relationships.endpoint-pair :as endpoint-pair]
+            [eacl.relationships.storage :as relationship-storage]
+            [eacl.schema.model :as schema-model])
   (:import [java.time Instant]))
 
 (def ^:private physical-schema
@@ -43,19 +47,48 @@
          :demo/roles #{(keyword role)}})
       batch))))
 
+(defn- lookup-eid!
+  [database lookup-ref]
+  (or (d/entid database lookup-ref)
+      (throw (ex-info "Fixture relationship endpoint is absent."
+                      {:type :eacl-demo/missing-fixture-endpoint}))))
+
+(defn- physical-relationship
+  [database {:keys [subject relation resource]}]
+  (let [subject-type (keyword (:type subject))
+        resource-type (keyword (:type resource))
+        relation-name (keyword relation)
+        subject-eid (lookup-eid! database [:eacl/id (:id subject)])
+        resource-eid (lookup-eid! database [:eacl/id (:id resource)])
+        relation-eid
+        (lookup-eid!
+         database
+         [:eacl/id (schema-model/->relation-id
+                    resource-type relation-name subject-type)])]
+    {:relation-eid relation-eid
+     :tx-data
+     [[:db/add subject-eid relationship-storage/forward-attribute
+       (endpoint-pair/forward-value subject-type relation-eid
+                                    resource-type resource-eid)]
+      [:db/add resource-eid relationship-storage/reverse-attribute
+       (endpoint-pair/reverse-value resource-type relation-eid
+                                    subject-type subject-eid)]]}))
+
 (defn- seed-relationships!
-  [client records]
+  [conn watermark write-token records]
   (doseq [batch (partition-all 500
                                (filter #(= "relationship" (:kind %)) records))]
-    (eacl/create-relationships!
-     client
-     (mapv (fn [{:keys [subject relation resource]}]
-             {:subject (eacl/spice-object (keyword (:type subject))
-                                          (:id subject))
-              :relation (keyword relation)
-              :resource (eacl/spice-object (keyword (:type resource))
-                                           (:id resource))})
-           batch))))
+    (let [database (d/db conn)
+          physical (mapv #(physical-relationship database %) batch)
+          relation-stamps
+          (mapv (fn [relation-eid]
+                  [:db/add relation-eid
+                   :eacl.datalevin/relation-generation :db/current-tx])
+                (distinct (map :relation-eid physical)))]
+      (d/transact! conn
+                   (into relation-stamps (mapcat :tx-data physical))
+                   {:datalevin/write-token write-token})
+      (reset! watermark (:max-tx (d/db conn))))))
 
 (defn- public-basis
   [snapshot]
@@ -76,7 +109,9 @@
   (let [conn (datalevin-eacl/create-conn nil physical-schema)
         watermark (atom 0)]
     (try
-      (let [client (datalevin-eacl/make-client
+      (let [write-token (:write-token
+                         (datalevin-schema/ensure-physical-schema! conn))
+            client (datalevin-eacl/make-client
                     conn
                     {:source-lifecycle "eacl-demo-datalevin-memory-v1"
                      :revision-watermark watermark
@@ -88,7 +123,7 @@
             records (fixture-records)]
         (eacl/write-schema! client schema-source)
         (seed-objects! conn records)
-        (seed-relationships! client records)
+        (seed-relationships! conn watermark write-token records)
         {:connection conn
          :client client
          :capture-snapshot

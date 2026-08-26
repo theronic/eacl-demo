@@ -43,7 +43,7 @@ assert.match(seedSource, /d\/as-of/u);
 assert.match(seedSource, /d\/history/u);
 assert.match(seedSource, /:db\/noHistory/u);
 assert.match(seedSource, /history-evidence/u);
-assert.match(seedSource, /seed-batch-delay-millis 500/u);
+assert.match(seedSource, /seed-batch-delay-millis 50/u);
 assert.doesNotMatch(seedSource, /read-only=true|LambdaHandler|RequestStreamHandler/u);
 
 const runner = output("unzip", ["-p", archive, "seed-runner.sh"]);

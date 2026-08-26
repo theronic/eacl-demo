@@ -181,7 +181,8 @@ async function publishProfile({ profileId, artifactKind, artifactSha,
 }
 
 function aws(args) {
-  const result = spawnSync("aws", ["--region", required("AWS_REGION"), ...args], {
+  const result = spawnSync("aws", ["--cli-connect-timeout", "30",
+    "--cli-read-timeout", "330", "--region", required("AWS_REGION"), ...args], {
     cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"]
   });
   if (result.error) throw result.error;
