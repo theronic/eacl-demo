@@ -35,7 +35,16 @@ work_dir=/var/lib/eacl-demo-datomic-seed
 install -d -m 0700 "$work_dir"
 cd "$work_dir"
 transactor_pid=
+seeder_pid=
 cleanup() {
+  if [[ -n "$seeder_pid" ]] && kill -0 "$seeder_pid" 2>/dev/null; then
+    kill -TERM "$seeder_pid" 2>/dev/null || true
+    for _attempt in {1..30}; do
+      kill -0 "$seeder_pid" 2>/dev/null || break
+      sleep 1
+    done
+    kill -KILL "$seeder_pid" 2>/dev/null || true
+  fi
   if [[ -n "$transactor_pid" ]] && kill -0 "$transactor_pid" 2>/dev/null; then
     kill -TERM "$transactor_pid" 2>/dev/null || true
     for _attempt in {1..30}; do
@@ -106,7 +115,23 @@ done
 export EACL_FIXTURE_CUT_POINT=1000000
 gzip --decompress --stdout fixture.batches.jsonl.gz |
   java -server -Xms2g -Xmx8g -cp seed.jar clojure.main \
-    -m eacl-demo.datomic-dynamodb.seed-main > seed-evidence.jsonl
+    -m eacl-demo.datomic-dynamodb.seed-main > seed-evidence.jsonl &
+seeder_pid=$!
+seed_deadline=$((SECONDS + 21600))
+while ! tail -n 1 seed-evidence.jsonl 2>/dev/null |
+          grep --fixed-strings --quiet '"kind":"seed-complete"'; do
+  if ! kill -0 "$seeder_pid" 2>/dev/null; then
+    wait "$seeder_pid"
+    seeder_pid=
+    printf 'seeder exited without completion evidence\n' >&2
+    exit 1
+  fi
+  if (( SECONDS >= seed_deadline )); then
+    printf 'seeder exceeded the six-hour execution bound\n' >&2
+    exit 1
+  fi
+  sleep 1
+done
 
 python3 - seed-evidence.jsonl <<'PY'
 import json
