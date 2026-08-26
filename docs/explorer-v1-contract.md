@@ -6,7 +6,7 @@ Every response identity binds the profile, exact demo and Core commits, artifact
 
 `packages/contracts/error-codes.v1.json` is the stable failure catalog. Each code fixes an HTTP status, retryability, and safe public message for validation, routing/method/media rejection, cursor failures, unsupported consistency, cancellation, deadline, overload, throttling, dependency availability, missing/corrupt storage, identity mismatch, response overflow, and internal failure.
 
-`packages/contracts/limits.v1.json` is the central hard-limit record: 64 KiB request bodies, 1 MiB response/total output, 4 KiB strings and cursors, 256-byte identifiers/path segments, 100 array/page items (25 default page), one-million bounded counts, 8 KiB diagnostics, 2 KiB query strings, 10-second request deadline, and 32 admitted concurrent requests per environment. Profiles may publish smaller descriptor limits but never exceed these contract ceilings.
+`packages/contracts/limits.v1.json` is the central hard-limit record: 64 KiB request bodies, 1 MiB response/total output, 4 KiB strings and cursors, 256-byte identifiers/path segments, 1,000 array/page items (20 default page), one-million bounded counts, 8 KiB diagnostics, 2 KiB query strings, 10-second request deadline, and 32 admitted concurrent requests per environment. Profiles may publish smaller descriptor limits but never exceed these contract ceilings.
 
 Server operations route only as `/api/v1/{server-profile-id}/{operation}`. DataScript cannot resolve through that table; its ClojureScript-compiled JavaScript Web Worker messages carry the same `explorer.v1` operation name, request ID, and structured input under the fixed `datascript-browser-memory` profile identity. It does not claim a WebAssembly architecture.
 

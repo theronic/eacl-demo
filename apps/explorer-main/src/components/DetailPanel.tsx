@@ -41,16 +41,23 @@ function PermissionDecisionRow(props: {
       props.resource.id,
       props.permission,
       app.cacheEnabled(),
+      app.populateCache(),
+      app.activeQueryBasis(),
+      app.basisGeneration(),
+      app.queryGeneration(),
+      JSON.stringify(app.consistency()),
       app.mutationRevision(),
     ] as const);
   const [decision, { refetch }] = createResource(source, (input) =>
-    request.run<PermissionDecision>("/api/eacl/check-permission", {
+    app.runQuery<PermissionDecision>(request, "/api/eacl/check-permission", {
       method: "POST",
       body: JSON.stringify({
         subject: { type: "user", id: input[0] },
         resource: { type: input[1], id: input[2] },
         permission: input[3],
         cache: input[4],
+        populateCache: input[5],
+        consistency: app.consistency(),
       }),
     }),
   );
@@ -153,10 +160,15 @@ function PermissionSubjects(props: {
           app.pageSize(),
           cursor() ?? "",
           app.cacheEnabled(),
+          app.populateCache(),
+          app.activeQueryBasis(),
+          app.basisGeneration(),
+          app.queryGeneration(),
+          JSON.stringify(app.consistency()),
           app.mutationRevision(),
         ] as const);
   const [subjects, { refetch }] = createResource(source, (input) =>
-    request.run<ObjectPage>("/api/eacl/lookup-subjects", {
+    app.runQuery<ObjectPage>(request, "/api/eacl/lookup-subjects", {
       method: "POST",
       body: JSON.stringify({
         resource: { type: input[0], id: input[1] },
@@ -165,6 +177,8 @@ function PermissionSubjects(props: {
         pageSize: input[3],
         after: input[4] || undefined,
         cache: input[5],
+        populateCache: input[6],
+        consistency: app.consistency(),
       }),
     }),
   );
@@ -190,9 +204,13 @@ function PermissionSubjects(props: {
       () => [
         props.resource.type,
         props.resource.id,
+        props.permission,
         app.pageSize(),
         app.cacheEnabled(),
+        app.populateCache(),
         app.queryGeneration(),
+        app.basisGeneration(),
+        JSON.stringify(app.consistency()),
       ] as const,
       () => setCursors((current) => (current.length ? [] : current)),
       { defer: true },

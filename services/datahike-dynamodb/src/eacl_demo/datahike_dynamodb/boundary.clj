@@ -1,6 +1,7 @@
 (ns eacl-demo.datahike-dynamodb.boundary
   "Closed request boundary that propagates request lifetime into storage reads."
   (:require [eacl-demo.contracts.http :as http]
+            [eacl-demo.contracts.response-meta :as response-meta]
             [eacl-demo.datahike-dynamodb.context :as context])
   (:import [java.util.concurrent Semaphore]))
 
@@ -40,14 +41,18 @@
       :else {:ok? true :operation operation})))
 
 (defn success-envelope
-  [request operation identity basis data]
+  ([request operation identity basis data]
+   (success-envelope request operation identity basis data nil nil))
+  ([request operation identity basis data elapsed-ms cache-status]
   {:ok true
-   :meta {:contractVersion "explorer.v1"
-          :operation operation
-          :requestId (:request-id request)
-          :identity identity
-          :basis basis}
-   :data data})
+   :meta (cond-> {:contractVersion "explorer.v1"
+                  :operation operation
+                  :requestId (:request-id request)
+                  :identity identity
+                  :basis basis}
+           (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
+           (some? cache-status) (assoc :cacheStatus cache-status))
+   :data data}))
 
 (defn- error-message
   [code]
@@ -128,7 +133,8 @@
       :else
       (do
         (swap! active inc)
-        (let [released? (atom false)
+        (let [started-nanos (System/nanoTime)
+              released? (atom false)
               snapshot* (atom nil)
               release-once!
               (fn []
@@ -163,7 +169,9 @@
                              :check-active! check-active!})]
                   (check-active!)
                   (success-envelope request operation identity (:basis snapshot)
-                                    data))))
+                                    data
+                                    (response-meta/elapsed-ms started-nanos)
+                                    (response-meta/cache-status data)))))
             (catch clojure.lang.ExceptionInfo error
               (failure-envelope request operation identity
                                 (some-> @snapshot* :basis)

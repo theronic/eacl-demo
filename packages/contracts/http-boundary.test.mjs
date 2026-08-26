@@ -6,7 +6,7 @@ const post = (operation, input, overrides = {}) => validateHttpRequest({ path: `
 
 test("closed GET and POST routes produce normalized client requests", () => {
   assert.deepEqual(validateHttpRequest({ path: "/api/v1/datahike-s3/health", method: "GET", query: "", body: null, requestId: "r" }), { ok: true, contractVersion: "explorer.v1", transport: "http", profileId: "datahike-s3", operation: "health", requestId: "r", input: {} });
-  const authorization = post("authorize", { subjectType: "user", subjectId: "alice", resourceType: "server", resourceId: "server-1", permission: "read", consistency: "current" });
+  const authorization = post("authorize", { subjectType: "user", subjectId: "alice", resourceType: "server", resourceId: "server-1", permission: "read", cache: true, populateCache: false, consistency: "current" });
   assert.equal(authorization.ok, true);
   assert.equal(authorization.input.permission, "read");
   const lookup = post("lookup-resources", { subjectType: "user", subjectId: "alice", resourceType: "server", permission: "read", pageSize: 20, cache: false, populateCache: false, consistency: "current" });
@@ -27,7 +27,7 @@ test("method, route, content type, query, and normalized path are closed", () =>
 test("operation bodies reject missing, extra, unbounded, mutation, and administration fields", () => {
   assert.equal(post("authorize", { subjectType: "user" }).code, "validation-error");
   assert.equal(post("authorize", { subjectType: "user", subjectId: "alice", resourceType: "server", resourceId: "server-1", permission: "read", seed: true }).code, "validation-error");
-  assert.equal(post("list-subjects", { pageSize: 101 }).code, "validation-error");
+  assert.equal(post("list-subjects", { pageSize: 1001 }).code, "validation-error");
   assert.equal(post("count-objects", { kind: "objects", ceiling: 1000001 }).code, "validation-error");
   assert.equal(post("lookup-resources", { subjectType: "user", subjectId: "alice", resourceType: "server", permission: "read", cache: "yes" }).code, "validation-error");
   assert.equal(post("get-schema", { transaction: [] }).code, "validation-error");

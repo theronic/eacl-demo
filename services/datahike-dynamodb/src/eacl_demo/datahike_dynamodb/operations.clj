@@ -3,12 +3,13 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datahike.api :as d]
+            [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
             [eacl.relationships.storage :as relationship-storage]
             [eacl.secure-format :as secure]))
 
-(def ^:private default-page-size 25)
+(def ^:private default-page-size 20)
 (def ^:private default-count-ceiling 1000000)
 (def ^:private cursor-ttl-ms (* 15 60 1000))
 (def ^:private cursor-prefix "eacl-demo-subjects-v1.")
@@ -16,7 +17,7 @@
 (def ^:private cursor-payload-keys
   #{:version :operation :query :after :basis-id :expires-at-ms})
 
-(declare bounded-scan-count decode-subject-cursor encode-subject-cursor fail!
+(declare bounded-scan-count decode-subject-cursor eacl-consistency encode-subject-cursor fail!
          guarded object-entities object-exists? relationship-datoms
          relationship-query subject-entities wire-object wire-page-info
          wire-relationship wire-relationship-page)
@@ -113,7 +114,8 @@
                                          (keyword (:resourceType input))
                                          :resource/id (:resourceId input)}))]
           (check-active!)
-          (wire-relationship-page page))))
+          (response-meta/with-cache-status
+           (wire-relationship-page page) page (not= false (:cache input))))))
 
      "reverse-relationships"
      (guarded
@@ -125,10 +127,13 @@
                                          (keyword (:subjectType input))
                                          :subject/id (:subjectId input)}))]
           (check-active!)
-          {:items (mapv (fn [{:keys [resource]}]
-                          (wire-object (:type resource) (:id resource)))
-                        (:data page))
-           :pageInfo (wire-page-info page)})))
+          (response-meta/with-cache-status
+           {:items (mapv (fn [{:keys [resource]}]
+                           (wire-object (:type resource) (:id resource)))
+                         (:data page))
+            :pageInfo (wire-page-info page)}
+           page
+           (not= false (:cache input))))))
 
      "authorize"
      (guarded
@@ -138,32 +143,36 @@
                                              (:subjectId input) :subject)
               resource-known? (object-exists? database (:resourceType input)
                                               (:resourceId input) nil)
-              allowed? (and subject-known? resource-known?
-                            (true?
-                             (:allowed?
-                              (eacl/check-permission
-                               snapshot
-                               {:subject (eacl/spice-object
-                                          (keyword (:subjectType input))
-                                          (:subjectId input))
-                                :permission (keyword (:permission input))
-                                :resource (eacl/spice-object
-                                           (keyword (:resourceType input))
-                                           (:resourceId input))
-                                :consistency :minimize-latency}))))]
+              decision (when (and subject-known? resource-known?)
+                         (eacl/check-permission
+                          snapshot
+                          {:subject (eacl/spice-object
+                                     (keyword (:subjectType input))
+                                     (:subjectId input))
+                           :permission (keyword (:permission input))
+                           :resource (eacl/spice-object
+                                      (keyword (:resourceType input))
+                                      (:resourceId input))
+                           :cache? (not= false (:cache input))
+                           :populate-cache? (not= false (:populateCache input))
+                           :consistency (eacl-consistency input)}))
+              allowed? (true? (:allowed? decision))]
           (check-active!)
-          {:subjectType (:subjectType input)
-           :subjectId (:subjectId input)
-           :resourceType (:resourceType input)
-           :resourceId (:resourceId input)
-           :permission (:permission input)
-           :allowed allowed?
-           :reasonCode (cond
-                         (not subject-known?) "subject-not-found"
-                         (not resource-known?) "object-not-found"
-                         allowed? "granted"
-                         :else "denied")
-           :path []})))
+          (response-meta/with-cache-status
+           {:subjectType (:subjectType input)
+            :subjectId (:subjectId input)
+            :resourceType (:resourceType input)
+            :resourceId (:resourceId input)
+            :permission (:permission input)
+            :allowed allowed?
+            :reasonCode (cond
+                          (not subject-known?) "subject-not-found"
+                          (not resource-known?) "object-not-found"
+                          allowed? "granted"
+                          :else "denied")
+            :path []}
+           decision
+           (not= false (:cache input))))))
 
      "lookup-resources"
      (guarded
@@ -179,13 +188,16 @@
                  :first (or (:pageSize input) default-page-size)
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
-                 :consistency :minimize-latency}
+                 :consistency (eacl-consistency input)}
                  (:cursor input) (assoc :after (:cursor input))))]
           (check-active!)
-          {:items (mapv (fn [resource]
-                          (wire-object (:type resource) (:id resource)))
-                        (:data result))
-           :pageInfo (wire-page-info result)})))
+          (response-meta/with-cache-status
+           {:items (mapv (fn [resource]
+                           (wire-object (:type resource) (:id resource)))
+                         (:data result))
+            :pageInfo (wire-page-info result)}
+           result
+           (not= false (:cache input))))))
 
      "lookup-subjects"
      (guarded
@@ -201,13 +213,16 @@
                  :first (or (:pageSize input) default-page-size)
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
-                 :consistency :minimize-latency}
+                 :consistency (eacl-consistency input)}
                  (:cursor input) (assoc :after (:cursor input))))]
           (check-active!)
-          {:items (mapv (fn [subject]
-                          (wire-object (:type subject) (:id subject)))
-                        (:data result))
-           :pageInfo (wire-page-info result)})))
+          (response-meta/with-cache-status
+           {:items (mapv (fn [subject]
+                           (wire-object (:type subject) (:id subject)))
+                         (:data result))
+            :pageInfo (wire-page-info result)}
+           result
+           (not= false (:cache input))))))
 
      "count-resources"
      (guarded
@@ -223,12 +238,15 @@
                 :count-limit ceiling
                 :cache? (not= false (:cache input))
                 :populate-cache? (not= false (:populateCache input))
-                :consistency :minimize-latency})]
+                :consistency (eacl-consistency input)})]
           (check-active!)
-          {:kind "objects"
-           :value (:count result)
-           :exact (not (true? (:truncated? result)))
-           :ceiling (:limit result)})))
+          (response-meta/with-cache-status
+           {:kind "objects"
+            :value (:count result)
+            :exact (not (true? (:truncated? result)))
+            :ceiling (:limit result)}
+           result
+           (not= false (:cache input))))))
 
      "get-schema" (fn [_] wire-schema)
 
@@ -258,10 +276,16 @@
            :exact (<= observed ceiling)
            :ceiling ceiling})))}))
 
+(defn- eacl-consistency
+  [_input]
+  :minimize-latency)
+
 (defn- relationship-query
   [input anchor]
   (cond-> (assoc anchor :first (or (:pageSize input) default-page-size)
-                 :consistency :minimize-latency)
+                 :cache? (not= false (:cache input))
+                 :populate-cache? (not= false (:populateCache input))
+                 :consistency (eacl-consistency input))
     (:relation input) (assoc :resource/relation (keyword (:relation input)))
     (:cursor input) (assoc :after (:cursor input))))
 

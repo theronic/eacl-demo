@@ -89,7 +89,7 @@ test("manual theme preference persists and reduced motion disables continuous an
   expect(animation.iterations).toBe("1");
 });
 
-test("an enabled publication opens the schema-validated server explorer over the exact profile route", async ({ page }) => {
+test("an enabled publication opens the schema-validated server explorer over the exact profile route", async ({ page }, testInfo) => {
   const now = new Date();
   const deployedAt = new Date(now.getTime() - 1_000).toISOString();
   const identity = {
@@ -162,7 +162,23 @@ test("an enabled publication opens the schema-validated server explorer over the
       "get-cache-info": { behavior: "environment-local", hit: null, scope: "datahike-s3", entries: null, limitations: [] },
       "count-objects": { kind: input.kind, value: input.ceiling, exact: false, ceiling: input.ceiling }
     };
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, meta: { contractVersion: "explorer.v1", requestId, operation, identity, basis }, data: data[operation] }) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        meta: {
+          contractVersion: "explorer.v1",
+          requestId,
+          operation,
+          identity,
+          basis,
+          elapsedMs: 1.25,
+          cacheStatus: input.cache === false ? "disabled" : "hit",
+        },
+        data: data[operation],
+      }),
+    });
   });
 
   await page.reload();
@@ -173,9 +189,24 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Schema/u })).toBeVisible();
+  await expect(page.getByLabel("Page size").locator("option")).toHaveText([
+    "10", "20", "50", "100", "250", "500", "1,000",
+  ]);
+  const panelTops = await page.locator(".panel-grid > .panel-host").evaluateAll((panels) =>
+    panels.map((panel) => Math.round(panel.getBoundingClientRect().top)),
+  );
+  expect(panelTops).toHaveLength(3);
+  if (testInfo.project.name.startsWith("desktop")) {
+    expect(new Set(panelTops).size).toBe(1);
+  } else {
+    expect(panelTops[0]).toBeLessThan(panelTops[1]);
+    expect(panelTops[1]).toBeLessThan(panelTops[2]);
+  }
   await page.getByRole("button", { name: "Servers" }).click();
   await page.getByRole("button", { name: /Server 1/u }).click();
   await expect(page.locator(".permission-decision__status--allowed", { hasText: "Allowed" })).toBeVisible();
+  await expect(page.locator(".cache-timing", { hasText: "1.25ms" }).first()).toBeVisible();
+  await expect(page.locator(".cache-timing__status", { hasText: "hit" }).first()).toBeVisible();
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "authorize", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.filter(({ operation }) => !["health", "bootstrap"].includes(operation)).every(({ payloadHash }) => /^[0-9a-f]{64}$/u.test(payloadHash ?? ""))).toBe(true);

@@ -5,7 +5,7 @@
 (def ^:private maximum-request-id-bytes 128)
 (def ^:private maximum-identifier-bytes 256)
 (def ^:private maximum-cursor-bytes 4096)
-(def ^:private maximum-page-size 100)
+(def ^:private maximum-page-size 1000)
 (def ^:private maximum-count-ceiling 1000000)
 
 (def ^:private identifier-pattern
@@ -18,13 +18,13 @@
    "get-object" {:required #{:type :id} :optional #{:consistency}}
    "list-relationships"
    {:required #{:resourceType :resourceId}
-    :optional #{:relation :pageSize :cursor :consistency}}
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency}}
    "reverse-relationships"
    {:required #{:subjectType :subjectId}
-    :optional #{:relation :pageSize :cursor :consistency}}
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency}}
    "authorize"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
-    :optional #{:consistency}}
+    :optional #{:cache :populateCache :consistency}}
    "lookup-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
     :optional #{:pageSize :cursor :cache :populateCache :consistency}}

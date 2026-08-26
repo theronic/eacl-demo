@@ -91,6 +91,7 @@
     "test:contracts": "node --test packages/contracts/*.test.mjs",
     "test:explorer-state": "node --test packages/explorer-state/*.test.mjs",
     "test:ui": "vitest run --config packages/ui/vitest.config.ts",
+    "test:ui-parity": "node --test scripts/explorer-ui-parity-policy.test.mjs",
     "qualify:explorer": "playwright test --config verification/explorer/playwright.config.ts",
     "qualify:datascript-browser": "playwright test --config verification/datascript/playwright.config.ts",
     "qualify:main-network-isolation": "playwright test --config verification/datascript/main-network-isolation.playwright.config.ts",

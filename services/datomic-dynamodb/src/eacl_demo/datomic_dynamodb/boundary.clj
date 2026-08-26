@@ -1,6 +1,7 @@
 (ns eacl-demo.datomic-dynamodb.boundary
   "Closed public boundary for one fixed Datomic DB value."
-  (:require [eacl-demo.contracts.http :as http])
+  (:require [eacl-demo.contracts.http :as http]
+            [eacl-demo.contracts.response-meta :as response-meta])
   (:import [java.util.concurrent Semaphore]))
 
 (def profile-id "datomic-dynamodb")
@@ -42,14 +43,18 @@
       :else {:ok? true :operation operation})))
 
 (defn success-envelope
-  [request operation identity basis data]
+  ([request operation identity basis data]
+   (success-envelope request operation identity basis data nil nil))
+  ([request operation identity basis data elapsed-ms cache-status]
   {:ok true
-   :meta {:contractVersion "explorer.v1"
-          :operation operation
-          :requestId (:request-id request)
-          :identity identity
-          :basis basis}
-   :data data})
+   :meta (cond-> {:contractVersion "explorer.v1"
+                  :operation operation
+                  :requestId (:request-id request)
+                  :identity identity
+                  :basis basis}
+           (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
+           (some? cache-status) (assoc :cacheStatus cache-status))
+   :data data}))
 
 (defn failure-envelope
   [request operation identity basis code]
@@ -122,7 +127,8 @@
       :else
       (do
         (swap! active inc)
-        (let [snapshot* (atom nil)
+        (let [started-nanos (System/nanoTime)
+              snapshot* (atom nil)
               check-active!
               (fn []
                 (cond
@@ -151,7 +157,9 @@
                              :check-active! check-active!}))]
                 (check-active!)
                 (success-envelope request operation identity (:basis snapshot)
-                                  data)))
+                                  data
+                                  (response-meta/elapsed-ms started-nanos)
+                                  (response-meta/cache-status data))))
             (catch clojure.lang.ExceptionInfo error
               (failure-envelope request operation identity
                                 (some-> @snapshot* :basis)

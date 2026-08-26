@@ -70,7 +70,7 @@ function scenario(id, backend, storage, dataset, runtime, capabilityOverrides) {
       identity: { profileId: id, ...deployment },
       profile: { backend, storage }, runtime,
       capabilities: { operations: [...OPERATIONS], ...capabilityOverrides },
-      limits: { pageSize: 100, countCeiling: 1_000_000, deadlineMs: 10_000 },
+      limits: { pageSize: 1000, countCeiling: 1_000_000, deadlineMs: 10_000 },
       dataset,
       basis
     })
@@ -98,7 +98,7 @@ function enabledProfile(selected) {
 function responseData(selected, operation, input) {
   const subject = { type: "user", id: input.subjectId ?? "user-1", displayName: "Example user", attributes: [] };
   const object = { type: input.resourceType ?? input.type ?? "server", id: input.resourceId ?? input.id ?? "server-1", displayName: "Example server", attributes: [{ name: "fixture", value: selected.descriptor.dataset.fixtureId }] };
-  const pageInfo = { hasNextPage: false, endCursor: null, pageSize: Math.min(input.pageSize ?? 25, 100) };
+  const pageInfo = { hasNextPage: false, endCursor: null, pageSize: Math.min(input.pageSize ?? 20, 1000) };
   const responses = {
     health: { status: "ready", ready: true, basis: selected.descriptor.basis },
     bootstrap: selected.descriptor,

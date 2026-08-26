@@ -1,5 +1,6 @@
 (ns eacl-demo.datahike-s3-boundary-test
   (:require [clojure.test :refer [deftest is testing]]
+            [eacl-demo.contracts.response-meta :as response-meta]
             [eacl-demo.datahike-s3.boundary :as boundary]))
 
 (def identity
@@ -75,8 +76,9 @@
     (is (:ok result))
     (is (= "authorize" (get-in result [:meta :operation])))
     (is (= identity (get-in result [:meta :identity])))
-    (is (= #{:contractVersion :operation :requestId :identity :basis}
+    (is (= #{:contractVersion :operation :requestId :identity :basis :elapsedMs}
            (set (keys (:meta result)))))
+    (is (number? (get-in result [:meta :elapsedMs])))
     (is (= {:id "basis-1"} (get-in result [:meta :basis])))
     (is (= 1 @release-count))
     (is (zero? (boundary/active-count boundary)))
@@ -93,6 +95,26 @@
     (is (= "method-not-allowed"
            (get-in (boundary/invoke! boundary (request "authorize" :get))
                    [:error :code])))))
+
+(deftest timing-and-cache-metadata-reach-the-wire-envelope-test
+  (let [operations ["health" "bootstrap" "list-subjects" "get-object"
+                    "list-relationships" "reverse-relationships" "authorize"
+                    "lookup-resources" "lookup-subjects" "count-resources"
+                    "get-schema" "get-cache-info" "count-objects"]
+        handlers (into {}
+                       (map (fn [operation]
+                              [operation
+                               (fn [_]
+                                 (response-meta/with-cache-status
+                                  {:operation operation}
+                                  {:cached? true}
+                                  true))]))
+                       operations)
+        {service :boundary} (configured-boundary {:handlers handlers})
+        result (boundary/invoke! service (request "authorize" :post))]
+    (is (= "hit" (get-in result [:meta :cacheStatus])))
+    (is (number? (get-in result [:meta :elapsedMs])))
+    (is (= {:operation "authorize"} (:data result)))))
 
 (deftest unsupported-consistency-fails-before-snapshot-test
   (let [{:keys [boundary release-count]} (configured-boundary {})]

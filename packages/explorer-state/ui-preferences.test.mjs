@@ -5,12 +5,12 @@ import { createThemeController, defaultUiPreferences, readUiPreferences, uiPrefe
 
 test("preferences persist one bounded product-neutral record", () => {
   const storage = memoryStorage();
-  const written = writeUiPreferences({ ...defaultUiPreferences, theme: "dark", pageSize: 100, expanded: ["schema", "schema"] }, storage);
+  const written = writeUiPreferences({ ...defaultUiPreferences, theme: "dark", pageSize: 1000, expanded: ["schema", "schema"] }, storage);
   assert.equal(storage.entries.size, 1);
   assert.equal(storage.entries.has(uiPreferencesStorageKey), true);
   assert.deepEqual(written.expanded, ["schema"]);
   assert.deepEqual(readUiPreferences(storage), written);
-  storage.setItem(uiPreferencesStorageKey, JSON.stringify({ ...written, pageSize: 1000 }));
+  storage.setItem(uiPreferencesStorageKey, JSON.stringify({ ...written, pageSize: 1001 }));
   assert.deepEqual(readUiPreferences(storage), defaultUiPreferences);
 });
 

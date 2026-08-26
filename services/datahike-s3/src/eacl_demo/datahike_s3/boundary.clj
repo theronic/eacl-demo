@@ -1,6 +1,7 @@
 (ns eacl-demo.datahike-s3.boundary
   "Closed, read-only request boundary for the adopted S3 profile."
-  (:require [eacl-demo.contracts.http :as http])
+  (:require [eacl-demo.contracts.http :as http]
+            [eacl-demo.contracts.response-meta :as response-meta])
   (:import [java.util.concurrent Semaphore]))
 
 (def profile-id "datahike-s3")
@@ -40,14 +41,18 @@
       {:ok? true :operation operation})))
 
 (defn success-envelope
-  [request operation identity basis data]
+  ([request operation identity basis data]
+   (success-envelope request operation identity basis data nil nil))
+  ([request operation identity basis data elapsed-ms cache-status]
   {:ok true
-   :meta {:contractVersion "explorer.v1"
-          :operation operation
-          :requestId (:request-id request)
-          :identity identity
-          :basis basis}
-   :data data})
+   :meta (cond-> {:contractVersion "explorer.v1"
+                  :operation operation
+                  :requestId (:request-id request)
+                  :identity identity
+                  :basis basis}
+           (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
+           (some? cache-status) (assoc :cacheStatus cache-status))
+   :data data}))
 
 (defn failure-envelope
   [request operation identity basis code]
@@ -116,7 +121,8 @@
       :else
       (do
         (swap! active inc)
-        (let [released? (atom false)
+        (let [started-nanos (System/nanoTime)
+              released? (atom false)
               snapshot* (atom nil)
               release-once!
               (fn []
@@ -147,7 +153,9 @@
                            :check-active! check-active!})]
                 (check-active!)
                 (success-envelope request operation identity (:basis snapshot)
-                                  data)))
+                                  data
+                                  (response-meta/elapsed-ms started-nanos)
+                                  (response-meta/cache-status data))))
             (catch clojure.lang.ExceptionInfo error
               (failure-envelope request operation identity
                                 (some-> @snapshot* :basis)

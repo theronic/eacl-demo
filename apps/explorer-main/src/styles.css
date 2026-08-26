@@ -948,6 +948,7 @@ button {
   line-height: 1.4;
 }
 
+/* DATOMIC_PERMISSION_DECISIONS_START */
 .permission-decisions {
   padding: 14px;
   border: 1px solid var(--border);
@@ -1020,6 +1021,7 @@ button {
   border-radius: 12px;
   font-size: 0.78rem;
 }
+/* DATOMIC_PERMISSION_DECISIONS_END */
 
 .active-summary {
   padding: 12px 14px;
