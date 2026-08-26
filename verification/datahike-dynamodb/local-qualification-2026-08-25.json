@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "profileId": "datahike-dynamodb",
+  "environment": "dynamodb-local",
+  "status": "passed-local-only",
+  "completedAt": "2026-08-25T13:54:27Z",
+  "runtime": {
+    "version": "3.3.0",
+    "platform": "linux/arm64",
+    "image": "amazon/dynamodb-local@sha256:93b8debf91230fbd02b10fc0d87ed48f29c59044ed3287543a8c52200fa58191",
+    "hostBinding": "127.0.0.1:18000",
+    "storage": "in-memory"
+  },
+  "tests": {
+    "namespace": "eacl-demo.datahike-dynamodb-local-test",
+    "testCount": 1,
+    "assertionCount": 8,
+    "failures": 0,
+    "errors": 0
+  },
+  "proved": [
+    "strong read immediately observes a published item",
+    "empty item and missing table are distinct",
+    "malformed physical item is storage-corrupt",
+    "strong sparse batch read preserves genuine absence",
+    "Konserve backing consumes the hardened path",
+    "320 concurrent representative reads agree",
+    "disposable table is absent after cleanup"
+  ],
+  "notProvedByLocal": [
+    "real AWS IAM denial classification",
+    "real AWS throttling and service retry metadata",
+    "real AWS UnprocessedKeys behavior",
+    "real AWS network timeout and cancellation behavior",
+    "full Datahike database initialization and EACL workload",
+    "production table, seed, artifact, memory, or deployment qualification"
+  ],
+  "cleanup": {
+    "tableNamesAfterRun": [],
+    "temporaryContainerMustBeStopped": true
+  }
+}

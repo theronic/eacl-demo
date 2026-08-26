@@ -1,0 +1,364 @@
+(ns eacl.runtime.native.crypto
+  "Bounded OpenSSL-backed cryptographic operations over canonical hex strings."
+  (:require [clojure.string :as str]
+            [eacl.runtime.native.encoding :as encoding]))
+
+(cpp/raw "#include <openssl/crypto.h>
+          #include <openssl/evp.h>
+          #include <openssl/hmac.h>
+          #include <openssl/rand.h>
+          #include <openssl/opensslv.h>
+          #include <string>
+          #include <vector>
+
+          namespace eacl_jank_crypto
+          {
+            int hex_digit(unsigned char const value)
+            {
+              if(value >= '0' && value <= '9') return value - '0';
+              if(value >= 'a' && value <= 'f') return value - 'a' + 10;
+              return -1;
+            }
+
+            std::string from_hex(std::string const& input)
+            {
+              std::string result;
+              result.reserve(input.size() / 2);
+              for(std::size_t index{}; index < input.size(); index += 2)
+              {
+                auto const high = hex_digit(
+                  static_cast<unsigned char>(input[index]));
+                auto const low = hex_digit(
+                  static_cast<unsigned char>(input[index + 1]));
+                result.push_back(static_cast<char>((high << 4) | low));
+              }
+              return result;
+            }
+
+            std::string to_hex(unsigned char const* input, std::size_t size)
+            {
+              static constexpr char digits[]{ \"0123456789abcdef\" };
+              std::string result;
+              result.reserve(size * 2);
+              for(std::size_t index{}; index < size; ++index)
+              {
+                auto const value = input[index];
+                result.push_back(digits[(value >> 4) & 0x0f]);
+                result.push_back(digits[value & 0x0f]);
+              }
+              return result;
+            }
+
+            std::string success(std::string const& payload)
+            {
+              return std::string{ \"1\" } + payload;
+            }
+
+            std::string failure(char const* reason)
+            {
+              return std::string{ \"0\" } + reason;
+            }
+
+            std::string provider_version()
+            {
+              return OpenSSL_version(OPENSSL_VERSION);
+            }
+
+            std::string random_hex(long long const size)
+            {
+              std::vector<unsigned char> bytes(static_cast<std::size_t>(size));
+              if(RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1)
+                return failure(\"rand\");
+              return success(to_hex(bytes.data(), bytes.size()));
+            }
+
+            std::string sha256_hex(std::string const& data_hex)
+            {
+              auto const data = from_hex(data_hex);
+              unsigned char digest[EVP_MAX_MD_SIZE]{};
+              unsigned int digest_size{};
+              if(EVP_Digest(data.data(), data.size(), digest, &digest_size,
+                            EVP_sha256(), nullptr) != 1)
+                return failure(\"sha256\");
+              return success(to_hex(digest, digest_size));
+            }
+
+            std::string hmac_sha256_hex(std::string const& key_hex,
+                                        std::string const& data_hex)
+            {
+              auto const key = from_hex(key_hex);
+              auto const data = from_hex(data_hex);
+              unsigned char digest[EVP_MAX_MD_SIZE]{};
+              unsigned int digest_size{};
+              if(HMAC(EVP_sha256(), key.data(), static_cast<int>(key.size()),
+                      reinterpret_cast<unsigned char const*>(data.data()),
+                      data.size(), digest, &digest_size) == nullptr)
+                return failure(\"hmac-sha256\");
+              return success(to_hex(digest, digest_size));
+            }
+
+            bool constant_time_equal_hex(std::string const& left_hex,
+                                         std::string const& right_hex)
+            {
+              if(left_hex.size() != right_hex.size()) return false;
+              auto const left = from_hex(left_hex);
+              auto const right = from_hex(right_hex);
+              return CRYPTO_memcmp(left.data(), right.data(), left.size()) == 0;
+            }
+
+            std::string aes_256_gcm_encrypt_hex(
+              std::string const& key_hex,
+              std::string const& nonce_hex,
+              std::string const& plaintext_hex,
+              std::string const& aad_hex)
+            {
+              auto const key = from_hex(key_hex);
+              auto const nonce = from_hex(nonce_hex);
+              auto const plaintext = from_hex(plaintext_hex);
+              auto const aad = from_hex(aad_hex);
+              auto* context = EVP_CIPHER_CTX_new();
+              if(context == nullptr) return failure(\"encrypt-context\");
+              std::vector<unsigned char> ciphertext(plaintext.size() + 16);
+              unsigned char tag[16]{};
+              int written{};
+              int total{};
+              auto ok = EVP_EncryptInit_ex(context, EVP_aes_256_gcm(),
+                                           nullptr, nullptr, nullptr) == 1
+                && EVP_CIPHER_CTX_ctrl(context, EVP_CTRL_GCM_SET_IVLEN,
+                                       static_cast<int>(nonce.size()), nullptr) == 1
+                && EVP_EncryptInit_ex(
+                     context, nullptr, nullptr,
+                     reinterpret_cast<unsigned char const*>(key.data()),
+                     reinterpret_cast<unsigned char const*>(nonce.data())) == 1;
+              if(ok && !aad.empty())
+                ok = EVP_EncryptUpdate(
+                       context, nullptr, &written,
+                       reinterpret_cast<unsigned char const*>(aad.data()),
+                       static_cast<int>(aad.size())) == 1;
+              if(ok && !plaintext.empty())
+              {
+                ok = EVP_EncryptUpdate(
+                       context, ciphertext.data(), &written,
+                       reinterpret_cast<unsigned char const*>(plaintext.data()),
+                       static_cast<int>(plaintext.size())) == 1;
+                total = written;
+              }
+              if(ok)
+              {
+                ok = EVP_EncryptFinal_ex(
+                       context, ciphertext.data() + total, &written) == 1;
+                total += written;
+              }
+              if(ok)
+                ok = EVP_CIPHER_CTX_ctrl(context, EVP_CTRL_GCM_GET_TAG,
+                                         sizeof(tag), tag) == 1;
+              EVP_CIPHER_CTX_free(context);
+              if(!ok) return failure(\"aes-256-gcm-encrypt\");
+              return success(
+                to_hex(ciphertext.data(), static_cast<std::size_t>(total))
+                + std::string{ \".\" }
+                + to_hex(tag, sizeof(tag)));
+            }
+
+            std::string aes_256_gcm_decrypt_hex(
+              std::string const& key_hex,
+              std::string const& nonce_hex,
+              std::string const& ciphertext_hex,
+              std::string const& tag_hex,
+              std::string const& aad_hex)
+            {
+              auto const key = from_hex(key_hex);
+              auto const nonce = from_hex(nonce_hex);
+              auto const ciphertext = from_hex(ciphertext_hex);
+              auto const tag = from_hex(tag_hex);
+              auto const aad = from_hex(aad_hex);
+              auto* context = EVP_CIPHER_CTX_new();
+              if(context == nullptr) return failure(\"decrypt-context\");
+              std::vector<unsigned char> plaintext(ciphertext.size() + 16);
+              int written{};
+              int total{};
+              auto ok = EVP_DecryptInit_ex(context, EVP_aes_256_gcm(),
+                                           nullptr, nullptr, nullptr) == 1
+                && EVP_CIPHER_CTX_ctrl(context, EVP_CTRL_GCM_SET_IVLEN,
+                                       static_cast<int>(nonce.size()), nullptr) == 1
+                && EVP_DecryptInit_ex(
+                     context, nullptr, nullptr,
+                     reinterpret_cast<unsigned char const*>(key.data()),
+                     reinterpret_cast<unsigned char const*>(nonce.data())) == 1;
+              if(ok && !aad.empty())
+                ok = EVP_DecryptUpdate(
+                       context, nullptr, &written,
+                       reinterpret_cast<unsigned char const*>(aad.data()),
+                       static_cast<int>(aad.size())) == 1;
+              if(ok && !ciphertext.empty())
+              {
+                ok = EVP_DecryptUpdate(
+                       context, plaintext.data(), &written,
+                       reinterpret_cast<unsigned char const*>(ciphertext.data()),
+                       static_cast<int>(ciphertext.size())) == 1;
+                total = written;
+              }
+              if(ok)
+                ok = EVP_CIPHER_CTX_ctrl(
+                       context, EVP_CTRL_GCM_SET_TAG,
+                       static_cast<int>(tag.size()),
+                       const_cast<char*>(tag.data())) == 1;
+              auto const final_result = ok
+                ? EVP_DecryptFinal_ex(context, plaintext.data() + total, &written)
+                : -1;
+              if(final_result == 1) total += written;
+              EVP_CIPHER_CTX_free(context);
+              if(!ok) return failure(\"aes-256-gcm-decrypt\");
+              if(final_result != 1) return failure(\"authentication\");
+              return success(to_hex(
+                plaintext.data(), static_cast<std::size_t>(total)));
+            }
+          }")
+
+(def maximum-input-bytes 1048576)
+(def maximum-aad-bytes 65536)
+(def maximum-random-bytes 4096)
+
+(defn provider-version
+  []
+  (cpp/eacl_jank_crypto.provider_version))
+
+(defn- invalid-input!
+  [operation field value reason]
+  (throw
+   (ex-info
+    "Cryptographic input is invalid."
+    {:type :eacl.crypto/invalid-input
+     :eacl/error :eacl.crypto/invalid-input
+     :operation operation
+     :field field
+     :reason reason
+     :value value})))
+
+(defn- require-hex!
+  [operation field value maximum-bytes]
+  (when-not (encoding/hex-string? value)
+    (invalid-input! operation field value :invalid-hex))
+  (when (> (encoding/byte-length value) maximum-bytes)
+    (invalid-input! operation field nil :input-too-large))
+  value)
+
+(defn decode-provider-result
+  "Internal provider-result decoder kept public only for deterministic fault tests."
+  [operation result]
+  (when-not (and (string? result) (pos? (count result)))
+    (throw
+     (ex-info
+      "Cryptographic provider returned an invalid result."
+      {:type :eacl.crypto/provider-failure
+       :eacl/error :eacl.crypto/provider-failure
+       :operation operation
+       :reason :invalid-provider-result})))
+  (if (= "1" (subs result 0 1))
+    (subs result 1)
+    (throw
+     (ex-info
+      "Cryptographic provider operation failed."
+      {:type :eacl.crypto/provider-failure
+       :eacl/error :eacl.crypto/provider-failure
+       :operation operation
+       :reason (subs result 1)}))))
+
+(defn secure-random-hex
+  [byte-count]
+  (when-not (and (integer? byte-count)
+                 (pos? byte-count)
+                 (<= byte-count maximum-random-bytes))
+    (invalid-input! :secure-random :byte-count byte-count :out-of-range))
+  (decode-provider-result
+   :secure-random
+   (cpp/eacl_jank_crypto.random_hex byte-count)))
+
+(defn sha-256
+  [data-hex]
+  (require-hex! :sha-256 :data data-hex maximum-input-bytes)
+  (decode-provider-result
+   :sha-256
+   (cpp/eacl_jank_crypto.sha256_hex (cpp/cast std.string data-hex))))
+
+(defn hmac-sha-256
+  [key-hex data-hex]
+  (require-hex! :hmac-sha-256 :key key-hex 4096)
+  (when (zero? (encoding/byte-length key-hex))
+    (invalid-input! :hmac-sha-256 :key nil :empty-key))
+  (require-hex! :hmac-sha-256 :data data-hex maximum-input-bytes)
+  (decode-provider-result
+   :hmac-sha-256
+   (cpp/eacl_jank_crypto.hmac_sha256_hex
+    (cpp/cast std.string key-hex)
+    (cpp/cast std.string data-hex))))
+
+(defn constant-time-equal?
+  [left-hex right-hex]
+  (require-hex! :constant-time-equal :left left-hex maximum-input-bytes)
+  (require-hex! :constant-time-equal :right right-hex maximum-input-bytes)
+  (and (= (count left-hex) (count right-hex))
+       (cpp/eacl_jank_crypto.constant_time_equal_hex
+        (cpp/cast std.string left-hex)
+        (cpp/cast std.string right-hex))))
+
+(defn- require-key-and-nonce!
+  [operation key-hex nonce-hex]
+  (require-hex! operation :key key-hex 32)
+  (require-hex! operation :nonce nonce-hex 12)
+  (when-not (= 32 (encoding/byte-length key-hex))
+    (invalid-input! operation :key nil :must-be-32-bytes))
+  (when-not (= 12 (encoding/byte-length nonce-hex))
+    (invalid-input! operation :nonce nil :must-be-12-bytes)))
+
+(defn aes-256-gcm-encrypt
+  [key-hex nonce-hex plaintext-hex aad-hex]
+  (require-key-and-nonce! :aes-256-gcm-encrypt key-hex nonce-hex)
+  (require-hex! :aes-256-gcm-encrypt :plaintext
+                plaintext-hex maximum-input-bytes)
+  (require-hex! :aes-256-gcm-encrypt :aad aad-hex maximum-aad-bytes)
+  (let [payload
+        (decode-provider-result
+         :aes-256-gcm-encrypt
+         (cpp/eacl_jank_crypto.aes_256_gcm_encrypt_hex
+          (cpp/cast std.string key-hex)
+          (cpp/cast std.string nonce-hex)
+          (cpp/cast std.string plaintext-hex)
+          (cpp/cast std.string aad-hex)))
+        parts (str/split payload #"\." -1)]
+    (when-not (and (= 2 (count parts))
+                   (encoding/hex-string? (first parts))
+                   (= 16 (encoding/byte-length (second parts))))
+      (throw
+       (ex-info
+        "Cryptographic provider returned an invalid ciphertext."
+        {:type :eacl.crypto/provider-failure
+         :eacl/error :eacl.crypto/provider-failure
+         :operation :aes-256-gcm-encrypt
+         :reason :invalid-provider-result})))
+    {:ciphertext (first parts)
+     :tag (second parts)}))
+
+(defn aes-256-gcm-decrypt
+  [key-hex nonce-hex ciphertext-hex tag-hex aad-hex]
+  (require-key-and-nonce! :aes-256-gcm-decrypt key-hex nonce-hex)
+  (require-hex! :aes-256-gcm-decrypt :ciphertext
+                ciphertext-hex maximum-input-bytes)
+  (require-hex! :aes-256-gcm-decrypt :tag tag-hex 16)
+  (when-not (= 16 (encoding/byte-length tag-hex))
+    (invalid-input! :aes-256-gcm-decrypt :tag nil :must-be-16-bytes))
+  (require-hex! :aes-256-gcm-decrypt :aad aad-hex maximum-aad-bytes)
+  (let [result
+        (cpp/eacl_jank_crypto.aes_256_gcm_decrypt_hex
+         (cpp/cast std.string key-hex)
+         (cpp/cast std.string nonce-hex)
+         (cpp/cast std.string ciphertext-hex)
+         (cpp/cast std.string tag-hex)
+         (cpp/cast std.string aad-hex))]
+    (if (= "0authentication" result)
+      (throw
+       (ex-info
+        "Authenticated ciphertext verification failed."
+        {:type :eacl.crypto/authentication-failed
+         :eacl/error :eacl.crypto/authentication-failed}))
+      (decode-provider-result :aes-256-gcm-decrypt result))))

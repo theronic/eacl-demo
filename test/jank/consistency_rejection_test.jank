@@ -1,0 +1,12 @@
+(ns eacl-demo.jank-memory.consistency-rejection-test
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]))
+
+(def client (memory/make-client (memory/connect)))
+
+(eacl/check-permission
+ client
+ {:subject (eacl/spice-object :user "user-1")
+  :permission :view
+  :resource (eacl/spice-object :account "account-0")
+  :consistency :unsupported})

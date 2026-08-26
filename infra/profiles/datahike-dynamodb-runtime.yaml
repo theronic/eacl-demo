@@ -1,0 +1,232 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Versioned read-only Datahike/DynamoDB Lambda candidate for one immutable generation.
+
+Metadata:
+  EaclDemo:
+    Profile: datahike-dynamodb
+    Runtime: java25
+    Architecture: arm64
+    SnapshotBehavior: request-snapshot
+    SnapStartPolicy: disabled-until-restore-qualification
+
+Parameters:
+  FunctionName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datahike-dynamodb-[a-z0-9-]{3,36}$"
+  ArtifactBucket:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  ArtifactKey:
+    Type: String
+    AllowedPattern: "^artifacts/datahike-dynamodb/[0-9a-f]{40}/[0-9a-f]{64}\\.jar$"
+  ArtifactVersion:
+    Type: String
+    MinLength: 1
+    MaxLength: 1024
+  ArtifactSha256:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{64}$"
+  DemoSha:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{40}$"
+  EaclSha:
+    Type: String
+    Default: 8dc3b16498788dd822b68e1c4fe25b37a8e8879f
+    AllowedValues:
+      - 8dc3b16498788dd822b68e1c4fe25b37a8e8879f
+  DeploymentId:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+  TableName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datahike-[a-z0-9-]{3,80}$"
+  TableArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datahike-[a-z0-9-]{3,80}$"
+  StoreId:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  CursorKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    MaxLength: 256
+    AllowedPattern: "^[ -~]{32,256}$"
+  StoreCacheSize:
+    Type: Number
+    Default: 1000
+    MinValue: 1
+    MaxValue: 100000
+  SearchCacheSize:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    MaxValue: 100000
+  MemorySize:
+    Type: Number
+    Default: 2048
+    AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
+    Description: Candidate only; publish the smallest passing non-SnapStart sweep result.
+  CandidateAliasName:
+    Type: String
+    Default: candidate
+    AllowedPattern: "^(?![0-9]+$)[A-Za-z0-9_-]{1,128}$"
+
+Rules:
+  TableNameMatchesArn:
+    Assertions:
+      - Assert: !Equals
+          - !Select [1, !Split ["table/", !Ref TableArn]]
+          - !Ref TableName
+        AssertDescription: TableArn must identify exactly TableName.
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${FunctionName}"
+      RetentionInDays: 14
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: exact-generation-read-only
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactGenerationReads
+                Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                Resource: !Ref TableArn
+        - PolicyName: exact-function-log-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactLogGroupWrites
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${FunctionName}:*"
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Access
+          Value: serving-read-only
+
+  Function:
+    Type: AWS::Lambda::Function
+    DependsOn: LogGroup
+    Properties:
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !Ref ArtifactBucket
+        S3Key: !Ref ArtifactKey
+        S3ObjectVersion: !Ref ArtifactVersion
+      Environment:
+        Variables:
+          EACL_ARTIFACT_SHA256: !Ref ArtifactSha256
+          EACL_ATTEMPT_TIMEOUT_MS: "3000"
+          EACL_BASE_DELAY_MS: "25"
+          EACL_CONNECT_TIMEOUT_MS: "1000"
+          EACL_CORE_SHA: !Ref EaclSha
+          EACL_CURSOR_KEY: !Ref CursorKey
+          EACL_DATAHIKE_STORE_ID: !Ref StoreId
+          EACL_DATAHIKE_TABLE: !Ref TableName
+          EACL_DEMO_SHA: !Ref DemoSha
+          EACL_DEPLOYMENT_ID: !Ref DeploymentId
+          EACL_MAX_ATTEMPTS: "4"
+          EACL_MAX_DELAY_MS: "250"
+          EACL_MAXIMUM_CONCURRENCY: "1"
+          EACL_SEARCH_CACHE_SIZE: !Sub "${SearchCacheSize}"
+          EACL_STORE_CACHE_SIZE: !Sub "${StoreCacheSize}"
+      EphemeralStorage:
+        Size: 512
+      FunctionName: !Ref FunctionName
+      Handler: eacl_demo.datahike_dynamodb.LambdaHandler::handleRequest
+      MemorySize: !Ref MemorySize
+      PackageType: Zip
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt ExecutionRole.Arn
+      Runtime: java25
+      SnapStart:
+        ApplyOn: None
+      Timeout: 30
+      TracingConfig:
+        Mode: PassThrough
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: SnapshotBehavior
+          Value: request-snapshot
+        - Key: EaclSha
+          Value: !Ref EaclSha
+        - Key: ArtifactSha256
+          Value: !Ref ArtifactSha256
+
+  CandidateVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      FunctionName: !Ref Function
+
+  CandidateAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      Description: !Sub "candidate ${DeploymentId}"
+      FunctionName: !Ref Function
+      FunctionVersion: !GetAtt CandidateVersion.Version
+      Name: !Ref CandidateAliasName
+
+  CandidateFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: AWS_IAM
+      InvokeMode: BUFFERED
+      Qualifier: !Ref CandidateAliasName
+      TargetFunctionArn: !GetAtt Function.Arn
+
+Outputs:
+  FunctionArn:
+    Value: !GetAtt Function.Arn
+  FunctionName:
+    Value: !Ref Function
+  ExecutionRoleArn:
+    Value: !GetAtt ExecutionRole.Arn
+  CandidateVersion:
+    Value: !GetAtt CandidateVersion.Version
+  CandidateAliasArn:
+    Value: !Ref CandidateAlias
+  CandidateQualifiedName:
+    Value: !Sub "${FunctionName}:${CandidateAliasName}"
+  CandidateFunctionUrl:
+    Value: !GetAtt CandidateFunctionUrl.FunctionUrl
+  Runtime:
+    Value: java25
+  Architecture:
+    Value: arm64
+  SnapStartEnabled:
+    Value: "false"

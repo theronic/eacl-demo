@@ -1,0 +1,142 @@
+(ns eacl-demo.jank-memory.cache-controls-test
+  (:require [eacl.cache.local :as local-cache]
+            [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]
+            [eacl.engine.sealed-plan :as sealed-plan]
+            [eacl-demo.jank-memory.cache-controls-test-support
+             :as cache-controls-test-support]))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(def connection (memory/connect))
+(def client (memory/make-client connection {:cache {:max-entries 64}}))
+
+(eacl/write-schema!
+ client
+ "definition user {}\n\ndefinition platform {\n  relation super_admin: user\n}\n\ndefinition account {\n  relation owner: user\n  relation platform: platform\n  relation parent: account\n  permission admin = owner + parent->admin + platform->super_admin\n  permission view = admin\n}\n")
+
+(memory/transact!
+ connection
+ [{:eacl/id "user-1"}
+  {:eacl/id "account-0"}
+  {:eacl/id "account-1"}])
+
+(eacl/create-relationship!
+ client
+ (eacl/spice-object :user "user-1")
+ :owner
+ (eacl/spice-object :account "account-0"))
+
+(eacl/create-relationship!
+ client
+ (eacl/spice-object :user "user-1")
+ :owner
+ (eacl/spice-object :account "account-1"))
+
+(eacl/write-relationship!
+ client
+ :touch
+ (eacl/spice-object :user "user-1")
+ :owner
+ (eacl/spice-object :account "account-0"))
+
+;; TTL-bearing cursor codecs remain cacheable, but every decode hit is still
+;; passed through the current-time expiry check in the production client.
+(let [query {:resource/type :account :first 1}
+      hits-before
+      (get-in (memory/cache-stats client) [:cursor-codec :hits])
+      first-page (eacl/read-relationships client query)
+      encoded (get-in first-page [:page-info :end-cursor])
+      hits-after-encode
+      (get-in (memory/cache-stats client) [:cursor-codec :hits])]
+  (assert (string? encoded))
+  ;; start and end are the same one-row boundary, so the second issuance uses
+  ;; the exact TTL-bucketed encode entry.
+  (assert (> hits-after-encode hits-before))
+  (eacl/read-relationships client (assoc query :after encoded))
+  (let [hits-before-decode-hit
+        (get-in (memory/cache-stats client) [:cursor-codec :hits])]
+    (eacl/read-relationships client (assoc query :after encoded))
+    (assert
+     (> (get-in (memory/cache-stats client) [:cursor-codec :hits])
+        hits-before-decode-hit))))
+
+(assert (cache-controls-test-support/verify! client))
+
+(doseq [data
+        [(error-data #(local-cache/cache "not-a-keyword" 1))
+         (error-data #(local-cache/cache :answer 0))
+         (error-data
+          #(local-cache/lookup-if!
+            (local-cache/cache :answer 1) :key :not-a-function))]]
+  (assert (= :eacl/invalid-config (:type data)))
+  (assert (= (:type data) (:eacl/error data))))
+
+(assert
+ (:allowed?
+  (eacl/check-permission
+   client
+   {:subject (eacl/spice-object :user "user-1")
+    :permission :view
+    :resource (eacl/spice-object :account "account-0")
+    :cache? false})))
+
+(let [resource (eacl/spice-object :account "account-0")
+      subjects
+      (eacl/lookup-subjects
+       client
+       {:resource resource
+        :permission :admin
+        :subject/type :user
+        :subject/relationship
+        {:relation :owner :resource resource}
+        :first 10
+        :cache? false})
+      count-result
+      (eacl/count-subjects
+       client
+       {:resource resource
+        :permission :admin
+        :subject/type :user
+        :count-limit 10
+        :cache? false})]
+  (assert (= ["user-1"] (mapv :id (:data subjects))))
+  (assert (= 1 (:count count-result))))
+
+(let [subject (eacl/spice-object :user "user-1")
+      query
+      {:subject subject
+       :permission :admin
+       :resource/type :account
+       :first 1
+       :cache? false}
+      first-page (eacl/lookup-resources client query)
+      cursor (get-in first-page [:page-info :end-cursor])
+      second-page (eacl/lookup-resources client (assoc query :after cursor))
+      count-result
+      (eacl/count-resources
+       client
+       {:subject subject
+        :permission :admin
+        :resource/type :account
+        :count-limit 10
+        :cache? false})]
+  (assert (= ["account-0"] (mapv :id (:data first-page))))
+  (assert (= ["account-1"] (mapv :id (:data second-page))))
+  (assert (= 2 (:count count-result))))
+
+(let [plan
+      {:rules
+       [{:relation-eid 3}
+        {:via-relation-eid 1 :target-relation-eid 2}
+        {:relation-eid 3}] }]
+  (assert (= [1 2 3] (sealed-plan/relation-ids plan)))
+  (assert (= plan (sealed-plan/certify-plan-read-scope! plan [1 2 3 4]))))
+
+(println :jank-cache-controls-pass)

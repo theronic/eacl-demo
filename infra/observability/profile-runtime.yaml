@@ -1,0 +1,198 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Per-profile EACL demo runtime alarms over bounded EMF metrics.
+
+Parameters:
+  ProfileId:
+    Type: String
+    AllowedPattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+  FunctionName:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9-_]{1,64}$"
+  AlarmTopicArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:sns:[a-z0-9-]+:[0-9]{12}:eacl-demo-alarms$"
+  MaximumP95DurationMs:
+    Type: Number
+    Default: 25000
+    MinValue: 1000
+    MaxValue: 29000
+  ErrorCountThreshold:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    MaxValue: 1000
+  ThrottleCountThreshold:
+    Type: Number
+    Default: 3
+    MinValue: 1
+    MaxValue: 1000
+  TimeoutCountThreshold:
+    Type: Number
+    Default: 3
+    MinValue: 1
+    MaxValue: 1000
+
+Resources:
+  DurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Sustained profile request p95 approaches the bounded Lambda timeout.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-duration"
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 2
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+      EvaluationPeriods: 3
+      ExtendedStatistic: p95
+      MetricName: Duration
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Threshold: !Ref MaximumP95DurationMs
+      TreatMissingData: notBreaching
+
+  ErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Sustained bounded application errors for the exact profile function.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-errors"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 2
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+      EvaluationPeriods: 3
+      MetricName: Errors
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: !Ref ErrorCountThreshold
+      TreatMissingData: notBreaching
+
+  HealthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: A canonical health request failed for the exact profile function.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-health"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+        - Name: AlarmClass
+          Value: health
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  InitializationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: A cold runtime initialization failed for the exact profile function.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-initialization"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+        - Name: AlarmClass
+          Value: initialization
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  OomAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: The exact profile function observed an out-of-memory failure.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-oom"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+      EvaluationPeriods: 1
+      MetricName: OOM
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Sustained typed dependency throttling for the exact profile function.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-throttles"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 2
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+      EvaluationPeriods: 3
+      MetricName: Throttles
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: !Ref ThrottleCountThreshold
+      TreatMissingData: notBreaching
+
+  TimeoutsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Sustained typed deadline or timeout failures for the exact profile function.
+      AlarmName: !Sub "eacl-demo-${ProfileId}-timeouts"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 2
+      Dimensions:
+        - Name: ProfileId
+          Value: !Ref ProfileId
+        - Name: FunctionName
+          Value: !Ref FunctionName
+      EvaluationPeriods: 3
+      MetricName: Timeouts
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: !Ref TimeoutCountThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  DurationAlarmName:
+    Value: !Ref DurationAlarm
+  ErrorsAlarmName:
+    Value: !Ref ErrorsAlarm
+  HealthAlarmName:
+    Value: !Ref HealthAlarm
+  InitializationAlarmName:
+    Value: !Ref InitializationAlarm
+  OomAlarmName:
+    Value: !Ref OomAlarm
+  ThrottlesAlarmName:
+    Value: !Ref ThrottlesAlarm
+  TimeoutsAlarmName:
+    Value: !Ref TimeoutsAlarm

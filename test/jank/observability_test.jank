@@ -1,0 +1,134 @@
+(ns eacl-demo.jank-memory.observability-test
+  (:require [clojure.string :as str]
+            [eacl-demo.jank-memory.observability :as observability]
+            [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def context
+  {:profile-id "jank-memory"
+   :function-name "eacl-demo-jank-memory-live"
+   :deployment-id "deploy-7"})
+
+(defn capture
+  [run]
+  (let [lines (atom [])]
+    (binding [observability/*clock-ms* (fn [] 1787702400000)
+              observability/*monotonic-nanos* (fn [] 2500000000)
+              observability/*emit-line!* (fn [line] (swap! lines conj line))]
+      (run))
+    (mapv runtime-api/parse-json @lines)))
+
+(let [result
+      {"statusCode" 200
+       "body"
+       (response/json-encode
+        {"ok" true
+         "meta" {"operation" "authorize" "requestId" "request-1"}
+         "data" {"secret" "must-never-appear"}})}
+      records
+      (capture
+       (fn []
+         (observability/observe-response!
+          context result 2000000000)))
+      record (first records)]
+  (assert (= 1 (count records)))
+  (assert (= observability/record-schema (get record "schema")))
+  (assert (= observability/metric-namespace
+             (get-in record ["_aws" "CloudWatchMetrics" 0 "Namespace"])))
+  (assert (= [["ProfileId" "FunctionName"]]
+             (get-in record ["_aws" "CloudWatchMetrics" 0 "Dimensions"])))
+  (assert (= "authorize" (get record "operation")))
+  (assert (= 500 (get record "Duration")))
+  (assert (= 0 (get record "Errors")))
+  (assert (not (str/includes? (response/json-encode records)
+                              "must-never-appear"))))
+
+(let [result
+      {"statusCode" 504
+       "body"
+       (response/json-encode
+        {"ok" false
+         "meta" {"operation" "health" "requestId" "request-2"}
+         "error" {"code" "deadline-exceeded"
+                  "message" "password=must-never-appear"}})}
+      records
+      (capture
+       (fn []
+         (observability/observe-response!
+          context result 2000000000)))
+      request (first records)
+      alarm (second records)]
+  (assert (= 2 (count records)))
+  (assert (= 1 (get request "Errors")))
+  (assert (= 1 (get request "Timeouts")))
+  (assert (= "deadline-exceeded" (get request "errorCode")))
+  (assert (= "health" (get alarm "AlarmClass")))
+  (assert (= [["ProfileId" "FunctionName" "AlarmClass"]]
+             (get-in alarm ["_aws" "CloudWatchMetrics" 0 "Dimensions"])))
+  (assert (not (str/includes? (response/json-encode records)
+                              "must-never-appear"))))
+
+(let [records
+      (capture
+       (fn []
+         (assert
+          (= :ready
+             (observability/initialize-with-telemetry!
+              context (fn [] :ready))))))
+      record (first records)]
+  (assert (= 1 (get record "Initialization")))
+  (assert (= 0 (get record "Restore")))
+  (assert (= 0 (get record "Errors"))))
+
+(let [problem
+      (ex-info "password=must-never-appear"
+               {:type :std/bad-alloc :secret "must-never-appear"})
+      caught (atom nil)
+      records
+      (capture
+       (fn []
+         (try
+           (observability/initialize-with-telemetry!
+            context (fn [] (throw problem)))
+           (catch cpp/jank.runtime.object_ref error
+             (reset! caught error)))))
+      initialization (first records)
+      alarm (second records)]
+  (assert (= problem @caught))
+  (assert (= 2 (count records)))
+  (assert (= "failure" (get initialization "outcome")))
+  (assert (= 1 (get initialization "OOM")))
+  (assert (= "initialization" (get alarm "AlarmClass")))
+  (assert (not (str/includes? (response/json-encode records)
+                              "must-never-appear"))))
+
+(let [problem
+      (ex-info "token=must-never-appear"
+               {:type :std/bad-alloc :secret "must-never-appear"})
+      event
+      {"rawPath" "/api/v1/jank-memory/health"
+       "requestContext" {"requestId" "request-3"}
+       "body" "must-never-appear"}
+      records
+      (capture
+       (fn []
+         (observability/observe-exception!
+          context event 2000000000 problem)))
+      request (first records)]
+  (assert (= 2 (count records)))
+  (assert (= "internal-error" (get request "errorCode")))
+  (assert (= 1 (get request "OOM")))
+  (assert (= "health" (get (second records) "AlarmClass")))
+  (assert (not (str/includes? (response/json-encode records)
+                              "must-never-appear"))))
+
+(binding [observability/*emit-line!*
+          (fn [_]
+            (throw
+             (ex-info "telemetry-secret" {:type :telemetry/failure})))]
+  (assert
+   (= :ready
+      (observability/initialize-with-telemetry!
+       context (fn [] :ready)))))
+
+(println :jank-observability-pass)

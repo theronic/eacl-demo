@@ -60,8 +60,30 @@ S3 and DynamoDB SHALL be benchmarked through the same deployed Datahike API with
 - **WHEN** storage, runtime, fixture, region, or benchmark method changes
 - **THEN** the prior winner SHALL lose its fastest evidence until rerun, while the last qualified deterministic default remains selected without a speed claim
 
+### Requirement: Comparable S3 data requires a separately authorized blue-green generation
+The adopted S3 store SHALL retain its honest legacy data identity and MUST NOT
+be assigned the canonical fixture digest. Before S3 can participate in the
+same-fixture DynamoDB benchmark, a distinct versioned SSE-S3 store generation
+SHALL be seeded from the canonical one-million-resource fixture, verified, and
+published through an explicit stateful workflow with a forecast, bounded
+scope, separate maintenance identity, and no in-place mutation. The user's
+existing DynamoDB seed authorization SHALL NOT be interpreted as authorization
+for this additional S3 generation or its spend.
+
+#### Scenario: DynamoDB is qualified before canonical S3 publication is authorized
+- **WHEN** the only S3 profile uses the adopted noncanonical dataset
+- **THEN** both profiles MAY remain independently usable, but the registry SHALL use its deterministic qualified fallback with no fastest claim and SHALL NOT run or publish comparable benchmark evidence
+
 ### Requirement: Runtime size is measured per storage profile
-Each Datahike Lambda SHALL use the lowest tested memory that passes initialization, cold/restore/warm workload thresholds, zero correctness failures, and at least 20% peak-memory headroom. One storage profile's memory SHALL not be copied without evidence.
+Each Datahike Lambda's lowest passing memory SHALL be established independently
+against initialization, cold/restore/warm workload thresholds, zero correctness
+failures, and at least 20% peak-memory headroom. One storage profile's minimum
+MUST NOT be copied as qualification evidence for the other. While a comparable
+speed claim is active, both profiles SHALL run the smallest common memory that
+passes both independent gates (the larger of the two minima) and the same
+qualified SnapStart state. The initial comparison SHALL use SnapStart disabled;
+switching both profiles to qualified SnapStart is a material change that expires
+and reruns the evidence.
 
 #### Scenario: Smaller memory boots but violates latency
 - **WHEN** a candidate starts but fails representative latency/error/headroom limits

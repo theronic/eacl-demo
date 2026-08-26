@@ -1,0 +1,48 @@
+(ns eacl-demo.fixture-golden-jank
+  (:require [clojure.string :as str]))
+
+(defn parse-golden [source]
+  (reduce
+   (fn [result line]
+     (if (or (str/blank? line) (str/starts-with? line "#"))
+       result
+       (let [separator (str/index-of line "\t")]
+         (assoc result (subs line 0 separator) (subs line (inc separator))))))
+   {}
+   (str/split-lines source)))
+
+(defn mix64 [value]
+  (let [mixed (*
+               (bit-xor value (unsigned-bit-shift-right value 30))
+               -4658895280553007687)
+        mixed (*
+               (bit-xor mixed (unsigned-bit-shift-right mixed 27))
+               -7723592293110705685)]
+    (bit-xor mixed (unsigned-bit-shift-right mixed 31))))
+
+(defn sample64 [account stream]
+  (mix64
+   (+
+    (+ 20260813 (* account 104729))
+    (* stream -7046029254386353131))))
+
+(defn check [actual expected label]
+  (when-not (= actual expected)
+    (throw (ex-info (str "Jank fixture golden mismatch: " label)
+                    {:actual actual :expected expected}))))
+
+(let [golden (parse-golden (slurp "fixtures/golden/fixture-v1.tsv"))]
+  (check (str (sample64 8 0)) (get golden "sample.account-8.stream-0.signed") "stream 0")
+  (check (str (sample64 8 1)) (get golden "sample.account-8.stream-1.signed") "stream 1")
+  (check (str "account-" 4) (get golden "id.account-4") "account ID")
+  (check (str "account-" 4 "-team-" 3 "-leader") (get golden "id.account-4.team-3.leader") "leader ID")
+  (check (str "account-" 4 "-server-" 15) (get golden "id.account-4.server-15") "server ID")
+  (check "6" (get golden "schema.definitions") "schema definitions")
+  (check "14" (get golden "exemplars.cases") "exemplar count")
+  (check "10000" (get golden "small.resources") "small resource count")
+  (check "38613" (get golden "small.relationships") "small relationship count")
+  (check "sha256:ec47ae57973bc7e9c580709410e530a7ac64acd24c01f9e3161489e8ebd58dfd"
+         (get golden "small.fixture.digest") "small fixture digest")
+  (check "sha256:102bb7c51779bb66ab343dabff42019af95f99bded708e214b13fd56ab3bf33c"
+         (get golden "large.fixture.digest") "large fixture digest")
+  (println "jank-fixture-golden\tPASS"))

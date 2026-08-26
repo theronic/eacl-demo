@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/contract-compatibility.v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["$schema", "schema", "contract", "routeMajor", "currentRevision", "minimumCompatibleProfileRevision", "compatibilityWindow", "incompatibleChangeRequiresNewRouteMajor"],
+  "properties": {
+    "$schema": {"const": "../../schemas/contract-compatibility.v1.schema.json"},
+    "schema": {"const": "eacl-demo.contract-compatibility.v1"},
+    "contract": {"const": "explorer.v1"},
+    "routeMajor": {"const": 1},
+    "currentRevision": {"const": 1},
+    "minimumCompatibleProfileRevision": {"const": 0},
+    "compatibilityWindow": {"const": 2},
+    "incompatibleChangeRequiresNewRouteMajor": {"const": true}
+  }
+}

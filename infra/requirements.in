@@ -1,0 +1,2 @@
+cfn-lint==1.55.1
+check-jsonschema==0.38.0

@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/native-lock.v1.schema.json",
+  "schemaVersion": 1,
+  "development": {
+    "platform": "arm64-apple-darwin25.4.0",
+    "jankExecutableSha256": "4b1fc9bedbc36d13e680b4100133c121072289134d1533c7daa1bbaedae26a49",
+    "distributionRevision": "434f0e7bac39b1de82d664e5ddb0f7dc6b41a330",
+    "leinJank": "2026.07-3",
+    "leinJankJarSha256": "7f494cbd886e6de6289bbbcd2b708aa696a1c07865e1a01c1a895e0003375640",
+    "compiler": "jank-bundled-clang-23",
+    "cxxStandard": 20
+  },
+  "lambda": {
+    "platform": "x86_64-unknown-linux-gnu-amazonlinux2023",
+    "status": "builder-pinned-unqualified",
+    "ownerTask": "11.1",
+    "forbidDevelopmentFallback": true,
+    "builderDefinition": "dependencies/jank-linux-x86_64-builder.v1.json",
+    "jankCommit": "489760dc927cd22900a4ab150dbab947ec25ad00",
+    "baseImageDigest": "sha256:26b860d6ace0e868b1dd786be29b2a6b32a213b72f43074043090512871e9532",
+    "reason": "The exact AL2023 amd64 builder source is pinned but its built image and Lambda artifact have not yet passed qualification."
+  }
+}

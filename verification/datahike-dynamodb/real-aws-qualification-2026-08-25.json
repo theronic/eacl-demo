@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "profileId": "datahike-dynamodb",
+  "environment": "disposable-real-aws",
+  "accountId": "843761893873",
+  "region": "us-east-1",
+  "startedAt": "2026-08-25T14:13:11Z",
+  "cleanupVerifiedAt": "2026-08-25T14:33:12Z",
+  "source": {
+    "test": {
+      "path": "test/eacl_demo/datahike_dynamodb_real_aws_test.clj",
+      "sha256": "eeaa1dffa8c43e6d9c379b5dcdb563bd0b704ac5e98280858908010b3ff52d10"
+    },
+    "qualificationTemplate": {
+      "path": "infra/data/datahike-dynamodb-qualification.yaml",
+      "sha256": "7db820593b059f1132b4053a22eba27513c9fe1334258997bb5a2c4242f255e0"
+    },
+    "costControlTemplate": {
+      "path": "infra/data/dynamodb-cost-controls.yaml",
+      "sha256": "7801ca5b5d964635f2d187f9f0c9adfa61a87d9141365e22778e500817140fe9"
+    },
+    "iamProbeArtifactSha256": "8cdc1b329d4ec306d84b128bd4c6c9c16491b261f52882e0dbfb2723d01eed5c"
+  },
+  "preconditions": {
+    "telegramSyntheticMessageId": "64e11474-db54-5d27-a239-77737fb34773",
+    "telegramSyntheticNonce": "79DC163B-A7C6-4AD8-9F91-C5F4F3248334",
+    "notifierAcceptedSynthetic": true,
+    "alarmStackCreatedBeforeTable": true,
+    "initialMaxReadRequestUnitsPerSecond": 250,
+    "initialMaxWriteRequestUnitsPerSecond": 200
+  },
+  "results": {
+    "normalReadSuite": {
+      "tests": 2,
+      "assertions": 10,
+      "failures": 0,
+      "errors": 0
+    },
+    "throttleSuite": {
+      "tests": 2,
+      "assertions": 3,
+      "failures": 0,
+      "errors": 0,
+      "maxReadRequestUnitsPerSecond": 1,
+      "cloudWatchReadThrottleEvents": 3282
+    },
+    "covered": [
+      "immediate strongly consistent publication read",
+      "successful empty response as genuine absence",
+      "corrupt physical item classification",
+      "controlled unprocessed-key retry over real AWS BatchGetItem responses",
+      "read-only Konserve backing over the real table",
+      "pre-dependency cancellation and deadline rejection",
+      "480 concurrent-path strongly consistent equality checks",
+      "real maximum-on-demand-throughput throttling",
+      "exact-table serving read allowed",
+      "serving write denied",
+      "zero-permission read denied",
+      "cross-table read denied"
+    ],
+    "iamDataPlaneProbes": [
+      {"role": "exact-table-reader", "operation": "get", "allowed": true},
+      {"role": "exact-table-reader", "operation": "put", "allowed": false, "errorCode": "AccessDeniedException"},
+      {"role": "zero-permission", "operation": "get", "allowed": false, "errorCode": "AccessDeniedException"},
+      {"role": "exact-table-reader", "operation": "cross-table-get", "allowed": false, "errorCode": "AccessDeniedException"}
+    ],
+    "alarms": {
+      "readUtilization70ReachedAlarm": true,
+      "readUtilization90ReachedAlarm": true,
+      "readThrottleReachedAlarm": true,
+      "allActionsTargetedCanonicalTopic": true,
+      "telegramDeliveriesLogged": true,
+      "notifierErrors": 0
+    }
+  },
+  "truthfulLimitations": [
+    "The unprocessed-key branch was deterministically injected at the SDK response boundary after a real AWS BatchGetItem call because DynamoDB does not provide a deterministic API for forcing UnprocessedKeys.",
+    "The local AWS CLI login_session profile is not understood by AWS SDK 2.29.3; the test used the CLI-managed materialized session profile. Lambda serving uses its execution-role provider and does not use either local profile.",
+    "DynamoDB maximum on-demand throughput is a best-effort safety target and not a guaranteed billing ceiling.",
+    "This qualified the hardened storage path, not the million-resource production fixture, packaged Lambda runtime, or public profile."
+  ],
+  "cleanup": {
+    "qualificationStackDeleted": true,
+    "qualificationAlarmStackDeleted": true,
+    "tableAbsent": true,
+    "qualificationLambdasAbsent": true,
+    "qualificationRolesAbsent": true,
+    "qualificationAlarmsAbsent": true,
+    "qualificationArtifactVersionDeleted": true,
+    "eaclDemoEc2Instances": 0,
+    "eaclDemoDynamoDbTables": 0
+  }
+}

@@ -1,0 +1,294 @@
+(ns eacl-demo.jank-memory.observability
+  "Closed, redacted CloudWatch EMF telemetry for the Jank custom runtime."
+  (:require [clojure.string :as str]
+            [eacl.runtime.native.clock :as clock]
+            [eacl.runtime.native.encoding :as encoding]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def metric-namespace "EaclDemo/Runtime")
+(def record-schema "eacl-demo.runtime-telemetry.v1")
+(def maximum-record-bytes 8192)
+
+(def stable-error-codes
+  #{"validation-error" "request-too-large" "method-not-allowed"
+    "route-not-found" "unsupported-media-type" "cursor-invalid"
+    "cursor-expired" "cursor-scope-mismatch" "unsupported-consistency"
+    "cancelled" "deadline-exceeded" "overloaded" "throttled"
+    "dependency-unavailable" "storage-missing" "storage-corrupt"
+    "identity-mismatch" "response-too-large" "internal-error"})
+
+(def storage-error-codes
+  #{"throttled" "dependency-unavailable" "storage-missing" "storage-corrupt"})
+
+(def fault-codes
+  #{"deadline-exceeded" "overloaded" "throttled" "dependency-unavailable"
+    "storage-missing" "storage-corrupt" "response-too-large" "internal-error"})
+
+(def ^:dynamic *clock-ms* clock/unix-time-millis)
+(def ^:dynamic *monotonic-nanos* clock/monotonic-nanos)
+(def ^:dynamic *emit-line!* println)
+
+(declare alarm-record attempt-telemetry! duration-ms emit-record!
+         environment-value exception-error-code metric-envelope
+         operation-from-event out-of-memory? safe-value)
+
+(defn runtime-context
+  [profile-id]
+  {:profile-id
+   (safe-value profile-id #"[a-z0-9]+(?:-[a-z0-9]+)*" "invalid")
+   :function-name
+   (safe-value (environment-value "AWS_LAMBDA_FUNCTION_NAME")
+               #"[A-Za-z0-9-_]{1,64}" "local")
+   :deployment-id
+   (safe-value (environment-value "EACL_DEPLOYMENT_ID")
+               #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}" "invalid")})
+
+(defn initialize-with-telemetry!
+  [context initialize!]
+  (let [started (*monotonic-nanos*)]
+    (try
+      (let [result (initialize!)]
+        (attempt-telemetry!
+         (fn []
+           (emit-record!
+            (merge
+             (metric-envelope
+              context
+              [{"Name" "Initialization" "Unit" "Count"}
+               {"Name" "Restore" "Unit" "Count"}
+               {"Name" "Errors" "Unit" "Count"}
+               {"Name" "OOM" "Unit" "Count"}])
+             {"eventType" "runtime-initialization"
+              "lifecycle" "cold"
+              "outcome" "success"
+              "errorCode" nil
+              "durationMs" (duration-ms started)
+              "Initialization" 1
+              "Restore" 0
+              "Errors" 0
+              "OOM" 0}))))
+        result)
+      (catch cpp/jank.runtime.object_ref error
+        (attempt-telemetry!
+         (fn []
+           (let [oom (if (out-of-memory? error) 1 0)]
+             (emit-record!
+              (merge
+               (metric-envelope
+                context
+                [{"Name" "Initialization" "Unit" "Count"}
+                 {"Name" "Restore" "Unit" "Count"}
+                 {"Name" "Errors" "Unit" "Count"}
+                 {"Name" "OOM" "Unit" "Count"}])
+               {"eventType" "runtime-initialization"
+                "lifecycle" "cold"
+                "outcome" "failure"
+                "errorCode" "internal-error"
+                "durationMs" (duration-ms started)
+                "Initialization" 1
+                "Restore" 0
+                "Errors" 1
+                "OOM" oom}))
+             (emit-record! (alarm-record context "initialization")))))
+        (throw error)))))
+
+(defn observe-response!
+  [context result started]
+  (attempt-telemetry!
+   (fn []
+     (let [body (runtime-api/parse-json (get result "body"))
+           ok (= true (get body "ok"))
+           operation
+           (safe-value (get-in body ["meta" "operation"])
+                       dispatcher/operation-set "unknown")
+           request-id
+           (safe-value (get-in body ["meta" "requestId"])
+                       #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}" "invalid")
+           error-code
+           (when-not ok
+             (safe-value (get-in body ["error" "code"])
+                         stable-error-codes "internal-error"))
+           status (get result "statusCode")
+           status-code (if (and (integer? status) (<= 100 status 599))
+                         status 500)
+           elapsed (duration-ms started)]
+       (emit-record!
+        (merge
+         (metric-envelope
+          context
+          [{"Name" "Requests" "Unit" "Count"}
+           {"Name" "Errors" "Unit" "Count"}
+           {"Name" "Duration" "Unit" "Milliseconds"}
+           {"Name" "Throttles" "Unit" "Count"}
+           {"Name" "Timeouts" "Unit" "Count"}
+           {"Name" "OOM" "Unit" "Count"}
+           {"Name" "Storage" "Unit" "Count"}])
+         {"eventType" "runtime-request"
+          "outcome" (if ok (str "success") (str "failure"))
+          "requestId" request-id
+          "operation" operation
+          "errorCode" error-code
+          "statusCode" status-code
+          "fault" (if (contains? fault-codes error-code) 1 0)
+          "durationMs" elapsed
+          "Requests" 1
+          "Errors" (if ok 0 1)
+          "Duration" elapsed
+          "Throttles" (if (= "throttled" error-code) 1 0)
+          "Timeouts" (if (= "deadline-exceeded" error-code) 1 0)
+          "OOM" 0
+          "Storage" (if (contains? storage-error-codes error-code) 1 0)}))
+       (when (and (not ok) (= "health" operation))
+         (emit-record! (alarm-record context "health")))))))
+
+(defn observe-exception!
+  [context event started error]
+  (attempt-telemetry!
+   (fn []
+     (let [candidate (exception-error-code error)
+           error-code (safe-value candidate stable-error-codes "internal-error")
+           operation (operation-from-event context event)
+           request-id
+           (safe-value (get-in event ["requestContext" "requestId"])
+                       #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}" "invalid")
+           elapsed (duration-ms started)]
+       (emit-record!
+        (merge
+         (metric-envelope
+          context
+          [{"Name" "Requests" "Unit" "Count"}
+           {"Name" "Errors" "Unit" "Count"}
+           {"Name" "Duration" "Unit" "Milliseconds"}
+           {"Name" "Throttles" "Unit" "Count"}
+           {"Name" "Timeouts" "Unit" "Count"}
+           {"Name" "OOM" "Unit" "Count"}
+           {"Name" "Storage" "Unit" "Count"}])
+         {"eventType" "runtime-request"
+          "outcome" "failure"
+          "requestId" request-id
+          "operation" operation
+          "errorCode" error-code
+          "statusCode" 500
+          "fault" 1
+          "durationMs" elapsed
+          "Requests" 1
+          "Errors" 1
+          "Duration" elapsed
+          "Throttles" (if (= "throttled" error-code) 1 0)
+          "Timeouts" (if (= "deadline-exceeded" error-code) 1 0)
+          "OOM" (if (out-of-memory? error) 1 0)
+          "Storage" (if (contains? storage-error-codes error-code) 1 0)}))
+       (when (= "health" operation)
+         (emit-record! (alarm-record context "health")))))))
+
+(defn- metric-envelope
+  [context metrics]
+  {"_aws"
+   {"Timestamp" (*clock-ms*)
+    "CloudWatchMetrics"
+    [{"Namespace" metric-namespace
+      "Dimensions" [["ProfileId" "FunctionName"]]
+      "Metrics" metrics}]}
+   "schema" record-schema
+   "ProfileId" (:profile-id context)
+   "FunctionName" (:function-name context)
+   "deploymentId" (:deployment-id context)})
+
+(defn- alarm-record
+  [context alarm-class]
+  {"_aws"
+   {"Timestamp" (*clock-ms*)
+    "CloudWatchMetrics"
+    [{"Namespace" metric-namespace
+      "Dimensions" [["ProfileId" "FunctionName" "AlarmClass"]]
+      "Metrics" [{"Name" "Errors" "Unit" "Count"}]}]}
+   "schema" record-schema
+   "eventType" "runtime-alarm-signal"
+   "outcome" "failure"
+   "ProfileId" (:profile-id context)
+   "FunctionName" (:function-name context)
+   "deploymentId" (:deployment-id context)
+   "AlarmClass" alarm-class
+   "Errors" 1})
+
+(defn- operation-from-event
+  [context event]
+  (let [path (get event "rawPath")
+        prefix (str "/api/v1/" (:profile-id context) "/")]
+    (if (and (string? path) (str/starts-with? path prefix))
+      (safe-value (subs path (count prefix))
+                  dispatcher/operation-set "unknown")
+      "unknown")))
+
+(defn- out-of-memory?
+  [error]
+  (contains? #{:eacl-demo.jank/out-of-memory :std/bad-alloc}
+             (:type (ex-data error))))
+
+(defn- exception-error-code
+  [error]
+  (let [data (ex-data error)
+        code (:code data)
+        type (:type data)
+        reason (:reason data)]
+    (cond
+      (contains? stable-error-codes code) code
+      (= :eacl.execution/cancelled type) "cancelled"
+      (= :eacl.execution/deadline-exceeded type) "deadline-exceeded"
+      (and (= :eacl.pagination/invalid-cursor type)
+           (= :expired reason))
+      "cursor-expired"
+      (and (= :eacl.pagination/invalid-cursor type)
+           (contains? #{:cursor-query-mismatch :cursor-snapshot-mismatch}
+                      reason))
+      "cursor-scope-mismatch"
+      (= :eacl.pagination/invalid-cursor type) "cursor-invalid"
+      (contains? #{:eacl/invalid-request
+                   :eacl.filters/invalid-authorization-clause
+                   :eacl.pagination/invalid-page-request
+                   :eacl/unknown-definition
+                   :eacl/unknown-relation-or-permission}
+                 type)
+      "validation-error"
+      (= :eacl/unsupported-feature type) "unsupported-consistency"
+      (= :eacl.execution/resource-limit-exceeded type) "overloaded"
+      :else "internal-error")))
+
+(defn- duration-ms
+  [started]
+  (quot (max 0 (- (*monotonic-nanos*) started)) 1000000))
+
+(defn- environment-value
+  [name]
+  (try
+    (runtime-api/environment name)
+    (catch cpp/jank.runtime.object_ref _ nil)))
+
+(defn- safe-value
+  [value accepted fallback]
+  (if (and (string? value)
+           (if (set? accepted)
+             (contains? accepted value)
+             (boolean (re-matches accepted value))))
+    value
+    fallback))
+
+(defn- byte-length
+  [value]
+  (encoding/byte-length (encoding/utf8->hex value)))
+
+(defn- emit-record!
+  [record]
+  (try
+    (let [line (response/json-encode record)]
+      (when (<= (byte-length line) maximum-record-bytes)
+        (*emit-line!* line)))
+    (catch cpp/jank.runtime.object_ref _ nil)))
+
+(defn- attempt-telemetry!
+  [emit!]
+  (try
+    (emit!)
+    (catch cpp/jank.runtime.object_ref _ nil)))

@@ -1,0 +1,209 @@
+name: Exercise one profile migration or rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      exercise:
+        description: Transition direction to rehearse on the dedicated exercise alias
+        required: true
+        type: choice
+        options:
+          - migration
+          - rollback
+      profile_id:
+        description: Exact registered server profile ID
+        required: true
+        type: string
+      base_url:
+        description: Staged CloudFront URL routed to the dedicated exercise alias
+        required: true
+        type: string
+      function_name:
+        description: Exact Lambda function name
+        required: true
+        type: string
+      from_version:
+        description: Exact numeric version currently on the exercise alias
+        required: true
+        type: string
+      target_version:
+        description: Exact numeric version to exercise
+        required: true
+        type: string
+      from_revision_id:
+        description: Exact current exercise-alias RevisionId
+        required: true
+        type: string
+      from_identity_json:
+        description: Closed six-field deployment identity for from_version
+        required: true
+        type: string
+      target_identity_json:
+        description: Closed six-field deployment identity for target_version
+        required: true
+        type: string
+      confirmation:
+        description: EXERCISE:<exercise>:<profile>:<function>:exercise:<from>-><target>
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  transition:
+    if: github.ref == 'refs/heads/demos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-manual-transition
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      EXPECTED_STAGED_ORIGIN: ${{ vars.STAGED_CLOUDFRONT_ORIGIN }}
+      PROFILE_ID: ${{ inputs.profile_id }}
+      BASE_URL: ${{ inputs.base_url }}
+      FUNCTION_NAME: ${{ inputs.function_name }}
+      ALIAS_NAME: exercise
+      FROM_VERSION: ${{ inputs.from_version }}
+      TARGET_VERSION: ${{ inputs.target_version }}
+      FROM_REVISION_ID: ${{ inputs.from_revision_id }}
+      FROM_IDENTITY_JSON: ${{ inputs.from_identity_json }}
+      TARGET_IDENTITY_JSON: ${{ inputs.target_identity_json }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      EXERCISE_KIND: ${{ inputs.exercise }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: exercise-profile-transition
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: transition
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-exercise-profile-transition-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.AWS_TRANSITION_EXERCISE_ROLE_ARN }}
+          role-session-name: eacl-demo-transition-${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Validate immutable request and exact AWS account
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == "$AWS_ACCOUNT_ID" ]]
+          [[ "$PROFILE_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]
+          [[ "$FUNCTION_NAME" =~ ^[A-Za-z0-9_-]{1,64}$ ]]
+          [[ "$FROM_VERSION" =~ ^[1-9][0-9]*$ && "$TARGET_VERSION" =~ ^[1-9][0-9]*$ && "$FROM_VERSION" != "$TARGET_VERSION" ]]
+          [[ "$FROM_REVISION_ID" =~ ^[A-Za-z0-9-]{1,128}$ ]]
+          node -e '
+            const [kind, from, target] = process.argv.slice(1);
+            const valid = kind === "migration" ? BigInt(target) > BigInt(from) : kind === "rollback" && BigInt(target) < BigInt(from);
+            if (!valid) process.exit(1);
+          ' "$EXERCISE_KIND" "$FROM_VERSION" "$TARGET_VERSION"
+          expected="EXERCISE:${EXERCISE_KIND}:${PROFILE_ID}:${FUNCTION_NAME}:${ALIAS_NAME}:${FROM_VERSION}->${TARGET_VERSION}"
+          [[ "$CONFIRMATION" == "$expected" ]]
+      - name: Require exact starting alias and prove its staged identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda get-alias --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" --output json > "$RUNNER_TEMP/from-alias.json"
+          node -e '
+            const fs=require("node:fs"); const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            if(value.Name!==process.argv[2] || value.FunctionVersion!==process.argv[3] || value.RevisionId!==process.argv[4] || !value.AliasArn?.endsWith(`:function:${process.argv[5]}:${process.argv[2]}`)) process.exit(1);
+          ' "$RUNNER_TEMP/from-alias.json" "$ALIAS_NAME" "$FROM_VERSION" "$FROM_REVISION_ID" "$FUNCTION_NAME"
+          function_arn="$(node -e '
+            const value=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8"));
+            process.stdout.write(value.AliasArn.slice(0,-(`:${value.Name}`.length)));
+          ' "$RUNNER_TEMP/from-alias.json")"
+          aws lambda list-tags --resource "$function_arn" --output json > "$RUNNER_TEMP/function-tags.json"
+          node -e '
+            const value=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8"));
+            if(value.Tags?.Project!=="eacl-demo" || value.Tags?.Profile!==process.argv[2]) process.exit(1);
+          ' "$RUNNER_TEMP/function-tags.json" "$PROFILE_ID"
+          EACL_PROFILE_ID="$PROFILE_ID" EACL_TRANSITION_PHASE=restore EACL_TRANSITION_BASE_URL="$BASE_URL" EACL_EXPECTED_STAGED_ORIGIN="$EXPECTED_STAGED_ORIGIN" \
+            EACL_TRANSITION_IDENTITY_JSON="$FROM_IDENTITY_JSON" \
+            EACL_TRANSITION_OUTPUT="verification/results/${PROFILE_ID}-${EXERCISE_KIND}-before-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json" \
+            node scripts/run-transition-smoke.mjs
+      - name: Move only the dedicated exercise alias with optimistic precondition
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda update-alias --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" \
+            --function-version "$TARGET_VERSION" --revision-id "$FROM_REVISION_ID" --output json > "$RUNNER_TEMP/target-alias.json"
+          node -e '
+            const fs=require("node:fs"); const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            if(value.Name!==process.argv[2] || value.FunctionVersion!==process.argv[3] || !/^[A-Za-z0-9-]{1,128}$/.test(value.RevisionId)) process.exit(1);
+          ' "$RUNNER_TEMP/target-alias.json" "$ALIAS_NAME" "$TARGET_VERSION"
+      - name: Prove target identity and bounded semantics through staged CloudFront
+        shell: bash
+        run: |
+          set -euo pipefail
+          passed=false
+          for attempt in {1..12}; do
+            if EACL_PROFILE_ID="$PROFILE_ID" EACL_TRANSITION_PHASE=target EACL_TRANSITION_BASE_URL="$BASE_URL" EACL_EXPECTED_STAGED_ORIGIN="$EXPECTED_STAGED_ORIGIN" \
+              EACL_TRANSITION_IDENTITY_JSON="$TARGET_IDENTITY_JSON" \
+              EACL_TRANSITION_OUTPUT="verification/results/${PROFILE_ID}-${EXERCISE_KIND}-target-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json" \
+              node scripts/run-transition-smoke.mjs; then
+              passed=true
+              break
+            fi
+            [[ "$attempt" -lt 12 ]]
+            sleep 5
+          done
+          [[ "$passed" == true ]]
+      - name: Restore only the exact exercise alias state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda get-alias --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" --output json > "$RUNNER_TEMP/current-alias.json"
+          current_version="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).FunctionVersion)' "$RUNNER_TEMP/current-alias.json")"
+          current_revision="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).RevisionId)' "$RUNNER_TEMP/current-alias.json")"
+          if [[ "$current_version" == "$FROM_VERSION" && "$current_revision" == "$FROM_REVISION_ID" ]]; then
+            :
+          else
+            [[ -f "$RUNNER_TEMP/target-alias.json" ]]
+            target_revision="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).RevisionId)' "$RUNNER_TEMP/target-alias.json")"
+            [[ "$current_version" == "$TARGET_VERSION" && "$current_revision" == "$target_revision" ]]
+            aws lambda update-alias --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" \
+              --function-version "$FROM_VERSION" --revision-id "$current_revision" --output json > "$RUNNER_TEMP/restored-alias.json"
+          fi
+      - name: Prove restoration through staged CloudFront
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          passed=false
+          for attempt in {1..12}; do
+            if EACL_PROFILE_ID="$PROFILE_ID" EACL_TRANSITION_PHASE=restore EACL_TRANSITION_BASE_URL="$BASE_URL" EACL_EXPECTED_STAGED_ORIGIN="$EXPECTED_STAGED_ORIGIN" \
+              EACL_TRANSITION_IDENTITY_JSON="$FROM_IDENTITY_JSON" \
+              EACL_TRANSITION_OUTPUT="verification/results/${PROFILE_ID}-${EXERCISE_KIND}-restored-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json" \
+              node scripts/run-transition-smoke.mjs; then
+              passed=true
+              break
+            fi
+            [[ "$attempt" -lt 12 ]]
+            sleep 5
+          done
+          [[ "$passed" == true ]]
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: transition-exercise-${{ inputs.profile_id }}-${{ inputs.exercise }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: verification/results/
+          if-no-files-found: error
+          retention-days: 30

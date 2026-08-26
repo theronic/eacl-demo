@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/toolchain.v1.schema.json",
+  "title": "EACL demo pinned toolchain",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "capturedAt", "javascript", "jvm", "jankDevelopment", "native", "infrastructure", "quality"],
+  "properties": {
+    "$schema": {"const": "./schemas/toolchain.v1.schema.json"},
+    "schemaVersion": {"const": 1},
+    "capturedAt": {"type": "string", "format": "date-time"},
+    "javascript": {"$ref": "#/$defs/nonemptyRecord"},
+    "jvm": {"$ref": "#/$defs/nonemptyRecord"},
+    "jankDevelopment": {"$ref": "#/$defs/nonemptyRecord"},
+    "native": {"$ref": "#/$defs/nonemptyRecord"},
+    "infrastructure": {"$ref": "#/$defs/nonemptyRecord"},
+    "quality": {"$ref": "#/$defs/nonemptyRecord"}
+  },
+  "$defs": {
+    "nonemptyRecord": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": ["string", "number", "boolean"]}
+    }
+  }
+}

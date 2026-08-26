@@ -1,0 +1,116 @@
+(ns eacl-demo.jank-memory.permission-tree-delta-test
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]
+            [eacl.engine.permission-tree :as permission-tree]))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(def connection (memory/connect))
+(def client (memory/make-client connection {:cache {:max-entries 64}}))
+
+(eacl/write-schema!
+ client
+ "definition user {}\n\ndefinition account {\n  relation owner: user\n  permission view = owner\n}\n")
+
+(memory/transact!
+ connection
+ [{:eacl/id "user-1"}
+  {:eacl/id "account-0"}])
+
+(eacl/create-relationship!
+ client
+ (eacl/spice-object :user "user-1")
+ :owner
+ (eacl/spice-object :account "account-0"))
+
+(def resource (eacl/spice-object :account "account-0"))
+(def initial
+  (eacl/expand-permission-tree
+   client
+   {:resource resource
+    :permission :view
+    :cache? false
+    :populate-cache? false}))
+(def initial-token (:expanded-at initial))
+(def initial-tree
+  {:expanded-object resource
+   :expanded-relation :view
+   :intermediate
+   {:operation :union
+    :children
+    [{:expanded-object resource
+      :expanded-relation :owner
+      :leaf {:subjects [(eacl/spice-object :user "user-1")]}}]}})
+
+(assert (string? initial-token))
+(assert (= initial-tree (:tree-root initial)))
+
+;; Advance the store after expansion. Reusing :expanded-at as an exact token
+;; must reconstruct the selected basis rather than silently falling forward.
+(memory/transact! connection [{:eacl/id "user-2"}])
+(eacl/create-relationship!
+ client
+ (eacl/spice-object :user "user-2")
+ :owner
+ resource)
+
+(let [exact
+      (eacl/expand-permission-tree
+       client
+       {:resource resource
+        :permission :view
+        :consistency {:consistency/mode :at-exact-snapshot
+                      :zed/token initial-token}
+        :cache? false
+        :populate-cache? false})
+      at-least
+      (eacl/expand-permission-tree
+       client
+       {:resource resource
+        :permission :view
+        :consistency {:consistency/mode :at-least-as-fresh
+                      :zed/token initial-token}})
+      current
+      (eacl/expand-permission-tree
+       client
+       {:resource resource :permission :view})]
+  (assert (= initial-token (:expanded-at exact)))
+  (assert (= initial-tree (:tree-root exact)))
+  (assert (= (:tree-root current) (:tree-root at-least)))
+  (assert
+   (= [(eacl/spice-object :user "user-1")
+       (eacl/spice-object :user "user-2")]
+      (get-in current [:tree-root :intermediate :children 0 :leaf :subjects]))))
+
+;; The locked delta gives every structural request failure the dedicated
+;; permission-tree identity while accepting both common cache controls.
+(doseq [request
+        [nil
+         {}
+         {:resource resource}
+         {:resource resource :permission :view :unknown true}
+         {:resource (eacl/spice-object :account "account-0" :owner)
+          :permission :view}
+         {:resource {:type :qualified/account :id "account-0"}
+          :permission :view}
+         {:resource resource :permission :qualified/view}]]
+  (let [data (error-data #(eacl/expand-permission-tree client request))]
+    (assert (= :eacl.permission-tree/invalid-request (:type data)))
+    (assert (= (:type data) (:eacl/error data)))))
+
+(assert
+ (= (assoc permission-tree/default-limits :max-depth 3)
+    (permission-tree/normalize-limits {:max-depth 3})))
+(doseq [limits [false {:unknown 1} {:max-depth 0} {:max-depth -1}]]
+  (let [data (error-data #(permission-tree/normalize-limits limits))]
+    (assert (= :eacl/invalid-config (:type data))
+            (str "limits=" limits " data=" data))
+    (assert (= (:type data) (:eacl/error data)))))
+
+(println :jank-permission-tree-delta-pass)

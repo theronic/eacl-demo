@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "eacl-demo-fixture-v1",
+  "algorithm": {
+    "id": "eacl-demo-fixture",
+    "version": 1,
+    "seed": "20260813",
+    "generatorSource": "packages/fixture-generator/generator.mjs",
+    "generatorDigest": "sha256:095feb537a028ce84132b19f827efd942993bd6ee3c2ca747fe8ded946ede957",
+    "arithmetic": "unsigned-64-bit-modulo-2^64"
+  },
+  "cutPoint": {
+    "logicalResources": 10000,
+    "semanticPrefixOf": 1000000
+  },
+  "format": {
+    "mediaType": "application/x-ndjson",
+    "canonicalization": "UTF-8; lexicographically sorted object keys; LF after every record",
+    "headerRecords": 1,
+    "recordKinds": [
+      "object",
+      "relationship"
+    ]
+  },
+  "schema": {
+    "source": "fixtures/schema.v1.zed",
+    "digest": "sha256:7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c",
+    "definitions": 6,
+    "relations": 13,
+    "permissions": 9
+  },
+  "exemplars": {
+    "source": "fixtures/exemplars.v1.json",
+    "digest": "sha256:1d144a8031c29057bf553cd832549781233351c40e02d0010c127fd3134a93f2",
+    "cases": 14
+  },
+  "counts": {
+    "bundles": 10000,
+    "objects": {
+      "total": 10080,
+      "subjects": {
+        "total": 80,
+        "byType": {
+          "user": 80
+        }
+      },
+      "resources": {
+        "total": 10000,
+        "byType": {
+          "account": 11,
+          "platform": 1,
+          "server": 9922,
+          "team": 44,
+          "vpc": 22
+        }
+      }
+    },
+    "relationships": {
+      "total": 38613,
+      "unique": 38613,
+      "byRelation": {
+        "account": 9988,
+        "leader": 44,
+        "owner": 13,
+        "parent": 8690,
+        "platform": 11,
+        "shared_admin": 22,
+        "super_admin": 1,
+        "team": 9922,
+        "vpc": 9922
+      }
+    },
+    "records": {
+      "total": 48693,
+      "canonicalBytes": 6753401
+    }
+  },
+  "prefixProofs": {
+    "10000": {
+      "recordCount": 48693,
+      "recordsDigest": "sha256:3bf7618d9276f6597e529cb064a46f95c97b2db7a4918b4dfde36c318aebd9cb"
+    }
+  },
+  "digests": {
+    "fixture": "sha256:ec47ae57973bc7e9c580709410e530a7ac64acd24c01f9e3161489e8ebd58dfd",
+    "semanticRecords": "sha256:3bf7618d9276f6597e529cb064a46f95c97b2db7a4918b4dfde36c318aebd9cb",
+    "manifest": "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+  }
+}

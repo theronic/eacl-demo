@@ -1,0 +1,162 @@
+(ns eacl-demo.jank-memory.store-handlers-test
+  (:refer-clojure :exclude [descriptor])
+  (:require [eacl.runtime.native.clock :as clock]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.function-url :as function-url]
+            [eacl-demo.jank-memory.handlers :as handlers]
+            [eacl-demo.jank-memory.main :as main]
+            [eacl-demo.jank-memory.profile :as profile]
+            [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]
+            [eacl-demo.jank-memory.store :as store]))
+
+(def fixture-root (runtime-api/environment "LAMBDA_TASK_ROOT"))
+
+(def value
+  (store/initialize!
+   {:fixture-path (runtime-api/environment "EACL_JANK_FIXTURE_PATH")
+    :schema-path (str fixture-root "/schema.v1.zed")
+    :wire-schema-path (str fixture-root "/schema-wire.v1.json")
+    :exemplar-path (str fixture-root "/exemplars.v1.json")
+    :manifest-path (str fixture-root "/fixture-10000.v1.json")}))
+
+(assert (:ready value))
+(assert (:frozen value))
+(assert (= 10080 (count (:objects value))))
+(assert (= 80 (count (:subjects value))))
+(assert (= 38613 (:relationship-count value)))
+(def descriptor (profile/descriptor value))
+(assert (= profile/runtime-core-baseline-sha
+           (get-in descriptor ["identity" "eaclSha"])))
+(assert (not= profile/required-release-core-sha
+              (get-in descriptor ["identity" "eaclSha"])))
+(assert (= "provided.al2023" "provided.al2023"))
+(assert (= "disabled" (get-in descriptor ["runtime" "snapStart"])))
+(assert (= "rebuild-lifecycle"
+           (get-in descriptor ["capabilities" "snapshotBehavior"])))
+(assert (= "initialization-before-ready"
+           (get-in descriptor ["capabilities" "mutationLocality"])))
+(def public-dispatcher (handlers/create-handlers value descriptor))
+(def runtime {:store value :descriptor descriptor
+              :dispatcher public-dispatcher})
+(assert (= dispatcher/operation-set
+           (set (keys (:handlers public-dispatcher)))))
+(assert (not (contains? dispatcher/operation-set "seed")))
+(assert (not (contains? dispatcher/operation-set "write-schema")))
+(assert (not (contains? dispatcher/operation-set "benchmark")))
+
+(defn invoke
+  [operation input]
+  (dispatcher/dispatch
+   public-dispatcher
+   {:ok true :operation operation :input input}
+   (function-url/request-controls (+ (clock/unix-time-millis) 10000))))
+
+(defn http-invoke
+  [operation input]
+  (let [result
+        (main/handle-event
+         runtime
+         {"version" "2.0" "routeKey" "$default"
+          "rawPath" (str "/api/v1/jank-memory/" operation)
+          "rawQueryString" ""
+          "headers" {"content-type" "application/json"}
+          "requestContext" {"requestId" "request-error-test"
+                            "http" {"method" "POST"}}
+          "isBase64Encoded" false
+          "body" (response/json-encode input)}
+         (+ (clock/unix-time-millis) 10000))]
+    {:status (get result "statusCode")
+     :body (runtime-api/parse-json (get result "body"))}))
+
+(let [first-page (invoke "list-subjects" {"type" "user" "pageSize" 1})
+      encoded (get-in first-page ["pageInfo" "endCursor"])
+      second-page
+      (invoke "list-subjects"
+              {"type" "user" "pageSize" 1 "cursor" encoded})]
+  (assert (= "account-0-owner" (get-in first-page ["items" 0 "id"])))
+  (assert (= "account-0-team-0-leader"
+             (get-in second-page ["items" 0 "id"])))
+  (assert (get-in first-page ["pageInfo" "hasNextPage"]))
+  (assert
+   (= "cursor-scope-mismatch"
+      (get-in
+       (http-invoke
+        "list-subjects"
+        {"type" "account" "pageSize" 1 "cursor" encoded})
+       [:body "error" "code"])))
+  (let [position (dec (count encoded))
+        tampered (str "A" (subs encoded 0 position))]
+    (assert (not= encoded tampered))
+    (assert
+     (= "cursor-invalid"
+        (get-in
+         (http-invoke
+          "list-subjects"
+          {"type" "user" "pageSize" 1 "cursor" tampered})
+         [:body "error" "code"])))))
+
+(assert (= "account-0"
+           (get-in (invoke "get-object"
+                           {"type" "account" "id" "account-0"})
+                   ["object" "id"])))
+(assert (= "user-1"
+           (get-in (invoke "list-relationships"
+                           {"resourceType" "account"
+                            "resourceId" "account-0"
+                            "relation" "owner"})
+                   ["items" 0 "subjectId"])))
+(assert (= "account-0"
+           (get-in (invoke "reverse-relationships"
+                           {"subjectType" "user" "subjectId" "user-1"
+                            "relation" "owner"})
+                   ["items" 0 "id"])))
+(assert (= true
+           (get (invoke "authorize"
+                        {"subjectType" "user" "subjectId" "user-1"
+                         "resourceType" "account" "resourceId" "account-0"
+                         "permission" "admin"})
+                "allowed")))
+(assert (= "subject-not-found"
+           (get (invoke "authorize"
+                        {"subjectType" "user" "subjectId" "missing"
+                         "resourceType" "account" "resourceId" "account-0"
+                         "permission" "admin"})
+                "reasonCode")))
+(assert (= 6 (count (get (invoke "get-schema" {}) "types"))))
+(assert (= 10080
+           (get (invoke "count-objects"
+                        {"kind" "objects" "ceiling" 1000000})
+                "value")))
+(assert (= {"kind" "objects" "value" 1 "exact" false "ceiling" 1}
+           (invoke "count-objects" {"kind" "objects" "ceiling" 1})))
+
+(assert
+ (= "unsupported-consistency"
+    (get-in
+     (http-invoke
+      "authorize"
+      {"subjectType" "user" "subjectId" "user-1"
+       "resourceType" "account" "resourceId" "account-0"
+       "permission" "admin" "consistency" "exact"})
+     [:body "error" "code"])))
+
+(let [event
+      {"version" "2.0" "routeKey" "$default"
+       "rawPath" "/api/v1/jank-memory/authorize"
+       "rawQueryString" ""
+       "headers" {"content-type" "application/json"}
+       "requestContext" {"requestId" "request-main-test"
+                         "http" {"method" "POST"}}
+       "isBase64Encoded" false
+       "body"
+       "{\"subjectType\":\"user\",\"subjectId\":\"user-1\",\"resourceType\":\"account\",\"resourceId\":\"account-0\",\"permission\":\"admin\"}"
+       }
+      result (main/handle-event runtime event (+ (clock/unix-time-millis) 10000))
+      body (runtime-api/parse-json (get result "body"))]
+  (assert (= 200 (get result "statusCode")))
+  (assert (= true (get-in body ["data" "allowed"])))
+  (assert (= "jank-memory"
+             (get-in body ["meta" "identity" "profileId"]))))
+
+(println :jank-store-handlers-pass)

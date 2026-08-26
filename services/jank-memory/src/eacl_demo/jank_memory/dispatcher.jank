@@ -1,0 +1,77 @@
+(ns eacl-demo.jank-memory.dispatcher
+  (:require [eacl.cancellation :as cancellation]
+            [eacl.runtime.native.clock :as clock]))
+
+(def operations
+  ["health" "bootstrap" "list-subjects" "get-object"
+   "list-relationships" "reverse-relationships" "authorize" "get-schema"
+   "get-cache-info" "count-objects"])
+
+(def operation-set (set operations))
+
+(defn- handler-outcome?
+  [value]
+  (and (map? value)
+       (= #{:value :error} (set (keys value)))
+       (or (and (nil? (:error value)) (some? (:value value)))
+           (and (some? (:error value)) (nil? (:value value))))))
+
+(defn create-read-only-dispatcher
+  [handlers]
+  (when-not (and (map? handlers)
+                 (= operation-set (set (keys handlers)))
+                 (every? (fn [[_ handler]] (fn? handler)) handlers))
+    (throw
+     (ex-info
+      "Public handlers must be exactly the closed read-only operation set."
+      {:type :eacl-demo.jank/invalid-handler-table})))
+  {:operations operations :handlers handlers})
+
+(defn- live-controls!
+  [controls]
+  (when-not
+   (and (map? controls)
+        (= #{:ok :deadline-ms :timeout-ms :cancellation-token}
+           (set (keys controls)))
+        (:ok controls)
+        (integer? (:deadline-ms controls))
+        (integer? (:timeout-ms controls))
+        (pos? (:timeout-ms controls))
+        (cancellation/cancellation-token?
+         (:cancellation-token controls)))
+    (throw
+     (ex-info
+      "Invocation controls are invalid."
+      {:type :eacl-demo.jank/invalid-invocation-controls})))
+  (when (>= (clock/unix-time-millis) (:deadline-ms controls))
+    (throw
+     (ex-info
+      "The Lambda invocation deadline elapsed."
+      {:type :eacl.execution/deadline-exceeded})))
+  (cancellation/check! (:cancellation-token controls) :public-dispatch)
+  controls)
+
+(defn dispatch
+  [dispatcher request controls]
+  (let [operation (:operation request)
+        handler (get (:handlers dispatcher) operation)]
+    (if-not (and (= true (:ok request))
+                 (contains? operation-set operation)
+                 (fn? handler))
+      {:ok false :code "route-not-found"}
+      (do
+        (live-controls! controls)
+        (let [outcome
+              (handler
+               (:input request)
+               {:timeout-ms (:timeout-ms controls)
+                :cancellation-token (:cancellation-token controls)})]
+          (when-not (handler-outcome? outcome)
+            (throw
+             (ex-info
+              "Public handler returned an invalid closed outcome."
+              {:type :eacl-demo.jank/invalid-handler-outcome})))
+          (live-controls! controls)
+          (if-let [error (:error outcome)]
+            (throw error)
+            (:value outcome)))))))

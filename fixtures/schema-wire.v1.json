@@ -1,0 +1,59 @@
+{
+  "sha256": "7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c",
+  "types": [
+    {
+      "name": "account",
+      "relations": [
+        {"name": "owner", "subjectTypes": ["user"]},
+        {"name": "parent", "subjectTypes": ["account"]},
+        {"name": "platform", "subjectTypes": ["platform"]}
+      ],
+      "permissions": [
+        {"name": "admin", "expression": "owner + parent->admin + platform->super_admin"},
+        {"name": "view", "expression": "admin + parent->admin"}
+      ]
+    },
+    {
+      "name": "platform",
+      "relations": [{"name": "super_admin", "subjectTypes": ["user"]}],
+      "permissions": [{"name": "view", "expression": "super_admin"}]
+    },
+    {
+      "name": "server",
+      "relations": [
+        {"name": "account", "subjectTypes": ["account"]},
+        {"name": "parent", "subjectTypes": ["server"]},
+        {"name": "shared_admin", "subjectTypes": ["user"]},
+        {"name": "team", "subjectTypes": ["team"]},
+        {"name": "vpc", "subjectTypes": ["vpc"]}
+      ],
+      "permissions": [
+        {"name": "admin", "expression": "account->admin + shared_admin"},
+        {"name": "view", "expression": "admin + parent->view + account->view + team->view + vpc->view + shared_admin"}
+      ]
+    },
+    {
+      "name": "team",
+      "relations": [
+        {"name": "account", "subjectTypes": ["account"]},
+        {"name": "leader", "subjectTypes": ["user"]}
+      ],
+      "permissions": [
+        {"name": "admin", "expression": "account->admin + leader"},
+        {"name": "view", "expression": "admin"}
+      ]
+    },
+    {"name": "user", "relations": [], "permissions": []},
+    {
+      "name": "vpc",
+      "relations": [
+        {"name": "account", "subjectTypes": ["account"]},
+        {"name": "shared_admin", "subjectTypes": ["user"]}
+      ],
+      "permissions": [
+        {"name": "admin", "expression": "account->admin + shared_admin"},
+        {"name": "view", "expression": "admin"}
+      ]
+    }
+  ]
+}

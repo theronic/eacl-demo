@@ -1,0 +1,85 @@
+(ns eacl-demo.jank-memory.dispatcher-test
+  (:require [eacl.cancellation :as cancellation]
+            [eacl.runtime.native.clock :as clock]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.function-url :as function-url]))
+
+(defn handler
+  [input controls]
+  {:value
+   {:input input
+    :timeout (:timeout-ms controls)
+    :cancelled (cancellation/cancelled?
+                (:cancellation-token controls))}
+   :error nil})
+
+(def handlers
+  (into {} (map (fn [operation] [operation handler])
+                dispatcher/operations)))
+
+(def public-dispatcher
+  (dispatcher/create-read-only-dispatcher handlers))
+
+(let [controls
+      (function-url/request-controls (+ (clock/unix-time-millis) 5000))
+      result
+      (dispatcher/dispatch
+       public-dispatcher
+       {:ok true :operation "health" :input {"probe" "value"}}
+       controls)]
+  (assert (= {"probe" "value"} (:input result)))
+  (assert (false? (:cancelled result))))
+
+(assert
+ (= "route-not-found"
+    (:code
+     (dispatcher/dispatch
+      public-dispatcher
+      {:ok true :operation "seed" :input {}}
+      (function-url/request-controls
+       (+ (clock/unix-time-millis) 5000))))))
+
+(let [invalid-handlers (assoc handlers "health" (fn [_ _] {:unexpected true}))]
+  (try
+    (dispatcher/dispatch
+     (dispatcher/create-read-only-dispatcher invalid-handlers)
+     {:ok true :operation "health" :input {}}
+     (function-url/request-controls
+      (+ (clock/unix-time-millis) 5000)))
+    (assert false)
+    (catch cpp/jank.runtime.object_ref error
+      (assert (= :eacl-demo.jank/invalid-handler-outcome
+                 (:type (ex-data error)))))))
+
+(try
+  (dispatcher/create-read-only-dispatcher
+   (dissoc handlers "get-schema"))
+  (assert false)
+  (catch cpp/jank.runtime.object_ref error
+    (assert
+     (= :eacl-demo.jank/invalid-handler-table
+        (:type (ex-data error))))))
+
+(let [first-controls
+      (function-url/request-controls (+ (clock/unix-time-millis) 5000))
+      _ (cancellation/cancel! (:cancellation-token first-controls))
+      second-controls
+      (function-url/request-controls (+ (clock/unix-time-millis) 5000))]
+  (try
+    (dispatcher/dispatch
+     public-dispatcher
+     {:ok true :operation "health" :input {}}
+     first-controls)
+    (assert false)
+    (catch cpp/jank.runtime.object_ref error
+      (assert (= :eacl.execution/cancelled
+                 (:type (ex-data error))))))
+  (assert
+   (false?
+    (:cancelled
+     (dispatcher/dispatch
+      public-dispatcher
+      {:ok true :operation "health" :input {}}
+      second-controls)))))
+
+(println :jank-dispatcher-pass)

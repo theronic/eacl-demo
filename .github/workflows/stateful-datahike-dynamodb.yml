@@ -1,0 +1,300 @@
+name: Stateful Datahike DynamoDB generation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Exact bounded lifecycle action
+        required: true
+        type: choice
+        options:
+          - preview-create
+          - apply-create
+          - verify
+          - publish-serving
+      table_name:
+        description: Exact blue-green table name
+        required: true
+        type: string
+      generation_id:
+        description: Immutable generation identifier
+        required: true
+        type: string
+      fixture_digest:
+        description: sha256-prefixed fixture manifest digest
+        required: true
+        type: string
+      expected_phase:
+        description: Phase expected after this action
+        required: true
+        type: choice
+        options:
+          - seed
+          - serving
+      confirmation:
+        description: Empty for preview/verify; CREATE:<table>:<generation> or PUBLISH:<table>:<generation>
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  exact-generation:
+    if: github.ref == 'refs/heads/demos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-stateful-datahike-dynamodb
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ALARM_TOPIC_ARN: ${{ vars.AWS_ALARM_TOPIC_ARN }}
+      MAINTENANCE_PRINCIPAL_ARN: ${{ vars.AWS_STATEFUL_MAINTENANCE_PRINCIPAL_ARN }}
+      TABLE_STACK: eacl-demo-datahike-${{ inputs.generation_id }}
+      ALARM_STACK: eacl-demo-datahike-${{ inputs.generation_id }}-alarms
+      TABLE_NAME: ${{ inputs.table_name }}
+      GENERATION_ID: ${{ inputs.generation_id }}
+      FIXTURE_DIGEST: ${{ inputs.fixture_digest }}
+      EXPECTED_PHASE: ${{ inputs.expected_phase }}
+      ACTION: ${{ inputs.action }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      SEED_MAX_READ: "250"
+      SEED_MAX_WRITE: "200"
+      SERVING_MAX_READ: "250"
+      SERVING_MAX_WRITE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: stateful-datahike-dynamodb
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: transition
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-stateful-datahike-dynamodb-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Validate exact non-secret inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TABLE_NAME" =~ ^eacl-demo-datahike-[a-z0-9-]{3,80}$ ]]
+          [[ "$GENERATION_ID" =~ ^[a-z0-9-]{3,80}$ ]]
+          [[ "$TABLE_NAME" == eacl-demo-datahike-fixture-v1-green ]]
+          [[ "$GENERATION_ID" == fixture-v1-green ]]
+          [[ "$FIXTURE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$AWS_REGION" =~ ^[a-z]{2}-[a-z]+-[0-9]$ ]]
+          [[ "$ALARM_TOPIC_ARN" == "arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNT_ID}:"* ]]
+          [[ "$MAINTENANCE_PRINCIPAL_ARN" == "arn:aws:iam::${AWS_ACCOUNT_ID}:role/"* ]]
+          case "$ACTION" in
+            preview-create) [[ "$EXPECTED_PHASE" == seed && -z "$CONFIRMATION" ]] ;;
+            verify) [[ -z "$CONFIRMATION" ]] ;;
+            apply-create) [[ "$EXPECTED_PHASE" == seed && "$CONFIRMATION" == "CREATE:${TABLE_NAME}:${GENERATION_ID}" ]] ;;
+            publish-serving) [[ "$EXPECTED_PHASE" == serving && "$CONFIRMATION" == "PUBLISH:${TABLE_NAME}:${GENERATION_ID}" ]] ;;
+            *) exit 64 ;;
+          esac
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.AWS_STATEFUL_ROLE_ARN }}
+          role-session-name: eacl-demo-${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Verify exact AWS account
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(aws sts get-caller-identity --query Account --output text)"
+          [[ "$actual" == "$AWS_ACCOUNT_ID" ]]
+      - name: Require active project cost-allocation tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          tags="$(aws ce list-cost-allocation-tags --status Active --type UserDefined --tag-keys Project Workload --output json)"
+          node -e '
+            const tags=JSON.parse(process.argv[1]).CostAllocationTags;
+            const active=new Set(tags.filter(x=>x.Status==="Active" && x.Type==="UserDefined").map(x=>x.TagKey));
+            if(!active.has("Project") || !active.has("Workload")) process.exit(1);
+          ' "$tags"
+      - name: Preview table and alarm change sets without execution
+        if: inputs.action == 'preview-create'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$ALARM_STACK" \
+            --template-file infra/data/dynamodb-cost-controls.yaml \
+            --no-execute-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" AlarmTopicArn="$ALARM_TOPIC_ARN" \
+              MaxReadRequestUnits="$SEED_MAX_READ" MaxWriteRequestUnits="$SEED_MAX_WRITE" Phase=seed
+          aws cloudformation deploy \
+            --stack-name "$TABLE_STACK" \
+            --template-file infra/data/datahike-dynamodb-table.yaml \
+            --capabilities CAPABILITY_IAM \
+            --no-execute-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" GenerationId="$GENERATION_ID" \
+              FixtureDigest="$FIXTURE_DIGEST" MaintenancePrincipalArn="$MAINTENANCE_PRINCIPAL_ARN" \
+              MaxReadRequestUnits="$SEED_MAX_READ" MaxWriteRequestUnits="$SEED_MAX_WRITE" PublicationPhase=seed
+      - name: Install quiet alarms before creating the table
+        if: inputs.action == 'apply-create'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$ALARM_STACK" \
+            --template-file infra/data/dynamodb-cost-controls.yaml \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" AlarmTopicArn="$ALARM_TOPIC_ARN" \
+              MaxReadRequestUnits="$SEED_MAX_READ" MaxWriteRequestUnits="$SEED_MAX_WRITE" Phase=seed
+      - name: Create retained protected seed generation
+        if: inputs.action == 'apply-create'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$TABLE_STACK" \
+            --template-file infra/data/datahike-dynamodb-table.yaml \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" GenerationId="$GENERATION_ID" \
+              FixtureDigest="$FIXTURE_DIGEST" MaintenancePrincipalArn="$MAINTENANCE_PRINCIPAL_ARN" \
+              MaxReadRequestUnits="$SEED_MAX_READ" MaxWriteRequestUnits="$SEED_MAX_WRITE" PublicationPhase=seed
+      - name: Require a quiet write window before immutable publication
+        if: inputs.action == 'publish-serving'
+        shell: bash
+        run: |
+          set -euo pipefail
+          end="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          start="$(date -u -d '6 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+          values="$(aws cloudwatch get-metric-statistics \
+            --namespace AWS/DynamoDB \
+            --metric-name ConsumedWriteCapacityUnits \
+            --dimensions Name=TableName,Value="$TABLE_NAME" \
+            --start-time "$start" --end-time "$end" --period 60 \
+            --statistics Sum --query 'Datapoints[].Sum' --output json)"
+          node -e 'const values=JSON.parse(process.argv[1]); if(values.some((value)=>value!==0)){process.exit(1)}' "$values"
+      - name: Install and verify the zero-write transition guard
+        if: inputs.action == 'publish-serving'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$ALARM_STACK" \
+            --template-file infra/data/dynamodb-cost-controls.yaml \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" AlarmTopicArn="$ALARM_TOPIC_ARN" \
+              MaxReadRequestUnits="$SEED_MAX_READ" MaxWriteRequestUnits="$SEED_MAX_WRITE" Phase=transition
+          ready=false
+          for attempt in {1..12}; do
+            alarm="$(aws cloudwatch describe-alarms --alarm-names "$TABLE_NAME-unexpected-serving-write" --output json)"
+            if node -e '
+              const alarms=JSON.parse(process.argv[1]).MetricAlarms;
+              const topic=process.argv[2];
+              if(alarms.length!==1 || alarms[0].StateValue!=="OK" || alarms[0].ActionsEnabled!==true ||
+                 JSON.stringify(alarms[0].AlarmActions)!==JSON.stringify([topic]) || alarms[0].OKActions.length!==0) process.exit(1);
+            ' "$alarm" "$ALARM_TOPIC_ARN"; then ready=true; break; fi
+            [[ "$attempt" -lt 12 ]]
+            sleep 15
+          done
+          [[ "$ready" == true ]]
+      - name: Remove seed role and apply immutable serving caps
+        if: inputs.action == 'publish-serving'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$TABLE_STACK" \
+            --template-file infra/data/datahike-dynamodb-table.yaml \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" GenerationId="$GENERATION_ID" \
+              FixtureDigest="$FIXTURE_DIGEST" MaintenancePrincipalArn="$MAINTENANCE_PRINCIPAL_ARN" \
+              MaxReadRequestUnits="$SERVING_MAX_READ" MaxWriteRequestUnits="$SERVING_MAX_WRITE" PublicationPhase=serving
+      - name: Install immutable-serving alarms after the quiet transition
+        if: inputs.action == 'publish-serving'
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws cloudformation deploy \
+            --stack-name "$ALARM_STACK" \
+            --template-file infra/data/dynamodb-cost-controls.yaml \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              TableName="$TABLE_NAME" AlarmTopicArn="$ALARM_TOPIC_ARN" \
+              MaxReadRequestUnits="$SERVING_MAX_READ" MaxWriteRequestUnits="$SERVING_MAX_WRITE" Phase=serving
+      - name: Verify post-transition write telemetry remains quiet
+        if: inputs.action == 'publish-serving'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            end="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            start="$(date -u -d '3 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+            values="$(aws cloudwatch get-metric-statistics \
+              --namespace AWS/DynamoDB \
+              --metric-name ConsumedWriteCapacityUnits \
+              --dimensions Name=TableName,Value="$TABLE_NAME" \
+              --start-time "$start" --end-time "$end" --period 60 \
+              --statistics Sum --query 'Datapoints[].Sum' --output json)"
+            if node -e 'const values=JSON.parse(process.argv[1]); process.exit(values.some((value)=>value!==0)?1:0)' "$values"; then
+              break
+            fi
+            [[ "$attempt" -lt 12 ]]
+            sleep 30
+          done
+      - name: Verify exact table identity, protection, recovery, encryption, phase, and caps
+        if: inputs.action != 'preview-create'
+        shell: bash
+        run: |
+          set -euo pipefail
+          table="$(aws dynamodb describe-table --table-name "$TABLE_NAME" --output json)"
+          expected_read="$SEED_MAX_READ"
+          expected_write="$SEED_MAX_WRITE"
+          expected_phase="$EXPECTED_PHASE"
+          if [[ "$EXPECTED_PHASE" == serving ]]; then
+            expected_read="$SERVING_MAX_READ"
+            expected_write="$SERVING_MAX_WRITE"
+          fi
+          node -e '
+            const d=JSON.parse(process.argv[1]).Table;
+            const [name,read,write]=process.argv.slice(2);
+            const sse=d.SSEDescription;
+            if(d.TableName!==name || d.TableStatus!=="ACTIVE" || d.DeletionProtectionEnabled!==true ||
+               d.BillingModeSummary?.BillingMode!=="PAY_PER_REQUEST" ||
+               sse?.SSEType==="KMS" || sse?.KMSMasterKeyArn ||
+               d.OnDemandThroughput?.MaxReadRequestUnits!==Number(read) ||
+               d.OnDemandThroughput?.MaxWriteRequestUnits!==Number(write)) process.exit(1);
+          ' "$table" "$TABLE_NAME" "$expected_read" "$expected_write"
+          pitr="$(aws dynamodb describe-continuous-backups --table-name "$TABLE_NAME" --query 'ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus' --output text)"
+          [[ "$pitr" == ENABLED ]]
+          phase="$(aws dynamodb list-tags-of-resource --resource-arn "$(node -e 'console.log(JSON.parse(process.argv[1]).Table.TableArn)' "$table")" --query "Tags[?Key=='PublicationPhase'].Value | [0]" --output text)"
+          [[ "$phase" == "$expected_phase" ]]
+      - name: Verify seed-role lifecycle matches the phase
+        if: inputs.action != 'preview-create'
+        shell: bash
+        run: |
+          set -euo pipefail
+          outputs="$(aws cloudformation describe-stacks --stack-name "$TABLE_STACK" --query 'Stacks[0].Outputs[?OutputKey==`SeedRoleArn`]' --output json)"
+          node -e '
+            const outputs=JSON.parse(process.argv[1]);
+            const phase=process.argv[2];
+            if((phase==="seed" && outputs.length!==1) || (phase==="serving" && outputs.length!==0)) process.exit(1);
+          ' "$outputs" "$EXPECTED_PHASE"

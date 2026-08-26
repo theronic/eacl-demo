@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Inactive-until-eligible ordinary deployment role for one exact EACL demo server profile.
+
+Parameters:
+  Activation:
+    Type: String
+    Default: disabled
+    AllowedValues: [disabled, enabled]
+  ProfileId:
+    Type: String
+    AllowedValues: [datahike-s3, datahike-dynamodb, datomic-dynamodb, datalevin-memory]
+  RoleName:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9+=,.@_-]{1,64}$"
+  FunctionName:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
+  FunctionArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:lambda:[a-z0-9-]+:843761893873:function:[A-Za-z0-9_-]{1,64}$"
+  ArtifactBucketName:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  ArtifactBucketArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  StaticBucketName:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  StaticBucketArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  StagedDistributionArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:cloudfront::843761893873:distribution/[A-Z0-9]{8,32}$"
+  ProductionDistributionArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:cloudfront::843761893873:distribution/[A-Z0-9]{8,32}$"
+
+Mappings:
+  Profiles:
+    datahike-s3:
+      Environment: demo-production-datahike-s3
+      RoleVariable: AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted
+    datahike-dynamodb:
+      Environment: demo-production-datahike-dynamodb
+      RoleVariable: AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted
+    datomic-dynamodb:
+      Environment: demo-production-datomic-dynamodb
+      RoleVariable: AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
+    datalevin-memory:
+      Environment: demo-production-datalevin-memory
+      RoleVariable: AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted
+
+Rules:
+  FunctionNameMatchesArn:
+    Assertions:
+      - Assert: !Equals
+          - !Select [1, !Split ["function:", !Ref FunctionArn]]
+          - !Ref FunctionName
+        AssertDescription: FunctionArn must identify exactly FunctionName.
+  ArtifactBucketNameMatchesArn:
+    Assertions:
+      - Assert: !Equals
+          - !Select [1, !Split ["s3:::", !Ref ArtifactBucketArn]]
+          - !Ref ArtifactBucketName
+        AssertDescription: ArtifactBucketArn must identify exactly ArtifactBucketName.
+  StaticBucketNameMatchesArn:
+    Assertions:
+      - Assert: !Equals
+          - !Select [1, !Split ["s3:::", !Ref StaticBucketArn]]
+          - !Ref StaticBucketName
+        AssertDescription: StaticBucketArn must identify exactly StaticBucketName.
+
+Conditions:
+  ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
+
+Resources:
+  ServerDeployRole:
+    Type: AWS::IAM::Role
+    Condition: ServerDeploymentEnabled
+    Properties:
+      RoleName: !Ref RoleName
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ExactGitHubOidcAuthority
+            Effect: Allow
+            Principal:
+              Federated: arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:environment: !FindInMap [Profiles, !Ref ProfileId, Environment]
+                token.actions.githubusercontent.com:ref: refs/heads/demos
+                token.actions.githubusercontent.com:repository: theronic/eacl-demo
+                token.actions.githubusercontent.com:repository_id: "1345904214"
+                token.actions.githubusercontent.com:repository_owner_id: "1011676"
+                token.actions.githubusercontent.com:sub: !FindInMap [Profiles, !Ref ProfileId, Subject]
+                token.actions.githubusercontent.com:workflow: Deploy EACL demos
+      Policies:
+        - PolicyName: exact-deployment-bucket-configuration-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactArtifactAndStaticBucketConfigurationRead
+                Effect: Allow
+                Action:
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetBucketOwnershipControls
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:GetBucketTagging
+                  - s3:GetBucketVersioning
+                Resource:
+                  - !Ref ArtifactBucketArn
+                  - !Ref StaticBucketArn
+        - PolicyName: exact-profile-artifact-and-status
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactContentAddressedProfileArtifacts
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: !Sub "${ArtifactBucketArn}/artifacts/${ProfileId}/*"
+              - Sid: ExactVersionedProfileStatus
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource: !Sub "${StaticBucketArn}/registry/profiles/${ProfileId}.json"
+        - PolicyName: exact-profile-lambda-version-and-alias
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactFunctionAndQualifiedVersions
+                Effect: Allow
+                Action:
+                  - lambda:GetAlias
+                  - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionUrlConfig
+                  - lambda:ListTags
+                  - lambda:PublishVersion
+                  - lambda:UpdateAlias
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                Resource:
+                  - !Ref FunctionArn
+                  - !Sub "${FunctionArn}:*"
+        - PolicyName: exact-profile-distribution-observation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactStagedAndProductionDistributions
+                Effect: Allow
+                Action:
+                  - cloudfront:GetDistribution
+                Resource:
+                  - !Ref StagedDistributionArn
+                  - !Ref ProductionDistributionArn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: ordinary-server-deployment
+        - Key: Profile
+          Value: !Ref ProfileId
+        - Key: Activation
+          Value: !Ref Activation
+
+Outputs:
+  ServerDeployRoleArn:
+    Condition: ServerDeploymentEnabled
+    Value: !GetAtt ServerDeployRole.Arn
+  GitHubVariableName:
+    Condition: ServerDeploymentEnabled
+    Value: !FindInMap [Profiles, !Ref ProfileId, RoleVariable]

@@ -1,0 +1,273 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Pre-table DynamoDB one-minute cap, throttle, and immutable-serving alarms.
+
+Parameters:
+  TableName:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9_.-]{3,255}$"
+  AlarmTopicArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:sns:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9_-]+$"
+  MaxReadRequestUnits:
+    Type: Number
+    Default: 250
+    MinValue: 1
+    MaxValue: 10000
+  MaxWriteRequestUnits:
+    Type: Number
+    Default: 200
+    MinValue: 1
+    MaxValue: 10000
+  Phase:
+    Type: String
+    Default: seed
+    AllowedValues:
+      - seed
+      - transition
+      - serving
+
+Conditions:
+  NotTransition: !Not [!Equals [!Ref Phase, transition]]
+  WritesFrozen: !Not [!Equals [!Ref Phase, seed]]
+
+Resources:
+  ReadUtilization70:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Consumed read units per second reached 70 percent of the configured on-demand cap.
+      AlarmName: !Sub "${TableName}-read-cap-70"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: consumed
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: ConsumedReadCapacityUnits
+              Namespace: AWS/DynamoDB
+            Period: 60
+            Stat: Sum
+          ReturnData: false
+        - Id: utilization
+          Expression: !Sub "consumed / 60 / ${MaxReadRequestUnits} * 100"
+          Label: Read cap utilization percent
+          ReturnData: true
+      Threshold: 70
+      TreatMissingData: notBreaching
+
+  ReadUtilization90:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Consumed read units per second reached 90 percent of the configured on-demand cap.
+      AlarmName: !Sub "${TableName}-read-cap-90"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: consumed
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: ConsumedReadCapacityUnits
+              Namespace: AWS/DynamoDB
+            Period: 60
+            Stat: Sum
+          ReturnData: false
+        - Id: utilization
+          Expression: !Sub "consumed / 60 / ${MaxReadRequestUnits} * 100"
+          Label: Read cap utilization percent
+          ReturnData: true
+      Threshold: 90
+      TreatMissingData: notBreaching
+
+  WriteUtilization70:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Consumed write units per second reached 70 percent of the configured on-demand cap.
+      AlarmName: !Sub "${TableName}-write-cap-70"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: consumed
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: ConsumedWriteCapacityUnits
+              Namespace: AWS/DynamoDB
+            Period: 60
+            Stat: Sum
+          ReturnData: false
+        - Id: utilization
+          Expression: !Sub "consumed / 60 / ${MaxWriteRequestUnits} * 100"
+          Label: Write cap utilization percent
+          ReturnData: true
+      Threshold: 70
+      TreatMissingData: notBreaching
+
+  WriteUtilization90:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Consumed write units per second reached 90 percent of the configured on-demand cap.
+      AlarmName: !Sub "${TableName}-write-cap-90"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: consumed
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: ConsumedWriteCapacityUnits
+              Namespace: AWS/DynamoDB
+            Period: 60
+            Stat: Sum
+          ReturnData: false
+        - Id: utilization
+          Expression: !Sub "consumed / 60 / ${MaxWriteRequestUnits} * 100"
+          Label: Write cap utilization percent
+          ReturnData: true
+      Threshold: 90
+      TreatMissingData: notBreaching
+
+  ReadThrottle:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: DynamoDB rejected at least one read in one minute.
+      AlarmName: !Sub "${TableName}-read-throttle"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: TableName
+          Value: !Ref TableName
+      EvaluationPeriods: 1
+      MetricName: ReadThrottleEvents
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  WriteThrottle:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: DynamoDB rejected at least one write in one minute.
+      AlarmName: !Sub "${TableName}-write-throttle"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: TableName
+          Value: !Ref TableName
+      EvaluationPeriods: 1
+      MetricName: WriteThrottleEvents
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  UnexpectedServingWrite:
+    Type: AWS::CloudWatch::Alarm
+    Condition: WritesFrozen
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: Write-frozen transition or immutable serving table consumed a write unit; investigate the writer identity immediately.
+      AlarmName: !Sub "${TableName}-unexpected-serving-write"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: TableName
+          Value: !Ref TableName
+      EvaluationPeriods: 1
+      MetricName: ConsumedWriteCapacityUnits
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ReadCapConfigurationDrift:
+    Type: AWS::CloudWatch::Alarm
+    Condition: NotTransition
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: DynamoDB reported a read cap different from the reviewed stack parameter.
+      AlarmName: !Sub "${TableName}-read-cap-drift"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: configured
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: OnDemandMaxReadRequestUnits
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Maximum
+          ReturnData: false
+        - Id: drift
+          Expression: !Sub "IF(ABS(configured - ${MaxReadRequestUnits}) > 0, 1, 0)"
+          Label: Read cap differs from reviewed value
+          ReturnData: true
+      Threshold: 1
+      # This stack is deliberately installed before its table. Absence of the
+      # table metric is expected, not configuration drift. The stateful
+      # workflow verifies the configured caps directly after table creation.
+      TreatMissingData: notBreaching
+
+  WriteCapConfigurationDrift:
+    Type: AWS::CloudWatch::Alarm
+    Condition: NotTransition
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: DynamoDB reported a write cap different from the reviewed stack parameter.
+      AlarmName: !Sub "${TableName}-write-cap-drift"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Metrics:
+        - Id: configured
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+              MetricName: OnDemandMaxWriteRequestUnits
+              Namespace: AWS/DynamoDB
+            Period: 300
+            Stat: Maximum
+          ReturnData: false
+        - Id: drift
+          Expression: !Sub "IF(ABS(configured - ${MaxWriteRequestUnits}) > 0, 1, 0)"
+          Label: Write cap differs from reviewed value
+          ReturnData: true
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+Outputs:
+  TableName:
+    Value: !Ref TableName
+  Phase:
+    Value: !Ref Phase
+  MaxReadRequestUnits:
+    Value: !Ref MaxReadRequestUnits
+  MaxWriteRequestUnits:
+    Value: !Ref MaxWriteRequestUnits

@@ -1,0 +1,73 @@
+{
+  "$schema": "./schemas/toolchain.v1.schema.json",
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-25T00:00:00Z",
+  "javascript": {
+    "node": "24.19.0",
+    "nodeReleaseLine": "Krypton LTS",
+    "packageManager": "npm",
+    "npm": "11.17.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "eslint": "10.9.1",
+    "prettier": "3.9.6",
+    "solidJs": "1.9.15",
+    "ajv": "8.20.0",
+    "ajvFormats": "3.0.1",
+    "vitePluginSolid": "2.11.14",
+    "typesNode": "24.13.3"
+  },
+  "jvm": {
+    "distribution": "Eclipse Temurin",
+    "java": "25.0.4+101.0.LTS",
+    "javaRuntimeRelease": "25.0.4.1",
+    "javaRuntimeBuild": "1",
+    "linuxX64Archive": "OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz",
+    "linuxX64ArchiveSha256": "dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e",
+    "clojure": "1.12.5",
+    "clojureCli": "1.12.5.1664",
+    "clojureCliArchive": "clojure-tools-1.12.5.1664.tar.gz",
+    "clojureCliArchiveSha256": "77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3",
+    "clojureScript": "1.12.42"
+  },
+  "jankDevelopment": {
+    "scope": "development-host-only",
+    "language": "jank-0.1-alpha",
+    "distribution": "jank-lang/jank/jank 0.1",
+    "distributionRevision": "434f0e7bac39b1de82d664e5ddb0f7dc6b41a330",
+    "archiveSha256": "dfb53fa563f18c7c5897639b4bbbf64d5c02991c3752e9ae2d200adf54bfe14b",
+    "executableSha256": "4b1fc9bedbc36d13e680b4100133c121072289134d1533c7daa1bbaedae26a49",
+    "binaryIdentity": "arm64-apple-darwin25.4.0-9f2bd01a76c129cf7249ecbcb7820840e721c2b93969d1567e40ad2c441a0fa7",
+    "bundledClangMajor": 23,
+    "cxxStandard": 20,
+    "leinJank": "2026.07-3",
+    "lambdaEvidence": false
+  },
+  "native": {
+    "developmentCompiler": "jank-bundled-clang-23",
+    "cxxStandard": 20,
+    "deploymentTarget": "x86_64-unknown-linux-gnu on Amazon Linux 2023",
+    "builderJankCommit": "489760dc927cd22900a4ab150dbab947ec25ad00",
+    "builderBaseImageDigest": "sha256:26b860d6ace0e868b1dd786be29b2a6b32a213b72f43074043090512871e9532",
+    "deploymentCompilerPinOwnedBy": "task-11.1",
+    "rejectDevelopmentHostArtifactsForLambda": true
+  },
+  "infrastructure": {
+    "format": "AWS CloudFormation 2010-09-09",
+    "awsCli": "2.34.53",
+    "cfnLint": "1.55.1",
+    "checkJsonschema": "0.38.0",
+    "lockGeneratorPip": "25.2",
+    "pipTools": "7.5.2"
+  },
+  "quality": {
+    "cljfmt": "0.16.5",
+    "cljKondo": "2026.08.04",
+    "nrepl": "1.7.0",
+    "nodeTestRunner": "24.19.0",
+    "vitest": "4.1.11",
+    "fastCheck": "4.9.0",
+    "jsdom": "30.0.1"
+  }
+}

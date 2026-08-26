@@ -1,0 +1,49 @@
+{
+  "schema": "eacl-demo.datalevin-native-abi-report.v1",
+  "artifactSha256": "427e294ea996632df355695c43eca08bd9d0b24e77db60e36a057faf3ac6896d",
+  "platform": "linux/arm64",
+  "lambdaRuntime": "java25",
+  "maximumAllowedGlibc": "2.34",
+  "compatible": false,
+  "libraries": [
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libdtlv.so",
+      "sha256": "890fbbec886c772297babef169fce250965662ab4fc49d6ca802d56804a22288",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.38",
+      "compatible": false,
+      "needed": [
+        "ld-linux-aarch64.so.1",
+        "libc.so.6",
+        "libgcc_s.so.1",
+        "libgomp.so.1",
+        "libm.so.6",
+        "libmvec.so.1"
+      ]
+    },
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libgomp.so",
+      "sha256": "33c8bcb7d33228fe5101bfeb201bcaff4563d4ecf09497229b9deba522ebaf3d",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.38",
+      "compatible": false,
+      "needed": [
+        "ld-linux-aarch64.so.1",
+        "libc.so.6"
+      ]
+    },
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libjniDTLV.so",
+      "sha256": "209c3ca56bda18d4d1f908791183219160d63c47bd5e1a8afd70033dc91a0f16",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.38",
+      "compatible": false,
+      "needed": [
+        "ld-linux-aarch64.so.1",
+        "libc.so.6",
+        "libdtlv.so",
+        "libgcc_s.so.1"
+      ]
+    }
+  ]
+}

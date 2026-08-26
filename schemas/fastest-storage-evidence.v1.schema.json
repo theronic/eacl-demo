@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/fastest-storage-evidence.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "evidenceId", "methodVersion", "backend", "profiles", "fixture", "workload", "environment", "repetitions", "measuredAt", "expiresAt", "candidates", "results", "decision"],
+  "properties": {
+    "schema": {"const": "eacl-demo.fastest-storage-evidence.v1"},
+    "evidenceId": {"$ref": "#/$defs/digest"},
+    "methodVersion": {"const": "datahike-storage-million.v1"},
+    "backend": {"const": "datahike"},
+    "profiles": {"const": ["datahike-s3", "datahike-dynamodb"]},
+    "fixture": {"$ref": "#/$defs/fixture"},
+    "workload": {"$ref": "#/$defs/workload"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "repetitions": {"$ref": "#/$defs/repetitions"},
+    "measuredAt": {"type": "string", "format": "date-time"},
+    "expiresAt": {"type": "string", "format": "date-time"},
+    "candidates": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/candidate"}},
+    "results": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/result"}},
+    "decision": {"$ref": "#/$defs/decision"}
+  },
+  "$defs": {
+    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "fixture": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "manifestDigest", "fixtureDigest", "schemaDigest", "logicalResourceCount"],
+      "properties": {
+        "id": {"const": "eacl-demo-fixture-v1"},
+        "manifestDigest": {"$ref": "#/$defs/digest"},
+        "fixtureDigest": {"$ref": "#/$defs/digest"},
+        "schemaDigest": {"$ref": "#/$defs/digest"},
+        "logicalResourceCount": {"const": 1000000}
+      }
+    },
+    "workload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "digest", "requestsPerWave", "operationWeights", "cacheLanesDigest"],
+      "properties": {
+        "id": {"const": "datahike-storage-million-v1"},
+        "digest": {"$ref": "#/$defs/digest"},
+        "requestsPerWave": {"const": 100},
+        "cacheLanesDigest": {"$ref": "#/$defs/digest"},
+        "operationWeights": {
+          "type": "object", "additionalProperties": false,
+          "required": ["authorize", "bootstrap", "countObjects", "getObject", "getSchema", "listRelationships", "listSubjects", "reverseRelationships"],
+          "properties": {"authorize": {"const": 40}, "bootstrap": {"const": 5}, "countObjects": {"const": 10}, "getObject": {"const": 10}, "getSchema": {"const": 5}, "listRelationships": {"const": 15}, "listSubjects": {"const": 5}, "reverseRelationships": {"const": 10}}
+        }
+      }
+    },
+    "environment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["region", "runtime", "architecture", "memoryMb", "snapStart", "timeoutSeconds", "ephemeralStorageMiB", "productionPath"],
+      "properties": {
+        "region": {"const": "us-east-1"}, "runtime": {"const": "java25"}, "architecture": {"const": "arm64"},
+        "memoryMb": {"type": "integer", "minimum": 1}, "snapStart": {"enum": ["None", "PublishedVersions"]},
+        "timeoutSeconds": {"type": "integer", "minimum": 1}, "ephemeralStorageMiB": {"type": "integer", "minimum": 1},
+        "productionPath": {"const": "function-url-v2"}
+      }
+    },
+    "repetitions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["coldOrRestore", "warmWavesPerLane", "concurrency", "bootstrapResamples"],
+      "properties": {"coldOrRestore": {"type": "integer", "minimum": 30}, "warmWavesPerLane": {"type": "integer", "minimum": 30}, "concurrency": {"const": [1, 8]}, "bootstrapResamples": {"const": 10000}}
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profileId", "storage", "demoSha", "eaclSha", "artifactDigest", "deploymentId", "serviceCodeDigest", "dataLifecycleId", "dataManifestDigest", "qualificationEvidenceId", "qualificationExpiresAt", "qualificationPassing", "contractVersion", "region", "runtime", "architecture", "memoryMb", "snapStart", "timeoutSeconds", "ephemeralStorageMiB", "workloadDigest", "cacheLanesDigest"],
+      "properties": {
+        "profileId": {"enum": ["datahike-s3", "datahike-dynamodb"]}, "storage": {"enum": ["s3", "dynamodb"]},
+        "demoSha": {"$ref": "#/$defs/sha1"}, "eaclSha": {"$ref": "#/$defs/sha1"}, "artifactDigest": {"$ref": "#/$defs/digest"},
+        "deploymentId": {"type": "string", "minLength": 1, "maxLength": 256}, "serviceCodeDigest": {"$ref": "#/$defs/digest"},
+        "dataLifecycleId": {"type": "string", "minLength": 1, "maxLength": 256}, "dataManifestDigest": {"$ref": "#/$defs/digest"},
+        "qualificationEvidenceId": {"$ref": "#/$defs/digest"}, "qualificationExpiresAt": {"type": "string", "format": "date-time"}, "qualificationPassing": {"const": true},
+        "contractVersion": {"const": "explorer.v1"}, "region": {"const": "us-east-1"}, "runtime": {"const": "java25"}, "architecture": {"const": "arm64"},
+        "memoryMb": {"type": "integer", "minimum": 1}, "snapStart": {"enum": ["None", "PublishedVersions"]}, "timeoutSeconds": {"type": "integer", "minimum": 1}, "ephemeralStorageMiB": {"type": "integer", "minimum": 1},
+        "workloadDigest": {"$ref": "#/$defs/digest"}, "cacheLanesDigest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profileId", "warmWeightedP95Ms", "coldOrRestoreP95Ms", "warmP95Ci95Ms", "coldP95Ci95Ms", "errorRate", "projectedMonthlyUsd", "warmSamples", "coldSamples"],
+      "properties": {
+        "profileId": {"enum": ["datahike-s3", "datahike-dynamodb"]},
+        "warmWeightedP95Ms": {"type": "number", "minimum": 0}, "coldOrRestoreP95Ms": {"type": "number", "minimum": 0},
+        "warmP95Ci95Ms": {"$ref": "#/$defs/interval"}, "coldP95Ci95Ms": {"$ref": "#/$defs/interval"},
+        "errorRate": {"const": 0}, "projectedMonthlyUsd": {"type": "number", "minimum": 0},
+        "warmSamples": {"type": "integer", "minimum": 6000}, "coldSamples": {"type": "integer", "minimum": 30}
+      }
+    },
+    "interval": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}},
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["outcome", "defaultProfileId", "selectionBasis", "primaryMetric", "minimumEffectFraction", "tieBreakOrder"],
+      "properties": {
+        "outcome": {"enum": ["winner", "benchmark-tiebreak", "unresolved"]},
+        "defaultProfileId": {"enum": ["datahike-s3", "datahike-dynamodb", null]},
+        "selectionBasis": {"enum": ["warm-cache-disabled-p95", "cold-or-restore-p95", "projected-monthly-cost", "none"]},
+        "primaryMetric": {"const": "operation-weighted-warm-cache-disabled-service-p95-ms"},
+        "minimumEffectFraction": {"const": 0.05},
+        "tieBreakOrder": {"const": ["cold-or-restore-p95-ms", "projected-monthly-usd"]}
+      }
+    }
+  }
+}

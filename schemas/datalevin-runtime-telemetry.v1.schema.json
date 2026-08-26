@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/datalevin-runtime-telemetry.v1.schema.json",
+  "title": "EACL demo Datalevin runtime telemetry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "profileId",
+    "demoSha",
+    "eaclSha",
+    "artifactSha256",
+    "deploymentId",
+    "runtime",
+    "architecture",
+    "storageMode",
+    "maximumConcurrency",
+    "sourceLifecycle",
+    "nativeSourceId",
+    "revisionWatermark",
+    "snapshotStrategy",
+    "ownership",
+    "nativeReaders",
+    "memory",
+    "memoryComplete"
+  ],
+  "properties": {
+    "schema": {"const": "eacl-demo.datalevin-runtime-telemetry.v1"},
+    "profileId": {"const": "datalevin-memory"},
+    "demoSha": {"$ref": "#/$defs/gitSha"},
+    "eaclSha": {"$ref": "#/$defs/gitSha"},
+    "artifactSha256": {"$ref": "#/$defs/sha256"},
+    "deploymentId": {"$ref": "#/$defs/deploymentId"},
+    "runtime": {"const": "java25"},
+    "architecture": {"const": "arm64"},
+    "storageMode": {"const": "memory"},
+    "maximumConcurrency": {"const": 1},
+    "sourceLifecycle": {"$ref": "#/$defs/uuid"},
+    "nativeSourceId": {"$ref": "#/$defs/uuid"},
+    "revisionWatermark": {"$ref": "#/$defs/natural"},
+    "snapshotStrategy": {
+      "enum": ["after-restore-rebuild", "pre-checkpoint-quiesced"]
+    },
+    "ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "openedSnapshots",
+        "closedSnapshots",
+        "activeSnapshots",
+        "peakActiveSnapshots",
+        "acquisitionFailures",
+        "releaseFailures",
+        "requestFailures",
+        "cancellations",
+        "deadlineFailures",
+        "lastOwnerThreadId"
+      ],
+      "properties": {
+        "openedSnapshots": {"$ref": "#/$defs/natural"},
+        "closedSnapshots": {"$ref": "#/$defs/natural"},
+        "activeSnapshots": {"type": "integer", "minimum": 0, "maximum": 1},
+        "peakActiveSnapshots": {"type": "integer", "minimum": 0, "maximum": 1},
+        "acquisitionFailures": {"$ref": "#/$defs/natural"},
+        "releaseFailures": {"$ref": "#/$defs/natural"},
+        "requestFailures": {"$ref": "#/$defs/natural"},
+        "cancellations": {"$ref": "#/$defs/natural"},
+        "deadlineFailures": {"$ref": "#/$defs/natural"},
+        "lastOwnerThreadId": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer", "minimum": 1}
+          ]
+        }
+      }
+    },
+    "nativeReaders": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "oldest-age-ms"],
+      "properties": {
+        "active": {"$ref": "#/$defs/natural"},
+        "oldest-age-ms": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/natural"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"active": {"const": 0}}},
+          "then": {"properties": {"oldest-age-ms": {"type": "null"}}},
+          "else": {"properties": {"oldest-age-ms": {"type": "integer"}}}
+        }
+      ]
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heapUsedBytes",
+        "heapCommittedBytes",
+        "heapMaxBytes",
+        "nonHeapUsedBytes",
+        "nonHeapCommittedBytes",
+        "directUsedBytes",
+        "mappedUsedBytes",
+        "rssBytes",
+        "nativeMappedBytes",
+        "openFileDescriptorCount",
+        "nativeHandleCount"
+      ],
+      "properties": {
+        "heapUsedBytes": {"$ref": "#/$defs/natural"},
+        "heapCommittedBytes": {"$ref": "#/$defs/natural"},
+        "heapMaxBytes": {"$ref": "#/$defs/natural"},
+        "nonHeapUsedBytes": {"$ref": "#/$defs/natural"},
+        "nonHeapCommittedBytes": {"$ref": "#/$defs/natural"},
+        "directUsedBytes": {"$ref": "#/$defs/natural"},
+        "mappedUsedBytes": {"$ref": "#/$defs/natural"},
+        "rssBytes": {"$ref": "#/$defs/optionalNatural"},
+        "nativeMappedBytes": {"$ref": "#/$defs/optionalNatural"},
+        "openFileDescriptorCount": {"$ref": "#/$defs/optionalNatural"},
+        "nativeHandleCount": {"$ref": "#/$defs/optionalNatural"}
+      }
+    },
+    "memoryComplete": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"memoryComplete": {"const": true}}},
+      "then": {
+        "properties": {
+          "memory": {
+            "type": "object",
+            "properties": {
+              "rssBytes": {"$ref": "#/$defs/natural"},
+              "nativeMappedBytes": {"$ref": "#/$defs/natural"},
+              "openFileDescriptorCount": {"$ref": "#/$defs/natural"},
+              "nativeHandleCount": {"$ref": "#/$defs/natural"}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "memory": {
+            "type": "object",
+            "anyOf": [
+              {"type": "object", "properties": {"rssBytes": {"type": "null"}}},
+              {"type": "object", "properties": {"nativeMappedBytes": {"type": "null"}}},
+              {"type": "object", "properties": {"openFileDescriptorCount": {"type": "null"}}},
+              {"type": "object", "properties": {"nativeHandleCount": {"type": "null"}}}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "natural": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "optionalNatural": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/natural"}
+      ]
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "deploymentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    }
+  }
+}

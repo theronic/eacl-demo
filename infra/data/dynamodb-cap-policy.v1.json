@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "units": "request-units-per-second",
+  "profiles": {
+    "datahike-dynamodb": {
+      "seed": { "maxReadRequestUnits": 250, "maxWriteRequestUnits": 200 },
+      "serving": { "maxReadRequestUnits": 250, "maxWriteRequestUnits": 1 }
+    },
+    "datomic-dynamodb": {
+      "seed": { "maxReadRequestUnits": 250, "maxWriteRequestUnits": 200 },
+      "serving": { "maxReadRequestUnits": 250, "maxWriteRequestUnits": 1 }
+    }
+  },
+  "alarmThresholdPercent": [70, 90],
+  "metricPeriodSeconds": 60,
+  "notes": [
+    "Caps are deliberately conservative initial safety bounds and are not performance claims.",
+    "Serving write capacity is one because DynamoDB requires a positive cap; IAM denies serving writes and an alarm triggers on any consumed write unit.",
+    "Raise a cap only through a reviewed stateful change with updated workload and cost evidence."
+  ]
+}

@@ -1,0 +1,4 @@
+(ns eacl-demo.jank-memory.execution-contract-rejection-test
+  (:require [eacl.execution :as execution]))
+
+(execution/normalize-timeout-ms 0)

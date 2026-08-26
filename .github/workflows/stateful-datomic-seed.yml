@@ -1,0 +1,340 @@
+name: Stateful Datomic transactor and seed
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Preview or execute one exact authorized seed run
+        required: true
+        type: choice
+        options:
+          - preview
+          - execute
+      request_json:
+        description: Closed seed request JSON for preview; blank for execute
+        required: false
+        type: string
+      preview_json:
+        description: Fresh preview JSON emitted by a prior preview run; blank for preview
+        required: false
+        type: string
+      confirmation:
+        description: Exact EXECUTE:seed:... confirmation from the preview
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/demos' && inputs.action == 'preview'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      EACL_REQUEST_JSON: ${{ inputs.request_json }}
+      SUPPLIED_PREVIEW_JSON: ${{ inputs.preview_json }}
+      SUPPLIED_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm install --global npm@11.17.0
+      - run: npm ci
+      - name: Create fresh immutable preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$EACL_REQUEST_JSON" ]]
+          [[ -z "$SUPPLIED_PREVIEW_JSON" && -z "$SUPPLIED_CONFIRMATION" ]]
+          npm run --silent preview:datomic-seed > "$RUNNER_TEMP/datomic-seed-preview.json"
+          node -e '
+            const fs=require("node:fs");
+            const value=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `### Exact Datomic seed preview\n\nPreview ID: \`${value.previewId}\`\n\nConfirmation: \`${value.confirmation}\`\n\nExpires: \`${value.expiresAt}\`\n`);
+          ' "$RUNNER_TEMP/datomic-seed-preview.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: datomic-seed-preview-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/datomic-seed-preview.json
+          if-no-files-found: error
+          retention-days: 1
+
+  execute:
+    if: github.ref == 'refs/heads/demos' && inputs.action == 'execute'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    environment: demo-stateful-datomic-seed
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EACL_PREVIEW_JSON: ${{ inputs.preview_json }}
+      EACL_CONFIRMATION: ${{ inputs.confirmation }}
+      SUPPLIED_REQUEST_JSON: ${{ inputs.request_json }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      STATEFUL_ROLE_ARN: ${{ vars.AWS_STATEFUL_DATOMIC_SEED_ROLE_ARN }}
+      SEED_ROLE_STACK: eacl-demo-datomic-seed-fixture-v1-green
+      TABLE_NAME: eacl-demo-datomic-fixture-v1-green
+      ROLE_NAME: eacl-demo-datomic-seed-fixture-v1-green
+      INSTANCE_PROFILE_NAME: eacl-demo-datomic-seed-fixture-v1-green
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: stateful-datomic-seed
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: transition
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-stateful-datomic-seed-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Authorize the exact fresh preview and export its closed fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -z "$SUPPLIED_REQUEST_JSON" ]]
+          node scripts/datomic-seed-authorization.mjs authorize
+          node <<'NODE'
+          const fs = require("node:fs");
+          const preview = JSON.parse(process.env.EACL_PREVIEW_JSON);
+          const values = {
+            PREVIEW_ID: preview.previewId,
+            FIXTURE_MANIFEST_DIGEST: preview.fixtureManifestDigest,
+            ALARM_TOPIC_ARN: preview.telegramGate.notificationTopicArn,
+            AMI_ID: preview.temporaryCompute.amiId,
+            INSTANCE_TYPE: preview.temporaryCompute.instanceType,
+            EXPECTED_VCPUS: String(preview.temporaryCompute.vcpus),
+            EXPECTED_MEMORY_MIB: String(preview.temporaryCompute.memoryGiB * 1024),
+            ROOT_VOLUME_GIB: String(preview.temporaryCompute.rootVolumeGiB),
+            SUBNET_ID: preview.temporaryCompute.subnetId,
+            SECURITY_GROUP_ID: preview.temporaryCompute.securityGroupId,
+            EXPIRES_AT: preview.temporaryCompute.expiresAtTag,
+            ARTIFACT_BUCKET: preview.executionArtifacts.artifactBucket,
+            SEED_ARTIFACT_KEY: preview.executionArtifacts.seedArtifactKey,
+            SEED_ARTIFACT_VERSION: preview.executionArtifacts.seedArtifactVersion,
+            SEED_ARTIFACT_SHA256: preview.executionArtifacts.seedArtifactSha256,
+            FIXTURE_STREAM_KEY: preview.executionArtifacts.fixtureStreamKey,
+            FIXTURE_STREAM_VERSION: preview.executionArtifacts.fixtureStreamVersion,
+            FIXTURE_STREAM_SHA256: preview.executionArtifacts.fixtureStreamSha256,
+            SEED_EVIDENCE_KEY: preview.executionArtifacts.seedEvidenceKey,
+            DATOMIC_DISTRIBUTION_URL: preview.executionArtifacts.datomicDistributionUrl,
+            DATOMIC_DISTRIBUTION_SHA256: preview.executionArtifacts.datomicDistributionSha256,
+            DATOMIC_DISTRIBUTION_BYTES: String(preview.executionArtifacts.datomicDistributionBytes),
+            DATOMIC_DISTRIBUTION_ROOT: preview.executionArtifacts.datomicDistributionRoot
+          };
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            Object.entries(values).map(([key, value]) => `${key}=${value}\n`).join(""));
+          NODE
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ env.STATEFUL_ROLE_ARN }}
+          role-session-name: eacl-demo-seed-${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Verify live account, table, caps, alarms, AMI, instance type, and private network
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(aws sts get-caller-identity --query Account --output text)"
+          [[ "$actual" == "$AWS_ACCOUNT_ID" && "$AWS_ACCOUNT_ID" == 843761893873 && "$AWS_REGION" == us-east-1 ]]
+          cost_tags="$(aws ce list-cost-allocation-tags --status Active --type UserDefined --tag-keys Project Workload --output json)"
+          node -e '
+            const tags=JSON.parse(process.argv[1]).CostAllocationTags;
+            const active=new Set(tags.filter(x=>x.Status==="Active" && x.Type==="UserDefined").map(x=>x.TagKey));
+            if(!active.has("Project") || !active.has("Workload")) process.exit(1);
+          ' "$cost_tags"
+          table="$(aws dynamodb describe-table --table-name "$TABLE_NAME" --output json)"
+          node -e '
+            const d=JSON.parse(process.argv[1]).Table;
+            if(d.TableName!==process.argv[2] || d.TableStatus!=="ACTIVE" || d.DeletionProtectionEnabled!==true ||
+               d.BillingModeSummary?.BillingMode!=="PAY_PER_REQUEST" || d.OnDemandThroughput?.MaxReadRequestUnits!==250 ||
+               d.OnDemandThroughput?.MaxWriteRequestUnits!==200 || JSON.stringify(d.KeySchema)!==JSON.stringify([{AttributeName:"id",KeyType:"HASH"}])) process.exit(1);
+          ' "$table" "$TABLE_NAME"
+          table_arn="$(node -e 'console.log(JSON.parse(process.argv[1]).Table.TableArn)' "$table")"
+          tags="$(aws dynamodb list-tags-of-resource --resource-arn "$table_arn" --output json)"
+          node -e '
+            const tags=Object.fromEntries(JSON.parse(process.argv[1]).Tags.map(({Key,Value})=>[Key,Value]));
+            if(tags.Generation!=="fixture-v1-green" || tags.FixtureDigest!==process.argv[2] || tags.PublicationPhase!=="seed") process.exit(1);
+          ' "$tags" "$FIXTURE_MANIFEST_DIGEST"
+          alarms="$(aws cloudwatch describe-alarms --alarm-name-prefix "${TABLE_NAME}-" --output json)"
+          node -e '
+            const names=["read-cap-70","read-cap-90","write-cap-70","write-cap-90","read-throttle","write-throttle","read-cap-drift","write-cap-drift"].map(x=>`${process.argv[2]}-${x}`).sort();
+            const alarms=JSON.parse(process.argv[1]).MetricAlarms.filter(x=>names.includes(x.AlarmName));
+            if(alarms.length!==names.length || JSON.stringify(alarms.map(x=>x.AlarmName).sort())!==JSON.stringify(names) || alarms.some(x=>x.StateValue!=="OK" || x.ActionsEnabled!==true || JSON.stringify(x.AlarmActions)!==JSON.stringify([process.argv[3]]) || x.OKActions.length!==0)) process.exit(1);
+          ' "$alarms" "$TABLE_NAME" "$ALARM_TOPIC_ARN"
+          image="$(aws ec2 describe-images --image-ids "$AMI_ID" --output json)"
+          root_device="$(node -e '
+            const images=JSON.parse(process.argv[1]).Images;
+            if(images.length!==1) process.exit(1);
+            const i=images[0];
+            if(i.OwnerId!=="137112412989" || i.State!=="available" || i.Architecture!=="x86_64" || i.PlatformDetails!=="Linux/UNIX" || !i.Name.startsWith("al2023-ami-")) process.exit(1);
+            console.log(i.RootDeviceName);
+          ' "$image")"
+          printf 'ROOT_DEVICE=%s\nTABLE_ARN=%s\n' "$root_device" "$table_arn" >> "$GITHUB_ENV"
+          type_info="$(aws ec2 describe-instance-types --instance-types "$INSTANCE_TYPE" --output json)"
+          node -e '
+            const values=JSON.parse(process.argv[1]).InstanceTypes;
+            if(values.length!==1 || values[0].VCpuInfo.DefaultVCpus!==Number(process.argv[2]) || values[0].MemoryInfo.SizeInMiB!==Number(process.argv[3]) || !values[0].ProcessorInfo.SupportedArchitectures.includes("x86_64")) process.exit(1);
+          ' "$type_info" "$EXPECTED_VCPUS" "$EXPECTED_MEMORY_MIB"
+          group="$(aws ec2 describe-security-groups --group-ids "$SECURITY_GROUP_ID" --output json)"
+          node -e 'const g=JSON.parse(process.argv[1]).SecurityGroups; if(g.length!==1 || g[0].IpPermissions.length!==0) process.exit(1)' "$group"
+          subnet="$(aws ec2 describe-subnets --subnet-ids "$SUBNET_ID" --output json)"
+          node -e 'const s=JSON.parse(process.argv[1]).Subnets; if(s.length!==1 || s[0].State!=="available") process.exit(1)' "$subnet"
+          active="$(aws ec2 describe-instances --filters Name=tag:Project,Values=eacl-demo Name=tag:Purpose,Values=datomic-transactor Name=instance-state-name,Values=pending,running,stopping,stopped --query 'Reservations[].Instances[].InstanceId' --output json)"
+          node -e 'if(JSON.parse(process.argv[1]).length!==0) process.exit(1)' "$active"
+          ! aws cloudformation describe-stacks --stack-name "$SEED_ROLE_STACK" >/dev/null 2>&1
+          ! aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1
+          ! aws iam get-instance-profile --instance-profile-name "$INSTANCE_PROFILE_NAME" >/dev/null 2>&1
+      - name: Create ephemeral role, launch exact private instance, and run seed
+        id: seed
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          aws cloudformation deploy --stack-name "$SEED_ROLE_STACK" \
+            --template-file infra/compute/datomic-dynamodb-seed-role.yaml \
+            --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset \
+            --parameter-overrides TableArn="$TABLE_ARN" ArtifactBucketName="$ARTIFACT_BUCKET" \
+              SeedArtifactObjectKey="$SEED_ARTIFACT_KEY" SeedArtifactObjectVersion="$SEED_ARTIFACT_VERSION" \
+              FixtureStreamObjectKey="$FIXTURE_STREAM_KEY" FixtureStreamObjectVersion="$FIXTURE_STREAM_VERSION" \
+              SeedEvidenceObjectKey="$SEED_EVIDENCE_KEY" AuthorizationId="$PREVIEW_ID" \
+              RoleName="$ROLE_NAME" InstanceProfileName="$INSTANCE_PROFILE_NAME"
+          user_data=$'#!/usr/bin/env bash\nset -Eeuo pipefail\ndnf install -y java-25-amazon-corretto-headless unzip gzip\nsystemctl enable --now amazon-ssm-agent\n'
+          block_devices="$(node -e 'console.log(JSON.stringify([{DeviceName:process.argv[1],Ebs:{DeleteOnTermination:true,Encrypted:true,VolumeSize:Number(process.argv[2]),VolumeType:"gp3"}}]))' "$ROOT_DEVICE" "$ROOT_VOLUME_GIB")"
+          tags="$(node -e '
+            const tags=[
+              {Key:"Project",Value:"eacl-demo"},{Key:"Lifecycle",Value:"temporary"},{Key:"ManagedBy",Value:"eacl-demo-temp-watchdog"},
+              {Key:"Owner",Value:"theronic/eacl-demo"},{Key:"Purpose",Value:"datomic-transactor"},{Key:"AuthorizationId",Value:process.argv[1]},
+              {Key:"ExpiresAt",Value:process.argv[2]}
+            ];
+            console.log(JSON.stringify([{ResourceType:"instance",Tags:tags},{ResourceType:"volume",Tags:tags}]));
+          ' "$PREVIEW_ID" "$EXPIRES_AT")"
+          launch="$(aws ec2 run-instances --image-id "$AMI_ID" --instance-type "$INSTANCE_TYPE" \
+            --min-count 1 --max-count 1 --client-token "seed-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --iam-instance-profile Name="$INSTANCE_PROFILE_NAME" \
+            --network-interfaces "DeviceIndex=0,SubnetId=${SUBNET_ID},Groups=${SECURITY_GROUP_ID},AssociatePublicIpAddress=false,DeleteOnTermination=true" \
+            --metadata-options HttpEndpoint=enabled,HttpTokens=required,HttpPutResponseHopLimit=1,InstanceMetadataTags=disabled \
+            --block-device-mappings "$block_devices" --tag-specifications "$tags" \
+            --instance-initiated-shutdown-behavior terminate --user-data "$user_data" --output json)"
+          instance_id="$(node -e 'const i=JSON.parse(process.argv[1]).Instances; if(i.length!==1)process.exit(1); console.log(i[0].InstanceId)' "$launch")"
+          [[ "$instance_id" =~ ^i-[0-9a-f]{8,32}$ ]]
+          printf '%s\n' "$instance_id" > "$RUNNER_TEMP/datomic-seed-instance-id"
+          aws ec2 wait instance-status-ok --instance-ids "$instance_id"
+          for attempt in {1..60}; do
+            managed="$(aws ssm describe-instance-information --filters Key=InstanceIds,Values="$instance_id" --query 'InstanceInformationList[0].PingStatus' --output text)"
+            [[ "$managed" == Online ]] && break
+            [[ "$attempt" -lt 60 ]]
+            sleep 10
+          done
+          node <<'NODE'
+          const fs=require("node:fs");
+          const e=process.env;
+          const quote=(value)=>`'${value.replaceAll("'", "'\\''")}'`;
+          const vars={
+            AWS_REGION:e.AWS_REGION,EACL_ARTIFACT_BUCKET:e.ARTIFACT_BUCKET,EACL_SEED_ARTIFACT_SHA256:e.SEED_ARTIFACT_SHA256,
+            EACL_FIXTURE_MANIFEST_DIGEST:e.FIXTURE_MANIFEST_DIGEST,EACL_FIXTURE_STREAM_KEY:e.FIXTURE_STREAM_KEY,
+            EACL_FIXTURE_STREAM_VERSION:e.FIXTURE_STREAM_VERSION,EACL_SEED_EVIDENCE_KEY:e.SEED_EVIDENCE_KEY,
+            EACL_DATOMIC_TABLE:e.TABLE_NAME,EACL_DATOMIC_DATABASE:"eacl-demo",EACL_DATOMIC_ROLE_NAME:e.ROLE_NAME,
+            EACL_DATOMIC_DISTRIBUTION_URL:e.DATOMIC_DISTRIBUTION_URL,EACL_DATOMIC_DISTRIBUTION_SHA256:e.DATOMIC_DISTRIBUTION_SHA256,
+            EACL_DATOMIC_DISTRIBUTION_BYTES:e.DATOMIC_DISTRIBUTION_BYTES,EACL_DATOMIC_DISTRIBUTION_ROOT:e.DATOMIC_DISTRIBUTION_ROOT
+          };
+          const commands=[
+            "set -Eeuo pipefail", "install -d -m 0700 /var/lib/eacl-demo-datomic-seed", "cd /var/lib/eacl-demo-datomic-seed",
+            `aws s3api get-object --bucket ${quote(e.ARTIFACT_BUCKET)} --key ${quote(e.SEED_ARTIFACT_KEY)} --version-id ${quote(e.SEED_ARTIFACT_VERSION)} seed.jar >/dev/null`,
+            `printf '%s  %s\\n' ${quote(e.SEED_ARTIFACT_SHA256)} seed.jar | sha256sum --check --strict`,
+            "unzip -p seed.jar seed-runner.sh > run-seed.sh", "chmod 0700 run-seed.sh",
+            `${Object.entries(vars).map(([k,v])=>`${k}=${quote(v)}`).join(" ")} ./run-seed.sh`
+          ];
+          fs.writeFileSync(`${e.RUNNER_TEMP}/datomic-seed-command.json`,JSON.stringify({commands}),{mode:0o600});
+          NODE
+          command_id="$(aws ssm send-command --instance-ids "$instance_id" --document-name AWS-RunShellScript \
+            --timeout-seconds 18000 --parameters "file://${RUNNER_TEMP}/datomic-seed-command.json" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in {1..1200}; do
+            invocation="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$instance_id" --output json 2>/dev/null || true)"
+            status="$(node -e 'const v=process.argv[1]?JSON.parse(process.argv[1]):{}; console.log(v.Status||"Pending")' "$invocation")"
+            [[ "$status" == Success ]] && break
+            [[ "$status" =~ ^(Cancelled|Cancelling|Failed|TimedOut)$ ]] && { printf '%s\n' "$invocation" >&2; exit 1; }
+            [[ "$attempt" -lt 1200 ]]
+            sleep 15
+          done
+          node -e '
+            const v=JSON.parse(process.argv[1]);
+            if(v.Status!=="Success" || !v.StandardOutputContent.includes("seed-run-complete")) process.exit(1);
+            console.log(v.StandardOutputContent.trim());
+          ' "$invocation"
+      - name: Terminate exact compute and delete its role
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          cleanup_status=0
+          [[ -n "${PREVIEW_ID:-}" ]] || exit 0
+          instance_ids=()
+          if [[ -f "$RUNNER_TEMP/datomic-seed-instance-id" ]]; then
+            instance_ids+=("$(<"$RUNNER_TEMP/datomic-seed-instance-id")")
+          else
+            while IFS= read -r instance_id; do [[ -n "$instance_id" ]] && instance_ids+=("$instance_id"); done < <(
+              aws ec2 describe-instances --filters Name=tag:Project,Values=eacl-demo Name=tag:AuthorizationId,Values="$PREVIEW_ID" \
+                Name=instance-state-name,Values=pending,running,stopping,stopped \
+                --query 'Reservations[].Instances[].InstanceId' --output text | tr '\t' '\n'
+            )
+          fi
+          if (( ${#instance_ids[@]} )); then
+            aws ec2 terminate-instances --instance-ids "${instance_ids[@]}" || cleanup_status=1
+            aws ec2 wait instance-terminated --instance-ids "${instance_ids[@]}" || cleanup_status=1
+          fi
+          if aws cloudformation describe-stacks --stack-name "$SEED_ROLE_STACK" >/dev/null 2>&1; then
+            stack_authorization="$(aws cloudformation describe-stacks --stack-name "$SEED_ROLE_STACK" --query 'Stacks[0].Parameters[?ParameterKey==`AuthorizationId`].ParameterValue | [0]' --output text)"
+            if [[ "$stack_authorization" == "$PREVIEW_ID" ]]; then
+              aws cloudformation delete-stack --stack-name "$SEED_ROLE_STACK" || cleanup_status=1
+              aws cloudformation wait stack-delete-complete --stack-name "$SEED_ROLE_STACK" || cleanup_status=1
+            else
+              cleanup_status=1
+            fi
+          fi
+          remaining_instances="$(aws ec2 describe-instances --filters Name=tag:Project,Values=eacl-demo Name=tag:AuthorizationId,Values="$PREVIEW_ID" Name=instance-state-name,Values=pending,running,stopping,stopped --query 'Reservations[].Instances[].InstanceId' --output json)" || { remaining_instances='["inventory-failed"]'; cleanup_status=1; }
+          remaining_volumes="$(aws ec2 describe-volumes --filters Name=tag:Project,Values=eacl-demo Name=tag:AuthorizationId,Values="$PREVIEW_ID" Name=status,Values=creating,available,in-use --query 'Volumes[].VolumeId' --output json)" || { remaining_volumes='["inventory-failed"]'; cleanup_status=1; }
+          remaining_addresses="$(aws ec2 describe-addresses --filters Name=tag:AuthorizationId,Values="$PREVIEW_ID" --query 'Addresses[].AllocationId' --output json)" || { remaining_addresses='["inventory-failed"]'; cleanup_status=1; }
+          node -e 'for(const value of process.argv.slice(1).map(JSON.parse)) if(value.length!==0) process.exit(1)' "$remaining_instances" "$remaining_volumes" "$remaining_addresses" || cleanup_status=1
+          if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then cleanup_status=1; fi
+          if aws iam get-instance-profile --instance-profile-name "$INSTANCE_PROFILE_NAME" >/dev/null 2>&1; then cleanup_status=1; fi
+          post_table="$(aws dynamodb describe-table --table-name "$TABLE_NAME" --output json)" || { post_table='{}'; cleanup_status=1; }
+          node -e '
+            const d=JSON.parse(process.argv[1]).Table||{};
+            const sse=d.SSEDescription;
+            if(d.TableName!==process.argv[2] || d.TableStatus!=="ACTIVE" || d.DeletionProtectionEnabled!==true ||
+               d.BillingModeSummary?.BillingMode!=="PAY_PER_REQUEST" || sse?.SSEType==="KMS" || sse?.KMSMasterKeyArn ||
+               d.OnDemandThroughput?.MaxReadRequestUnits!==250 || d.OnDemandThroughput?.MaxWriteRequestUnits!==200) process.exit(1);
+          ' "$post_table" "$TABLE_NAME" || cleanup_status=1
+          table_arn="arn:aws:dynamodb:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/${TABLE_NAME}"
+          post_tags="$(aws dynamodb list-tags-of-resource --resource-arn "$table_arn" --output json)" || { post_tags='{}'; cleanup_status=1; }
+          node -e '
+            const tags=Object.fromEntries((JSON.parse(process.argv[1]).Tags||[]).map(({Key,Value})=>[Key,Value]));
+            if(tags.Project!=="eacl-demo" || tags.Generation!=="fixture-v1-green" || tags.PublicationPhase!=="seed" || tags.Workload!=="eacl-demo-seed") process.exit(1);
+          ' "$post_tags" || cleanup_status=1
+          post_alarms="$(aws cloudwatch describe-alarms --alarm-name-prefix "${TABLE_NAME}-" --output json)" || { post_alarms='{}'; cleanup_status=1; }
+          node -e '
+            const suffixes=["read-cap-70","read-cap-90","write-cap-70","write-cap-90","read-throttle","write-throttle","read-cap-drift","write-cap-drift"];
+            const names=suffixes.map(x=>`${process.argv[2]}-${x}`).sort();
+            const alarms=(JSON.parse(process.argv[1]).MetricAlarms||[]).filter(x=>names.includes(x.AlarmName));
+            if(alarms.length!==names.length || JSON.stringify(alarms.map(x=>x.AlarmName).sort())!==JSON.stringify(names) ||
+               alarms.some(x=>x.ActionsEnabled!==true || JSON.stringify(x.AlarmActions)!==JSON.stringify([process.argv[3]]) || x.OKActions.length!==0)) process.exit(1);
+          ' "$post_alarms" "$TABLE_NAME" "$ALARM_TOPIC_ARN" || cleanup_status=1
+          exit "$cleanup_status"

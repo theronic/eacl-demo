@@ -1,0 +1,277 @@
+{
+  "schema": "eacl-demo.jank-core-rebase-coverage.v1",
+  "schemaVersion": 1,
+  "status": "incomplete",
+  "baselineCoreSha": "1cbf80c7aaf4bfcf2564d2bf30135794ff406383",
+  "targetCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+  "sourceDelta": {
+    "root": "modules/eacl/src/eacl",
+    "changedPathCount": 33,
+    "sortedTargetPathSetSha256": "sha256:fea8d6e16573f9cd21bc3cc8428b3467f4235c693f14941aa7d521131147596d",
+    "command": "git diff --name-status <baseline>..<target> -- modules/eacl/src/eacl"
+  },
+  "entries": [
+    {
+      "corePath": "modules/eacl/src/eacl/authorization/batch.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/authorization/batch.cljc",
+      "status": "verified",
+      "deltaIds": ["cache-read-vs-publication-control"]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/authorization/filters.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/authorization/filters.cljc",
+      "status": "verified",
+      "deltaIds": ["cache-read-vs-publication-control"]
+    },
+    {
+      "baselinePath": "modules/eacl/src/eacl/backend/snapshot_provider.cljc",
+      "corePath": "modules/eacl/src/eacl/backend/source.cljc",
+      "change": "renamed-modified",
+      "portPath": "services/jank-memory/src/eacl/datomic/memory/source.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "source-lineage-and-cursor-binding",
+        "memory-consistency-selection-and-lifecycle-authentication",
+        "memory-selected-basis-semantic-identity"
+      ],
+      "rationale": "The closed memory-only runtime specializes every applicable source obligation: immutable store/lifecycle scope, target-shaped basis identity including basis-kind, current/authoritative/at-least/exact acquisition outcomes, borrowed any-thread ownership, acquisition/release metering, idempotent close, use-after-release rejection, and construction-failure cleanup. Generic multi-backend source construction, owned native handles, and virtual-thread rejection are unreachable in this single borrowed-memory topology."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/backend/v8.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/store.cljc",
+      "status": "verified",
+      "deltaIds": ["memory-basis-adapter-boundary"],
+      "rationale": "The specialized immutable-basis adapter is a constant closed three-operation read table with no caller configuration, connection, source-selection, or writer authority. Its selected-basis identity admits only ordinary/as-of views, exact integers stay within the memory order boundary, and every physical adapter callback including relationship-half certification is metered. Generic protocols, optional backend operations, and virtual/runtime profiles are not linked in the closed Jank topology."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/backend/writer.cljc",
+      "change": "added",
+      "status": "not-applicable",
+      "rationale": "The production Jank dispatcher is immutable and exposes no writer; initialization uses a closed local bootstrap path rather than Core's backend writer surface."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/cache.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/cache/local.cljc",
+      "status": "partial",
+      "deltaIds": ["cache-read-vs-publication-control"],
+      "rationale": "Request publication control is proven; proof-frame, managed-current, and cross-basis cache changes remain unqualified."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/client/orchestration.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "partial",
+      "deltaIds": [
+        "cache-read-vs-publication-control",
+        "locked-core-error-identities",
+        "permission-tree-selected-basis-and-validation",
+        "memory-selected-basis-semantic-identity",
+        "ttl-cursor-codec-and-pagination-error-identity"
+      ],
+      "rationale": "The file has a large source, writer, proof, continuation, and lifecycle delta beyond the verified request controls and error identities."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/consistency.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/datomic/memory/consistency.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "memory-consistency-selection-and-lifecycle-authentication",
+        "memory-selected-basis-semantic-identity"
+      ],
+      "rationale": "The native memory selector covers every applicable locked-Core outcome: current and authoritative selection, at-least satisfaction or typed failure, authenticated retained exact with no fall-forward, selected-basis token identity, store/lifecycle/expiry/future-skew rejection, pre-selection cancellation/deadline checks, and exact-once cleanup. The removed direct-adapter path and generic multi-backend source envelope are not linked by the closed memory runtime."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/continuation.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "unqualified",
+      "rationale": "The Jank runtime uses closed local continuation artifacts; replay, lineage, and publication semantics require comparison."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/core.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/core.cljc",
+      "status": "unqualified",
+      "rationale": "The public function surface is intentionally specialized and has not been exhaustively mapped to the target Core API."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/cursor.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/cursor.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "source-lineage-and-cursor-binding",
+        "ttl-cursor-codec-and-pagination-error-identity"
+      ],
+      "rationale": "Every applicable target cursor change is specialized and tested: TTL-bearing encode entries are client-local and keyed by a conservative issuance bucket plus the complete payload, decode entries retain the authenticated expiry and call current-time validation on every hit, cache configuration errors carry paired identities, and all cursor producers expose the locked :eacl.pagination/invalid-cursor identity. The generic bidirectional codec maps and their stale-reverse-eviction case do not exist in the one-key local cache implementation; continuation acceptance remains tracked under the separate engine/relay entries."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/physical.cljc",
+      "change": "modified",
+      "status": "not-applicable",
+      "rationale": "The closed Jank memory engine has no service-edge physical topology or provider protocol; its width-one local scans are independently bounded."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/portable_decisions.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/portable_decisions.cljc",
+      "status": "not-applicable",
+      "deltaIds": ["cache-read-vs-publication-control"],
+      "rationale": "The target change only renames current-cache stages absent from the Jank decision slice; equivalent direct local-cache behavior is executable-tested."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/relationships.cljc",
+      "change": "modified",
+      "status": "not-applicable",
+      "rationale": "The sole target change adds an error identity to a callback-based relationship window not present in the closed Jank engine."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/sealed_plan.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/sealed_plan.cljc",
+      "status": "verified",
+      "deltaIds": ["sealed-plan-read-scope-certification"]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/stable_page.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "unqualified",
+      "rationale": "The specialized Jank pagination loops require cross-runtime ordering, boundary, and replay vectors."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/stable_reducer.cljc",
+      "change": "modified",
+      "status": "not-applicable",
+      "rationale": "The only target source change makes a helper test-visible and does not alter runtime behavior."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/engine/v8.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/v8.cljc",
+      "status": "partial",
+      "deltaIds": ["sealed-plan-read-scope-certification"],
+      "rationale": "Plan read-scope certification is proven; remaining permission dependency, caching, and enumeration changes are unqualified."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/exact_integer.cljc",
+      "change": "added",
+      "status": "not-applicable",
+      "rationale": "Every exposed Jank workload limit is a positive integer capped far below 2^53-1; no generic portable host-number boundary is exposed."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/execution.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/execution.cljc",
+      "status": "verified",
+      "deltaIds": ["locked-core-error-identities"]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/formal/generated_runtime.clj",
+      "change": "modified",
+      "status": "not-applicable",
+      "rationale": "This JVM-only generated-class availability error path is not executable in a native Jank custom runtime."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/formal/production_kernel.clj",
+      "change": "modified",
+      "status": "not-applicable",
+      "rationale": "Generated JVM decision bindings are not linked into the native Jank runtime; equivalent result semantics remain covered under the separate engine entries."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/permission_tree.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/permission_tree.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "cache-read-vs-publication-control",
+        "locked-core-error-identities",
+        "permission-tree-selected-basis-and-validation"
+      ]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/proof_frame.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/sealed_plan.cljc",
+      "status": "unqualified",
+      "rationale": "The Jank port uses compact relation-stamp proofs and has not qualified target Core lineage and proof-frame behavior."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/relationships/filters.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "verified",
+      "deltaIds": ["cache-read-vs-publication-control"],
+      "rationale": "The sole semantic change adds populate-cache? to the closed raw relationship request keys, implemented in the Jank client boundary."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/relay.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "unqualified",
+      "rationale": "The Jank port inlines relay and continuation behavior; target lineage and proof-equivalent cursor paths remain to compare."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/request/context.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/request/context.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "source-lineage-and-cursor-binding",
+        "memory-selected-basis-semantic-identity",
+        "memory-context-basis-bound-derived-and-proof-state"
+      ],
+      "rationale": "Every applicable locked-context change is specialized and executable-tested: the context owns the selected borrowed basis, validates and exposes its complete semantic identity and lineage, releases construction failures and successful requests exactly once, and binds cross-request plans to store/lifecycle/certified schema generation. Completed-answer proofs add relation stamps and a selected-basis ordering guard, so newer artifacts cannot answer older exact snapshots. Generic proof-frame objects, multi-adapter derived registries, owned native handles, and owner-thread snapshot policies are not linked in the closed single-memory-adapter, borrowed-any-thread source topology."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/request/counters.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/request/counters.cljc",
+      "status": "verified",
+      "deltaIds": ["source-lineage-and-cursor-binding"]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/secure_format.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/secure_format.cljc",
+      "status": "not-applicable",
+      "rationale": "The target change only narrows a JVM/CLJS startup warning string; the Jank runtime always supplies an explicit keyring."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/spicedb/consistency.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/client/orchestration.cljc",
+      "status": "verified",
+      "deltaIds": ["locked-core-error-identities"]
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/spicedb/parser.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/spicedb/parser.cljc",
+      "status": "verified",
+      "rationale": "The mixed-arrow-target error carries the target Core eacl/error identity in the vendored parser."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/subproblem_cache.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/request/context.cljc",
+      "status": "verified",
+      "deltaIds": [
+        "specialized-subproblem-cache-controls"
+      ],
+      "rationale": "The complete target delta is mapped to the specialized split cache: read-only cache requests retain lookup and request-local false/nil memoization while suppressing completed-answer publication; reusable plan/proof state names and keys certified schema generation; and corresponding local-cache configuration failures carry matching type/eacl-error identities. The target's generic weighted multi-tier store and managed projection abstraction are not linked by this closed port and were unchanged behaviors rather than rebase additions."
+    },
+    {
+      "corePath": "modules/eacl/src/eacl/verified_kernel.cljc",
+      "change": "modified",
+      "portPath": "services/jank-memory/src/eacl/engine/portable_decisions.cljc",
+      "status": "not-applicable",
+      "rationale": "The changed generated-kernel boundary is not linked into the native runtime: its exact-integer relocation has no exposed generic host-number boundary, while its cache and continuation decisions are implemented and gated in the specialized production cache/cursor entries rather than by an unused Dafny selection wrapper."
+    }
+  ]
+}

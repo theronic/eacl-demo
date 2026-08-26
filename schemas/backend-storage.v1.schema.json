@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/backend-storage.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema", "defaultBackend", "backends", "storages"],
+  "properties": {
+    "$schema": {"const": "../../schemas/backend-storage.v1.schema.json"},
+    "schema": {"const": "eacl-demo.backend-storage.v1"},
+    "defaultBackend": {"const": "datahike"},
+    "backends": {
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "label", "storages"],
+        "properties": {
+          "id": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+          "label": {"type": "string", "minLength": 1, "maxLength": 32},
+          "storages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}}
+        }
+      }
+    },
+    "storages": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "label"],
+        "properties": {"id": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}, "label": {"type": "string", "minLength": 1, "maxLength": 32}}
+      }
+    }
+  }
+}

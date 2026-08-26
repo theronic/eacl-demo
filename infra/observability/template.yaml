@@ -1,0 +1,580 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: EACL demo alarms, Telegram routing, budgets, and cost anomaly detection.
+
+Parameters:
+  NotifierCodeBucket:
+    Type: String
+    MinLength: 3
+  NotifierCodeKey:
+    Type: String
+    MinLength: 1
+  NotifierCodeObjectVersion:
+    Type: String
+    MinLength: 1
+  TelegramSecretArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$"
+    NoEcho: true
+  TelegramChatId:
+    Type: String
+    AllowedPattern: "^-?[0-9]+$"
+    Description: Non-secret Telegram destination identifier.
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 25
+    MinValue: 1
+    MaxValue: 1000
+  SeedBudgetUsd:
+    Type: Number
+    Default: 15
+    MinValue: 1
+    MaxValue: 1000
+  CostAnomalyThresholdUsd:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 1000
+
+Resources:
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: EACL demo alarms
+      TopicName: eacl-demo-alarms
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: observability
+
+  AlarmTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref AlarmTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AccountOwnerAdministration
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - sns:GetTopicAttributes
+              - sns:SetTopicAttributes
+              - sns:AddPermission
+              - sns:RemovePermission
+              - sns:DeleteTopic
+              - sns:Subscribe
+              - sns:ListSubscriptionsByTopic
+              - sns:Publish
+            Resource: !Ref AlarmTopic
+          - Sid: SameAccountCloudWatchAlarms
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:eacl-demo-*"
+          - Sid: SameAccountBudgets
+            Effect: Allow
+            Principal:
+              Service: budgets.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:budgets::${AWS::AccountId}:*"
+          - Sid: SameAccountCostAnomalyDetection
+            Effect: Allow
+            Principal:
+              Service: costalerts.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+          - Sid: ExactDeploymentFailureRule
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !GetAtt DeploymentFailureEvents.Arn
+          - Sid: ExactAlarmRecoveryRule
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-alarm-recoveries"
+
+  NotifierFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: !Sub "${AWS::StackName}-telegram-notifier-failures"
+      SqsManagedSseEnabled: true
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: observability
+
+  NotifierFailureQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref NotifierFailureQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ExactAlarmTopicSubscriptionFailures
+            Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt NotifierFailureQueue.Arn
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnEquals:
+                aws:SourceArn: !Ref AlarmTopic
+          - Sid: ExactAlarmRecoveryRuleDeliveryFailures
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt NotifierFailureQueue.Arn
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-alarm-recoveries"
+          - Sid: ExactDeploymentFailureRuleDeliveryFailures
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt NotifierFailureQueue.Arn
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-deployment-failures"
+
+  NotifierRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: read-exact-telegram-secret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref TelegramSecretArn
+        - PolicyName: write-own-logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt NotifierLogGroup.Arn
+        - PolicyName: retain-failed-notifications
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt NotifierFailureQueue.Arn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: observability
+
+  NotifierLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-telegram-notifier"
+      RetentionInDays: 14
+
+  TelegramNotifier:
+    Type: AWS::Lambda::Function
+    DependsOn: NotifierLogGroup
+    Properties:
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !Ref NotifierCodeBucket
+        S3Key: !Ref NotifierCodeKey
+        S3ObjectVersion: !Ref NotifierCodeObjectVersion
+      Environment:
+        Variables:
+          DEMO_URL: https://demo.eacl.dev/
+          PROJECT_LABEL: EACL demo
+          TELEGRAM_CHAT_ID: !Ref TelegramChatId
+          TELEGRAM_SECRET_ARN: !Ref TelegramSecretArn
+      FunctionName: !Sub "${AWS::StackName}-telegram-notifier"
+      Handler: index.handler
+      MemorySize: 128
+      ReservedConcurrentExecutions: 2
+      Role: !GetAtt NotifierRole.Arn
+      Runtime: python3.13
+      Timeout: 15
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: observability
+
+  NotifierAsyncInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      DestinationConfig:
+        OnFailure:
+          Destination: !GetAtt NotifierFailureQueue.Arn
+      FunctionName: !Ref TelegramNotifier
+      MaximumEventAgeInSeconds: 900
+      MaximumRetryAttempts: 2
+      Qualifier: "$LATEST"
+
+  AllowAlarmTopicInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref TelegramNotifier
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref AlarmTopic
+
+  AlarmTopicSubscription:
+    Type: AWS::SNS::Subscription
+    DependsOn:
+      - AllowAlarmTopicInvoke
+      - NotifierFailureQueuePolicy
+    Properties:
+      Endpoint: !GetAtt TelegramNotifier.Arn
+      Protocol: lambda
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotifierFailureQueue.Arn
+      TopicArn: !Ref AlarmTopic
+
+  NotifierFailureQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: AlarmTopicPolicy
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopic
+      AlarmDescription: Permanently failed Telegram notifications are retained; the alarm path is bounded because this queue has no event source.
+      AlarmName: !Sub "${AWS::StackName}-telegram-notifier-failures"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotifierFailureQueue.QueueName
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  MonthlyProjectBudget:
+    Type: AWS::Budgets::Budget
+    DependsOn: AlarmTopicPolicy
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        CostFilters:
+          TagKeyValue:
+            - user:Project$eacl-demo
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+      ResourceTags:
+        - Key: Project
+          Value: eacl-demo
+
+  SeedBudget:
+    Type: AWS::Budgets::Budget
+    DependsOn: AlarmTopicPolicy
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: !Ref SeedBudgetUsd
+          Unit: USD
+        BudgetName: !Sub "${AWS::StackName}-seed"
+        BudgetType: COST
+        CostFilters:
+          TagKeyValue:
+            - user:Workload$eacl-demo-seed
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: !Ref AlarmTopic
+              SubscriptionType: SNS
+      ResourceTags:
+        - Key: Project
+          Value: eacl-demo
+
+  ProjectCostAnomalyMonitor:
+    Type: AWS::CE::AnomalyMonitor
+    Properties:
+      MonitorName: !Sub "${AWS::StackName}-project"
+      MonitorSpecification: '{"Tags":{"Key":"Project","Values":["eacl-demo"]}}'
+      MonitorType: CUSTOM
+      ResourceTags:
+        - Key: Project
+          Value: eacl-demo
+
+  ImmediateCostAnomalySubscription:
+    Type: AWS::CE::AnomalySubscription
+    DependsOn: AlarmTopicPolicy
+    Properties:
+      Frequency: IMMEDIATE
+      MonitorArnList:
+        - !Ref ProjectCostAnomalyMonitor
+      ResourceTags:
+        - Key: Project
+          Value: eacl-demo
+      Subscribers:
+        - Address: !Ref AlarmTopic
+          Type: SNS
+      SubscriptionName: !Sub "${AWS::StackName}-immediate"
+      ThresholdExpression: !Sub '{"Dimensions":{"Key":"ANOMALY_TOTAL_IMPACT_ABSOLUTE","MatchOptions":["GREATER_THAN_OR_EQUAL"],"Values":["${CostAnomalyThresholdUsd}"]}}'
+
+  AlarmRecoveryEvents:
+    Type: AWS::Events::Rule
+    DependsOn: NotifierFailureQueuePolicy
+    Properties:
+      Description: Route only genuine EACL demo ALARM-to-OK recoveries; initial INSUFFICIENT_DATA-to-OK evaluations stay quiet.
+      EventPattern:
+        source:
+          - aws.cloudwatch
+        detail-type:
+          - CloudWatch Alarm State Change
+        resources:
+          - prefix: !Sub "arn:${AWS::Partition}:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:eacl-demo-"
+        detail:
+          state:
+            value:
+              - OK
+          previousState:
+            value:
+              - ALARM
+      Name: !Sub "${AWS::StackName}-alarm-recoveries"
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmTopic
+          DeadLetterConfig:
+            Arn: !GetAtt NotifierFailureQueue.Arn
+          Id: EaclDemoTelegramAlarmRecovery
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 900
+            MaximumRetryAttempts: 2
+
+  DeploymentFailureEvents:
+    Type: AWS::Events::Rule
+    DependsOn: NotifierFailureQueuePolicy
+    Properties:
+      Description: Route only failed EACL demo CloudFormation stack states to Telegram.
+      EventPattern:
+        source:
+          - aws.cloudformation
+        detail-type:
+          - CloudFormation Stack Status Change
+        detail:
+          stack-id:
+            - prefix: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/eacl-demo-"
+          status-details:
+            status:
+              - CREATE_FAILED
+              - ROLLBACK_FAILED
+              - UPDATE_FAILED
+              - UPDATE_ROLLBACK_FAILED
+              - IMPORT_ROLLBACK_FAILED
+              - DELETE_FAILED
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmTopic
+          DeadLetterConfig:
+            Arn: !GetAtt NotifierFailureQueue.Arn
+          Id: EaclDemoTelegramAlarmTopic
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 900
+            MaximumRetryAttempts: 2
+
+  RuntimeDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: eacl-demo-runtime
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Requests, errors, and storage failures by profile",
+                "region": "${AWS::Region}",
+                "period": 60,
+                "stat": "Sum",
+                "view": "timeSeries",
+                "metrics": [
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Requests\"', 'Sum', 60)","id":"requests"}],
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Errors\"', 'Sum', 60)","id":"errors"}],
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Storage\"', 'Sum', 60)","id":"storage"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Request p95 duration by profile",
+                "region": "${AWS::Region}",
+                "period": 60,
+                "stat": "p95",
+                "view": "timeSeries",
+                "metrics": [
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Duration\"', 'p95', 60)","id":"duration"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Cold initialization and restore lifecycle",
+                "region": "${AWS::Region}",
+                "period": 60,
+                "stat": "Sum",
+                "view": "timeSeries",
+                "metrics": [
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Initialization\"', 'Sum', 60)","id":"initialization"}],
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Restore\"', 'Sum', 60)","id":"restore"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Typed throttles, timeouts, and OOM",
+                "region": "${AWS::Region}",
+                "period": 60,
+                "stat": "Sum",
+                "view": "timeSeries",
+                "metrics": [
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Throttles\"', 'Sum', 60)","id":"throttles"}],
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"Timeouts\"', 'Sum', 60)","id":"timeouts"}],
+                  [{"expression":"SEARCH('{EaclDemo/Runtime,ProfileId,FunctionName} MetricName=\"OOM\"', 'Sum', 60)","id":"oom"}]
+                ]
+              }
+            }
+          ]
+        }
+
+Outputs:
+  AlarmTopicArn:
+    Value: !Ref AlarmTopic
+  TelegramNotifierArn:
+    Value: !GetAtt TelegramNotifier.Arn
+  NotifierFailureQueueArn:
+    Value: !GetAtt NotifierFailureQueue.Arn
+  NotifierFailureQueueAlarmName:
+    Value: !Ref NotifierFailureQueueAlarm
+  MonthlyBudgetName:
+    Value: !Ref MonthlyProjectBudget
+  SeedBudgetName:
+    Value: !Ref SeedBudget
+  ProjectCostAnomalyMonitorArn:
+    Value: !Ref ProjectCostAnomalyMonitor
+  DeploymentFailureRuleArn:
+    Value: !GetAtt DeploymentFailureEvents.Arn
+  AlarmRecoveryRuleArn:
+    Value: !GetAtt AlarmRecoveryEvents.Arn
+  RuntimeDashboardName:
+    Value: !Ref RuntimeDashboard

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "profileId": "datahike-dynamodb",
+  "environment": "dynamodb-local",
+  "status": "passed-local-only",
+  "completedAt": "2026-08-26T00:33:22Z",
+  "currentClosure": {
+    "foundationSourceDigest": "sha256:b669fe8a075cb4fff9cb2e8dc2c548c1e2d7c397eeac8bd92faac99a617a44e0",
+    "foundationSourceDigestMethod": "sha256(sorted relative-path NUL file-sha256 LF)",
+    "lambdaArtifactSha256": "25a01d606c395b86e5089e59a45c6eb0703bdf0d46b3346d562e03493d9ed78d",
+    "lambdaArtifactBytes": 20548229,
+    "pinnedJava25QualificationRun": true,
+    "deploymentEligible": false
+  },
+  "artifactQualification": {
+    "result": "passed",
+    "operatingSystem": "Amazon Linux 2023 x86_64",
+    "containerImage": "public.ecr.aws/amazonlinux/amazonlinux@sha256:26b860d6ace0e868b1dd786be29b2a6b32a213b72f43074043090512871e9532",
+    "node": "24.19.0",
+    "nodeArchiveSha256": "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647",
+    "java": "Eclipse Temurin 25.0.4+101.0.LTS",
+    "javaRuntime": "25.0.4.1+1-LTS",
+    "javaArchiveSha256": "dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e",
+    "clojureCli": "1.12.5.1664",
+    "clojureCliArchiveSha256": "77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3",
+    "buildsByteIdentical": true,
+    "kernelClassMajor": 69,
+    "packagedAuditPassed": true
+  },
+  "runtime": {
+    "version": "3.3.0",
+    "platform": "linux/arm64",
+    "image": "amazon/dynamodb-local@sha256:93b8debf91230fbd02b10fc0d87ed48f29c59044ed3287543a8c52200fa58191",
+    "hostBinding": "127.0.0.1:18000",
+    "storage": "in-memory",
+    "imageWasAlreadyCached": true
+  },
+  "tests": [
+    {
+      "namespace": "eacl-demo.datahike-dynamodb-local-test",
+      "testCount": 1,
+      "assertionCount": 8,
+      "failures": 0,
+      "errors": 0,
+      "evaluation": "persistent-nrepl-with-reload"
+    },
+    {
+      "namespace": "eacl-demo.datahike-dynamodb.full-local-reader-test",
+      "testCount": 1,
+      "assertionCount": 2,
+      "failures": 0,
+      "errors": 0,
+      "evaluation": "persistent-nrepl-with-reload"
+    }
+  ],
+  "proved": [
+    "strong read immediately observes a published item",
+    "empty item and missing table are distinct",
+    "malformed physical item is storage-corrupt",
+    "strong sparse batch read preserves genuine absence",
+    "Konserve backing consumes the hardened path",
+    "written Konserve/Datahike physical data opens through the serving reader",
+    "the serving reader captures an immutable EACL request snapshot",
+    "320 concurrent representative reads agree",
+    "the Lambda JAR is byte-for-byte reproducible with the exact pinned toolchain in pinned AL2023 x86_64",
+    "the packaged EACL kernel is Java 25 classfile major 69 and loads during the packaged audit",
+    "the packaged handler emits bounded redacted EMF request and non-SnapStart cold lifecycle signals without CloudWatch PutMetricData permission",
+    "disposable table is absent after cleanup"
+  ],
+  "notProvedByLocal": [
+    "real AWS IAM denial classification",
+    "real AWS throttling and service retry metadata",
+    "real AWS UnprocessedKeys behavior",
+    "real AWS network timeout behavior",
+    "canonical million-resource Datahike initialization and EACL workload",
+    "a production-safe resumable writer/seed implementation",
+    "actual Lambda execution, production table, seed, memory, or staged qualification"
+  ],
+  "cleanup": {
+    "tableNamesAfterRun": [],
+    "temporaryContainerStoppedAndRemoved": true,
+    "awsCalls": 0
+  }
+}

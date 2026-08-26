@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Retained Datomic DynamoDB generation without compute credentials.
+
+Parameters:
+  TableName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  GenerationId:
+    Type: String
+    AllowedPattern: "^[a-z0-9-]{3,80}$"
+  FixtureDigest:
+    Type: String
+    AllowedPattern: "^sha256:[a-f0-9]{64}$"
+  MaxReadRequestUnits:
+    Type: Number
+    Default: 250
+    MinValue: 1
+    MaxValue: 10000
+  MaxWriteRequestUnits:
+    Type: Number
+    Default: 200
+    MinValue: 1
+    MaxValue: 10000
+  PublicationPhase:
+    Type: String
+    Default: seed
+    AllowedValues:
+      - seed
+      - serving
+
+Conditions:
+  IsServing: !Equals [!Ref PublicationPhase, serving]
+
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      DeletionProtectionEnabled: true
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      OnDemandThroughput:
+        MaxReadRequestUnits: !Ref MaxReadRequestUnits
+        MaxWriteRequestUnits: !Ref MaxWriteRequestUnits
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TableClass: STANDARD
+      TableName: !Ref TableName
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datomic-dynamodb
+        - Key: Generation
+          Value: !Ref GenerationId
+        - Key: FixtureDigest
+          Value: !Ref FixtureDigest
+        - Key: PublicationPhase
+          Value: !Ref PublicationPhase
+        - Key: Workload
+          Value: !If [IsServing, eacl-demo-serving, eacl-demo-seed]
+      # SSESpecification is intentionally absent. DynamoDB uses its AWS-owned
+      # service key, avoiding a customer-managed KMS key and its monthly cost.
+
+Outputs:
+  TableName:
+    Value: !Ref Table
+  TableArn:
+    Value: !GetAtt Table.Arn
+  PublicationPhase:
+    Value: !Ref PublicationPhase

@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Immutable blue-green Datahike DynamoDB generation and temporary seed role.
+
+Parameters:
+  TableName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datahike-[a-z0-9-]{3,80}$"
+  GenerationId:
+    Type: String
+    AllowedPattern: "^[a-z0-9-]{3,80}$"
+  FixtureDigest:
+    Type: String
+    AllowedPattern: "^sha256:[a-f0-9]{64}$"
+  MaintenancePrincipalArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$"
+    Description: Exact stateful-workflow role allowed to assume the seed role.
+  MaxReadRequestUnits:
+    Type: Number
+    Default: 250
+    MinValue: 1
+    MaxValue: 10000
+  MaxWriteRequestUnits:
+    Type: Number
+    Default: 200
+    MinValue: 1
+    MaxValue: 10000
+  PublicationPhase:
+    Type: String
+    Default: seed
+    AllowedValues:
+      - seed
+      - serving
+
+Conditions:
+  IsServing: !Equals [!Ref PublicationPhase, serving]
+  IsSeed: !Not [!Condition IsServing]
+
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: Key
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      DeletionProtectionEnabled: true
+      KeySchema:
+        - AttributeName: Key
+          KeyType: HASH
+      OnDemandThroughput:
+        MaxReadRequestUnits: !Ref MaxReadRequestUnits
+        MaxWriteRequestUnits: !Ref MaxWriteRequestUnits
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TableClass: STANDARD
+      TableName: !Ref TableName
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Generation
+          Value: !Ref GenerationId
+        - Key: FixtureDigest
+          Value: !Ref FixtureDigest
+        - Key: PublicationPhase
+          Value: !Ref PublicationPhase
+        - Key: Workload
+          Value: !If [IsServing, eacl-demo-serving, eacl-demo-seed]
+      # SSESpecification is deliberately omitted: DynamoDB encryption at rest
+      # remains enabled with the zero-CMK-cost AWS-owned service key.
+
+  SeedRole:
+    Type: AWS::IAM::Role
+    Condition: IsSeed
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref MaintenancePrincipalArn
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+      Policies:
+        - PolicyName: exact-generation-seed-and-verify
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt Table.Arn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Access
+          Value: temporary-seed
+
+Outputs:
+  TableName:
+    Value: !Ref Table
+  TableArn:
+    Value: !GetAtt Table.Arn
+  SeedRoleArn:
+    Condition: IsSeed
+    Value: !GetAtt SeedRole.Arn
+  PublicationPhase:
+    Value: !Ref PublicationPhase

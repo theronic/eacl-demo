@@ -1,0 +1,31 @@
+{
+  "schema": "eacl-demo.workspace-layout.v1",
+  "applications": {
+    "main": "apps/explorer-main",
+    "datascript": "apps/explorer-datascript"
+  },
+  "packages": {
+    "contracts": "packages/contracts",
+    "explorerState": "packages/explorer-state",
+    "fixtureTypes": "packages/fixture-types",
+    "ui": "packages/ui"
+  },
+  "fixtures": "fixtures",
+  "services": {
+    "datahike-s3": "services/datahike-s3",
+    "datahike-dynamodb": "services/datahike-dynamodb",
+    "datomic-dynamodb": "services/datomic-dynamodb",
+    "datalevin-memory": "services/datalevin-memory",
+    "jank-memory": "services/jank-memory"
+  },
+  "infrastructure": {
+    "foundation": "infra/foundation",
+    "static": "infra/static",
+    "profiles": "infra/profiles",
+    "data": "infra/data",
+    "observability": "infra/observability",
+    "legacyCompatibility": "infra/legacy"
+  },
+  "verification": "verification",
+  "documentation": "docs"
+}

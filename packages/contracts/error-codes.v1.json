@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/error-codes.v1.schema.json",
+  "schema": "eacl-demo.error-codes.v1",
+  "errors": [
+    {"code": "validation-error", "httpStatus": 400, "retryable": false, "message": "The request is invalid."},
+    {"code": "request-too-large", "httpStatus": 413, "retryable": false, "message": "The request exceeds a public limit."},
+    {"code": "method-not-allowed", "httpStatus": 405, "retryable": false, "message": "The HTTP method is not allowed."},
+    {"code": "route-not-found", "httpStatus": 404, "retryable": false, "message": "The route is not available."},
+    {"code": "unsupported-media-type", "httpStatus": 415, "retryable": false, "message": "The content type is not supported."},
+    {"code": "cursor-invalid", "httpStatus": 400, "retryable": false, "message": "The cursor is malformed or has been altered."},
+    {"code": "cursor-expired", "httpStatus": 410, "retryable": false, "message": "The cursor has expired; restart from the first page."},
+    {"code": "cursor-scope-mismatch", "httpStatus": 409, "retryable": false, "message": "The cursor belongs to a different request or profile."},
+    {"code": "unsupported-consistency", "httpStatus": 422, "retryable": false, "message": "The requested consistency mode is not supported by this profile."},
+    {"code": "cancelled", "httpStatus": 499, "retryable": true, "message": "The request was cancelled."},
+    {"code": "deadline-exceeded", "httpStatus": 504, "retryable": true, "message": "The request deadline was exceeded."},
+    {"code": "overloaded", "httpStatus": 503, "retryable": true, "message": "The profile has reached its admission limit."},
+    {"code": "throttled", "httpStatus": 429, "retryable": true, "message": "A dependency throttled the request."},
+    {"code": "dependency-unavailable", "httpStatus": 503, "retryable": true, "message": "A required dependency is unavailable."},
+    {"code": "storage-missing", "httpStatus": 503, "retryable": false, "message": "Required immutable storage data is missing."},
+    {"code": "storage-corrupt", "httpStatus": 503, "retryable": false, "message": "Required immutable storage data failed integrity checks."},
+    {"code": "identity-mismatch", "httpStatus": 409, "retryable": false, "message": "The route or artifact identity does not match the registry."},
+    {"code": "response-too-large", "httpStatus": 500, "retryable": false, "message": "The bounded response could not be produced."},
+    {"code": "internal-error", "httpStatus": 500, "retryable": false, "message": "The request failed internally."}
+  ]
+}

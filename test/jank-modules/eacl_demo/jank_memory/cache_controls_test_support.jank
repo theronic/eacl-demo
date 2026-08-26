@@ -1,0 +1,58 @@
+(ns eacl-demo.jank-memory.cache-controls-test-support
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]))
+
+(def cache-demand
+  {:subject (eacl/spice-object :user "user-1")
+   :permission :admin
+   :resource (eacl/spice-object :account "account-0")})
+
+(def read-only-cache-demand
+  {:subject (eacl/spice-object :user "user-1")
+   :permission :admin
+   :resource (eacl/spice-object :account "account-0")
+   :populate-cache? false})
+
+(def bypass-cache-demand
+  {:subject (eacl/spice-object :user "user-1")
+   :permission :admin
+   :resource (eacl/spice-object :account "account-0")
+   :cache? false
+   :populate-cache? true})
+
+(defn verify!
+  [client]
+  ;; Locked EACL Core separates completed-cache lookup from publication. A
+  ;; read-only cache request may hit but cannot publish; :cache? false
+  ;; dominates either publication-control value and performs a true bypass.
+  (memory/expire-cache! client)
+  (let [before (:answer (memory/cache-stats client))
+        result
+        (eacl/check-permission client read-only-cache-demand)
+        after (:answer (memory/cache-stats client))]
+    (assert (false? (:cached? result)))
+    (assert (= (inc (:misses before)) (:misses after)))
+    (assert (= (:publications before) (:publications after)))
+    (assert (= 0 (:size after))))
+  (let [before (:answer (memory/cache-stats client))
+        result (eacl/check-permission client cache-demand)
+        after (:answer (memory/cache-stats client))]
+    (assert (false? (:cached? result)))
+    (assert (= (inc (:publications before)) (:publications after))))
+  (let [before (:answer (memory/cache-stats client))
+        result
+        (eacl/check-permission client read-only-cache-demand)
+        after (:answer (memory/cache-stats client))]
+    (assert (true? (:cached? result)))
+    (assert (= (:publications before) (:publications after))))
+  (memory/expire-cache! client)
+  (let [before (:answer (memory/cache-stats client))
+        result
+        (eacl/check-permission client bypass-cache-demand)
+        after (:answer (memory/cache-stats client))]
+    (assert (false? (:cached? result)))
+    (assert (= (inc (:bypasses before)) (:bypasses after)))
+    (assert (= (:misses before) (:misses after)))
+    (assert (= (:publications before) (:publications after)))
+    (assert (= 0 (:size after))))
+  true)

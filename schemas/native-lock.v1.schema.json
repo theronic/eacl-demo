@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/native-lock.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "development", "lambda"],
+  "properties": {
+    "$schema": {"const": "../schemas/native-lock.v1.schema.json"},
+    "schemaVersion": {"const": 1},
+    "development": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "jankExecutableSha256", "distributionRevision", "leinJank", "leinJankJarSha256", "compiler", "cxxStandard"],
+      "properties": {
+        "platform": {"type": "string"},
+        "jankExecutableSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "distributionRevision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "leinJank": {"type": "string"},
+        "leinJankJarSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "compiler": {"type": "string"},
+        "cxxStandard": {"const": 20}
+      }
+    },
+    "lambda": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "status", "ownerTask", "forbidDevelopmentFallback", "builderDefinition", "jankCommit", "baseImageDigest", "reason"],
+      "properties": {
+        "platform": {"const": "x86_64-unknown-linux-gnu-amazonlinux2023"},
+        "status": {"enum": ["unresolved-disabled", "builder-pinned-unqualified", "resolved-qualified"]},
+        "ownerTask": {"const": "11.1"},
+        "forbidDevelopmentFallback": {"const": true},
+        "builderDefinition": {"const": "dependencies/jank-linux-x86_64-builder.v1.json"},
+        "jankCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "baseImageDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

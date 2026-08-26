@@ -1,0 +1,33 @@
+(ns eacl.runtime.native.clock
+  "Process clock functions used by bounded execution and token timestamps.")
+
+(cpp/raw "#include <chrono>
+
+          namespace eacl_jank_clock
+          {
+            long long monotonic_nanos()
+            {
+              auto const value = std::chrono::steady_clock::now()
+                .time_since_epoch();
+              return std::chrono::duration_cast<std::chrono::nanoseconds>(value)
+                .count();
+            }
+
+            long long unix_time_millis()
+            {
+              auto const value = std::chrono::system_clock::now()
+                .time_since_epoch();
+              return std::chrono::duration_cast<std::chrono::milliseconds>(value)
+                .count();
+            }
+          }")
+
+(defn monotonic-nanos
+  "Return a process-local monotonic timestamp in nanoseconds."
+  []
+  (cpp/eacl_jank_clock.monotonic_nanos))
+
+(defn unix-time-millis
+  "Return milliseconds since the Unix epoch for expiry and issue timestamps."
+  []
+  (cpp/eacl_jank_clock.unix_time_millis))

@@ -1,0 +1,604 @@
+(ns eacl-demo.jank-memory.store
+  (:require [eacl.core :as eacl]
+            [eacl.cursor :as cursor]
+            [eacl.datomic.memory :as memory]
+            [eacl.datomic.memory.api :as memory-api]
+            [eacl.datomic.memory.db :as memory-db]
+            [eacl.datomic.memory.store :as memory-store]
+            [eacl.datomic.memory.transaction :as memory-transaction]
+            [eacl.engine.discovery :as discovery]
+            [eacl.relationships.endpoint-pair :as endpoint-pair]
+            [eacl.relationships.storage :as relationship-storage]
+            [eacl.runtime.native.crypto :as crypto]
+            [eacl.runtime.native.encoding :as encoding]
+            [eacl.schema.model :as schema-model]
+            [eacl.secure-keyring :as secure-keyring]
+            [eacl-demo.jank-memory.fixture :as fixture]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+;; Each relationship becomes two endpoint forms plus bounded relation stamps.
+;; The canonical 10k closure is below this explicit initialization-only cap.
+(def maximum-bootstrap-forms 80000)
+(def subject-cursor-ttl-seconds 900)
+(def verification-timeout-ms 3600000)
+(def expected-object-count 10080)
+(def expected-subject-count 80)
+(def expected-resource-count 10000)
+(def expected-relationship-count 38613)
+
+(def expected-object-types
+  {"account" 11 "platform" 1 "server" 9922 "team" 44 "user" 80
+   "vpc" 22})
+
+(def expected-resource-types
+  {"account" 11 "platform" 1 "server" 9922 "team" 44 "vpc" 22})
+
+(def expected-relationship-relations
+  {"account" 9988 "leader" 44 "owner" 13 "parent" 8690
+   "platform" 11 "shared_admin" 22 "super_admin" 1 "team" 9922
+   "vpc" 9922})
+
+(defn- fail!
+  [reason]
+  (throw
+   (ex-info
+    "Jank fixture initialization failed."
+    {:type :eacl-demo.jank/fixture-initialization-failed
+     :reason reason})))
+
+(defn- exact-keys?
+  [value expected]
+  (and (map? value) (= expected (set (keys value)))))
+
+(defn- identifier?
+  [value]
+  (and (string? value)
+       (pos? (count value))
+       (<= (count value) 256)
+       (boolean (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]*" value))))
+
+(defn- object-value
+  [value]
+  (when-not
+   (and (exact-keys? value #{"type" "id"})
+        (identifier? (get value "type"))
+        (identifier? (get value "id")))
+    (fail! :invalid-object-record))
+  value)
+
+(defn- relationship-value
+  [record]
+  (when-not
+   (and (exact-keys? record #{"kind" "subject" "relation" "resource"})
+        (= "relationship" (get record "kind"))
+        (identifier? (get record "relation")))
+    (fail! :invalid-relationship-record))
+  (let [subject (object-value (get record "subject"))
+        resource (object-value (get record "resource"))]
+    {:subject-type (get subject "type")
+     :subject-id (get subject "id")
+     :relation (get record "relation")
+     :resource-type (get resource "type")
+     :resource-id (get resource "id")}))
+
+(defn- object-record-value
+  [record]
+  (when-not
+   (and (exact-keys? record #{"kind" "object" "role"})
+        (= "object" (get record "kind"))
+        (contains? #{"subject" "resource"} (get record "role")))
+    (fail! :invalid-object-record))
+  (let [object (object-value (get record "object"))]
+    {:type (get object "type")
+     :id (get object "id")
+     :role (get record "role")}))
+
+(defn- object-key
+  [type id]
+  [type id])
+
+(defn- relationship-key
+  [value]
+  [(:subject-type value) (:subject-id value) (:relation value)
+   (:resource-type value) (:resource-id value)])
+
+(defn- wire-object
+  [type id]
+  {"type" type "id" id "displayName" id "attributes" []})
+
+(defn- catalog-object-tx
+  [{:keys [type id]}]
+  {:eacl/id id
+   (discovery/candidate-type-attribute (keyword type)) id})
+
+(defn- external-id->eid
+  [database]
+  (reduce
+   (fn [result datom]
+     (if (= :eacl/id (:a datom))
+       (assoc result (:v datom) (:e datom))
+       (reduced result)))
+   {}
+   (memory/seek-datoms database :avet :eacl/id)))
+
+(defn- resolve-relationship!
+  [identities value]
+  (let [subject-type (keyword (:subject-type value))
+        resource-type (keyword (:resource-type value))
+        relation (keyword (:relation value))
+        subject-eid (get identities (:subject-id value))
+        resource-eid (get identities (:resource-id value))
+        relation-eid
+        (get identities
+             (schema-model/->relation-id resource-type relation subject-type))]
+    (when-not (and subject-eid resource-eid relation-eid)
+      (fail! :unresolved-relationship-endpoint))
+    {:subject-eid subject-eid
+     :resource-eid resource-eid
+     :relation-eid relation-eid
+     :forward
+     (endpoint-pair/forward-value
+      subject-type relation-eid resource-type resource-eid)
+     :reverse
+     (endpoint-pair/reverse-value
+      resource-type relation-eid subject-type subject-eid)}))
+
+(defn- relationship-forms
+  [identities values]
+  (let [resolved (mapv #(resolve-relationship! identities %) values)
+        mutations
+        (mapcat
+         (fn [value]
+           [[:db/add (:subject-eid value)
+             relationship-storage/forward-attribute (:forward value)]
+            [:db/add (:resource-eid value)
+             relationship-storage/reverse-attribute (:reverse value)]])
+         resolved)
+        stamps
+        (mapv
+         (fn [relation-eid]
+           [:db/add relation-eid :eacl/relation-version :db/current-tx])
+         (distinct (map :relation-eid resolved)))
+        forms (into (vec mutations) stamps)]
+    (when (> (count forms) maximum-bootstrap-forms)
+      (fail! :relationship-bootstrap-too-large))
+    forms))
+
+(defn- bootstrap-transition!
+  [connection forms]
+  (when (> (count forms) maximum-bootstrap-forms)
+    (fail! :bootstrap-transaction-too-large))
+  (let [database (memory/db connection)
+        state-atom (:state connection)
+        before @state-atom
+        next-basis (inc (bigint (:basis before)))
+        result
+        (memory-transaction/apply-transaction
+         database (:next-eid before) next-basis forms (:config connection))
+        after-database
+        (memory-db/database
+         next-basis (:assertions result)
+         (:reference-attributes (:config connection)))
+        after
+        (assoc before
+               :basis next-basis
+               :next-eid (:next-eid result)
+               :current after-database
+               ;; Only the frozen serving basis is retained. Public handlers
+               ;; expose current/minimize, while EACL continuation cursors may
+               ;; return exactly to this one immutable value.
+               :history {next-basis after-database}
+               :last-transaction nil)]
+    ;; Initialization is single-threaded. Refuse a surprising concurrent
+    ;; writer instead of retrying a 77k-form deterministic bootstrap.
+    (when-not (compare-and-set! state-atom before after)
+      (fail! :concurrent-bootstrap-write))
+    (reset! (:token-cache connection) {})
+    true))
+
+(defn- seed-objects!
+  [connection objects]
+  (let [raw-forms
+        (into
+         [{:eacl/id "eacl-demo-candidate-catalog-v1"
+           discovery/candidate-catalog-version-attribute
+           discovery/candidate-catalog-version}]
+         (map catalog-object-tx objects))
+        forms
+        (mapv
+         (fn [index form] (assoc form :db/id (- (inc index))))
+         (range (count raw-forms)) raw-forms)]
+    (when-not (= (inc expected-object-count) (count forms))
+      (fail! :object-bootstrap-count-mismatch))
+    (bootstrap-transition! connection forms)))
+
+(defn- seed-relationships!
+  [connection relationships]
+  (let [identities (external-id->eid (memory/db connection))
+        forms (relationship-forms identities relationships)]
+    (bootstrap-transition! connection forms)))
+
+(defn- sha256-text
+  [value]
+  (crypto/sha-256 (encoding/utf8->hex value)))
+
+(defn- verify-packaged-inputs!
+  [{:keys [schema-path wire-schema-path exemplar-path manifest-path]}]
+  (let [schema-source (slurp schema-path)
+        exemplar-source (slurp exemplar-path)
+        wire-schema (runtime-api/parse-json (slurp wire-schema-path))
+        exemplars (runtime-api/parse-json exemplar-source)
+        manifest (runtime-api/parse-json (slurp manifest-path))]
+    (when-not
+     (and (= (subs fixture/expected-schema-digest 7)
+             (sha256-text schema-source))
+          (= (subs fixture/expected-exemplar-digest 7)
+             (sha256-text exemplar-source))
+          (= (subs fixture/expected-schema-digest 7)
+             (get wire-schema "sha256"))
+          (= fixture/fixture-id (get manifest "fixtureId"))
+          (= fixture/logical-resources
+             (get-in manifest ["cutPoint" "logicalResources"]))
+          (= fixture/expected-fixture-digest
+             (get-in manifest ["digests" "fixture"]))
+          (= fixture/expected-semantic-digest
+             (get-in manifest ["digests" "semanticRecords"]))
+          (= fixture/expected-manifest-digest
+             (get-in manifest ["digests" "manifest"]))
+          (= expected-object-count
+             (get-in manifest ["counts" "objects" "total"]))
+          (= expected-subject-count
+             (get-in manifest ["counts" "objects" "subjects" "total"]))
+          (= expected-resource-count
+             (get-in manifest ["counts" "objects" "resources" "total"]))
+          (= expected-relationship-count
+             (get-in manifest ["counts" "relationships" "total"]))
+          (= expected-object-types
+             (merge
+              (get-in manifest ["counts" "objects" "subjects" "byType"])
+              (get-in manifest ["counts" "objects" "resources" "byType"])))
+          (= expected-resource-types
+             (get-in manifest ["counts" "objects" "resources" "byType"]))
+          (= expected-relationship-relations
+             (get-in manifest ["counts" "relationships" "byRelation"]))
+          (= 14 (count (get exemplars "cases"))))
+      (fail! :packaged-fixture-identity-mismatch))
+    {:schema-source schema-source
+     :wire-schema wire-schema
+     :exemplars exemplars
+     :manifest manifest}))
+
+(defn- record-object!
+  [state record]
+  (let [{:keys [type id role] :as value} (object-record-value record)
+        key (object-key type id)]
+    (when (contains? (:objects @state) key)
+      (fail! :duplicate-object-record))
+    (swap! state
+           (fn [current]
+             (-> current
+                 (assoc-in [:objects key] value)
+                 (update :object-types update type (fnil inc 0))
+                 (update (if (= "subject" role) :subject-count
+                             :resource-count) inc)
+                 (cond-> (= "resource" role)
+                   (update :resource-types update type (fnil inc 0))))))))
+
+(defn- record-relationship!
+  [state relationships record]
+  (let [value (relationship-value record)
+        key (relationship-key value)]
+    (when (contains? (:relationship-keys @state) key)
+      (fail! :duplicate-relationship-record))
+    (swap! state
+           (fn [current]
+             (-> current
+                 (update :relationship-keys conj key)
+                 (update :relationship-count inc)
+                 (update :relationship-relations update (:relation value)
+                         (fnil inc 0))
+                 (update :relationship-resource-types
+                         update (:resource-type value) (fnil inc 0)))))
+    (swap! relationships conj value)))
+
+(defn- verify-references!
+  [objects relationships]
+  (loop [offset 0]
+    (when (< offset (count relationships))
+      (let [value (nth relationships offset)]
+        (when-not
+         (and (contains? objects
+                         (object-key (:subject-type value) (:subject-id value)))
+              (contains? objects
+                         (object-key (:resource-type value) (:resource-id value))))
+          (fail! :dangling-relationship))
+        (recur (inc offset))))))
+
+(defn- verify-logical-counts!
+  [state]
+  (when-not
+   (and (= expected-object-count (count (:objects state)))
+        (= expected-object-count
+           (+ (:subject-count state) (:resource-count state)))
+        (= expected-subject-count (:subject-count state))
+        (= expected-resource-count (:resource-count state))
+        (= expected-relationship-count (:relationship-count state))
+        (= expected-object-types (:object-types state))
+        (= expected-resource-types (:resource-types state))
+        (= expected-relationship-relations (:relationship-relations state)))
+    (fail! :logical-count-mismatch)))
+
+(defn- endpoint
+  [value]
+  (eacl/spice-object (keyword (get value "type")) (get value "id")))
+
+(defn- demand
+  [value]
+  {:subject (endpoint (get value "subject"))
+   :permission (keyword (get value "permission"))
+   :resource (endpoint (get value "resource"))
+   :cache? false
+   :timeout-ms verification-timeout-ms})
+
+(defn- ids
+  [page]
+  (mapv #(get % :id) (:data page)))
+
+(defn- verify-decision-exemplar!
+  [client exemplar]
+  (let [result (eacl/check-permission client (demand (get exemplar "demand")))]
+    (when-not (= (get-in exemplar ["expected" "allowed"])
+                 (:allowed? result))
+      (fail! :decision-exemplar-mismatch))))
+
+(defn- verify-duplicate-exemplar!
+  [connection client exemplar]
+  (let [value (get exemplar "relationship")
+        relation (eacl/relationship
+                  (endpoint (get value "subject"))
+                  (keyword (get value "relation"))
+                  (endpoint (get value "resource")))
+        before (memory/basis-t (memory/db connection))]
+    (eacl/write-relationship! client :touch (:subject relation)
+                              (:relation relation) (:resource relation))
+    (eacl/write-relationship! client :touch (:subject relation)
+                              (:relation relation) (:resource relation))
+    (when-not (= before (memory/basis-t (memory/db connection)))
+      (fail! :duplicate-touch-was-not-idempotent))))
+
+(defn- verify-resource-lookup-exemplar!
+  [client exemplar]
+  (let [query (get exemplar "query")
+        page (eacl/lookup-resources
+              client
+              {:subject (endpoint (get query "subject"))
+               :permission (keyword (get query "permission"))
+               :resource/type (keyword (get query "resourceType"))
+               :first 100
+               :cache? false
+               :timeout-ms verification-timeout-ms})
+        expected (get exemplar "expected")]
+    (when-not
+     (and (= (get expected "count") (count (:data page)))
+          (= (get-in expected ["first" "id"])
+             (get-in page [:data 0 :id])))
+      (fail! :resource-lookup-exemplar-mismatch))))
+
+(defn- verify-subject-lookup-exemplar!
+  [client exemplar]
+  (let [query (get exemplar "query")
+        page (eacl/lookup-subjects
+              client
+              {:subject/type (keyword (get query "subjectType"))
+               :permission (keyword (get query "permission"))
+               :resource (endpoint (get query "resource"))
+               :first 100
+               :cache? false
+               :timeout-ms verification-timeout-ms})
+        found (set (ids page))
+        expected (get exemplar "expected")]
+    (when-not
+     (and (every? found (get expected "containsIds"))
+          (not-any? found (get expected "excludesIds")))
+      (fail! :subject-lookup-exemplar-mismatch))))
+
+(defn- verify-filter-exemplar!
+  [client exemplar]
+  (let [query (get exemplar "query")
+        relationship-filter (get query "relationshipFilter")
+        page (eacl/lookup-resources
+              client
+              {:subject (endpoint (get query "subject"))
+               :permission (keyword (get query "permission"))
+               :resource/type (keyword (get query "resourceType"))
+               :resource/relationship
+               {:relation (keyword (get relationship-filter "relation"))
+                :subject (endpoint (get relationship-filter "subject"))}
+               :first 100
+               :cache? false
+               :timeout-ms verification-timeout-ms})]
+    (when-not (= (get-in exemplar ["expected" "ids"]) (ids page))
+      (fail! :relationship-filter-exemplar-mismatch))))
+
+(defn- verify-count-exemplar!
+  [client exemplar]
+  (let [query (get exemplar "query")
+        result (eacl/count-resources
+                client
+                {:subject (endpoint (get query "subject"))
+                 :permission (keyword (get query "permission"))
+                 :resource/type (keyword (get query "resourceType"))
+                 :count-limit (get query "limit")
+                 :cache? false
+                 :timeout-ms verification-timeout-ms})
+        expected (get exemplar "expected")]
+    (when-not
+     (and (= (get expected "count") (:count result))
+          (= (get expected "truncated") (:truncated? result)))
+      (fail! :count-exemplar-mismatch))))
+
+(defn- collect-pagination!
+  [client query page-size]
+  (loop [after nil
+         pages 0
+         result []]
+    (when (> pages 100)
+      (fail! :pagination-exemplar-did-not-terminate))
+    (let [page
+          (eacl/lookup-resources
+           client
+           (cond->
+            {:subject (endpoint (get query "subject"))
+             :permission (keyword (get query "permission"))
+             :resource/type (keyword (get query "resourceType"))
+             :first page-size
+             :cache? false
+             :timeout-ms verification-timeout-ms}
+             after (assoc :after after)))
+          next-result (into result (ids page))]
+      (if (get-in page [:page-info :has-next-page?])
+        (recur (get-in page [:page-info :end-cursor])
+               (inc pages) next-result)
+        next-result))))
+
+(defn- verify-pagination-exemplar!
+  [client exemplar]
+  (let [query (get exemplar "query")
+        page-size (get query "pageSize")
+        result (collect-pagination! client query page-size)
+        expected (get exemplar "expected")]
+    (when-not
+     (and (= (get expected "firstPageIds")
+             (vec (take page-size result)))
+          (= (get expected "concatenatedCount") (count result))
+          (= (count result) (count (distinct result))))
+      (fail! :pagination-exemplar-mismatch))))
+
+(defn- verify-exemplars!
+  [connection client exemplars]
+  (let [cases (get exemplars "cases")]
+    (loop [remaining (seq cases)
+           verified #{}]
+      (if-not remaining
+        (when-not (= 14 (count verified))
+          (fail! :exemplar-coverage-mismatch))
+        (let [exemplar (first remaining)
+              id (get exemplar "id")
+              kind (get exemplar "kind")]
+          (when (or (not (identifier? id)) (contains? verified id))
+            (fail! :invalid-exemplar-identity))
+          ;; Pinned Jank lowers string `case` tests through raw C arrays; the
+          ;; 15-byte "lookup-subjects" label produces invalid C++ array
+          ;; assignment in JIT mode. Closed equality branches retain exact
+          ;; dispatch semantics without crossing that compiler defect.
+          (cond
+            (= "decision" kind)
+            (verify-decision-exemplar! client exemplar)
+
+            (= "duplicate-relationship" kind)
+            (verify-duplicate-exemplar! connection client exemplar)
+
+            (= "lookup-resources" kind)
+            (if (= "team-relationship-filter" id)
+              (verify-filter-exemplar! client exemplar)
+              (verify-resource-lookup-exemplar! client exemplar))
+
+            (= "lookup-subjects" kind)
+            (verify-subject-lookup-exemplar! client exemplar)
+
+            (= "count-resources" kind)
+            (verify-count-exemplar! client exemplar)
+
+            (= "pagination" kind)
+            (verify-pagination-exemplar! client exemplar)
+
+            :else
+            (fail! :unsupported-exemplar-kind))
+          (recur (next remaining) (conj verified id)))))))
+
+(defn initialize!
+  [{:keys [fixture-path schema-path wire-schema-path exemplar-path manifest-path]
+    :as paths}]
+  (when-not
+   (and (= #{:fixture-path :schema-path :wire-schema-path :exemplar-path
+            :manifest-path}
+           (set (keys paths)))
+        (every? #(and (string? %) (not (empty? %))) (vals paths)))
+    (fail! :invalid-initialization-paths))
+  (let [{:keys [schema-source wire-schema exemplars manifest]}
+        (verify-packaged-inputs! paths)
+        security-key (crypto/secure-random-hex 32)
+        keyring (secure-keyring/keyring
+                 {:active-kid "jank-memory-v1"
+                  :keys {"jank-memory-v1" security-key}})
+        connection (memory/connect {:history-limit 4 :token-keyring keyring
+                                    :token-ttl-seconds 900})
+        client (memory/make-client
+                connection
+                {:security-keyring keyring
+                 :cursor-ttl-seconds 900
+                 :execution-timeout-ms 10000
+                 :cache {:max-entries 2048}})
+        _ (eacl/write-schema! client schema-source)
+        state (atom {:objects {}
+                     :object-types {}
+                     :resource-types {}
+                     :subject-count 0
+                     :resource-count 0
+                     :relationship-keys #{}
+                     :relationship-count 0
+                     :relationship-relations {}
+                     :relationship-resource-types {}})
+        relationships (atom [])
+        evidence
+        (fixture/verify-stream!
+         fixture-path
+         (fn [record]
+           (let [kind (get record "kind")]
+             (cond
+               (= "object" kind) (record-object! state record)
+               (= "relationship" kind)
+               (record-relationship! state relationships record)
+               :else (fail! :unknown-fixture-record-kind)))))]
+    (verify-logical-counts! @state)
+    (verify-references! (:objects @state) @relationships)
+    ;; The exact 10,080-object catalog is bounded and applied once so the
+    ;; immutable store builds its indexes once rather than at every stream
+    ;; chunk. Stream parsing and validation still occur record by record.
+    (seed-objects! connection (vec (vals (:objects @state))))
+    ;; The 38,613 verified records become 77,226 paired endpoint forms plus a
+    ;; finite relation-stamp set. Applying that exact bounded closure once
+    ;; avoids ten full immutable-index rebuilds during every cold start.
+    (seed-relationships! connection @relationships)
+    (when-not (= expected-relationship-count
+                 (count (:relationship-keys @state)))
+      (fail! :relationship-set-mismatch))
+    (verify-exemplars! connection client exemplars)
+    (let [basis (memory/basis-t (memory/db connection))
+          objects (->> (:objects @state)
+                       vals
+                       (sort-by (fn [value] [(:type value) (:id value)]))
+                       vec)
+          subjects (->> objects (filter #(= "subject" (:role %))) vec)]
+      {:ready true
+       :frozen true
+       :client client
+       :basis-t basis
+       :source-scope (memory-store/identities connection)
+       :schema-generation (memory-api/schema-generation (memory/db connection))
+       :cursor-keyring keyring
+       :cursor-snapshot-token (memory/causal-token connection)
+       :cursor-proof
+       (cursor/fingerprint
+        [:eacl-demo.jank-memory/subject-catalog-v1
+         fixture/expected-manifest-digest basis])
+       :objects objects
+       :subjects subjects
+       :object-index (:objects @state)
+       :object-types (:object-types @state)
+       :resource-types (:resource-types @state)
+       :relationship-count (:relationship-count @state)
+       :relationship-resource-types (:relationship-resource-types @state)
+       :wire-schema wire-schema
+       :fixture-evidence evidence
+       :fixture-manifest manifest})))

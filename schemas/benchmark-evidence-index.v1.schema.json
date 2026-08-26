@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/benchmark-evidence-index.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema", "contractVersion", "indexId", "publishedAt", "evidence"],
+  "properties": {
+    "$schema": {"const": "../../schemas/benchmark-evidence-index.v1.schema.json"},
+    "schema": {"const": "eacl-demo.benchmark-evidence-index.v1"},
+    "contractVersion": {"const": "explorer.v1"},
+    "indexId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "publishedAt": {"type": "string", "format": "date-time"},
+    "evidence": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/summary"}}
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "backend", "profiles", "measuredAt", "expiresAt", "path", "sha256"],
+      "properties": {
+        "evidenceId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+        "profiles": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "string"}},
+        "measuredAt": {"type": "string", "format": "date-time"},
+        "expiresAt": {"type": "string", "format": "date-time"},
+        "path": {"type": "string", "pattern": "^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

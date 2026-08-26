@@ -1,0 +1,142 @@
+name: Deploy demos
+
+on:
+  push:
+    branches: [demos]
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ARTIFACT_BUCKET: ${{ vars.EACL_DEMO_ARTIFACT_BUCKET }}
+  STATIC_BUCKET: ${{ vars.EACL_DEMO_STATIC_BUCKET }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.EACL_DEMO_DISTRIBUTION_ID }}
+  EACL_DEMO_SHA: ${{ github.sha }}
+
+jobs:
+  static-and-datascript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run build:static-site
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-static-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: node scripts/deploy-live-demo.mjs static
+
+  datahike-s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
+      - run: npm run build:datahike-s3-lambda
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datahike-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: node scripts/deploy-live-demo.mjs datahike-s3
+
+  datomic-dynamodb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
+      - run: npm run build:datomic-lambda
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datomic-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: node scripts/deploy-live-demo.mjs datomic-dynamodb
+
+  datalevin-memory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: theronic/datalevin
+          ref: a7e29c25a3034b54814e58a2d317e8c6877d1933
+          path: target/eacl-core-source/datalevin
+          persist-credentials: false
+      - name: Fetch exact AL2023 arm64 native dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/datalevin-native-al2023
+          curl --fail --location --retry 3 \
+            --output dist/datalevin-native-al2023/dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar \
+            https://github.com/theronic/eacl-demo/releases/download/datalevin-native-v0.18.8-eacl.al2023.1/dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar
+          echo "be264ee95cf67148194a87b9ef9d533d74caa7dbb2f64bac29a1e159498dcb63  dist/datalevin-native-al2023/dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar" | sha256sum --check --strict
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
+      - run: npm run build:datalevin-memory-lambda
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datalevin-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - run: node scripts/deploy-live-demo.mjs datalevin-memory

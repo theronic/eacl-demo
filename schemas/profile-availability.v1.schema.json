@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/profile-availability.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema", "profiles"],
+  "properties": {
+    "$schema": {"const": "../../schemas/profile-availability.v1.schema.json"},
+    "schema": {"const": "eacl-demo.profile-availability.v1"},
+    "profiles": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "state", "reason"],
+        "properties": {
+          "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
+          "state": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
+          "reason": {"type": ["string", "null"]}
+        },
+        "allOf": [
+          {"if": {"properties": {"state": {"const": "enabled"}}}, "then": {"properties": {"reason": {"type": "null"}}}},
+          {"if": {"properties": {"state": {"enum": ["disabled", "qualifying", "unavailable"]}}}, "then": {"properties": {"reason": {"type": "string", "minLength": 12, "maxLength": 320}}}}
+        ]
+      }
+    }
+  }
+}

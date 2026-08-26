@@ -1,0 +1,111 @@
+{
+  "$schema": "eacl-demo.datalevin-native-al2023-builder.v1",
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-26T12:39:00Z",
+  "status": "locally-qualified-unpublished-candidate",
+  "deploymentEligible": false,
+  "builder": {
+    "orchestrator": "scripts/build-datalevin-native-al2023.mjs",
+    "orchestratorSha256": "89319eea5de1cb89c1d7c703c98d6e7db62d31fff475bb67ff2790b0581b82a5",
+    "definition": "infra/builders/datalevin-native-al2023-arm64.Dockerfile",
+    "definitionSha256": "7117a74d0c1686a2abd5d045814b61e886b62020948899a53325cbba3e434729",
+    "rpathPatch": "infra/builders/datalevin-native-al2023-rpath.patch",
+    "rpathPatchSha256": "a16c047a44fc53cd9f19ec6b18900f6fc4218a896589392fd1aa7bd1b433fc6b",
+    "smokeSource": "infra/builders/datalevin-native/NativeInMemorySmoke.java",
+    "smokeSourceSha256": "8d55fcf75113cc97ac794f1d6208eb85baaf18e067de4be2ec267c723e722f19",
+    "baseImage": {
+      "repository": "public.ecr.aws/amazonlinux/amazonlinux",
+      "release": "2023.12.20260817",
+      "indexDigest": "sha256:5d271dd33b628252c31c15f5449e50d7c4e9f93badf9342f9b1e2a8d326fbe84",
+      "arm64ManifestDigest": "sha256:d114e9857686bd3faa025755505a293f281cbcca7800890baa6db899832a0060",
+      "glibc": "2.34"
+    },
+    "lambdaBaseImage": {
+      "repository": "public.ecr.aws/lambda/java",
+      "tagObserved": "25",
+      "indexDigest": "sha256:2d83f948bb34e8442ae87cc40619c60f25d1ce34065bb1aa28c977d038447cdb",
+      "arm64ManifestDigest": "sha256:2db07309181969fade96d0cb251b5f51ffb64ed1eb729b16cb6feaa74a63bb7c",
+      "java": "25.0.4.1+8",
+      "glibc": "2.34"
+    },
+    "source": {
+      "repository": "https://github.com/juji-io/dtlvnative.git",
+      "tag": "0.18.8",
+      "commit": "5b52192dd81c65edc2a9322a49dd9466e4941772",
+      "submodules": {
+        "src/llama.cpp": "12127defda4f41b7679cb2477a4b0d65ee6a0c8f",
+        "src/lmdb": "d79120e2e8df712aae940325ea4d2a8b800ff17e",
+        "src/usearch": "cc23bbaf21ef52313c5a495adbc40cbd733cdcfb",
+        "src/usearch/numkong": "48cbd21db85c013f0faebdbbe07b0feed1dd9e7c",
+        "src/usearch/stringzilla": "30d3e2129654d8269b3f66726414f9694c834e25"
+      }
+    },
+    "javacpp": {
+      "version": "1.5.13",
+      "artifactSha256": "077f27d663cc928adce43e912a90ec06f97f92f120ca02d414735ae0fb1c743c"
+    },
+    "java": "25.0.4+7",
+    "classRelease": 21,
+    "gcc": "11.5.0-5.amzn2023.0.5",
+    "patchelf": "0.17.0-1.amzn2023.0.2"
+  },
+  "native": {
+    "coordinate": "qualification-only/unpublished",
+    "version": "0.18.8-eacl.al2023.1",
+    "artifactFile": "dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar",
+    "artifactBytes": 3579574,
+    "artifactSha256": "be264ee95cf67148194a87b9ef9d533d74caa7dbb2f64bac29a1e159498dcb63",
+    "platform": "linux/arm64",
+    "libraries": [
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libdtlv.so",
+        "sha256": "7ae622c767170a6f054e0f315d5bde26047f12dd0b6b45a8200f4c5fa611cb68",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.34",
+        "needed": ["libc.so.6", "libgcc_s.so.1", "libgomp.so.1", "libm.so.6"],
+        "runtimePaths": ["$ORIGIN"]
+      },
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libgomp.so",
+        "sha256": "d9b54154f8ce611b36aa70ec292073f63f3136a371805c0cedb402065f4a61e5",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.34",
+        "needed": ["libc.so.6"],
+        "runtimePaths": []
+      },
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libjniDTLV.so",
+        "sha256": "1483ac2e011a569d996b34becbf72c9865e38c244ef63548daaa97b2b4e7ec36",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.34",
+        "needed": ["libc.so.6", "libdtlv.so", "libgcc_s.so.1", "libm.so.6", "libstdc++.so.6"],
+        "runtimePaths": ["$ORIGIN"]
+      }
+    ],
+    "lambdaRuntime": "java25",
+    "lambdaOperatingSystem": "Amazon Linux 2023",
+    "lambdaGlibc": "2.34",
+    "abiCompatible": true
+  },
+  "qualification": {
+    "firstBuildPassed": true,
+    "noCacheRebuildPassed": true,
+    "byteForByteReproducible": true,
+    "nativeLoadPassed": true,
+    "mdbInMemoryRoundTripPassed": true,
+    "exactLambdaJava25ImageSmokePassed": true,
+    "absoluteRuntimePathsAbsent": true,
+    "smokeOutputSha256": "cc7933b52f67a9a967df7fad0ba9ab79ce861535045c167c171851fb28dfd8d6"
+  },
+  "publication": {
+    "published": false,
+    "immutableCoordinateReserved": false,
+    "cleanRemoteConsumerInstallPassed": false
+  },
+  "promotionBlockers": [
+    "Choose and reserve a maintained immutable release coordinate instead of overwriting upstream 0.18.8.",
+    "Publish exactly the qualified bytes or a byte-identical no-cache rebuild with provenance.",
+    "Pass a clean remote-consumer install without local files or sibling repositories.",
+    "Integrate the released native closure with the maintained Datalevin fork, EACL adapter, Lambda service, and lifecycle qualification."
+  ]
+}

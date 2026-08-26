@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "eacl-demo-fixture-v1",
+  "algorithm": {
+    "id": "eacl-demo-fixture",
+    "version": 1,
+    "seed": "20260813",
+    "generatorSource": "packages/fixture-generator/generator.mjs",
+    "generatorDigest": "sha256:095feb537a028ce84132b19f827efd942993bd6ee3c2ca747fe8ded946ede957",
+    "arithmetic": "unsigned-64-bit-modulo-2^64"
+  },
+  "cutPoint": {
+    "logicalResources": 1000000,
+    "semanticPrefixOf": null
+  },
+  "format": {
+    "mediaType": "application/x-ndjson",
+    "canonicalization": "UTF-8; lexicographically sorted object keys; LF after every record",
+    "headerRecords": 1,
+    "recordKinds": [
+      "object",
+      "relationship"
+    ]
+  },
+  "schema": {
+    "source": "fixtures/schema.v1.zed",
+    "digest": "sha256:7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c",
+    "definitions": 6,
+    "relations": 13,
+    "permissions": 9
+  },
+  "exemplars": {
+    "source": "fixtures/exemplars.v1.json",
+    "digest": "sha256:1d144a8031c29057bf553cd832549781233351c40e02d0010c127fd3134a93f2",
+    "cases": 14
+  },
+  "counts": {
+    "bundles": 1000000,
+    "objects": {
+      "total": 1001585,
+      "subjects": {
+        "total": 1585,
+        "byType": {
+          "user": 1585
+        }
+      },
+      "resources": {
+        "total": 1000000,
+        "byType": {
+          "account": 226,
+          "platform": 1,
+          "server": 998417,
+          "team": 904,
+          "vpc": 452
+        }
+      }
+    },
+    "relationships": {
+      "total": 3872112,
+      "unique": 3872112,
+      "byRelation": {
+        "account": 999773,
+        "leader": 904,
+        "owner": 228,
+        "parent": 873694,
+        "platform": 226,
+        "shared_admin": 452,
+        "super_admin": 1,
+        "team": 998417,
+        "vpc": 998417
+      }
+    },
+    "records": {
+      "total": 4873697,
+      "canonicalBytes": 690297485
+    }
+  },
+  "prefixProofs": {
+    "10000": {
+      "recordCount": 48693,
+      "recordsDigest": "sha256:3bf7618d9276f6597e529cb064a46f95c97b2db7a4918b4dfde36c318aebd9cb"
+    },
+    "1000000": {
+      "recordCount": 4873697,
+      "recordsDigest": "sha256:60d1e2aa531bd20025b2a5fe068657a1b1366c60b265f4ca0cf5bebddf5a3dad"
+    }
+  },
+  "digests": {
+    "fixture": "sha256:102bb7c51779bb66ab343dabff42019af95f99bded708e214b13fd56ab3bf33c",
+    "semanticRecords": "sha256:60d1e2aa531bd20025b2a5fe068657a1b1366c60b265f4ca0cf5bebddf5a3dad",
+    "manifest": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+  }
+}

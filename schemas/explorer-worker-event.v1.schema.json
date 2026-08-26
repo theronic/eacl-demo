@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/explorer-worker-event.v1.schema.json",
+  "$defs": {
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "clientEpoch": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+    "baseProperties": {
+      "contractVersion": {"const": "explorer.v1"}, "profileId": {"const": "datascript-browser-memory"},
+      "requestId": {"$ref": "#/$defs/requestId"}, "clientEpoch": {"$ref": "#/$defs/clientEpoch"}
+    },
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profileId", "demoSha", "eaclSha", "artifactSha256", "deploymentId", "dataManifestSha256"],
+      "properties": {
+        "profileId": {"const": "datascript-browser-memory"},
+        "demoSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "eaclSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "artifactSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "deploymentId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "dataManifestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "contractVersion", "profileId", "requestId", "clientEpoch", "identity"],
+      "properties": {
+        "type": {"const": "initialized"}, "contractVersion": {"const": "explorer.v1"}, "profileId": {"const": "datascript-browser-memory"},
+        "requestId": {"$ref": "#/$defs/requestId"}, "clientEpoch": {"$ref": "#/$defs/clientEpoch"}, "identity": {"$ref": "#/$defs/identity"}
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "contractVersion", "profileId", "requestId", "clientEpoch", "response"],
+      "properties": {
+        "type": {"const": "response"}, "contractVersion": {"const": "explorer.v1"}, "profileId": {"const": "datascript-browser-memory"},
+        "requestId": {"$ref": "#/$defs/requestId"}, "clientEpoch": {"$ref": "#/$defs/clientEpoch"},
+        "response": {"$ref": "explorer-response.v1.schema.json"}
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "contractVersion", "profileId", "requestId", "clientEpoch", "phase", "completed", "total", "message"],
+      "properties": {
+        "type": {"const": "progress"}, "contractVersion": {"const": "explorer.v1"}, "profileId": {"const": "datascript-browser-memory"},
+        "requestId": {"$ref": "#/$defs/requestId"}, "clientEpoch": {"$ref": "#/$defs/clientEpoch"},
+        "phase": {"enum": ["fixture-generation", "fixture-seed", "ready", "canceled"]},
+        "completed": {"type": "integer", "minimum": 0, "maximum": 10000}, "total": {"const": 10000},
+        "message": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "contractVersion", "profileId", "requestId", "clientEpoch", "error"],
+      "properties": {
+        "type": {"const": "protocol-error"}, "contractVersion": {"const": "explorer.v1"}, "profileId": {"const": "datascript-browser-memory"},
+        "requestId": {"$ref": "#/$defs/requestId"}, "clientEpoch": {"$ref": "#/$defs/clientEpoch"},
+        "error": {
+          "type": "object", "additionalProperties": false, "required": ["code", "message", "retryable"],
+          "properties": {"code": {"enum": ["validation-error", "identity-mismatch", "unsupported-consistency"]}, "message": {"type": "string", "minLength": 1, "maxLength": 256}, "retryable": {"type": "boolean"}}
+        }
+      }
+    }
+  ]
+}

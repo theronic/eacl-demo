@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/error-codes.v1.schema.json",
+  "type": "object", "additionalProperties": false, "required": ["$schema", "schema", "errors"],
+  "properties": {
+    "$schema": {"const": "../../schemas/error-codes.v1.schema.json"},
+    "schema": {"const": "eacl-demo.error-codes.v1"},
+    "errors": {"type": "array", "minItems": 19, "maxItems": 19, "items": {"$ref": "#/$defs/error"}}
+  },
+  "$defs": {
+    "code": {"enum": ["validation-error", "request-too-large", "method-not-allowed", "route-not-found", "unsupported-media-type", "cursor-invalid", "cursor-expired", "cursor-scope-mismatch", "unsupported-consistency", "cancelled", "deadline-exceeded", "overloaded", "throttled", "dependency-unavailable", "storage-missing", "storage-corrupt", "identity-mismatch", "response-too-large", "internal-error"]},
+    "error": {
+      "type": "object", "additionalProperties": false, "required": ["code", "httpStatus", "retryable", "message"],
+      "properties": {"code": {"$ref": "#/$defs/code"}, "httpStatus": {"type": "integer", "minimum": 400, "maximum": 599}, "retryable": {"type": "boolean"}, "message": {"type": "string", "minLength": 1, "maxLength": 160}}
+    }
+  }
+}

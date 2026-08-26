@@ -1,0 +1,94 @@
+(ns eacl-demo.jank-memory.fixture)
+
+(cpp/raw "#include \"fixture_reader.hpp\"")
+
+(def fixture-id "eacl-demo-fixture-v1")
+(def logical-resources 10000)
+(def expected-records 48693)
+(def expected-canonical-bytes 6753401)
+(def expected-fixture-digest
+  "sha256:ec47ae57973bc7e9c580709410e530a7ac64acd24c01f9e3161489e8ebd58dfd")
+(def expected-semantic-digest
+  "sha256:3bf7618d9276f6597e529cb064a46f95c97b2db7a4918b4dfde36c318aebd9cb")
+(def expected-schema-digest
+  "sha256:7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c")
+(def expected-exemplar-digest
+  "sha256:1d144a8031c29057bf553cd832549781233351c40e02d0010c127fd3134a93f2")
+(def expected-manifest-digest
+  "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a")
+
+(defn- provider-failure!
+  [operation reason]
+  (throw
+   (ex-info
+    "Canonical fixture provider failed."
+    {:type :eacl-demo.jank/fixture-provider-failure
+     :operation operation
+     :reason reason})))
+
+(defn- decode
+  [operation result]
+  (when-not (and (string? result) (pos? (count result)))
+    (provider-failure! operation :invalid-provider-result))
+  (case (subs result 0 1)
+    "1" {:status :value :value (read-string (subs result 1))}
+    "2" {:status :end}
+    (provider-failure! operation (subs result 1))))
+
+(defn open!
+  [file-name]
+  (:value
+   (decode :open (cpp/eacl_demo_jank_fixture.open file-name))))
+
+(defn next-record!
+  []
+  (decode :next (cpp/eacl_demo_jank_fixture.next)))
+
+(defn finish!
+  []
+  (let [evidence
+        (:value
+         (decode :finish (cpp/eacl_demo_jank_fixture.finish)))]
+    (when-not
+     (= {"fixtureSha256" expected-fixture-digest
+         "semanticRecordsSha256" expected-semantic-digest
+         "recordCount" expected-records
+         "canonicalBytes" expected-canonical-bytes}
+        evidence)
+      (throw
+       (ex-info
+        "Canonical fixture identity does not match the accepted manifest."
+        {:type :eacl-demo.jank/fixture-identity-mismatch})))
+    evidence))
+
+(defn close!
+  []
+  (cpp/eacl_demo_jank_fixture.close)
+  true)
+
+(defn verify-stream!
+  [file-name consume]
+  (let [header (open! file-name)]
+    (try
+      (when-not
+       (= {"algorithm" "eacl-demo-fixture"
+           "algorithmVersion" 1
+           "cutPointResources" logical-resources
+           "exemplarDigest" expected-exemplar-digest
+           "fixtureId" fixture-id
+           "kind" "fixture"
+           "schemaDigest" expected-schema-digest
+           "seed" "20260813"}
+          header)
+        (throw
+         (ex-info
+          "Canonical fixture header is not accepted."
+          {:type :eacl-demo.jank/fixture-identity-mismatch})))
+      (loop []
+        (let [record (next-record!)]
+          (when (= :value (:status record))
+            (consume (:value record))
+            (recur))))
+      (finish!)
+      (finally
+        (close!)))))

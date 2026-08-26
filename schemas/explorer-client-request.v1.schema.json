@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/explorer-client-request.v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["contractVersion", "profileId", "requestId", "operation", "input"],
+  "properties": {
+    "contractVersion": {"const": "explorer.v1"},
+    "profileId": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]},
+    "input": {"type": "object", "maxProperties": 32}
+  }
+}

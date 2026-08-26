@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minimal demos-branch deployment role for already-provisioned EACL demo resources.
+
+Parameters:
+  GitHubOidcProviderArn:
+    Type: String
+    AllowedPattern: "^arn:aws:iam::[0-9]{12}:oidc-provider/token.actions.githubusercontent.com$"
+  ArtifactBucketArn:
+    Type: String
+    AllowedPattern: "^arn:aws:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  StaticBucketArn:
+    Type: String
+    AllowedPattern: "^arn:aws:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  DistributionId:
+    Type: String
+    AllowedPattern: "^[A-Z0-9]{12,20}$"
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eacl-demo-demos-branch-deploy
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: repo:theronic/eacl-demo:ref:refs/heads/demos
+      Policies:
+        - PolicyName: exact-demo-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${ArtifactBucketArn}/artifacts/datahike-s3/*"
+                  - !Sub "${ArtifactBucketArn}/artifacts/datomic-dynamodb/*"
+                  - !Sub "${ArtifactBucketArn}/artifacts/datalevin-memory/*"
+                  - !Sub "${StaticBucketArn}/*"
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunctionConfiguration
+                  - lambda:InvokeFunction
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:UpdateFunctionCode
+                  - lambda:PublishVersion
+                  - lambda:GetAlias
+                  - lambda:UpdateAlias
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eacl-demo-datahike-s3-live*"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eacl-demo-datomic-dynamodb-live*"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eacl-demo-datalevin-memory-live*"
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DistributionId}"
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Branch
+          Value: demos
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt Role.Arn

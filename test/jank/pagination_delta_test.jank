@@ -1,0 +1,101 @@
+(ns eacl-demo.jank-memory.pagination-delta-test
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]))
+
+(def connection (memory/connect))
+(def client (memory/make-client connection {:cache {:max-entries 64}}))
+(def subject (eacl/spice-object :user "user-1"))
+
+(eacl/write-schema!
+ client
+ "definition user {}\n\ndefinition account {\n  relation owner: user\n  permission view = owner\n}\n")
+
+(memory/transact!
+ connection
+ [{:eacl/id "user-1"}
+  {:eacl/id "account-0"}
+  {:eacl/id "account-1"}
+  {:eacl/id "account-2"}])
+
+(doseq [id ["account-0" "account-1" "account-2"]]
+  (eacl/create-relationship!
+   client subject :owner (eacl/spice-object :account id)))
+
+(defn ids
+  [page]
+  (mapv :id (:data page)))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(def base-query
+  {:subject subject
+   :permission :view
+   :resource/type :account
+   :first 1})
+
+(def first-page (eacl/lookup-resources client base-query))
+(def first-cursor (get-in first-page [:page-info :end-cursor]))
+(assert (= ["account-0"] (ids first-page)))
+(assert (true? (get-in first-page [:page-info :has-next-page?])))
+(assert (false? (get-in first-page [:page-info :has-previous-page?])))
+(assert (string? first-cursor))
+
+;; Advance the live source after minting the first cursor. Following that
+;; cursor must reconstruct the retained basis and must not fall forward to the
+;; newly inserted account.
+(memory/transact! connection [{:eacl/id "account-3"}])
+(eacl/create-relationship!
+ client subject :owner (eacl/spice-object :account "account-3"))
+
+(def second-query (assoc base-query :after first-cursor))
+(def second-page (eacl/lookup-resources client second-query))
+(def second-cursor (get-in second-page [:page-info :end-cursor]))
+(assert (= ["account-1"] (ids second-page)))
+(assert (true? (get-in second-page [:page-info :has-next-page?])))
+(assert (true? (get-in second-page [:page-info :has-previous-page?])))
+
+(def repeated-second-page (eacl/lookup-resources client second-query))
+(assert (= ["account-1"] (ids repeated-second-page)))
+(assert (true? (:cached? repeated-second-page)))
+
+(def third-page
+  (eacl/lookup-resources client (assoc base-query :after second-cursor)))
+(assert (= ["account-2"] (ids third-page)))
+(assert (false? (get-in third-page [:page-info :has-next-page?])))
+(assert (true? (get-in third-page [:page-info :has-previous-page?])))
+(assert (= ["account-0" "account-1" "account-2"]
+           (vec (concat (ids first-page) (ids second-page)
+                        (ids third-page)))))
+
+;; A fresh backward traversal sees the current basis, returns canonical output
+;; order, and resumes exclusively before its authenticated boundary.
+(def reverse-query
+  {:subject subject
+   :permission :view
+   :resource/type :account
+   :last 1})
+(def reverse-first (eacl/lookup-resources client reverse-query))
+(def reverse-cursor (get-in reverse-first [:page-info :start-cursor]))
+(def reverse-second
+  (eacl/lookup-resources client (assoc reverse-query :before reverse-cursor)))
+(assert (= ["account-3"] (ids reverse-first)))
+(assert (= ["account-2"] (ids reverse-second)))
+(assert (true? (get-in reverse-first [:page-info :has-previous-page?])))
+
+;; Cursor navigation cannot replace its pinned consistency or alter any query
+;; component that participates in the authenticated scope.
+(doseq [query
+        [(assoc second-query
+                :consistency {:consistency/mode :minimize-latency})
+         (assoc second-query :first 2)]]
+  (let [data (error-data #(eacl/lookup-resources client query))]
+    (assert (= :eacl.pagination/invalid-cursor (:type data)))
+    (assert (= (:type data) (:eacl/error data)))))
+
+(println :jank-pagination-delta-pass)

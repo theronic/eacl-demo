@@ -1,0 +1,366 @@
+(ns eacl-demo.jank-memory.handlers
+  (:require [eacl.core :as eacl]
+            [eacl.client.orchestration :as eacl-client]
+            [eacl.cursor :as cursor]
+            [eacl.datomic.memory.api :as memory-api]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.store :as store]))
+
+(def default-page-size 25)
+(def default-count-ceiling 1000000)
+
+(defn- fail!
+  [code]
+  (throw
+   (ex-info
+    "Jank explorer operation failed."
+    {:type :eacl-demo.jank/operation-failed :code code})))
+
+(defn- consistency!
+  [input]
+  (let [value (get input "consistency")]
+    (when-not (contains? #{nil "current" "minimize"} value)
+      (fail! "unsupported-consistency"))
+    :minimize-latency))
+
+(defn- wire-object
+  [type id]
+  {"type" type "id" id "displayName" id "attributes" []})
+
+(defn- query-fingerprint
+  [type page-size]
+  (cursor/fingerprint
+   [:eacl-demo.jank-memory/list-subjects-v1
+    {:profile-id "jank-memory" :type type :page-size page-size}]))
+
+(defn- issue-subject-cursor
+  [value type page-size anchor]
+  (cursor/issue
+   (:cursor-keyring value)
+   store/subject-cursor-ttl-seconds
+   {:operation :eacl-demo.jank-memory/list-subjects
+    :query-fingerprint (query-fingerprint type page-size)
+    :anchor anchor
+    :snapshot-token (:cursor-snapshot-token value)
+    :source-scope (:source-scope value)
+    :native-revision (:basis-t value)
+    :schema-generation (:schema-generation value)
+    :ordering-abi memory-api/ordering-abi
+    :dependency-proof-fingerprint (:cursor-proof value)}))
+
+(defn- decode-subject-cursor
+  [value type page-size encoded]
+  (let [payload
+        (try
+          (-> (cursor/decode (:cursor-keyring value) encoded)
+              cursor/validate-current!)
+          (catch cpp/jank.runtime.object_ref error
+            (if (= :expired (:reason (ex-data error)))
+              (fail! "cursor-expired")
+              (fail! "cursor-invalid"))))]
+    (when-not
+     (and (= :eacl-demo.jank-memory/list-subjects (:operation payload))
+          (= (query-fingerprint type page-size)
+             (:query-fingerprint payload))
+          (= (:source-scope value) (:source-scope payload))
+          (= (:basis-t value) (:native-revision payload))
+          (= (:schema-generation value) (:schema-generation payload))
+          (= memory-api/ordering-abi (:ordering-abi payload))
+          (= (:cursor-proof value)
+             (:dependency-proof-fingerprint payload))
+          (= (:cursor-snapshot-token value) (:snapshot-token payload))
+          (vector? (:anchor payload))
+          (= 2 (count (:anchor payload)))
+          (every? string? (:anchor payload)))
+      (fail! "cursor-scope-mismatch"))
+    (:anchor payload)))
+
+(defn- page-info
+  [page has-next? end-cursor]
+  {"hasNextPage" has-next?
+   "endCursor" (when has-next? end-cursor)
+   "pageSize" (count page)})
+
+(defn- list-subjects
+  [value input]
+  (let [type (get input "type")
+        page-size (or (get input "pageSize") default-page-size)
+        after (when-let [encoded (get input "cursor")]
+                (decode-subject-cursor value type page-size encoded))
+        rows (->> (:subjects value)
+                  (filter #(or (nil? type) (= type (:type %))))
+                  (drop-while
+                   (fn [entry]
+                     (and after
+                          (not (pos? (compare [(:type entry) (:id entry)]
+                                              after))))))
+                  (take (inc page-size))
+                  vec)
+        has-next? (> (count rows) page-size)
+        page (subvec rows 0 (min page-size (count rows)))
+        last-entry (peek page)
+        end-cursor
+        (when has-next?
+          (issue-subject-cursor value type page-size
+                                [(:type last-entry) (:id last-entry)]))]
+    {"items" (mapv #(wire-object (:type %) (:id %)) page)
+     "pageInfo" (page-info page has-next? end-cursor)}))
+
+(defn- object-entry
+  [value type id]
+  (get (:object-index value) [type id]))
+
+(defn- get-object
+  [value input]
+  (consistency! input)
+  (let [type (get input "type")
+        id (get input "id")]
+    (if (object-entry value type id)
+      {"object" (wire-object type id)}
+      (fail! "validation-error"))))
+
+(defn- relationship-query
+  [input controls anchor]
+  (let [cursor (get input "cursor")]
+    (cond->
+     (assoc anchor
+            :first (or (get input "pageSize") default-page-size)
+            :timeout-ms (:timeout-ms controls)
+            :cancellation-token (:cancellation-token controls))
+      (get input "relation")
+      (assoc :resource/relation (keyword (get input "relation")))
+      cursor (assoc :after cursor)
+      (nil? cursor) (assoc :consistency (consistency! input)))))
+
+(defn- wire-relationship
+  [{:keys [subject relation resource]}]
+  {"resourceType" (name (:type resource))
+   "resourceId" (:id resource)
+   "relation" (name relation)
+   "subjectType" (name (:type subject))
+   "subjectId" (:id subject)
+   "subjectRelation" (some-> (:relation subject) name)})
+
+(defn- eacl-page-info
+  [page]
+  (let [has-next? (true? (get-in page [:page-info :has-next-page?]))]
+    {"hasNextPage" has-next?
+     "endCursor" (when has-next? (get-in page [:page-info :end-cursor]))
+     "pageSize" (count (:data page))}))
+
+(defn- list-relationships
+  [value input controls]
+  (let [page
+        (eacl/read-relationships
+         (:client value)
+         (relationship-query
+          input controls
+          {:resource/type (keyword (get input "resourceType"))
+           :resource/id (get input "resourceId")}))]
+    {"items" (mapv wire-relationship (:data page))
+     "pageInfo" (eacl-page-info page)}))
+
+(defn- reverse-relationships
+  [value input controls]
+  (let [page
+        (eacl/read-relationships
+         (:client value)
+         (relationship-query
+          input controls
+          {:subject/type (keyword (get input "subjectType"))
+           :subject/id (get input "subjectId")}))]
+    {"items"
+     (mapv
+      (fn [{:keys [resource]}]
+        (wire-object (name (:type resource)) (:id resource)))
+      (:data page))
+     "pageInfo" (eacl-page-info page)}))
+
+(defn- authorize
+  [value input controls]
+  (let [consistency (consistency! input)
+        subject-type (get input "subjectType")
+        subject-id (get input "subjectId")
+        resource-type (get input "resourceType")
+        resource-id (get input "resourceId")
+        permission (get input "permission")
+        subject (object-entry value subject-type subject-id)
+        resource (object-entry value resource-type resource-id)
+        subject-known? (= "subject" (:role subject))
+        resource-known? (some? resource)
+        allowed?
+        (and subject-known? resource-known?
+             (true?
+              (:allowed?
+               (eacl/check-permission
+                (:client value)
+                {:subject (eacl/spice-object (keyword subject-type) subject-id)
+                 :permission (keyword permission)
+                 :resource (eacl/spice-object (keyword resource-type)
+                                              resource-id)
+                 :consistency consistency
+                 :timeout-ms (:timeout-ms controls)
+                 :cancellation-token (:cancellation-token controls)}))))]
+    {"subjectType" subject-type
+     "subjectId" subject-id
+     "resourceType" resource-type
+     "resourceId" resource-id
+     "permission" permission
+     "allowed" allowed?
+     "reasonCode" (cond
+                    (not subject-known?) "subject-not-found"
+                    (not resource-known?) "object-not-found"
+                    allowed? "granted"
+                    :else "denied")
+     "path" []}))
+
+(defn- cache-entries
+  [client]
+  (let [stats (eacl-client/cache-stats client)]
+    (reduce
+     + 0
+     (map #(or (:size (get stats %)) 0)
+          [:plan :schema :answer :continuation :page-navigation
+           :cursor-codec]))))
+
+(defn- count-objects
+  [value input]
+  (consistency! input)
+  (let [kind (get input "kind")
+        type (get input "type")
+        ceiling (or (get input "ceiling") default-count-ceiling)
+        actual
+        ;; Pinned Jank lowers string `case` branches through raw C arrays and
+        ;; can emit invalid C++ when this handler is JIT-compiled. Keep the
+        ;; operation set closed with explicit equality predicates instead.
+        (cond
+          (= "subjects" kind)
+          (if type
+            (count (filter #(= type (:type %)) (:subjects value)))
+            (count (:subjects value)))
+          (= "objects" kind)
+          (if type
+            (get (:object-types value) type 0)
+            (count (:objects value)))
+          (= "relationships" kind)
+          (if type
+            (get (:relationship-resource-types value) type 0)
+            (:relationship-count value))
+          :else (fail! "validation-error"))]
+    {"kind" kind
+     "value" (min ceiling actual)
+     "exact" (<= actual ceiling)
+     "ceiling" ceiling}))
+
+(defn create-handlers
+  [value descriptor]
+  (when-not
+   (and (= true (:ready value)) (= true (:frozen value))
+        (map? descriptor)
+        (= "jank-memory" (get-in descriptor ["identity" "profileId"])))
+    (throw
+     (ex-info
+      "Jank handler initialization requires one verified frozen store."
+      {:type :eacl-demo.jank/invalid-handler-initialization})))
+  (let [basis (get descriptor "basis")
+        identity (get descriptor "identity")]
+    (dispatcher/create-read-only-dispatcher
+     {"health"
+      (fn [_ _]
+        (try
+          {:value {"status" "ready" "ready" true
+                   "identity" identity "basis" basis}
+           :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "bootstrap"
+      (fn [_ _]
+        (try
+          {:value descriptor :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "list-subjects"
+      (fn [input _]
+        (try
+          {:value (list-subjects value input) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "get-object"
+      (fn [input _]
+        (try
+          {:value (get-object value input) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "list-relationships"
+      (fn [input controls]
+        (try
+          {:value (list-relationships value input controls) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "reverse-relationships"
+      (fn [input controls]
+        (try
+          {:value (reverse-relationships value input controls) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "authorize"
+      (fn [input controls]
+        (try
+          {:value (authorize value input controls) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "get-schema"
+      (fn [input _]
+        (try
+          (consistency! input)
+          {:value (:wire-schema value) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "get-cache-info"
+      (fn [_ _]
+        (try
+          {:value
+           {"behavior" "environment-local"
+            "hit" nil
+            "scope" "jank-memory"
+            "entries" (cache-entries (:client value))
+            "limitations"
+            ["ephemeral" "lifecycle-rebuild" "no-synchronization"]}
+           :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))
+      "count-objects"
+      (fn [input _]
+        (try
+          {:value (count-objects value input) :error nil}
+          (catch cpp/jank.runtime.object_ref error
+            {:value nil :error error})))})))
+
+(defn error-code
+  [error]
+  (let [data (ex-data error)
+        type (:type data)
+        reason (:reason data)]
+    (or
+     (:code data)
+     (cond
+       (= :eacl.execution/cancelled type) "cancelled"
+       (= :eacl.execution/deadline-exceeded type) "deadline-exceeded"
+       (= :eacl.pagination/invalid-cursor type)
+       ;; Avoid the pinned Jank keyword `case` code-generation defect on this
+       ;; lazily compiled public error path.
+       (cond
+         (= :expired reason) "cursor-expired"
+         (= :cursor-query-mismatch reason) "cursor-scope-mismatch"
+         (= :cursor-snapshot-mismatch reason) "cursor-scope-mismatch"
+         :else "cursor-invalid")
+       (contains? #{:eacl/invalid-request
+                    :eacl.filters/invalid-authorization-clause
+                    :eacl.pagination/invalid-page-request
+                    :eacl/unknown-definition
+                    :eacl/unknown-relation-or-permission}
+                  type)
+       "validation-error"
+       (= :eacl/unsupported-consistency type) "unsupported-consistency"
+       (= :eacl.execution/resource-limit-exceeded type) "overloaded"
+       :else "internal-error"))))

@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/explorer.v1.schema.json",
+  "title": "EACL Explorer v1 wire contract",
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"},
+    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "scalar": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "attribute": {
+      "type": "object", "additionalProperties": false, "required": ["name", "value"],
+      "properties": {"name": {"$ref": "#/$defs/identifier"}, "value": {"$ref": "#/$defs/scalar"}}
+    },
+    "object": {
+      "type": "object", "additionalProperties": false, "required": ["type", "id", "displayName", "attributes"],
+      "properties": {
+        "type": {"$ref": "#/$defs/identifier"}, "id": {"$ref": "#/$defs/identifier"},
+        "displayName": {"type": ["string", "null"], "maxLength": 256},
+        "attributes": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/attribute"}}
+      }
+    },
+    "relationship": {
+      "type": "object", "additionalProperties": false, "required": ["resourceType", "resourceId", "relation", "subjectType", "subjectId", "subjectRelation"],
+      "properties": {
+        "resourceType": {"$ref": "#/$defs/identifier"}, "resourceId": {"$ref": "#/$defs/identifier"}, "relation": {"$ref": "#/$defs/identifier"},
+        "subjectType": {"$ref": "#/$defs/identifier"}, "subjectId": {"$ref": "#/$defs/identifier"},
+        "subjectRelation": {"anyOf": [{"$ref": "#/$defs/identifier"}, {"type": "null"}]}
+      }
+    },
+    "pageInfo": {
+      "type": "object", "additionalProperties": false, "required": ["hasNextPage", "endCursor", "pageSize"],
+      "properties": {"hasNextPage": {"type": "boolean"}, "endCursor": {"type": ["string", "null"], "maxLength": 4096}, "pageSize": {"type": "integer", "minimum": 0, "maximum": 100}},
+      "allOf": [
+        {"if": {"properties": {"hasNextPage": {"const": true}}}, "then": {"properties": {"endCursor": {"type": "string", "minLength": 1}}}},
+        {"if": {"properties": {"hasNextPage": {"const": false}}}, "then": {"properties": {"endCursor": {"type": "null"}}}}
+      ]
+    },
+    "objectPage": {
+      "type": "object", "additionalProperties": false, "required": ["items", "pageInfo"],
+      "properties": {"items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/object"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
+    },
+    "relationshipPage": {
+      "type": "object", "additionalProperties": false, "required": ["items", "pageInfo"],
+      "properties": {"items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/relationship"}}, "pageInfo": {"$ref": "#/$defs/pageInfo"}}
+    },
+    "objectResult": {
+      "type": "object", "additionalProperties": false, "required": ["object"],
+      "properties": {"object": {"$ref": "#/$defs/object"}}
+    },
+    "count": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "value", "exact", "ceiling"],
+      "properties": {"kind": {"enum": ["subjects", "objects", "relationships"]}, "value": {"type": "integer", "minimum": 0}, "exact": {"type": "boolean"}, "ceiling": {"type": ["integer", "null"], "minimum": 1}}
+    },
+    "authorizationStep": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "label", "allowed"],
+      "properties": {"kind": {"enum": ["direct", "relationship-arrow", "permission-arrow", "cycle-guard"]}, "label": {"type": "string", "minLength": 1, "maxLength": 256}, "allowed": {"type": "boolean"}}
+    },
+    "authorizationDecision": {
+      "type": "object", "additionalProperties": false, "required": ["subjectType", "subjectId", "resourceType", "resourceId", "permission", "allowed", "reasonCode", "path"],
+      "properties": {
+        "subjectType": {"$ref": "#/$defs/identifier"}, "subjectId": {"$ref": "#/$defs/identifier"}, "resourceType": {"$ref": "#/$defs/identifier"}, "resourceId": {"$ref": "#/$defs/identifier"}, "permission": {"$ref": "#/$defs/identifier"},
+        "allowed": {"type": "boolean"}, "reasonCode": {"enum": ["granted", "denied", "object-not-found", "subject-not-found"]},
+        "path": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/authorizationStep"}}
+      }
+    },
+    "schemaRelation": {
+      "type": "object", "additionalProperties": false, "required": ["name", "subjectTypes"],
+      "properties": {"name": {"$ref": "#/$defs/identifier"}, "subjectTypes": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}}}
+    },
+    "schemaPermission": {
+      "type": "object", "additionalProperties": false, "required": ["name", "expression"],
+      "properties": {"name": {"$ref": "#/$defs/identifier"}, "expression": {"type": "string", "minLength": 1, "maxLength": 1024}}
+    },
+    "schemaType": {
+      "type": "object", "additionalProperties": false, "required": ["name", "relations", "permissions"],
+      "properties": {"name": {"$ref": "#/$defs/identifier"}, "relations": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/schemaRelation"}}, "permissions": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/schemaPermission"}}}
+    },
+    "schema": {
+      "type": "object", "additionalProperties": false, "required": ["sha256", "types"],
+      "properties": {"sha256": {"$ref": "#/$defs/sha256"}, "types": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/schemaType"}}}
+    },
+    "cacheInfo": {
+      "type": "object", "additionalProperties": false, "required": ["behavior", "hit", "scope", "entries", "limitations"],
+      "properties": {
+        "behavior": {"enum": ["none", "request-local", "environment-local", "browser-worker-local", "shared-read-through"]},
+        "hit": {"type": ["boolean", "null"]}, "scope": {"type": "string", "minLength": 1, "maxLength": 128},
+        "entries": {"type": ["integer", "null"], "minimum": 0},
+        "limitations": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "maxLength": 256}}
+      }
+    },
+    "basis": {
+      "type": "object", "additionalProperties": false, "required": ["behavior", "id", "capturedAt", "fixedForEnvironment"],
+      "properties": {
+        "behavior": {"enum": ["fixed-environment", "request-snapshot", "worker-lifecycle", "rebuild-lifecycle"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 256}, "capturedAt": {"type": "string", "format": "date-time"}, "fixedForEnvironment": {"type": "boolean"}
+      }
+    },
+    "identity": {
+      "type": "object", "additionalProperties": false, "required": ["profileId", "demoSha", "eaclSha", "artifactSha256", "deploymentId", "dataManifestSha256"],
+      "properties": {
+        "profileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}, "demoSha": {"$ref": "#/$defs/sha1"}, "eaclSha": {"$ref": "#/$defs/sha1"},
+        "artifactSha256": {"$ref": "#/$defs/sha256"}, "deploymentId": {"type": "string", "minLength": 1, "maxLength": 256}, "dataManifestSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "health": {
+      "type": "object", "additionalProperties": false, "required": ["status", "ready", "identity", "basis"],
+      "properties": {"status": {"enum": ["ready", "starting", "degraded", "unavailable"]}, "ready": {"type": "boolean"}, "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]}}
+    },
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "identity", "profile", "runtime", "capabilities", "limits", "dataset", "basis"],
+      "properties": {
+        "contract": {
+          "type": "object", "additionalProperties": false, "required": ["name", "routeMajor", "revision", "minimumClientRevision"],
+          "properties": {"name": {"const": "explorer.v1"}, "routeMajor": {"const": 1}, "revision": {"type": "integer", "minimum": 0}, "minimumClientRevision": {"type": "integer", "minimum": 0}}
+        },
+        "identity": {"$ref": "#/$defs/identity"},
+        "profile": {
+          "type": "object", "additionalProperties": false, "required": ["backend", "storage"],
+          "properties": {
+            "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+            "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}
+          }
+        },
+        "runtime": {
+          "type": "object", "additionalProperties": false, "required": ["execution", "name", "architecture", "snapStart"],
+          "properties": {
+            "execution": {"enum": ["lambda", "browser-worker"]},
+            "name": {"type": "string", "minLength": 1, "maxLength": 64},
+            "architecture": {"enum": ["arm64", "x86_64", "wasm32", "javascript"]},
+            "snapStart": {"enum": ["enabled", "disabled", "not-applicable"]}
+          }
+        },
+        "capabilities": {
+          "type": "object", "additionalProperties": false,
+          "required": ["operations", "consistencyModes", "snapshotBehavior", "cacheBehavior", "mutationLocality", "limitations"],
+          "properties": {
+            "operations": {
+              "type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true,
+              "items": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]}
+            },
+            "consistencyModes": {
+              "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true,
+              "items": {"enum": ["current", "minimize", "authoritative", "at-least", "exact", "historical-date"]}
+            },
+            "snapshotBehavior": {"enum": ["fixed-environment", "request-snapshot", "worker-lifecycle", "rebuild-lifecycle"]},
+            "cacheBehavior": {"enum": ["none", "request-local", "environment-local", "browser-worker-local", "shared-read-through"]},
+            "mutationLocality": {"enum": ["none", "private-seed-workflow", "initialization-before-ready", "browser-worker-initialization"]},
+            "limitations": {
+              "type": "array", "maxItems": 16, "uniqueItems": true,
+              "items": {"enum": ["read-only", "fixed-current-snapshot", "no-synchronization", "no-history-api", "ephemeral", "browser-local", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "eventual-storage-read", "lifecycle-rebuild", "unsupported-consistency"]}
+            }
+          }
+        },
+        "limits": {
+          "type": "array", "minItems": 1, "maxItems": 32,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name", "value"],
+            "properties": {"name": {"type": "string"}, "value": {"type": "integer", "minimum": 0}}
+          }
+        },
+        "dataset": {
+          "type": "object", "additionalProperties": false, "required": ["fixtureId", "logicalResourceCount", "manifestSha256"],
+          "properties": {"fixtureId": {"type": "string"}, "logicalResourceCount": {"type": "integer", "minimum": 1}, "manifestSha256": {"$ref": "#/$defs/sha256"}}
+        },
+        "basis": {"$ref": "#/$defs/basis"}
+      }
+    },
+    "responseMeta": {
+      "type": "object", "additionalProperties": false, "required": ["contractVersion", "requestId", "operation", "identity", "basis"],
+      "properties": {
+        "contractVersion": {"const": "explorer.v1"}, "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
+        "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]},
+        "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]}
+      }
+    },
+    "success": {
+      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "data"],
+      "properties": {"ok": {"const": true}, "meta": {"$ref": "#/$defs/responseMeta"}, "data": {}},
+      "allOf": [{
+        "oneOf": [
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "health"}}}, "data": {"$ref": "#/$defs/health"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "bootstrap"}}}, "data": {"$ref": "#/$defs/bootstrap"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "list-subjects"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-object"}}}, "data": {"$ref": "#/$defs/objectResult"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "list-relationships"}}}, "data": {"$ref": "#/$defs/relationshipPage"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "reverse-relationships"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "authorize"}}}, "data": {"$ref": "#/$defs/authorizationDecision"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-schema"}}}, "data": {"$ref": "#/$defs/schema"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-cache-info"}}}, "data": {"$ref": "#/$defs/cacheInfo"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "count-objects"}}}, "data": {"$ref": "#/$defs/count"}}}
+        ]
+      }]
+    },
+    "failure": {
+      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "error"],
+      "properties": {
+        "ok": {"const": false},
+        "meta": {"$ref": "#/$defs/responseMeta"},
+        "error": {
+          "type": "object", "additionalProperties": false, "required": ["code", "message", "retryable", "details"],
+          "properties": {
+            "code": {"$ref": "error-codes.v1.schema.json#/$defs/code"},
+            "message": {"type": "string", "minLength": 1, "maxLength": 512},
+            "retryable": {"type": "boolean"},
+            "details": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 256}}
+          }
+        }
+      }
+    }
+  }
+}

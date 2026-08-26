@@ -1,0 +1,259 @@
+{
+  "schema": "eacl-demo.jank-engine-port.v1",
+  "schemaVersion": 1,
+  "status": "vendored-unqualified-core-mismatch",
+  "source": {
+    "repository": "https://github.com/theronic/eacl-jank.git",
+    "repositoryStateAtImport": "unborn-no-remote-head",
+    "importedAt": "2026-08-25",
+    "roots": [
+      "services/jank-memory/src/eacl"
+    ],
+    "fileCount": 50,
+    "bytes": 476576,
+    "contentSha256": "sha256:ca3f7976c030ea5ccae849a39e5bf8735de814af5a2bcb6f15f60524ab6e23c3",
+    "releaseIdentity": "the eventual immutable eacl-demo Git commit containing this exact vendored tree"
+  },
+  "port": {
+    "runtimeCoreBaselineSha": "1cbf80c7aaf4bfcf2564d2bf30135794ff406383",
+    "runtimeCoreBaselinePullRequest": 145,
+    "runtimeCoreBaseSha": "0bb0845139af1acd4dc36fa5676e3cd68c6d7356",
+    "assuranceModelCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "requiredReleaseCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "runtimeMatchesRequiredReleaseCore": false,
+    "assuranceIdentityIsNotRuntimeIdentity": true
+  },
+  "semanticRebase": {
+    "status": "in-progress",
+    "targetCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "coverage": "dependencies/jank-core-rebase-coverage.v1.json",
+    "verifiedDeltas": [
+      {
+        "id": "cache-read-vs-publication-control",
+        "behavior": "cache? false bypasses lookup and publication; otherwise populate-cache? false permits reads and suppresses result-cache publication",
+        "coreSources": [
+          "modules/eacl/src/eacl/cache.cljc",
+          "modules/eacl/src/eacl/client/orchestration.cljc",
+          "modules/eacl/src/eacl/authorization/batch.cljc",
+          "modules/eacl/src/eacl/authorization/filters.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/client/orchestration.cljc",
+          "services/jank-memory/src/eacl/authorization/batch.cljc",
+          "services/jank-memory/src/eacl/authorization/filters.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/cache_controls_test.jank",
+          "test/jank-modules/eacl_demo/jank_memory/cache_controls_test_support.jank"
+        ]
+      },
+      {
+        "id": "sealed-plan-read-scope-certification",
+        "behavior": "an independently derived permission dependency closure rejects any relation id named by executable sealed rules that falls outside that closure",
+        "coreSources": [
+          "modules/eacl/src/eacl/engine/sealed_plan.cljc",
+          "modules/eacl/src/eacl/engine/v8.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/engine/sealed_plan.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/cache_controls_test.jank",
+          "test/jank/plan_scope_rejection_test.jank"
+        ]
+      },
+      {
+        "id": "locked-core-error-identities",
+        "behavior": "execution contract, cancellation, unsupported consistency, and permission-tree request validation failures expose the locked-Core type and eacl/error identities before snapshot work",
+        "coreSources": [
+          "modules/eacl/src/eacl/execution.cljc",
+          "modules/eacl/src/eacl/permission_tree.cljc",
+          "modules/eacl/src/eacl/spicedb/consistency.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/cancellation.cljc",
+          "services/jank-memory/src/eacl/execution.cljc",
+          "services/jank-memory/src/eacl/client/orchestration.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/execution_contract_rejection_test.jank",
+          "test/jank/cancellation_contract_rejection_test.jank",
+          "test/jank/permission_tree_request_rejection_test.jank",
+          "test/jank/consistency_rejection_test.jank"
+        ]
+      },
+      {
+        "id": "source-lineage-and-cursor-binding",
+        "behavior": "the closed memory-store identity maps to locked Core lineage, the request counter schema includes writer-submissions with zero submissions in a read context, and authenticated subject cursors reject operation, query, store, lifecycle, snapshot-token, native-revision, schema-generation, ordering-ABI, proof, anchor, exclusive-expiry, and excessive-future-skew mismatches",
+        "coreSources": [
+          "modules/eacl/src/eacl/backend/source.cljc",
+          "modules/eacl/src/eacl/cursor.cljc",
+          "modules/eacl/src/eacl/request/context.cljc",
+          "modules/eacl/src/eacl/request/counters.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/cursor.cljc",
+          "services/jank-memory/src/eacl/request/context.cljc",
+          "services/jank-memory/src/eacl/request/counters.cljc",
+          "services/jank-memory/src/eacl_demo/jank_memory/handlers.jank"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/handler_cursor_test.jank",
+          "test/jank/lineage_counters_test.jank"
+        ]
+      },
+      {
+        "id": "memory-consistency-selection-and-lifecycle-authentication",
+        "behavior": "the native memory source selects current and fully-consistent heads, satisfies at-least from a newer head, reconstructs an exact retained basis without fall-forward, binds response tokens to the selected basis, rejects evicted history, foreign stores, foreign lifecycles, expired or excessively future-issued tokens, unavailable freshness, pre-selection cancellation, and expired deadlines with distinct typed failures",
+        "coreSources": [
+          "modules/eacl/src/eacl/backend/source.cljc",
+          "modules/eacl/src/eacl/consistency.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/datomic/memory/consistency.cljc",
+          "services/jank-memory/src/eacl/datomic/memory/store.cljc",
+          "services/jank-memory/src/eacl/datomic/memory/token.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/consistency_lifecycle_test.jank"
+        ]
+      },
+      {
+        "id": "permission-tree-selected-basis-and-validation",
+        "behavior": "permission-tree requests accept independent cache read and publication controls, reject malformed structure and non-map limit configuration with locked identities, and return an expanded-at token that reconstructs the selected historical basis exactly after the source advances",
+        "coreSources": [
+          "modules/eacl/src/eacl/client/orchestration.cljc",
+          "modules/eacl/src/eacl/permission_tree.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/client/orchestration.cljc",
+          "services/jank-memory/src/eacl/engine/permission_tree.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/permission_tree_delta_test.jank"
+        ]
+      },
+      {
+        "id": "memory-selected-basis-semantic-identity",
+        "behavior": "every native memory selection carries one closed target-shaped semantic identity and borrowed execution contract; ordinary current, authoritative, and at-least selections bind the current revision while exact retained selection is conservatively as-of; the borrowed selected basis has an exact-once close boundary with use-after-release rejection, and request context releases construction failures or owns that same basis identity and lineage through successful cleanup",
+        "coreSources": [
+          "modules/eacl/src/eacl/backend/source.cljc",
+          "modules/eacl/src/eacl/client/orchestration.cljc",
+          "modules/eacl/src/eacl/consistency.cljc",
+          "modules/eacl/src/eacl/request/context.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/datomic/memory/source.cljc",
+          "services/jank-memory/src/eacl/datomic/memory/consistency.cljc",
+          "services/jank-memory/src/eacl/client/orchestration.cljc",
+          "services/jank-memory/src/eacl/request/context.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/consistency_lifecycle_test.jank",
+          "test/jank/lineage_counters_test.jank"
+        ]
+      },
+    {
+      "id": "memory-basis-adapter-boundary",
+      "behavior": "the immutable memory basis exposes one closed read-operation table with no source-selection, connection, configuration, or writer authority; only ordinary/as-of basis kinds are constructed, and every physical adapter callback including relationship-half certification increments request adapter-read accounting",
+        "coreSources": [
+          "modules/eacl/src/eacl/backend/v8.cljc"
+        ],
+        "portSources": [
+          "services/jank-memory/src/eacl/store.cljc",
+          "services/jank-memory/src/eacl/datomic/memory/db.cljc",
+          "services/jank-memory/src/eacl/datomic/memory/source.cljc",
+          "services/jank-memory/src/eacl/request/context.cljc"
+        ],
+        "evidence": [
+          "scripts/test-jank-semantic-deltas.mjs",
+          "test/jank/consistency_lifecycle_test.jank",
+        "test/jank/lineage_counters_test.jank"
+      ]
+    },
+    {
+      "id": "memory-context-basis-bound-derived-and-proof-state",
+      "behavior": "the selected memory context binds reusable schema plans to store, lifecycle, certified schema generation, fixed adapter, and root; completed-answer proofs additionally bind relation stamps and refuse newer-basis artifacts for older exact snapshots; independent stores, schema generations, and retained bases remain isolated while context cleanup releases the selected basis exactly once",
+      "coreSources": [
+        "modules/eacl/src/eacl/request/context.cljc"
+      ],
+      "portSources": [
+        "services/jank-memory/src/eacl/request/context.cljc",
+        "services/jank-memory/src/eacl/engine/sealed_plan.cljc",
+        "services/jank-memory/src/eacl/client/orchestration.cljc"
+      ],
+      "evidence": [
+        "scripts/test-jank-semantic-deltas.mjs",
+        "test/jank/basis_cache_binding_test.jank",
+        "test/jank/lineage_counters_test.jank"
+      ]
+    },
+    {
+      "id": "specialized-subproblem-cache-controls",
+      "behavior": "read-only cache requests still read existing completed answers and retain request-local false and nil memo results while suppressing cold cross-request publication; reusable plan and proof keys use certified schema generation, and corresponding cache configuration failures expose equal type and eacl/error identities",
+      "coreSources": [
+        "modules/eacl/src/eacl/subproblem_cache.cljc"
+      ],
+      "portSources": [
+        "services/jank-memory/src/eacl/cache/local.cljc",
+        "services/jank-memory/src/eacl/request/context.cljc",
+        "services/jank-memory/src/eacl/engine/sealed_plan.cljc",
+        "services/jank-memory/src/eacl/client/orchestration.cljc"
+      ],
+      "evidence": [
+        "scripts/test-jank-semantic-deltas.mjs",
+        "test/jank/cache_controls_test.jank",
+        "test/jank-modules/eacl_demo/jank_memory/cache_controls_test_support.jank",
+        "test/jank/lineage_counters_test.jank",
+        "test/jank/basis_cache_binding_test.jank"
+      ]
+    },
+    {
+      "id": "ttl-cursor-codec-and-pagination-error-identity",
+      "behavior": "TTL-bearing cursor encode entries are client-local and keyed by a bounded issuance bucket plus complete payload; decode hits retain authenticated expiry and always run current-time validation; codec configuration errors carry paired identities; every malformed, expired, scope-mismatched, or snapshot-mismatched cursor producer exposes the locked pagination invalid-cursor identity",
+      "coreSources": [
+        "modules/eacl/src/eacl/cursor.cljc"
+      ],
+      "portSources": [
+        "services/jank-memory/src/eacl/cursor.cljc",
+        "services/jank-memory/src/eacl/cache/local.cljc",
+        "services/jank-memory/src/eacl/client/orchestration.cljc",
+        "services/jank-memory/src/eacl/authorization/filters.cljc",
+        "services/jank-memory/src/eacl/datomic/memory/relationships.cljc"
+      ],
+      "evidence": [
+        "scripts/test-jank-semantic-deltas.mjs",
+        "test/jank/cache_controls_test.jank",
+        "test/jank/handler_cursor_test.jank"
+      ]
+    }
+    ],
+    "remainingCoreDeltaQualified": false
+  },
+  "compilerCompatibility": {
+    "developmentCompilerCommit": "434f0e7bac39b1de82d664e5ddb0f7dc6b41a330",
+    "candidateLinuxCompilerCommit": "489760dc927cd22900a4ab150dbab947ec25ad00",
+    "candidateLinuxCompilePassed": false
+  },
+  "promotionPolicy": {
+    "requireVendoredTreeDigestMatch": true,
+    "requireRuntimeCoreBaselineEqualsLockedCore": true,
+    "requireCandidateLinuxCompile": true,
+    "requireQualifiedBuilderDigest": true,
+    "requireAl2023ArtifactSmoke": true,
+    "requireLambdaTransportSmoke": true
+  },
+  "promotionBlockers": [
+    "The runtime port baseline is not the EACL Core SHA locked by this repository.",
+    "The vendored source has not compiled with the candidate Linux compiler revision.",
+    "The pinned AL2023 builder has no qualified immutable image digest.",
+    "No exact ZIP has passed clean AL2023 and Lambda transport qualification."
+  ]
+}

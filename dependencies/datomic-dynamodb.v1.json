@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "status": "dependency-closure-pinned-reader-unqualified",
+  "eacl": {
+    "coordinate": "dev.eacl/eacl-datomic",
+    "repository": "https://github.com/theronic/eacl.git",
+    "commit": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "module": "modules/eacl-datomic"
+  },
+  "datomic": {
+    "coordinate": "com.datomic/peer",
+    "version": "1.0.7705",
+    "minimumReadOnlyVersion": "1.0.7622",
+    "jarSha256": "d8145fecb7fad6a0dc8517235c3accc86e85756e765bda85bd02091c3e8f79b9",
+    "pomSha256": "9597ee1721af028808f2c67a782e1a62ab588c6cff7fb6d9aea94785d9a38b7a",
+    "distributionUrl": "https://datomic-pro-downloads.s3.amazonaws.com/1.0.7705/datomic-pro-1.0.7705.zip",
+    "distributionSha256": "a17c2603b893dfb0d998a35a032a7295736d234d32937222c8ec21d81a1b8c7e",
+    "distributionBytes": 272642957,
+    "distributionRoot": "datomic-pro-1.0.7705",
+    "supportedJavaLts": [17, 21, 25],
+    "license": "Apache-2.0",
+    "licenseEvidence": "The Maven Central POM declares The Apache Software License, Version 2.0.",
+    "readOnlyDocumentation": "https://docs.datomic.com/operation/read-only.html",
+    "changelog": "https://docs.datomic.com/changes/pro.html"
+  },
+  "dynamodbSdk": {
+    "version": "2.31.45",
+    "requiredByDatomic": true,
+    "license": "Apache-2.0",
+    "modules": [
+      {
+        "coordinate": "software.amazon.awssdk/dynamodb",
+        "jarSha256": "1dc9e521cb17002fe75c102d36244089d5e0e0960cd07d1fd0c1b236cc934e40"
+      },
+      {
+        "coordinate": "software.amazon.awssdk/url-connection-client",
+        "jarSha256": "8dde920bd9cae6316674e27e5d1069b61c2704b809821ee6290e10b9b56b4d33"
+      }
+    ]
+  },
+  "resolution": {
+    "repository": "Maven Central",
+    "credentialsRequired": false,
+    "alias": "datomic-dynamodb",
+    "awsSdkV2Versions": ["2.31.45"],
+    "excludedHttpClients": [
+      "software.amazon.awssdk/netty-nio-client",
+      "software.amazon.awssdk/apache-client"
+    ],
+    "selectedHttpClient": "software.amazon.awssdk/url-connection-client",
+    "jvmClosure": "dependencies/jvm.lock.json"
+  },
+  "promotionGate": "Package and audit the transactor-free read-only Lambda, then qualify it against a separately provisioned immutable Datomic database."
+}

@@ -1,0 +1,71 @@
+name: Qualify one deployed profile
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile_id:
+        description: Exact registered profile ID
+        required: true
+        type: string
+      base_url:
+        description: Exact staged CloudFront profile URL ending at /api/v1/<profile>
+        required: true
+        type: string
+      demo_sha:
+        description: Exact deployed eacl-demo SHA
+        required: true
+        type: string
+      eacl_sha:
+        description: Exact locked EACL Core SHA
+        required: true
+        type: string
+      artifact_sha256:
+        description: Exact deployed artifact SHA-256 without prefix
+        required: true
+        type: string
+      deployment_id:
+        description: Exact immutable deployment identifier
+        required: true
+        type: string
+      data_manifest_sha256:
+        description: Exact data-manifest SHA-256 without prefix
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm install --global npm@11.17.0
+      - run: npm ci
+      - name: Run full staged contract qualification
+        run: npm run qualify:http-profile
+        env:
+          EACL_PROFILE_ID: ${{ inputs.profile_id }}
+          EACL_QUALIFICATION_BASE_URL: ${{ inputs.base_url }}
+          EACL_QUALIFICATION_TARGET_KIND: staged-cloudfront
+          EACL_EXPECTED_STAGED_ORIGIN: ${{ vars.STAGED_CLOUDFRONT_ORIGIN }}
+          EACL_DEMO_SHA: ${{ inputs.demo_sha }}
+          EACL_CORE_SHA: ${{ inputs.eacl_sha }}
+          EACL_ARTIFACT_SHA256: ${{ inputs.artifact_sha256 }}
+          EACL_DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+          EACL_DATA_MANIFEST_SHA256: ${{ inputs.data_manifest_sha256 }}
+          EACL_QUALIFICATION_OUTPUT: verification/results/${{ inputs.profile_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: qualification-${{ inputs.profile_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: verification/results/
+          if-no-files-found: error
+          retention-days: 30

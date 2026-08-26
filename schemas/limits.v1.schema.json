@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/limits.v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["$schema", "schema", "requestBodyBytes", "responseBodyBytes", "totalOutputBytes", "stringBytes", "identifierBytes", "arrayItems", "defaultPageSize", "maximumPageSize", "countCeiling", "cursorBytes", "diagnosticBytes", "queryStringBytes", "pathSegmentBytes", "requestDeadlineMs", "admissionConcurrency"],
+  "properties": {
+    "$schema": {"const": "../../schemas/limits.v1.schema.json"},
+    "schema": {"const": "eacl-demo.limits.v1"},
+    "requestBodyBytes": {"const": 65536},
+    "responseBodyBytes": {"const": 1048576},
+    "totalOutputBytes": {"const": 1048576},
+    "stringBytes": {"const": 4096},
+    "identifierBytes": {"const": 256},
+    "arrayItems": {"const": 100},
+    "defaultPageSize": {"const": 25},
+    "maximumPageSize": {"const": 100},
+    "countCeiling": {"const": 1000000},
+    "cursorBytes": {"const": 4096},
+    "diagnosticBytes": {"const": 8192},
+    "queryStringBytes": {"const": 2048},
+    "pathSegmentBytes": {"const": 256},
+    "requestDeadlineMs": {"const": 10000},
+    "admissionConcurrency": {"const": 32}
+  }
+}

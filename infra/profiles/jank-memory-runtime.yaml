@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Candidate Jank memory Lambda on the x86_64 Amazon Linux 2023 custom runtime.
+
+Metadata:
+  EaclDemo:
+    Profile: jank-memory
+    Runtime: provided.al2023
+    Architecture: x86_64
+    SnapStartPolicy: disabled-unsupported-os-only-runtime
+
+Parameters:
+  FunctionName:
+    Type: String
+    AllowedPattern: "^eacl-demo-jank-memory-[a-z0-9-]{3,42}$"
+  ArtifactBucket:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  ArtifactKey:
+    Type: String
+    AllowedPattern: "^artifacts/jank-memory/[0-9a-f]{40}/[0-9a-f]{64}\\.zip$"
+  ArtifactVersion:
+    Type: String
+    MinLength: 1
+    MaxLength: 1024
+  DemoSha:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{40}$"
+  EaclSha:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{40}$"
+    AllowedValues:
+      - "1cbf80c7aaf4bfcf2564d2bf30135794ff406383"
+    Description: Must equal the Core baseline compiled into the candidate binary.
+  ArtifactSha256:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{64}$"
+  DeploymentId:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+  DataManifestSha256:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{64}$"
+    AllowedValues:
+      - "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+  MemorySize:
+    Type: Number
+    Default: 4096
+    MinValue: 128
+    MaxValue: 10240
+    Description: Unqualified starting point only; select the final value from measured AL2023 native evidence.
+  CandidateAliasName:
+    Type: String
+    Default: candidate
+    AllowedPattern: "^(?![0-9]+$)[A-Za-z0-9_-]{1,128}$"
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${FunctionName}"
+      RetentionInDays: 14
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: jank-memory
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: exact-function-log-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactLogGroupWrites
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${FunctionName}:*"
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: jank-memory
+        - Key: Access
+          Value: runtime-logs-only
+
+  Function:
+    Type: AWS::Lambda::Function
+    DependsOn: LogGroup
+    Properties:
+      FunctionName: !Ref FunctionName
+      PackageType: Zip
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Handler: bootstrap
+      Role: !GetAtt ExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref ArtifactBucket
+        S3Key: !Ref ArtifactKey
+        S3ObjectVersion: !Ref ArtifactVersion
+      MemorySize: !Ref MemorySize
+      Timeout: 30
+      EphemeralStorage:
+        Size: 512
+      ReservedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          EACL_DEMO_SHA: !Ref DemoSha
+          EACL_CORE_SHA: !Ref EaclSha
+          EACL_ARTIFACT_SHA256: !Ref ArtifactSha256
+          EACL_DEPLOYMENT_ID: !Ref DeploymentId
+          EACL_DATA_MANIFEST_SHA256: !Ref DataManifestSha256
+          EACL_JANK_FIXTURE_PATH: /var/task/fixture-10000.ndjson
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: jank-memory
+        - Key: Runtime
+          Value: provided.al2023-x86_64
+        - Key: DemoSha
+          Value: !Ref DemoSha
+        - Key: ArtifactSha256
+          Value: !Ref ArtifactSha256
+      # SnapStart is intentionally absent. AWS Lambda SnapStart does not
+      # support OS-only custom runtimes such as provided.al2023.
+
+  CandidateVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      FunctionName: !Ref Function
+
+  CandidateAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      Description: !Sub "candidate ${DeploymentId}"
+      FunctionName: !Ref Function
+      FunctionVersion: !GetAtt CandidateVersion.Version
+      Name: !Ref CandidateAliasName
+
+  CandidateFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: AWS_IAM
+      InvokeMode: BUFFERED
+      Qualifier: !Ref CandidateAliasName
+      TargetFunctionArn: !GetAtt Function.Arn
+
+Outputs:
+  FunctionArn:
+    Value: !GetAtt Function.Arn
+  FunctionName:
+    Value: !Ref Function
+  ExecutionRoleArn:
+    Value: !GetAtt ExecutionRole.Arn
+  CandidateVersion:
+    Value: !GetAtt CandidateVersion.Version
+  CandidateAliasArn:
+    Value: !Ref CandidateAlias
+  CandidateQualifiedName:
+    Value: !Sub "${FunctionName}:${CandidateAliasName}"
+  CandidateFunctionUrl:
+    Value: !GetAtt CandidateFunctionUrl.FunctionUrl
+  Runtime:
+    Value: provided.al2023
+  Architecture:
+    Value: x86_64
+  SnapStartEnabled:
+    Value: "false"

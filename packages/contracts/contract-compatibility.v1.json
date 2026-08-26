@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/contract-compatibility.v1.schema.json",
+  "schema": "eacl-demo.contract-compatibility.v1",
+  "contract": "explorer.v1",
+  "routeMajor": 1,
+  "currentRevision": 1,
+  "minimumCompatibleProfileRevision": 0,
+  "compatibilityWindow": 2,
+  "incompatibleChangeRequiresNewRouteMajor": true
+}

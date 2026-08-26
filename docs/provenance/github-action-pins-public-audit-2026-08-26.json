@@ -1,0 +1,52 @@
+{
+  "schema": "eacl-demo.github-action-pins-public-audit.v1",
+  "observedAt": "2026-08-26",
+  "method": "read-only git ls-remote against each canonical public GitHub repository",
+  "pins": [
+    {
+      "action": "actions/checkout",
+      "commit": "11d5960a326750d5838078e36cf38b85af677262",
+      "observedRefs": [
+        "refs/heads/releases/v4",
+        "refs/tags/v4",
+        "refs/tags/v4.4.0"
+      ]
+    },
+    {
+      "action": "actions/setup-node",
+      "commit": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "observedRefs": [
+        "refs/heads/releases/v4",
+        "refs/tags/v4",
+        "refs/tags/v4.4.0"
+      ]
+    },
+    {
+      "action": "actions/upload-artifact",
+      "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "observedRefs": [
+        "refs/tags/v4",
+        "refs/tags/v4.6.2"
+      ]
+    },
+    {
+      "action": "actions/download-artifact",
+      "commit": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      "observedRefs": [
+        "refs/tags/v4"
+      ]
+    },
+    {
+      "action": "aws-actions/configure-aws-credentials",
+      "commit": "7474bc4690e29a8392af63c5b98e7449536d5c3a",
+      "observedRefs": [
+        "refs/tags/v4^{}",
+        "refs/tags/v4.3.1"
+      ]
+    }
+  ],
+  "limits": [
+    "This audit proves that each exact commit was advertised by the named canonical repository at observation time; workflow policy still pins the immutable commit rather than a movable branch or major tag.",
+    "This is public source provenance, not evidence that any local workflow or cloud role has run."
+  ]
+}

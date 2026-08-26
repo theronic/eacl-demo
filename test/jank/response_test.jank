@@ -1,0 +1,44 @@
+(ns eacl-demo.jank-memory.response-test
+  (:require [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def profile-identity
+  {"profileId" "jank-memory"
+   "demoSha" "1111111111111111111111111111111111111111"
+   "eaclSha" "2222222222222222222222222222222222222222"
+   "artifactSha256"
+   "3333333333333333333333333333333333333333333333333333333333333333"
+   "deploymentId" "jank-test"
+   "dataManifestSha256"
+   "4444444444444444444444444444444444444444444444444444444444444444"})
+
+(def context
+  {:request-id "request-response"
+   :operation "health"
+   :identity profile-identity
+   :basis nil})
+
+(let [envelope
+      (response/success context {"status" "ready" "quoted" "a\n\"b"})
+      result (response/function-url-response envelope)
+      decoded (runtime-api/parse-json (get result "body"))]
+  (assert (= 200 (get result "statusCode")))
+  (assert (= false (get result "isBase64Encoded")))
+  (assert (= "no-store" (get-in result ["headers" "cache-control"])))
+  (assert (= "a\n\"b" (get-in decoded ["data" "quoted"]))))
+
+(let [envelope (response/failure context "method-not-allowed")
+      result (response/function-url-response envelope ["GET"])]
+  (assert (= 405 (get result "statusCode")))
+  (assert (= "GET" (get-in result ["headers" "allow"]))))
+
+(try
+  (response/function-url-response
+   (response/success context {"large" (apply str (repeat 1048576 "x"))}))
+  (assert false)
+  (catch cpp/jank.runtime.object_ref error
+    (assert
+     (= :eacl-demo.jank/response-too-large
+        (:type (ex-data error))))))
+
+(println :jank-response-pass)

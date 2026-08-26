@@ -1,0 +1,87 @@
+(ns eacl-demo.jank-memory.runtime-api)
+
+(cpp/raw "#include \"runtime_api.hpp\"")
+
+(defn- decode-provider-result
+  [operation result]
+  (when-not (and (string? result) (pos? (count result)))
+    (throw
+     (ex-info
+      "Native runtime provider returned an invalid result."
+      {:type :eacl-demo.jank/runtime-provider-failure
+       :operation operation})))
+  (if (= "1" (subs result 0 1))
+    (subs result 1)
+    (throw
+     (ex-info
+      "Native runtime provider rejected the operation."
+      {:type :eacl-demo.jank/runtime-provider-failure
+       :operation operation
+       :reason (subs result 1)}))))
+
+(defn parse-json
+  [value]
+  (read-string
+   (decode-provider-result
+    :parse-json (cpp/eacl_demo_jank_runtime.json_to_edn value))))
+
+(defn decode-base64
+  [value]
+  (decode-provider-result
+   :decode-base64 (cpp/eacl_demo_jank_runtime.decode_base64 value)))
+
+(defn json-quote
+  [value]
+  (decode-provider-result
+   :json-quote (cpp/eacl_demo_jank_runtime.json_quote value)))
+
+(defn environment
+  [name]
+  (let [result (cpp/eacl_demo_jank_runtime.environment_value name)]
+    (when-not (and (string? result) (pos? (count result)))
+      (throw
+       (ex-info
+        "Native environment provider returned an invalid result."
+        {:type :eacl-demo.jank/runtime-provider-failure
+         :operation :environment})))
+    (case (subs result 0 1)
+      "1" (subs result 1)
+      "2" nil
+      (throw
+       (ex-info
+        "Native environment provider rejected the key."
+        {:type :eacl-demo.jank/runtime-provider-failure
+         :operation :environment
+         :reason (subs result 1)})))))
+
+(defn utc-timestamp
+  []
+  (decode-provider-result
+   :utc-timestamp (cpp/eacl_demo_jank_runtime.utc_timestamp)))
+
+(defn next-invocation
+  []
+  (read-string
+   (decode-provider-result
+    :next-invocation (cpp/eacl_demo_jank_runtime.next_invocation))))
+
+(defn post-response!
+  [request-id payload]
+  (decode-provider-result
+   :post-response
+   (cpp/eacl_demo_jank_runtime.post_response request-id payload))
+  true)
+
+(defn post-error!
+  [request-id payload]
+  (decode-provider-result
+   :post-error
+   (cpp/eacl_demo_jank_runtime.post_error request-id payload))
+  true)
+
+(defn post-init-error!
+  [payload]
+  (decode-provider-result
+   :post-init-error
+   (cpp/eacl_demo_jank_runtime.post_init_error payload))
+  true)

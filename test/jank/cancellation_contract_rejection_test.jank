@@ -1,0 +1,4 @@
+(ns eacl-demo.jank-memory.cancellation-contract-rejection-test
+  (:require [eacl.cancellation :as cancellation]))
+
+(cancellation/cancel! {})

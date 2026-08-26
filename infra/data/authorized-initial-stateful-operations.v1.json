@@ -1,0 +1,70 @@
+{
+  "schema": "eacl-demo.initial-stateful-authorization.v1",
+  "authorizationStatus": "user-approved",
+  "authorizedAccountId": "843761893873",
+  "authorizedRegion": "us-east-1",
+  "authorizedRepositoryId": "1345904214",
+  "authorizedRef": "refs/heads/demos",
+  "scope": {
+    "durableGenerations": [
+      {
+        "profileId": "datahike-dynamodb",
+        "tableName": "eacl-demo-datahike-fixture-v1-green",
+        "generationId": "fixture-v1-green",
+        "maximumNewGenerations": 1,
+        "logicalResourceCount": 1000000,
+        "operations": ["create-table", "seed", "verify", "backup", "publish"]
+      },
+      {
+        "profileId": "datomic-dynamodb",
+        "tableName": "eacl-demo-datomic-fixture-v1-green",
+        "generationId": "fixture-v1-green",
+        "maximumNewGenerations": 1,
+        "logicalResourceCount": 1000000,
+        "operations": ["create-table", "seed", "verify", "backup", "publish"]
+      }
+    ],
+    "temporaryCompute": {
+      "purposes": ["datahike-seed", "datomic-seed", "datomic-transactor", "jank-build"],
+      "profilePurposes": {
+        "datahike-dynamodb": ["datahike-seed"],
+        "datomic-dynamodb": ["datomic-seed", "datomic-transactor"],
+        "jank-memory": ["jank-build"]
+      },
+      "standalonePurposes": ["jank-build"],
+      "maximumConcurrentInstances": 1,
+      "maximumVcpus": 8,
+      "maximumMemoryGiB": 32,
+      "maximumRuntimeMinutes": 360,
+      "maximumRootVolumeGiB": 80,
+      "maximumForecastUsdPerRun": 15,
+      "requireNoInboundRules": true,
+      "requireImdsV2": true,
+      "requireNoElasticIp": true,
+      "requireTerminationByExactInstanceId": true
+    }
+  },
+  "requiredBeforeExecution": [
+    "fresh-exact-target-preview",
+    "exact-account-and-region-match",
+    "cost-controls-active",
+    "telegram-path-healthy",
+    "typed-confirmation"
+  ],
+  "requiredAfterTemporaryCompute": [
+    "terminate-launch-result-instance-id-noninteractively",
+    "verify-no-active-instance",
+    "verify-no-orphan-volume",
+    "verify-no-elastic-address",
+    "verify-temporary-role-inactive"
+  ],
+  "explicitlyExcluded": [
+    "ordinary-demos-branch-deployment",
+    "additional-durable-generations",
+    "active-dataset-mutation",
+    "resource-deletion",
+    "legacy-retirement",
+    "production-dns-cutover",
+    "customer-managed-kms"
+  ]
+}

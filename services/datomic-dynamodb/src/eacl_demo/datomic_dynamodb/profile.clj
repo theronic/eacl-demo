@@ -1,0 +1,43 @@
+(ns eacl-demo.datomic-dynamodb.profile
+  "Truthful descriptor for the fixed-current Datomic/DynamoDB candidate."
+  (:require [eacl-demo.datomic-dynamodb.boundary :as boundary]))
+
+(def data-manifest-sha256
+  "718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0")
+
+(def closed-operations
+  #{"health" "bootstrap" "list-subjects" "get-object"
+    "list-relationships" "reverse-relationships" "authorize" "get-schema"
+    "get-cache-info" "count-objects"})
+
+(defn descriptor
+  [{:keys [identity basis memory-mib admission-concurrency]}]
+  (when-not (and (= data-manifest-sha256 (:dataManifestSha256 identity))
+                 (= "fixed-environment" (:behavior basis))
+                 (true? (:fixedForEnvironment basis))
+                 (string? (:id basis)) (not-empty (:id basis))
+                 (string? (:capturedAt basis)) (not-empty (:capturedAt basis))
+                 (pos-int? memory-mib)
+                 (pos-int? admission-concurrency))
+    (throw (ex-info "Invalid Datomic/DynamoDB profile descriptor input."
+                    {:type :eacl-demo/invalid-profile-descriptor})))
+  (boundary/descriptor
+   {:identity identity
+    :runtime {:execution "lambda" :name "java25" :architecture "x86_64"
+              :snapStart "disabled"}
+    :dataset {:fixtureId "eacl-demo-fixture-v1"
+              :logicalResourceCount 1000000
+              :manifestSha256 data-manifest-sha256}
+    :basis basis
+    :capabilities
+    {:operations (vec (sort closed-operations))
+     :consistencyModes ["current" "minimize"]
+     :snapshotBehavior "fixed-environment"
+     :cacheBehavior "environment-local"
+     :mutationLocality "none"
+     :limitations ["read-only" "fixed-current-snapshot" "no-synchronization"
+                   "no-history-api" "unsupported-consistency"]}
+    :limits [{:name "requestDeadlineMs" :value 30000}
+             {:name "admissionConcurrency" :value admission-concurrency}
+             {:name "responseBodyBytes" :value 1048576}
+             {:name "memoryMiB" :value memory-mib}]}))

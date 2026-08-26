@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Ephemeral exact-generation Datomic transactor/seed EC2 identity.
+
+Parameters:
+  TableArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  ArtifactBucketName:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  SeedArtifactObjectKey:
+    Type: String
+    AllowedPattern: "^artifacts/datomic-dynamodb/seed/[a-f0-9]{64}/seed\\.jar$"
+  SeedArtifactObjectVersion:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 1024
+  FixtureStreamObjectKey:
+    Type: String
+    AllowedPattern: "^artifacts/datomic-dynamodb/fixtures/[a-f0-9]{64}/fixture-1000000\\.batches\\.jsonl\\.gz$"
+  FixtureStreamObjectVersion:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 1024
+  SeedEvidenceObjectKey:
+    Type: String
+    AllowedPattern: "^evidence/datomic-dynamodb/[a-z0-9-]{3,80}/seed-evidence\\.jsonl$"
+  AuthorizationId:
+    Type: String
+    AllowedPattern: "^sha256:[a-f0-9]{64}$"
+  RoleName:
+    Type: String
+    Default: eacl-demo-datomic-seed-fixture-v1-green
+    AllowedValues:
+      - eacl-demo-datomic-seed-fixture-v1-green
+  InstanceProfileName:
+    Type: String
+    Default: eacl-demo-datomic-seed-fixture-v1-green
+    AllowedValues:
+      - eacl-demo-datomic-seed-fixture-v1-green
+
+Resources:
+  TemporaryWriterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: exact-generation-datomic-storage
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactGenerationSeedDataPlane
+                Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                Resource: !Ref TableArn
+              - Sid: ExactImmutableSeedArtifact
+                Effect: Allow
+                Action: s3:GetObjectVersion
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${SeedArtifactObjectKey}
+                Condition:
+                  StringEquals:
+                    s3:VersionId: !Ref SeedArtifactObjectVersion
+              - Sid: ExactImmutableFixtureStream
+                Effect: Allow
+                Action: s3:GetObjectVersion
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${FixtureStreamObjectKey}
+                Condition:
+                  StringEquals:
+                    s3:VersionId: !Ref FixtureStreamObjectVersion
+              - Sid: ExactSeedEvidenceOutput
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ArtifactBucketName}/${SeedEvidenceObjectKey}
+                Condition:
+                  StringEquals:
+                    s3:x-amz-server-side-encryption: AES256
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datomic-dynamodb
+        - Key: Access
+          Value: temporary-seed-writer
+        - Key: Lifecycle
+          Value: temporary
+        - Key: AuthorizationId
+          Value: !Ref AuthorizationId
+
+  TemporaryWriterInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Ref InstanceProfileName
+      Roles:
+        - !Ref TemporaryWriterRole
+
+Outputs:
+  TemporaryWriterRoleArn:
+    Value: !GetAtt TemporaryWriterRole.Arn
+  TemporaryWriterInstanceProfileArn:
+    Value: !GetAtt TemporaryWriterInstanceProfile.Arn

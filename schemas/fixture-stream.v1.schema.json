@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/fixture-stream.v1.schema.json",
+  "title": "EACL demo canonical fixture NDJSON line",
+  "oneOf": [
+    {"$ref": "#/$defs/header"},
+    {"$ref": "#/$defs/objectRecord"},
+    {"$ref": "#/$defs/relationshipRecord"}
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "logicalObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["user", "platform", "account", "team", "vpc", "server"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9-]+$"}
+      }
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "algorithmVersion", "cutPointResources", "exemplarDigest", "fixtureId", "kind", "schemaDigest", "seed"],
+      "properties": {
+        "algorithm": {"const": "eacl-demo-fixture"},
+        "algorithmVersion": {"const": 1},
+        "cutPointResources": {"enum": [10000, 1000000]},
+        "exemplarDigest": {"$ref": "#/$defs/digest"},
+        "fixtureId": {"const": "eacl-demo-fixture-v1"},
+        "kind": {"const": "fixture"},
+        "schemaDigest": {"$ref": "#/$defs/digest"},
+        "seed": {"const": "20260813"}
+      }
+    },
+    "objectRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "object", "role"],
+      "properties": {
+        "kind": {"const": "object"},
+        "object": {"$ref": "#/$defs/logicalObject"},
+        "role": {"enum": ["subject", "resource"]}
+      }
+    },
+    "relationshipRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "relation", "resource", "subject"],
+      "properties": {
+        "kind": {"const": "relationship"},
+        "relation": {"enum": ["super_admin", "owner", "platform", "parent", "account", "leader", "shared_admin", "team", "vpc"]},
+        "resource": {"$ref": "#/$defs/logicalObject"},
+        "subject": {"$ref": "#/$defs/logicalObject"}
+      }
+    }
+  }
+}

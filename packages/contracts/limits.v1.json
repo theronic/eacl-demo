@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/limits.v1.schema.json",
+  "schema": "eacl-demo.limits.v1",
+  "requestBodyBytes": 65536,
+  "responseBodyBytes": 1048576,
+  "totalOutputBytes": 1048576,
+  "stringBytes": 4096,
+  "identifierBytes": 256,
+  "arrayItems": 100,
+  "defaultPageSize": 25,
+  "maximumPageSize": 100,
+  "countCeiling": 1000000,
+  "cursorBytes": 4096,
+  "diagnosticBytes": 8192,
+  "queryStringBytes": 2048,
+  "pathSegmentBytes": 256,
+  "requestDeadlineMs": 10000,
+  "admissionConcurrency": 32
+}

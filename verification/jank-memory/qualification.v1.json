@@ -1,0 +1,51 @@
+{
+  "schema": "eacl-demo.jank-memory-qualification.v1",
+  "runtime": "provided.al2023",
+  "architecture": "x86_64",
+  "snapStart": false,
+  "datasetLogicalResources": 10000,
+  "repetitions": {
+    "coldEnvironmentsPerMemory": 20,
+    "warmRequestsPerOperation": 100
+  },
+  "thresholds": {
+    "initializationMillisecondsMaximum": 9000,
+    "coldHealthMillisecondsMaximum": 10000,
+    "warmOperationP95MillisecondsMaximum": 1000,
+    "authorizationP95MillisecondsMaximum": 2000,
+    "memoryHeadroomPercentMinimum": 20,
+    "timeoutsMaximum": 0,
+    "errorsMaximum": 0
+  },
+  "memorySearch": {
+    "minimumMiB": 128,
+    "maximumMiB": 10240,
+    "selection": "smallest-tested-passing",
+    "retestSelectedAndNextLower": true
+  },
+  "requiredOperations": [
+    "health",
+    "bootstrap",
+    "list-subjects",
+    "get-object",
+    "list-relationships",
+    "reverse-relationships",
+    "authorize",
+    "get-schema",
+    "get-cache-info",
+    "count-objects"
+  ],
+  "productionTransportSmoke": {
+    "health": true,
+    "bootstrapIdentity": true,
+    "allowExemplar": "direct-owner-allow",
+    "denyExemplar": "direct-owner-deny",
+    "mutationRouteDenied": "seed"
+  },
+  "costSafety": {
+    "provisionedConcurrency": false,
+    "maximumReservedConcurrency": 2,
+    "externalQualificationRequiresExplicitApproval": true,
+    "cleanupRequired": true
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "status": "source-pinned-image-unbuilt",
+  "platform": "linux/amd64",
+  "lambda": {
+    "runtime": "provided.al2023",
+    "architecture": "x86_64",
+    "snapStart": false
+  },
+  "baseImage": {
+    "repository": "public.ecr.aws/amazonlinux/amazonlinux",
+    "tagObserved": "2023",
+    "indexDigest": "sha256:5d271dd33b628252c31c15f5449e50d7c4e9f93badf9342f9b1e2a8d326fbe84",
+    "amd64ManifestDigest": "sha256:26b860d6ace0e868b1dd786be29b2a6b32a213b72f43074043090512871e9532",
+    "release": "2023.12.20260817",
+    "repositorySnapshotGuid": "e56f3d932530715bd6022770def2a18cbd23bf97fca31b6ad2278227c8ca127e",
+    "awsOwnedRuntimeCompatibility": "glibc-2.34-amazon-linux-2023"
+  },
+  "lambdaBaseImage": {
+    "repository": "public.ecr.aws/lambda/provided",
+    "tagObserved": "al2023",
+    "indexDigest": "sha256:0af3e1742bfa56414f9444ec728469cfbb06bab82929684144f98c879d37503a",
+    "amd64ManifestDigest": "sha256:88e7baab97ca43d9fd06c46adac2d892491c1ef0c4d07ffcdd88c69fa2f44012",
+    "glibc": "2.34",
+    "observedAt": "2026-08-25"
+  },
+  "lambdaRuntimeClosure": {
+    "policy": "base-image-provided-no-shared-libraries-packaged",
+    "observedAt": "2026-08-25",
+    "baseManifestDigest": "sha256:88e7baab97ca43d9fd06c46adac2d892491c1ef0c4d07ffcdd88c69fa2f44012",
+    "directAdapterLibraries": {
+      "libcurl.so.4": "libcurl-minimal-8.17.0-1.amzn2023.0.3.x86_64",
+      "libjson-c.so.5": "json-c-0.14-8.amzn2023.0.2.x86_64",
+      "libcrypto.so.3": "openssl-snapsafe-libs-3.5.7-2.amzn2023.0.1.x86_64"
+    },
+    "cxxRuntimeLibraries": {
+      "libstdc++.so.6": "libstdc++-14.2.1-7.amzn2023.0.2.x86_64",
+      "libgcc_s.so.1": "libgcc-14.2.1-7.amzn2023.0.2.x86_64"
+    },
+    "qualification": "The exact package must still pass ldd and offline self-test in this immutable base image."
+  },
+  "jank": {
+    "repository": "https://github.com/jank-lang/jank.git",
+    "commit": "489760dc927cd22900a4ab150dbab947ec25ad00",
+    "version": "jank-0.1-alpha",
+    "cxxStandard": 20,
+    "upstreamLinuxReleaseRunner": "ubuntu-24.04-x86_64",
+    "upstreamWorkflowSha256": "eb7e0e850d1f00c32568aaade89ba3e28caee77c7d34f5543703f00da2b9cd69",
+    "cmakeListsSha256": "7393a747b9acf029edc17b25f9fadb4ac194be2526e4891c6b984a7d3cb05689"
+  },
+  "llvm": {
+    "repository": "https://github.com/jank-lang/llvm-project.git",
+    "major": 23,
+    "commit": "106644f6c835f9d2137aeb9cbfe1b9a60d03d17f",
+    "buildScriptSha256": "4dd306cbca998a836f09bc2187eed78b7f194c02910bef3a1e9e44739c1a878e"
+  },
+  "runtimeApiAdapter": {
+    "httpLibraryBuildNevra": "libcurl-devel-8.17.0-1.amzn2023.0.3.x86_64",
+    "runtimeSoname": "libcurl.so.4",
+    "jsonLibraryBuildNevra": "json-c-devel-0.14-8.amzn2023.0.2.x86_64",
+    "jsonRuntimeSoname": "libjson-c.so.5",
+    "transport": "Lambda Runtime API over HTTP",
+    "tlsNotUsedForRuntimeApi": true
+  },
+  "submodules": {
+    "compiler+runtime/test/bash/clojure-test-suite/clojure-test-suite": "6299706516f55d2ccb2d5abb5662489971584dea",
+    "compiler+runtime/third-party/bdwgc": "327ef1f8c80a611b2f8b915850c8b2fd38e6595e",
+    "compiler+runtime/third-party/boost-multiprecision": "2b3ab082fac41c0d4bdb5a1c3daf7411be6fd679",
+    "compiler+runtime/third-party/boost-preprocessor": "c4ea7e40d365ba28faecef8917d5c3f1e0121bf9",
+    "compiler+runtime/third-party/boost-process": "e4d0d405a12f13ebe7d894382d3a98830ae1c7bd",
+    "compiler+runtime/third-party/cppinterop": "bd43c82e679189628e077a05311a5a2f5668461b",
+    "compiler+runtime/third-party/cpptrace": "c676b8ca1dad5c84cb4f0ac19e9e002ce7c6d2d0",
+    "compiler+runtime/third-party/doctest": "d44d4f6e66232d716af82f00a063759e9d0e50d6",
+    "compiler+runtime/third-party/folly": "39b8a05c3adc8d992d2aac499b53b3c2895cd637",
+    "compiler+runtime/third-party/immer": "282629d01917d4c7d0aba2322de700c6d1111276",
+    "compiler+runtime/third-party/isocline": "8d6dc1ef95b1b46711e66eb23d39d4467a0fcdac",
+    "compiler+runtime/third-party/json": "02dfbea39d94b8d19ddcd0eabfdc943a65bf3368",
+    "compiler+runtime/third-party/stduuid": "3afe7193facd5d674de709fccc44d5055e144d7a",
+    "compiler+runtime/third-party/zip": "52d1c1d00831c4f10ef8a6bb12ae6bb3e57743b9"
+  },
+  "architectureMigrationPolicy": {
+    "current": "x86_64",
+    "arm64IsSeparateMigration": true,
+    "requiredArm64Gates": ["compiler", "native-dependencies", "al2023-package", "lambda-runtime", "price-performance"]
+  },
+  "buildWorkload": {
+    "schema": "eacl-demo.jank-builder-workload.v1",
+    "runner": "ubuntu-24.04",
+    "timeoutMinutes": 360,
+    "platform": "linux/amd64",
+    "dockerfile": "infra/builders/jank-al2023-x86_64.Dockerfile",
+    "dockerfileSha256": "df0894ae75a80b854d2057be208ccb27ccaafbb3960e3c268429e64179938577",
+    "actions": {
+      "checkout": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "setupNode": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "setupSwap": "thejerrybao/setup-swap-space@466d59798fb9263b9c2331c83cf71f9b7bfd0c78",
+      "setupBuildx": "docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f",
+      "login": "docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9",
+      "buildPush": "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8",
+      "uploadArtifact": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+    },
+    "imageRepository": "ghcr.io/theronic/eacl-demo-jank-builder",
+    "imageTag": "jank-489760dc927cd22900a4ab150dbab947ec25ad00-al2023-amd64",
+    "push": true,
+    "provenance": "mode=max",
+    "sbom": true,
+    "artifactRetentionDays": 1,
+    "workloadDigest": "sha256:ec4365ef92e6ec7d017db80a09eede38e6bb3cf9cf9bac4d90a729ab2c92c6d8"
+  },
+  "promotionGate": "Record the built image digest only after an amd64 build, check-health, source/submodule audit, release-Core compatibility, and AL2023 Lambda artifact smoke pass."
+}

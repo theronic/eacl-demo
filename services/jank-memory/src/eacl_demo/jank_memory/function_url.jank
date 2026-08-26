@@ -1,0 +1,267 @@
+(ns eacl-demo.jank-memory.function-url
+  (:require [clojure.string :as str]
+            [eacl.cancellation :as cancellation]
+            [eacl.runtime.native.clock :as clock]
+            [eacl.runtime.native.encoding :as encoding]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def profile-id "jank-memory")
+(def server-profile-ids
+  #{"datahike-s3" "datahike-dynamodb" "datomic-dynamodb"
+    "datalevin-memory" "jank-memory"})
+(def request-body-bytes 65536)
+(def identifier-bytes 256)
+(def cursor-bytes 4096)
+(def maximum-page-size 100)
+(def count-ceiling 1000000)
+(def request-deadline-ms 10000)
+(def deadline-reserve-ms 100)
+
+(def event-keys
+  #{"version" "routeKey" "rawPath" "rawQueryString" "headers"
+    "requestContext" "isBase64Encoded" "body" "cookies"})
+
+(def operation-methods
+  {"health" "GET"
+   "bootstrap" "GET"
+   "list-subjects" "POST"
+   "get-object" "POST"
+   "list-relationships" "POST"
+   "reverse-relationships" "POST"
+   "authorize" "POST"
+   "get-schema" "POST"
+   "get-cache-info" "POST"
+   "count-objects" "POST"})
+
+(def body-fields
+  {"list-subjects"
+   {:required #{} :optional #{"type" "pageSize" "cursor"}}
+   "get-object"
+   {:required #{"type" "id"} :optional #{"consistency"}}
+   "list-relationships"
+   {:required #{"resourceType" "resourceId"}
+    :optional #{"relation" "pageSize" "cursor" "consistency"}}
+   "reverse-relationships"
+   {:required #{"subjectType" "subjectId"}
+    :optional #{"relation" "pageSize" "cursor" "consistency"}}
+   "authorize"
+   {:required #{"subjectType" "subjectId" "resourceType" "resourceId"
+                "permission"}
+    :optional #{"consistency"}}
+   "get-schema"
+   {:required #{} :optional #{"consistency"}}
+   "get-cache-info"
+   {:required #{} :optional #{}}
+   "count-objects"
+   {:required #{"kind"} :optional #{"type" "ceiling" "consistency"}}})
+
+(def consistency-values
+  #{"current" "minimize" "authoritative" "at-least" "exact"
+    "historical-date"})
+
+(defn- rejected
+  ([code] {:ok false :code code})
+  ([code allowed-methods]
+   {:ok false :code code :allowed-methods allowed-methods}))
+
+(defn- byte-length
+  [value]
+  (encoding/byte-length (encoding/utf8->hex value)))
+
+(defn- identifier?
+  [value]
+  (and (string? value)
+       (pos? (count value))
+       (<= (byte-length value) identifier-bytes)
+       (boolean (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]*" value))))
+
+(defn- valid-input-keys?
+  [input fields]
+  (let [required (:required fields)
+        allowed (into required (:optional fields))
+        actual (set (keys input))]
+    (and (every? actual required)
+         (every? allowed actual)
+         (<= (count actual) 100))))
+
+(defn- valid-input-values?
+  [input]
+  (every?
+   (fn [[key value]]
+     (cond
+       (= "pageSize" key)
+       (and (integer? value) (<= 1 value maximum-page-size))
+
+       (= "ceiling" key)
+       (and (integer? value) (<= 1 value count-ceiling))
+
+       (= "cursor" key)
+       (and (string? value) (<= (byte-length value) cursor-bytes))
+
+       (= "consistency" key)
+       (contains? consistency-values value)
+
+       :else (identifier? value)))
+   input))
+
+(defn- parse-route
+  [expected-profile-id request-path method]
+  (if-not (and (string? request-path)
+               (string? method)
+               (not (str/includes? request-path "%"))
+               (not (str/includes? request-path "//"))
+               (not (str/ends-with? request-path "/")))
+    (rejected "route-not-found")
+    (let [prefix (str "/api/v1/" expected-profile-id "/")
+          operation (when (str/starts-with? request-path prefix)
+                      (subs request-path (count prefix)))
+          expected (get operation-methods operation)]
+      (cond
+        (or (nil? expected) (str/includes? operation "/"))
+        (rejected "route-not-found")
+
+        (not= expected (str/upper-case method))
+        (rejected "method-not-allowed" [expected])
+
+        :else
+        {:ok true
+         :contract-version "explorer.v1"
+         :transport "http"
+         :profile-id expected-profile-id
+         :operation operation}))))
+
+(defn- parse-body
+  [value]
+  (try
+    {:ok true :value (runtime-api/parse-json value)}
+    (catch cpp/jank.runtime.object_ref _
+      (rejected "validation-error"))))
+
+(defn- validate-http-request
+  [expected-profile-id request]
+  (let [request-path (get request "path")
+        method (get request "method")
+        content-type (get request "contentType")
+        query (get request "query")
+        body (get request "body")
+        request-id (get request "requestId")
+        route (parse-route expected-profile-id request-path method)]
+    (cond
+      (not (map? request))
+      (rejected "validation-error")
+
+      (or (not (string? query)) (not (empty? query)))
+      (rejected "validation-error")
+
+      (not (:ok route))
+      route
+
+      (or (not (string? request-id))
+          (empty? request-id)
+          (> (count request-id) 128))
+      (rejected "validation-error")
+
+      (= "GET" (str/upper-case method))
+      (if (and (nil? content-type) (or (nil? body) (= "" body)))
+        (assoc route :request-id request-id :input {})
+        (rejected "unsupported-media-type"))
+
+      (not (contains?
+            #{"application/json" "application/json; charset=utf-8"}
+            (some-> content-type str/lower-case)))
+      (rejected "unsupported-media-type")
+
+      (not (string? body))
+      (rejected "validation-error")
+
+      (> (byte-length body) request-body-bytes)
+      (rejected "request-too-large")
+
+      :else
+      (let [parsed (parse-body body)
+            input (:value parsed)
+            fields (get body-fields (:operation route))]
+        (if (and (:ok parsed)
+                 (map? input)
+                 fields
+                 (valid-input-keys? input fields)
+                 (valid-input-values? input))
+          (assoc route :request-id request-id :input input)
+          (rejected "validation-error"))))))
+
+(defn- normalized-headers
+  [headers]
+  (when (and (map? headers)
+             (every? (fn [[key value]]
+                       (and (string? key) (string? value)))
+                     headers))
+    (reduce
+     (fn [result [key value]]
+       (assoc result (str/lower-case key) value))
+     {} headers)))
+
+(defn normalize-event-for-profile
+  [event expected-profile-id]
+  (when-not (contains? server-profile-ids expected-profile-id)
+    (throw
+     (ex-info
+      "Function URL contract profile is invalid."
+      {:type :eacl-demo.jank/invalid-contract-profile})))
+  (let [request-context (get event "requestContext")
+        http (get request-context "http")
+        headers (normalized-headers (get event "headers"))
+        aws-request-id (get request-context "requestId")
+        client-request-id (get headers "x-eacl-request-id")
+        request-id (if (and (string? client-request-id)
+                            (pos? (count client-request-id))
+                            (<= (byte-length client-request-id) 128))
+                     client-request-id
+                     aws-request-id)
+        encoded? (get event "isBase64Encoded")
+        raw-body (get event "body")]
+    (if-not
+     (and (map? event)
+          (= "2.0" (get event "version"))
+          (every? event-keys (keys event))
+          (map? request-context)
+          (map? http)
+          (string? (get http "method"))
+          (string? aws-request-id)
+          headers
+          (or (= true encoded?) (= false encoded?))
+          (or (nil? raw-body) (string? raw-body)))
+      (rejected "validation-error")
+      (let [body-result
+            (if encoded?
+              (if (string? raw-body)
+                (try
+                  {:ok true :value (runtime-api/decode-base64 raw-body)}
+                  (catch cpp/jank.runtime.object_ref _
+                    (rejected "validation-error")))
+                (rejected "validation-error"))
+              {:ok true :value raw-body})]
+        (if-not (:ok body-result)
+          body-result
+          (validate-http-request
+           expected-profile-id
+           {"path" (get event "rawPath")
+            "method" (get http "method")
+            "contentType" (get headers "content-type")
+            "query" (or (get event "rawQueryString") "")
+            "body" (:value body-result)
+            "requestId" request-id}))))))
+
+(defn normalize-event
+  [event]
+  (normalize-event-for-profile event profile-id))
+
+(defn request-controls
+  [deadline-ms]
+  (let [now (clock/unix-time-millis)
+        remaining (- deadline-ms now deadline-reserve-ms)]
+    (if-not (and (integer? deadline-ms) (pos? remaining))
+      (rejected "deadline-exceeded")
+      {:ok true
+       :deadline-ms deadline-ms
+       :timeout-ms (min request-deadline-ms remaining)
+       :cancellation-token (cancellation/cancellation-token)})))

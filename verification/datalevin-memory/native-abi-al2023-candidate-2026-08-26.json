@@ -1,0 +1,44 @@
+{
+  "schema": "eacl-demo.datalevin-native-abi-report.v1",
+  "expectations": "dependencies/datalevin-native-al2023-builder.v1.json",
+  "artifactSha256": "be264ee95cf67148194a87b9ef9d533d74caa7dbb2f64bac29a1e159498dcb63",
+  "platform": "linux/arm64",
+  "lambdaRuntime": "java25",
+  "maximumAllowedGlibc": "2.34",
+  "compatible": true,
+  "libraries": [
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libdtlv.so",
+      "sha256": "7ae622c767170a6f054e0f315d5bde26047f12dd0b6b45a8200f4c5fa611cb68",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.34",
+      "glibcCompatible": true,
+      "runtimePaths": ["$ORIGIN"],
+      "runtimePathsCompatible": true,
+      "compatible": true,
+      "needed": ["libc.so.6", "libgcc_s.so.1", "libgomp.so.1", "libm.so.6"]
+    },
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libgomp.so",
+      "sha256": "d9b54154f8ce611b36aa70ec292073f63f3136a371805c0cedb402065f4a61e5",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.34",
+      "glibcCompatible": true,
+      "runtimePaths": [],
+      "runtimePathsCompatible": true,
+      "compatible": true,
+      "needed": ["libc.so.6"]
+    },
+    {
+      "path": "datalevin/dtlvnative/linux-arm64/libjniDTLV.so",
+      "sha256": "1483ac2e011a569d996b34becbf72c9865e38c244ef63548daaa97b2b4e7ec36",
+      "format": "elf64-littleaarch64",
+      "maximumRequiredGlibc": "2.34",
+      "glibcCompatible": true,
+      "runtimePaths": ["$ORIGIN"],
+      "runtimePathsCompatible": true,
+      "compatible": true,
+      "needed": ["libc.so.6", "libdtlv.so", "libgcc_s.so.1", "libm.so.6", "libstdc++.so.6"]
+    }
+  ]
+}

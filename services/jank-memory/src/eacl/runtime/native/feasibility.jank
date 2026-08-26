@@ -1,0 +1,17 @@
+(ns eacl.runtime.native.feasibility
+  "Compatibility aliases retained by the early feasibility suite."
+  (:require [eacl.runtime.native.clock :as clock]
+            [eacl.runtime.native.crypto :as crypto]
+            [eacl.runtime.native.identity :as identity]))
+
+(defn monotonic-nanos
+  []
+  (clock/monotonic-nanos))
+
+(defn current-execution-identity
+  []
+  (identity/current-execution-identity))
+
+(defn secure-random-hex
+  []
+  (crypto/secure-random-hex 16))

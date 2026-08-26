@@ -1,0 +1,9 @@
+(ns eacl-demo.jank-memory.main-namespace-test
+  (:require [eacl-demo.jank-memory.main :as main]))
+
+(assert (= "{\"errorMessage\":\"Initialization failed.\",\"errorType\":\"Runtime.InitError\"}"
+           main/init-error-json))
+(assert (= "{\"errorMessage\":\"Invocation failed.\",\"errorType\":\"Runtime.Unhandled\"}"
+           main/invocation-error-json))
+
+(println :jank-main-namespace-pass)

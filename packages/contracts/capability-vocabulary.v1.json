@@ -1,0 +1,12 @@
+{
+  "$schema": "../../schemas/capability-vocabulary.v1.schema.json",
+  "schema": "eacl-demo.capability-vocabulary.v1",
+  "operations": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"],
+  "consistencyModes": ["current", "minimize", "authoritative", "at-least", "exact", "historical-date"],
+  "snapshotBehaviors": ["fixed-environment", "request-snapshot", "worker-lifecycle", "rebuild-lifecycle"],
+  "cacheBehaviors": ["none", "request-local", "environment-local", "browser-worker-local", "shared-read-through"],
+  "mutationLocalities": ["none", "private-seed-workflow", "initialization-before-ready", "browser-worker-initialization"],
+  "limitFields": ["request-body-bytes", "response-bytes", "string-bytes", "array-items", "page-size", "count-ceiling", "cursor-bytes", "diagnostic-bytes", "concurrency", "deadline-ms"],
+  "datasetIdentityFields": ["fixture-id", "fixture-algorithm", "fixture-seed", "manifest-sha256", "schema-sha256", "logical-resource-count", "logical-subject-count", "physical-counts", "generation-id", "basis-id"],
+  "limitations": ["read-only", "fixed-current-snapshot", "no-synchronization", "no-history-api", "ephemeral", "browser-local", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "eventual-storage-read", "lifecycle-rebuild", "unsupported-consistency"]
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "eacl-demo.function-url-v2-cases.v1",
+  "events": [
+    {
+      "id": "health-get",
+      "event": {"version": "2.0", "routeKey": "$default", "rawPath": "/api/v1/datahike-s3/health", "rawQueryString": "", "headers": {}, "requestContext": {"requestId": "request-health", "http": {"method": "GET"}}, "isBase64Encoded": false, "body": null},
+      "expected": {"ok": true, "contractVersion": "explorer.v1", "transport": "http", "profileId": "datahike-s3", "operation": "health", "requestId": "request-health", "input": {}}
+    },
+    {
+      "id": "authorize-post",
+      "event": {"version": "2.0", "routeKey": "$default", "rawPath": "/api/v1/datahike-s3/authorize", "rawQueryString": "", "headers": {"Content-Type": "application/json"}, "requestContext": {"requestId": "request-authorize", "http": {"method": "POST"}}, "isBase64Encoded": false, "body": "{\"subjectType\":\"user\",\"subjectId\":\"alice\",\"resourceType\":\"server\",\"resourceId\":\"server-1\",\"permission\":\"read\"}"},
+      "expected": {"ok": true, "contractVersion": "explorer.v1", "transport": "http", "profileId": "datahike-s3", "operation": "authorize", "requestId": "request-authorize", "input": {"subjectType": "user", "subjectId": "alice", "resourceType": "server", "resourceId": "server-1", "permission": "read"}}
+    },
+    {
+      "id": "query-rejected",
+      "event": {"version": "2.0", "routeKey": "$default", "rawPath": "/api/v1/datahike-s3/health", "rawQueryString": "debug=true", "headers": {}, "requestContext": {"requestId": "request-query", "http": {"method": "GET"}}, "isBase64Encoded": false, "body": null},
+      "expected": {"ok": false, "code": "validation-error"}
+    },
+    {
+      "id": "mutation-route-rejected",
+      "event": {"version": "2.0", "routeKey": "$default", "rawPath": "/api/v1/datahike-s3/seed", "rawQueryString": "", "headers": {"content-type": "application/json"}, "requestContext": {"requestId": "request-seed", "http": {"method": "POST"}}, "isBase64Encoded": false, "body": "{}"},
+      "expected": {"ok": false, "code": "route-not-found"}
+    },
+    {
+      "id": "unknown-event-field-rejected",
+      "event": {"version": "2.0", "routeKey": "$default", "rawPath": "/api/v1/datahike-s3/health", "rawQueryString": "", "headers": {}, "requestContext": {"requestId": "request-extra", "http": {"method": "GET"}}, "isBase64Encoded": false, "body": null, "unexpected": true},
+      "expected": {"ok": false, "code": "validation-error"}
+    }
+  ]
+}

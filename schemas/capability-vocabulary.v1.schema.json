@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/capability-vocabulary.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema", "operations", "consistencyModes", "snapshotBehaviors", "cacheBehaviors", "mutationLocalities", "limitFields", "datasetIdentityFields", "limitations"],
+  "properties": {
+    "$schema": {"const": "../../schemas/capability-vocabulary.v1.schema.json"},
+    "schema": {"const": "eacl-demo.capability-vocabulary.v1"},
+    "operations": {"$ref": "#/$defs/closedTerms"},
+    "consistencyModes": {"$ref": "#/$defs/closedTerms"},
+    "snapshotBehaviors": {"$ref": "#/$defs/closedTerms"},
+    "cacheBehaviors": {"$ref": "#/$defs/closedTerms"},
+    "mutationLocalities": {"$ref": "#/$defs/closedTerms"},
+    "limitFields": {"$ref": "#/$defs/closedTerms"},
+    "datasetIdentityFields": {"$ref": "#/$defs/closedTerms"},
+    "limitations": {"$ref": "#/$defs/closedTerms"}
+  },
+  "$defs": {
+    "closedTerms": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    }
+  }
+}

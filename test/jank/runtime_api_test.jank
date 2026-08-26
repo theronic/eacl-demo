@@ -1,0 +1,17 @@
+(ns eacl-demo.jank-memory.runtime-api-test
+  (:require [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(let [value
+      (runtime-api/parse-json
+       "{\"a\":[1,true,null,\"x\"],\"nested\":{\"ready\":false}}")]
+  (assert (= [1 true nil "x"] (get value "a")))
+  (assert (= false (get-in value ["nested" "ready"]))))
+
+(assert (= "hello" (runtime-api/decode-base64 "aGVsbG8=")))
+(assert (= "" (runtime-api/decode-base64 "")))
+(let [timestamp (runtime-api/utc-timestamp)]
+  (assert (= 24 (count timestamp)))
+  (assert (= "T" (subs timestamp 10 11)))
+  (assert (= "Z" (subs timestamp 23 24))))
+
+(println :jank-runtime-api-pass)

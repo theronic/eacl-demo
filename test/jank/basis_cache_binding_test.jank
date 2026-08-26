@@ -1,0 +1,111 @@
+(ns eacl-demo.jank-memory.basis-cache-binding-test
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]
+            [eacl.datomic.memory.db :as memory-db]
+            [eacl.datomic.memory.store :as memory-store]
+            [eacl.engine.sealed-plan :as sealed-plan]
+            [eacl.execution :as execution]
+            [eacl.request.context :as context]))
+
+(def schema-v1
+  "definition user {}\n\ndefinition account {\n  relation owner: user\n  permission view = owner\n}\n")
+
+(def schema-v2
+  "definition user {}\n\ndefinition account {\n  relation owner: user\n  relation editor: user\n  permission view = owner + editor\n}\n")
+
+(defn selected-context
+  [connection plan-cache descriptor]
+  (context/make-context
+   {:selection (memory/select-snapshot connection descriptor)
+    :operations (memory-db/read-operation-table)
+    :source-scope (memory-store/identities connection)
+    :contract (execution/normalize {} :basis-cache-binding-test {})
+    :plan-cache plan-cache}))
+
+(defn prepare-and-close!
+  [connection plan-cache descriptor]
+  (let [request-context (selected-context connection plan-cache descriptor)]
+    (try
+      (sealed-plan/prepared-plan! request-context :account :view)
+      (context/lineage request-context)
+      (finally
+        (context/close! request-context)))))
+
+;; A shared cache cannot collapse equal schema generations from independent
+;; source lifecycles. The production client keeps this cache private, but this
+;; adversarial construction proves the key itself remains source-bound.
+(def first-connection (memory/connect))
+(def second-connection (memory/connect))
+(def first-client (memory/make-client first-connection))
+(def second-client (memory/make-client second-connection))
+(def shared-plan-cache (sealed-plan/plan-cache 64))
+
+(eacl/write-schema! first-client schema-v1)
+(def first-generation-token (memory/causal-token first-connection))
+(eacl/write-schema! second-client schema-v1)
+
+(def first-lineage
+  (prepare-and-close!
+   first-connection shared-plan-cache :minimize-latency))
+(assert (= 1 (sealed-plan/plan-cache-size shared-plan-cache)))
+
+(def second-lineage
+  (prepare-and-close!
+   second-connection shared-plan-cache :minimize-latency))
+(assert (= 2 (sealed-plan/plan-cache-size shared-plan-cache)))
+(assert (not= first-lineage second-lineage))
+
+;; The lifecycle is opaque, so validate its closed shape separately from its
+;; random value.
+(assert (= #{:source-scope :source-lifecycle}
+           (set (keys first-lineage))))
+(assert (= #{:backend :source-id :branch}
+           (set (keys (:source-scope first-lineage)))))
+
+;; The same source and root at a new certified schema generation must install a
+;; separate plan, while the retained exact basis must continue to select the
+;; earlier generation's entry.
+(eacl/write-schema! first-client schema-v2)
+(prepare-and-close! first-connection shared-plan-cache :minimize-latency)
+(assert (= 3 (sealed-plan/plan-cache-size shared-plan-cache)))
+(prepare-and-close!
+ first-connection shared-plan-cache
+ {:mode :at-exact-snapshot :token first-generation-token})
+(assert (= 3 (sealed-plan/plan-cache-size shared-plan-cache)))
+
+;; Relation stamps and the selected-basis ordering guard prevent a denial
+;; cached at a newer basis from answering an older exact-snapshot request.
+(def proof-connection (memory/connect))
+(def proof-client (memory/make-client proof-connection))
+(def subject (eacl/spice-object :user "user-1"))
+(def resource (eacl/spice-object :account "account-1"))
+(def demand {:subject subject :permission :view :resource resource})
+
+(eacl/write-schema! proof-client schema-v1)
+(memory/transact!
+ proof-connection
+ [{:eacl/id "user-1"}
+  {:eacl/id "account-1"}])
+(eacl/create-relationship! proof-client subject :owner resource)
+(def allowed-token (memory/causal-token proof-connection))
+(eacl/delete-relationship! proof-client subject :owner resource)
+
+(let [current-first (eacl/check-permission proof-client demand)
+      current-second (eacl/check-permission proof-client demand)
+      exact-demand
+      (assoc demand
+             :consistency
+             {:consistency/mode :at-exact-snapshot
+              :zed/token allowed-token})
+      exact-first (eacl/check-permission proof-client exact-demand)
+      exact-second (eacl/check-permission proof-client exact-demand)]
+  (assert (false? (:allowed? current-first)))
+  (assert (false? (:cached? current-first)))
+  (assert (false? (:allowed? current-second)))
+  (assert (true? (:cached? current-second)))
+  (assert (true? (:allowed? exact-first)))
+  (assert (false? (:cached? exact-first)))
+  (assert (true? (:allowed? exact-second)))
+  (assert (true? (:cached? exact-second))))
+
+(println :jank-basis-cache-binding-pass)

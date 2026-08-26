@@ -1,0 +1,24 @@
+(ns eacl-demo.jank-memory.profile-test
+  (:refer-clojure :exclude [descriptor])
+  (:require [eacl-demo.jank-memory.profile :as profile]))
+
+(def descriptor
+  (profile/descriptor {:ready true :frozen true :basis-t 7}))
+
+(assert (= "jank-memory" (get-in descriptor ["identity" "profileId"])))
+(assert (= profile/runtime-core-baseline-sha
+           (get-in descriptor ["identity" "eaclSha"])))
+(assert (not= profile/required-release-core-sha
+              (get-in descriptor ["identity" "eaclSha"])))
+(assert (= {"backend" "jank" "storage" "memory"}
+           (get descriptor "profile")))
+(assert (= {"execution" "lambda" "name" "jank-native"
+            "architecture" "x86_64" "snapStart" "disabled"}
+           (get descriptor "runtime")))
+(let [limitations (set (get-in descriptor ["capabilities" "limitations"]))]
+  (doseq [required
+          ["datomic-like-not-datomic-pro" "no-durability" "no-datalog-api"
+           "no-distribution" "not-production-database" "no-snapstart"]]
+    (assert (contains? limitations required))))
+
+(println :jank-profile-pass)

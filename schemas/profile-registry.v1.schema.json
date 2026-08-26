@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/profile-registry.v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["$schema", "schema", "contractVersion", "benchmarkEvidence", "storageDefaults", "profiles"],
+  "properties": {
+    "$schema": {"const": "../schemas/profile-registry.v1.schema.json"},
+    "schema": {"const": "eacl-demo.profile-registry.v1"},
+    "contractVersion": {"const": "explorer.v1"},
+    "benchmarkEvidence": {"type": "array", "items": {"$ref": "#/$defs/evidenceSummary"}},
+    "storageDefaults": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/storageDefault"}},
+    "profiles": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/profile"}}
+  },
+  "$defs": {
+    "sha1": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "prefixedSha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "evidenceSummary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceId", "backend", "profiles", "measuredAt", "expiresAt", "path", "sha256"],
+      "properties": {
+        "evidenceId": {"$ref": "#/$defs/prefixedSha256"},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+        "profiles": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "string"}},
+        "measuredAt": {"type": "string", "format": "date-time"},
+        "expiresAt": {"type": "string", "format": "date-time"},
+        "path": {"type": "string", "pattern": "^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "storageDefault": {
+      "type": "object", "additionalProperties": false,
+      "required": ["outcome", "profileId", "storage", "claim", "evidenceId", "measuredAt", "reason", "backend"],
+      "properties": {
+        "outcome": {"enum": ["none", "sole-qualified", "fallback", "winner", "benchmark-tiebreak"]},
+        "profileId": {"type": ["string", "null"]},
+        "storage": {"type": ["string", "null"]},
+        "claim": {"enum": [null, "fastest-qualified", "benchmark-selected"]},
+        "evidenceId": {"$ref": "#/$defs/prefixedSha256"},
+        "measuredAt": {"type": ["string", "null"], "format": "date-time"},
+        "reason": {"type": ["string", "null"]},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]}
+      }
+    },
+    "profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "backend", "storage", "state", "reason", "route", "deployment", "lastOutcome"],
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "enabled"}}, "required": ["state"]},
+          "then": {"properties": {"reason": {"type": "null"}, "deployment": {"$ref": "#/$defs/deployment"}}},
+          "else": {"properties": {"reason": {"type": "string", "minLength": 12, "maxLength": 320}}}
+        }
+      ],
+      "properties": {
+        "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+        "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
+        "state": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
+        "reason": {"type": ["string", "null"]},
+        "route": {"type": "string", "pattern": "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},
+        "deployment": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/deployment"}]},
+        "lastOutcome": {"$ref": "#/$defs/outcome"}
+      }
+    },
+    "deployment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["demoSha", "eaclSha", "artifact", "deploymentId", "dataManifestSha256", "deployedAt"],
+      "properties": {
+        "demoSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "eaclSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "artifact": {"type": "object", "additionalProperties": false, "required": ["kind", "sha256", "version"], "properties": {"kind": {"enum": ["static", "lambda-version", "browser-worker"]}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "version": {"type": "string", "minLength": 1}}},
+        "deploymentId": {"type": "string", "minLength": 1},
+        "dataManifestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "deployedAt": {"type": "string", "format": "date-time"}
+      }
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["outcome", "attemptedDemoSha", "attemptedEaclSha", "artifactSha256", "at", "message"],
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "never-deployed"}}, "required": ["outcome"]},
+          "then": {"properties": {"attemptedDemoSha": {"type": "null"}, "attemptedEaclSha": {"type": "null"}, "artifactSha256": {"type": "null"}, "at": {"type": "null"}}},
+          "else": {"properties": {"attemptedDemoSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "attemptedEaclSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "artifactSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "at": {"type": "string", "format": "date-time"}}}
+        }
+      ],
+      "properties": {
+        "outcome": {"enum": ["never-deployed", "succeeded", "failed", "rolled-back"]},
+        "attemptedDemoSha": {"$ref": "#/$defs/sha1"},
+        "attemptedEaclSha": {"$ref": "#/$defs/sha1"},
+        "artifactSha256": {"$ref": "#/$defs/sha256"},
+        "at": {"type": ["string", "null"], "format": "date-time"},
+        "message": {"type": "string", "minLength": 1, "maxLength": 320}
+      }
+    }
+  }
+}

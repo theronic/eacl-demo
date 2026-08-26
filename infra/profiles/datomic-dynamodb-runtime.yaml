@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Versioned fixed-current Datomic/DynamoDB Lambda candidate with an IAM-only Function URL.
+
+Metadata:
+  EaclDemo:
+    Profile: datomic-dynamodb
+    Runtime: java25
+    Architecture: x86_64
+    SnapshotBehavior: fixed-environment
+    SnapStartPolicy: disabled-until-non-snapstart-memory-qualification
+
+Parameters:
+  FunctionName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datomic-dynamodb-[a-z0-9-]{3,37}$"
+  ExecutionRoleArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$"
+  ArtifactBucket:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  ArtifactKey:
+    Type: String
+    AllowedPattern: "^artifacts/datomic-dynamodb/[0-9a-f]{40}/[0-9a-f]{64}\\.jar$"
+  ArtifactVersion:
+    Type: String
+    MinLength: 1
+    MaxLength: 1024
+  ArtifactSha256:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{64}$"
+  DemoSha:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{40}$"
+  EaclSha:
+    Type: String
+    Default: 8dc3b16498788dd822b68e1c4fe25b37a8e8879f
+    AllowedValues:
+      - 8dc3b16498788dd822b68e1c4fe25b37a8e8879f
+  DeploymentId:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+  TableName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  DatabaseName:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+  CursorKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    MaxLength: 256
+    AllowedPattern: "^[ -~]{32,256}$"
+  MaximumConcurrency:
+    Type: Number
+    Default: 2
+    AllowedValues: [1, 2, 4]
+  MemorySize:
+    Type: Number
+    Default: 2048
+    AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
+    Description: Candidate only; publish the smallest passing non-SnapStart sweep result.
+  CandidateAliasName:
+    Type: String
+    Default: candidate
+    AllowedPattern: "^(?![0-9]+$)[A-Za-z0-9_-]{1,128}$"
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${FunctionName}"
+      RetentionInDays: 14
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datomic-dynamodb
+
+  Function:
+    Type: AWS::Lambda::Function
+    DependsOn: LogGroup
+    Properties:
+      Architectures:
+        - x86_64
+      Code:
+        S3Bucket: !Ref ArtifactBucket
+        S3Key: !Ref ArtifactKey
+        S3ObjectVersion: !Ref ArtifactVersion
+      Environment:
+        Variables:
+          EACL_ARTIFACT_SHA256: !Ref ArtifactSha256
+          EACL_CORE_SHA: !Ref EaclSha
+          EACL_CURSOR_KEY: !Ref CursorKey
+          EACL_DATOMIC_DATABASE: !Ref DatabaseName
+          EACL_DATOMIC_TABLE: !Ref TableName
+          EACL_DEMO_SHA: !Ref DemoSha
+          EACL_DEPLOYMENT_ID: !Ref DeploymentId
+          EACL_MAXIMUM_CONCURRENCY: !Sub "${MaximumConcurrency}"
+      EphemeralStorage:
+        Size: 512
+      FunctionName: !Ref FunctionName
+      Handler: eacl_demo.datomic_dynamodb.LambdaHandler::handleRequest
+      MemorySize: !Ref MemorySize
+      PackageType: Zip
+      ReservedConcurrentExecutions: !Ref MaximumConcurrency
+      Role: !Ref ExecutionRoleArn
+      Runtime: java25
+      SnapStart:
+        ApplyOn: None
+      Timeout: 30
+      TracingConfig:
+        Mode: PassThrough
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datomic-dynamodb
+        - Key: SnapshotBehavior
+          Value: fixed-environment
+        - Key: EaclSha
+          Value: !Ref EaclSha
+        - Key: ArtifactSha256
+          Value: !Ref ArtifactSha256
+
+  CandidateVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      Description: !Sub "${DeploymentId} sha256:${ArtifactSha256}"
+      FunctionName: !Ref Function
+
+  CandidateAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      Description: !Sub "candidate ${DeploymentId}"
+      FunctionName: !Ref Function
+      FunctionVersion: !GetAtt CandidateVersion.Version
+      Name: !Ref CandidateAliasName
+
+  CandidateFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: AWS_IAM
+      InvokeMode: BUFFERED
+      Qualifier: !Ref CandidateAliasName
+      TargetFunctionArn: !GetAtt Function.Arn
+
+Outputs:
+  FunctionArn:
+    Value: !GetAtt Function.Arn
+  FunctionName:
+    Value: !Ref Function
+  CandidateVersion:
+    Value: !GetAtt CandidateVersion.Version
+  CandidateAliasArn:
+    Value: !Ref CandidateAlias
+  CandidateQualifiedName:
+    Value: !Sub "${FunctionName}:${CandidateAliasName}"
+  CandidateFunctionUrl:
+    Value: !GetAtt CandidateFunctionUrl.FunctionUrl
+  Runtime:
+    Value: java25
+  Architecture:
+    Value: x86_64
+  SnapStartEnabled:
+    Value: "false"

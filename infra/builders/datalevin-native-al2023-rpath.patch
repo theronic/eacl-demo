@@ -1,0 +1,13 @@
+diff --git a/script/build b/script/build
+index 333a743..0df423b 100755
+--- a/script/build
++++ b/script/build
+@@ -82,7 +82,7 @@ cmake --build build_release --config Release
+ 
+ # build lmdb and dtlv
+ 
+-export LDFLAGS="${LDFLAGS:+$LDFLAGS }-static-libstdc++ -Wl,-rpath,'$$ORIGIN'"
++export LDFLAGS="${LDFLAGS:+$LDFLAGS }-static-libstdc++ -Wl,-rpath,'\$\$ORIGIN'"
+ export OMP_LIB="-fopenmp"
+ export USEARCH_LIB="-Wl,--whole-archive -lusearch -Wl,--no-whole-archive"
+ 

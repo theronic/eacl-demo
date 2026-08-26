@@ -1,0 +1,585 @@
+{
+  "$schema": "../schemas/release-report.v1.schema.json",
+  "schema": "eacl-demo.release-report.v1",
+  "contractVersion": "explorer.v1",
+  "reportId": "sha256:b73c0498d7d26c7ea9d460b95830dfb2fcddc563212295406f22cf3bcf3c1184",
+  "reportState": "pre-release",
+  "release": null,
+  "source": {
+    "demo": {
+      "repository": "https://github.com/theronic/eacl-demo.git",
+      "sha": null,
+      "status": "uncommitted",
+      "reason": "The report inputs are not bound to a clean immutable demo commit."
+    },
+    "eacl": {
+      "repository": "https://github.com/theronic/eacl.git",
+      "sha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "status": "locked",
+      "reason": null,
+      "lock": {
+        "path": "dependencies/eacl-core.lock.json",
+        "sha256": "aa7a397292639202a45c23efa72914282255fa1d907258e05a1ac422e0f70afe"
+      }
+    }
+  },
+  "benchmarkEvidence": [],
+  "storageDefaults": [
+    {
+      "outcome": "none",
+      "profileId": null,
+      "storage": null,
+      "claim": null,
+      "evidenceId": null,
+      "measuredAt": null,
+      "reason": "No qualified storage choice is enabled.",
+      "backend": "datahike"
+    },
+    {
+      "outcome": "none",
+      "profileId": null,
+      "storage": null,
+      "claim": null,
+      "evidenceId": null,
+      "measuredAt": null,
+      "reason": "No qualified storage choice is enabled.",
+      "backend": "datomic"
+    },
+    {
+      "outcome": "none",
+      "profileId": null,
+      "storage": null,
+      "claim": null,
+      "evidenceId": null,
+      "measuredAt": null,
+      "reason": "No qualified storage choice is enabled.",
+      "backend": "datalevin"
+    },
+    {
+      "outcome": "none",
+      "profileId": null,
+      "storage": null,
+      "claim": null,
+      "evidenceId": null,
+      "measuredAt": null,
+      "reason": "No qualified storage choice is enabled.",
+      "backend": "jank"
+    },
+    {
+      "outcome": "none",
+      "profileId": null,
+      "storage": null,
+      "claim": null,
+      "evidenceId": null,
+      "measuredAt": null,
+      "reason": "No qualified storage choice is enabled.",
+      "backend": "datascript"
+    }
+  ],
+  "fixtures": [
+    {
+      "fixtureId": "eacl-demo-fixture-v1",
+      "logicalResources": 10000,
+      "manifestSha256": "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a",
+      "fixtureSha256": "sha256:ec47ae57973bc7e9c580709410e530a7ac64acd24c01f9e3161489e8ebd58dfd",
+      "semanticRecordsSha256": "sha256:3bf7618d9276f6597e529cb064a46f95c97b2db7a4918b4dfde36c318aebd9cb",
+      "path": "fixtures/manifests/fixture-10000.v1.json"
+    },
+    {
+      "fixtureId": "eacl-demo-fixture-v1",
+      "logicalResources": 1000000,
+      "manifestSha256": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
+      "fixtureSha256": "sha256:102bb7c51779bb66ab343dabff42019af95f99bded708e214b13fd56ab3bf33c",
+      "semanticRecordsSha256": "sha256:60d1e2aa531bd20025b2a5fe068657a1b1366c60b265f4ca0cf5bebddf5a3dad",
+      "path": "fixtures/manifests/fixture-1000000.v1.json"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "datahike-s3",
+      "backend": "datahike",
+      "storage": "s3",
+      "route": "/api/v1/datahike-s3",
+      "availabilityState": "qualifying",
+      "availabilityReason": "The adopted store and replacement reader are locally qualified, but the live Lambda route, immutable deployment identity, memory, and staged smoke remain unqualified.",
+      "buildUnits": [
+        "datahike-s3"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 1000000,
+        "manifestSha256": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+      },
+      "runtime": {
+        "name": "java25",
+        "architecture": "arm64",
+        "snapStart": "disabled"
+      },
+      "memory": {
+        "status": "candidate-unqualified",
+        "configuredMiB": 2048,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": {
+          "path": "infra/profiles/datahike-s3-runtime.yaml",
+          "sha256": "4089ca8d1bdaa7d8309087b359c49a2b2f471339d0cb0e28d287812d13906702"
+        }
+      },
+      "alarms": {
+        "status": "defined-not-deployed",
+        "count": 7,
+        "definition": {
+          "path": "infra/observability/profile-runtime.yaml",
+          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+        },
+        "evidenceId": null,
+        "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    },
+    {
+      "id": "datahike-dynamodb",
+      "backend": "datahike",
+      "storage": "dynamodb",
+      "route": "/api/v1/datahike-dynamodb",
+      "availabilityState": "unavailable",
+      "availabilityReason": "The repaired adapter passes local qualification, but disposable real-AWS evidence, the protected production table, live cost controls, the one-million-resource seed, memory, and staged smoke remain open.",
+      "buildUnits": [
+        "datahike-dynamodb"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 1000000,
+        "manifestSha256": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+      },
+      "runtime": {
+        "name": "java25",
+        "architecture": "arm64",
+        "snapStart": "disabled"
+      },
+      "memory": {
+        "status": "candidate-unqualified",
+        "configuredMiB": 2048,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": {
+          "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
+          "sha256": "328fcd9ca9a1c2769a49a1c6e20d8e98e518e3065d3789af1a0af070e5c24cd2"
+        }
+      },
+      "alarms": {
+        "status": "defined-not-deployed",
+        "count": 7,
+        "definition": {
+          "path": "infra/observability/profile-runtime.yaml",
+          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+        },
+        "evidenceId": null,
+        "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    },
+    {
+      "id": "datomic-dynamodb",
+      "backend": "datomic",
+      "storage": "dynamodb",
+      "route": "/api/v1/datomic-dynamodb",
+      "availabilityState": "disabled",
+      "availabilityReason": "The history-preserving DynamoDB database and fixed-current read-only Lambda have not been provisioned and qualified.",
+      "buildUnits": [
+        "datomic-dynamodb"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 1000000,
+        "manifestSha256": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+      },
+      "runtime": {
+        "name": "java25",
+        "architecture": "x86_64",
+        "snapStart": "disabled"
+      },
+      "memory": {
+        "status": "candidate-unqualified",
+        "configuredMiB": 2048,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": {
+          "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
+          "sha256": "81de6e040fc82ce7a02995723ee75f13f669bfe1da9813df09fa84d7506c3c89"
+        }
+      },
+      "alarms": {
+        "status": "defined-not-deployed",
+        "count": 7,
+        "definition": {
+          "path": "infra/observability/profile-runtime.yaml",
+          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+        },
+        "evidenceId": null,
+        "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    },
+    {
+      "id": "datalevin-memory",
+      "backend": "datalevin",
+      "storage": "memory",
+      "route": "/api/v1/datalevin-memory",
+      "availabilityState": "unavailable",
+      "availabilityReason": "A reproducible AL2023 arm64 native candidate now passes ABI and true in-memory smoke locally, but the maintained fork/native/EACL releases, clean remote-consumer install, Lambda service, and SnapStart lifecycle qualification remain incomplete.",
+      "buildUnits": [
+        "datalevin-memory"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 10000,
+        "manifestSha256": "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+      },
+      "runtime": {
+        "name": "java25",
+        "architecture": "arm64",
+        "snapStart": "enabled"
+      },
+      "memory": {
+        "status": "candidate-unqualified",
+        "configuredMiB": 3072,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": {
+          "path": "infra/profiles/datalevin-memory-runtime.yaml",
+          "sha256": "e750eb7b62944f2f33f424392e8d1191dcfc89f7f363c76a181f0327582956f4"
+        }
+      },
+      "alarms": {
+        "status": "defined-not-deployed",
+        "count": 7,
+        "definition": {
+          "path": "infra/observability/profile-runtime.yaml",
+          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+        },
+        "evidenceId": null,
+        "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    },
+    {
+      "id": "jank-memory",
+      "backend": "jank",
+      "storage": "memory",
+      "route": "/api/v1/jank-memory",
+      "availabilityState": "unavailable",
+      "availabilityReason": "Parked outside the active rollout; the vendored runtime port also predates the locked EACL Core SHA and no qualified Linux x86_64 Amazon Linux 2023 artifact exists.",
+      "buildUnits": [
+        "jank-memory"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 10000,
+        "manifestSha256": "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+      },
+      "runtime": {
+        "name": "provided.al2023",
+        "architecture": "x86_64",
+        "snapStart": "unsupported"
+      },
+      "memory": {
+        "status": "candidate-unqualified",
+        "configuredMiB": 4096,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": {
+          "path": "infra/profiles/jank-memory-runtime.yaml",
+          "sha256": "54c1aaf5defd58fcf8b03ea43f10915f2184c00c2b718d70d9800dd391d10b9b"
+        }
+      },
+      "alarms": {
+        "status": "defined-not-deployed",
+        "count": 7,
+        "definition": {
+          "path": "infra/observability/profile-runtime.yaml",
+          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+        },
+        "evidenceId": null,
+        "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    },
+    {
+      "id": "datascript-browser-memory",
+      "backend": "datascript",
+      "storage": "browser-memory",
+      "route": "/datascript/",
+      "availabilityState": "qualifying",
+      "availabilityReason": "The isolated EACL v8 worker and canonical fixture pass local build and isolation checks, but trusted staged browser qualification and publication remain open.",
+      "buildUnits": [
+        "explorer-main",
+        "datascript-entry",
+        "datascript-worker"
+      ],
+      "deploymentEligible": false,
+      "deployment": null,
+      "lastOutcome": {
+        "outcome": "never-deployed",
+        "attemptedDemoSha": null,
+        "attemptedEaclSha": null,
+        "artifactSha256": null,
+        "at": null,
+        "message": "No consolidated candidate has been deployed."
+      },
+      "fixture": {
+        "fixtureId": "eacl-demo-fixture-v1",
+        "logicalResources": 10000,
+        "manifestSha256": "sha256:b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+      },
+      "runtime": {
+        "name": "browser-javascript",
+        "architecture": "browser-managed",
+        "snapStart": "not-applicable"
+      },
+      "memory": {
+        "status": "browser-managed",
+        "configuredMiB": null,
+        "qualifiedMiB": null,
+        "evidenceId": null,
+        "definition": null
+      },
+      "alarms": {
+        "status": "not-applicable",
+        "count": 0,
+        "definition": null,
+        "evidenceId": null,
+        "reason": "The DataScript profile runs in the browser and has no Lambda runtime alarms."
+      },
+      "rollback": {
+        "status": "unavailable",
+        "kind": null,
+        "alias": null,
+        "statusObject": null,
+        "static": null,
+        "reason": "No successful consolidated publication has produced immutable rollback coordinates."
+      }
+    }
+  ],
+  "costControls": {
+    "status": "defined-not-deployed",
+    "dynamodb": {
+      "status": "defined-not-deployed",
+      "alarmCountPerTable": 9,
+      "definition": {
+        "path": "infra/data/dynamodb-cost-controls.yaml",
+        "sha256": "27de5cc4afd50255e355aa404274767652721122ca1d234b30aca8b3674f13d7"
+      },
+      "policy": {
+        "path": "infra/data/dynamodb-cap-policy.v1.json",
+        "sha256": "c06f2dd4f6dfc2a05593ffa2b22156768ca3e4662dc22ef09a6152fecee6d87c"
+      },
+      "profiles": [
+        {
+          "profileId": "datahike-dynamodb",
+          "seed": {
+            "maxReadRequestUnits": 250,
+            "maxWriteRequestUnits": 200
+          },
+          "serving": {
+            "maxReadRequestUnits": 250,
+            "maxWriteRequestUnits": 1
+          }
+        },
+        {
+          "profileId": "datomic-dynamodb",
+          "seed": {
+            "maxReadRequestUnits": 250,
+            "maxWriteRequestUnits": 200
+          },
+          "serving": {
+            "maxReadRequestUnits": 250,
+            "maxWriteRequestUnits": 1
+          }
+        }
+      ],
+      "evidenceId": null
+    },
+    "budgets": [
+      {
+        "id": "monthly-project",
+        "amountUsd": 25,
+        "thresholdsPercent": [
+          50,
+          80,
+          100
+        ],
+        "filter": "Project=eacl-demo",
+        "status": "defined-not-deployed",
+        "definition": {
+          "path": "infra/observability/template.yaml",
+          "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+        },
+        "evidenceId": null
+      },
+      {
+        "id": "seed",
+        "amountUsd": 15,
+        "thresholdsPercent": [
+          50,
+          80,
+          100
+        ],
+        "filter": "Workload=eacl-demo-seed",
+        "status": "defined-not-deployed",
+        "definition": {
+          "path": "infra/observability/template.yaml",
+          "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+        },
+        "evidenceId": null
+      }
+    ],
+    "anomalyDetection": {
+      "thresholdUsd": 5,
+      "status": "defined-not-deployed",
+      "definition": {
+        "path": "infra/observability/template.yaml",
+        "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+      },
+      "evidenceId": null
+    },
+    "notifications": {
+      "channel": "telegram",
+      "status": "defined-not-verified",
+      "definition": {
+        "path": "infra/observability/template.yaml",
+        "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+      },
+      "evidenceId": null,
+      "reason": "Routing is defined locally; no live delivery test is claimed by this report."
+    }
+  },
+  "blockers": [
+    {
+      "code": "release-identity-unavailable",
+      "profiles": [],
+      "reason": "There is no deployed release manifest with an immutable demo source and artifact set.",
+      "requiredEvidence": "A successful demos-branch deployment release manifest and its content digest."
+    },
+    {
+      "code": "profiles-not-enabled",
+      "profiles": [
+        "datahike-s3",
+        "datahike-dynamodb",
+        "datomic-dynamodb",
+        "datalevin-memory",
+        "jank-memory",
+        "datascript-browser-memory"
+      ],
+      "reason": "Every registered profile remains disabled, qualifying, or unavailable.",
+      "requiredEvidence": "Profile-specific qualification, deployment identity, and successful publication evidence."
+    },
+    {
+      "code": "live-cost-controls-unverified",
+      "profiles": [
+        "datahike-dynamodb",
+        "datomic-dynamodb"
+      ],
+      "reason": "Budget, alarm, anomaly, and Telegram definitions have no live readiness evidence in this report.",
+      "requiredEvidence": "Deployed resource identities, OK alarm state, enabled actions, and a successful Telegram delivery test."
+    },
+    {
+      "code": "rollback-coordinates-unavailable",
+      "profiles": [
+        "datahike-s3",
+        "datahike-dynamodb",
+        "datomic-dynamodb",
+        "datalevin-memory",
+        "jank-memory",
+        "datascript-browser-memory"
+      ],
+      "reason": "No profile has exact prior and active publication coordinates.",
+      "requiredEvidence": "Immutable alias revisions or static prefixes plus versioned status-object rollback coordinates."
+    }
+  ]
+}

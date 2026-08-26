@@ -1,0 +1,61 @@
+name: Qualify deployment artifact determinism
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
+      - run: npm install --global npm@11.17.0
+      - run: npm ci
+      - name: Double-build the complete static upload tree
+        run: npm run verify:static-artifact-determinism
+      - name: Double-build the Datomic serving and seed JARs
+        run: npm run verify:datomic-artifact-determinism
+      - name: Double-build the Datahike S3 serving JAR
+        run: npm run verify:datahike-s3-artifact-determinism
+      - name: Double-build the Datahike DynamoDB serving JAR
+        run: npm run verify:datahike-dynamodb-artifact-determinism
+      - name: Audit packaged boundaries after the second builds
+        run: |
+          npm run verify:datascript-isolation
+          npm run verify:datahike-s3-serving
+          npm run verify:datahike-s3-lambda-artifact
+          npm run verify:datahike-dynamodb-serving
+          npm run verify:datahike-dynamodb-lambda-artifact
+          npm run verify:datomic-lambda-artifact
+          npm run verify:datomic-seed-artifact
+          npm run verify:secrets
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: deterministic-artifacts-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            dist/static-site/
+            dist/datascript-worker/artifact.json
+            dist/datahike-s3/function.jar
+            dist/datahike-dynamodb/function.jar
+            dist/datomic-dynamodb/function.jar
+            dist/datomic-dynamodb-seed/seed.jar
+            verification/datascript/bundle-isolation.latest.json
+          if-no-files-found: error
+          retention-days: 14

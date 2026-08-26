@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Bounded expiry watchdog for explicitly tagged EACL demo temporary EC2.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    MinLength: 3
+  CodeKey:
+    Type: String
+    MinLength: 1
+  CodeObjectVersion:
+    Type: String
+    MinLength: 1
+  AlarmTopicArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:sns:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9_.-]+$"
+
+Resources:
+  WatchdogFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      QueueName: !Sub "${AWS::StackName}-delivery-failures"
+      SqsManagedSseEnabled: true
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: temporary-compute-watchdog
+
+  WatchdogFailureQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref WatchdogFailureQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ExactWatchdogScheduleDeliveryFailures
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt WatchdogFailureQueue.Arn
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-schedule"
+
+  WatchdogLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-watchdog"
+      RetentionInDays: 14
+
+  WatchdogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: inventory-temporary-compute
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeInstances
+                Resource: "*"
+        - PolicyName: terminate-only-watchdog-managed-temporary-instances
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ec2:TerminateInstances
+                Resource: !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*"
+                Condition:
+                  StringEquals:
+                    ec2:ResourceTag/Project: eacl-demo
+                    ec2:ResourceTag/Lifecycle: temporary
+                    ec2:ResourceTag/ManagedBy: eacl-demo-temp-watchdog
+                    ec2:ResourceTag/Owner: theronic/eacl-demo
+        - PolicyName: publish-exact-alarm-topic
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlarmTopicArn
+        - PolicyName: retain-failed-watchdog-invocations
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt WatchdogFailureQueue.Arn
+        - PolicyName: write-own-logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt WatchdogLogGroup.Arn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: temporary-compute-watchdog
+
+  WatchdogFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: WatchdogLogGroup
+    Properties:
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref CodeKey
+        S3ObjectVersion: !Ref CodeObjectVersion
+      Environment:
+        Variables:
+          ALARM_TOPIC_ARN: !Ref AlarmTopicArn
+      FunctionName: !Sub "${AWS::StackName}-watchdog"
+      Handler: index.handler
+      MemorySize: 128
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt WatchdogRole.Arn
+      Runtime: python3.13
+      Timeout: 30
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: temporary-compute-watchdog
+
+  WatchdogSchedule:
+    Type: AWS::Events::Rule
+    DependsOn: WatchdogFailureQueuePolicy
+    Properties:
+      Description: Check explicitly managed temporary compute every five minutes.
+      Name: !Sub "${AWS::StackName}-schedule"
+      ScheduleExpression: rate(5 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt WatchdogFunction.Arn
+          DeadLetterConfig:
+            Arn: !GetAtt WatchdogFailureQueue.Arn
+          Id: WatchdogFunction
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 900
+            MaximumRetryAttempts: 2
+
+  AllowScheduleInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WatchdogFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WatchdogSchedule.Arn
+
+  WatchdogAsyncInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      DestinationConfig:
+        OnFailure:
+          Destination: !GetAtt WatchdogFailureQueue.Arn
+      FunctionName: !Ref WatchdogFunction
+      MaximumEventAgeInSeconds: 900
+      MaximumRetryAttempts: 2
+      Qualifier: "$LATEST"
+
+  WatchdogFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopicArn
+      AlarmDescription: Temporary-compute watchdog invocation failed.
+      AlarmName: !Sub "${AWS::StackName}-watchdog-failure"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref WatchdogFunction
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  WatchdogFailureQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopicArn
+      AlarmDescription: Watchdog schedule deliveries or exhausted asynchronous invocations are retained for operator inspection.
+      AlarmName: !Sub "${AWS::StackName}-watchdog-delivery-failures"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt WatchdogFailureQueue.QueueName
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+Outputs:
+  WatchdogFunctionArn:
+    Value: !GetAtt WatchdogFunction.Arn
+  WatchdogFailureAlarmName:
+    Value: !Ref WatchdogFailureAlarm
+  WatchdogFailureQueueArn:
+    Value: !GetAtt WatchdogFailureQueue.Arn
+  WatchdogFailureQueueAlarmName:
+    Value: !Ref WatchdogFailureQueueAlarm

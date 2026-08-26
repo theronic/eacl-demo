@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Disposable, capped real-AWS Datahike adapter qualification resources.
+
+Parameters:
+  TableName:
+    Type: String
+    AllowedPattern: "^eacl-demo-datahike-qualification-[0-9]{8}$"
+  QualificationPrincipalArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:iam::[0-9]{12}:(root|role/[A-Za-z0-9+=,.@_/-]+)$"
+  ProbeCodeBucket:
+    Type: String
+    MinLength: 3
+  ProbeCodeKey:
+    Type: String
+    MinLength: 1
+  ProbeCodeObjectVersion:
+    Type: String
+    MinLength: 1
+  MaxReadRequestUnits:
+    Type: Number
+    Default: 250
+    MinValue: 1
+    MaxValue: 250
+  MaxWriteRequestUnits:
+    Type: Number
+    Default: 200
+    MinValue: 1
+    MaxValue: 200
+
+Resources:
+  QualificationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: Key
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      DeletionProtectionEnabled: false
+      KeySchema:
+        - AttributeName: Key
+          KeyType: HASH
+      OnDemandThroughput:
+        MaxReadRequestUnits: !Ref MaxReadRequestUnits
+        MaxWriteRequestUnits: !Ref MaxWriteRequestUnits
+      TableClass: STANDARD
+      TableName: !Ref TableName
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Workload
+          Value: eacl-demo-seed
+        - Key: Lifecycle
+          Value: disposable-qualification
+        - Key: ExpiresAfter
+          Value: "2026-08-26T00:00:00Z"
+      # No SSESpecification or CMK: DynamoDB uses its AWS-owned service key.
+
+  ReadAllowedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref QualificationPrincipalArn
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+      Policies:
+        - PolicyName: exact-qualification-table-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:GetItem
+                Resource: !GetAtt QualificationTable.Arn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Lifecycle
+          Value: disposable-qualification
+        - Key: ExpiresAfter
+          Value: "2026-08-26T00:00:00Z"
+
+  ReadDeniedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref QualificationPrincipalArn
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Lifecycle
+          Value: disposable-qualification
+        - Key: ExpiresAfter
+          Value: "2026-08-26T00:00:00Z"
+
+  ReadAllowedProbe:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures: [arm64]
+      Code:
+        S3Bucket: !Ref ProbeCodeBucket
+        S3Key: !Ref ProbeCodeKey
+        S3ObjectVersion: !Ref ProbeCodeObjectVersion
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref QualificationTable
+      Handler: index.handler
+      MemorySize: 128
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt ReadAllowedRole.Arn
+      Runtime: python3.13
+      Timeout: 10
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Lifecycle
+          Value: disposable-qualification
+        - Key: ExpiresAfter
+          Value: "2026-08-26T00:00:00Z"
+
+  ReadDeniedProbe:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures: [arm64]
+      Code:
+        S3Bucket: !Ref ProbeCodeBucket
+        S3Key: !Ref ProbeCodeKey
+        S3ObjectVersion: !Ref ProbeCodeObjectVersion
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref QualificationTable
+      Handler: index.handler
+      MemorySize: 128
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt ReadDeniedRole.Arn
+      Runtime: python3.13
+      Timeout: 10
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Lifecycle
+          Value: disposable-qualification
+        - Key: ExpiresAfter
+          Value: "2026-08-26T00:00:00Z"
+
+Outputs:
+  TableName:
+    Value: !Ref QualificationTable
+  TableArn:
+    Value: !GetAtt QualificationTable.Arn
+  ReadAllowedRoleArn:
+    Value: !GetAtt ReadAllowedRole.Arn
+  ReadDeniedRoleArn:
+    Value: !GetAtt ReadDeniedRole.Arn
+  ReadAllowedProbeName:
+    Value: !Ref ReadAllowedProbe
+  ReadDeniedProbeName:
+    Value: !Ref ReadDeniedProbe

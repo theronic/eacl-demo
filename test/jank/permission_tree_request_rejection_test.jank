@@ -1,0 +1,10 @@
+(ns eacl-demo.jank-memory.permission-tree-request-rejection-test
+  (:require [eacl.core :as eacl]
+            [eacl.datomic.memory :as memory]))
+
+(def client (memory/make-client (memory/connect)))
+
+(eacl/expand-permission-tree
+ client
+ {:resource {:type :qualified/type :id "account-0"}
+  :permission :view})

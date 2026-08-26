@@ -1,0 +1,122 @@
+(ns eacl-demo.jank-memory.function-url-test
+  (:require [eacl-demo.jank-memory.function-url :as adapter]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]
+            [eacl.runtime.native.clock :as clock]))
+
+(defn event
+  [request-path method headers body encoded?]
+  {"version" "2.0"
+   "routeKey" "$default"
+   "rawPath" request-path
+   "rawQueryString" ""
+   "headers" headers
+   "requestContext"
+   {"requestId" "request-test"
+    "http" {"method" method}}
+   "isBase64Encoded" encoded?
+   "body" body})
+
+(let [health
+      (adapter/normalize-event
+       (event "/api/v1/jank-memory/health" "GET" {} nil false))]
+  (assert (:ok health))
+  (assert (= "health" (:operation health)))
+  (assert (= {} (:input health))))
+
+(let [correlated
+      (adapter/normalize-event
+       (event "/api/v1/jank-memory/health" "GET"
+              {"X-EACL-Request-ID" "browser-9-3"} nil false))]
+  (assert (:ok correlated))
+  (assert (= "browser-9-3" (:request-id correlated))))
+
+(let [authorization
+      (adapter/normalize-event
+       (event
+        "/api/v1/jank-memory/authorize"
+        "POST"
+        {"Content-Type" "application/json"}
+        "{\"subjectType\":\"user\",\"subjectId\":\"user-1\",\"resourceType\":\"account\",\"resourceId\":\"account-0\",\"permission\":\"admin\"}"
+        false))]
+  (assert (:ok authorization))
+  (assert (= "user-1" (get (:input authorization) "subjectId"))))
+
+(let [encoded
+      (adapter/normalize-event
+       (event
+        "/api/v1/jank-memory/get-cache-info"
+        "POST"
+        {"content-type" "application/json"}
+        "e30="
+        true))]
+  (assert (:ok encoded))
+  (assert (= {} (:input encoded))))
+
+(assert
+ (= "validation-error"
+    (:code
+     (adapter/normalize-event
+      (assoc (event "/api/v1/jank-memory/health" "GET" {} nil false)
+             "unexpected" true)))))
+(assert
+ (= "route-not-found"
+    (:code
+     (adapter/normalize-event
+      (event "/api/v1/jank-memory/seed" "POST"
+             {"content-type" "application/json"} "{}" false)))))
+(assert
+ (= "method-not-allowed"
+    (:code
+     (adapter/normalize-event
+      (event "/api/v1/jank-memory/health" "POST"
+             {"content-type" "application/json"} "{}" false)))))
+(assert
+ (= "validation-error"
+    (:code
+     (adapter/normalize-event
+      (assoc (event "/api/v1/jank-memory/health" "GET" {} nil false)
+             "rawQueryString" "debug=true")))))
+
+(let [first-controls
+      (adapter/request-controls (+ (clock/unix-time-millis) 5000))
+      second-controls
+      (adapter/request-controls (+ (clock/unix-time-millis) 5000))]
+  (assert (:ok first-controls))
+  (assert (<= 1 (:timeout-ms first-controls) 4900))
+  (assert
+   (not=
+    (:cancellation-token first-controls)
+    (:cancellation-token second-controls))))
+
+(assert
+ (= "deadline-exceeded"
+    (:code (adapter/request-controls (clock/unix-time-millis)))))
+
+(defn contract-result
+  [value]
+  (if (:ok value)
+    {"ok" true
+     "contractVersion" (:contract-version value)
+     "transport" (:transport value)
+     "profileId" (:profile-id value)
+     "operation" (:operation value)
+     "requestId" (:request-id value)
+     "input" (:input value)}
+    {"ok" false "code" (:code value)}))
+
+(let [suite
+      (runtime-api/parse-json
+       (slurp
+        (str (runtime-api/environment "LAMBDA_TASK_ROOT")
+             "/function-url-v2.cases.json")))
+      cases (get suite "events")]
+  (assert (= "eacl-demo.function-url-v2-cases.v1" (get suite "schema")))
+  (assert (= 5 (count cases)))
+  (doseq [test-case cases]
+    (assert
+     (= (get test-case "expected")
+        (contract-result
+         (adapter/normalize-event-for-profile
+          (get test-case "event") "datahike-s3"))))))
+
+(println :jank-function-url-pass)

@@ -1,0 +1,120 @@
+{
+  "$schema": "eacl-demo.datalevin-memory-dependency-decision.v1",
+  "capturedAt": "2026-08-26T12:39:00Z",
+  "profileId": "datalevin-memory",
+  "status": "blocked-unpublished-and-unintegrated",
+  "deploymentEligible": false,
+  "reverification": {
+    "observedAt": "2026-08-26T02:54:31Z",
+    "forkBranchCommit": "a7e29c25a3034b54814e58a2d317e8c6877d1933",
+    "candidateTagRefs": [],
+    "artifactApiStatus": 404,
+    "mavenMetadataStatus": 404,
+    "latestNativeVersion": "0.18.8",
+    "nativeMetadataLastUpdated": "20260715043343",
+    "result": "release-unchanged-local-al2023-native-candidate-qualified"
+  },
+  "fork": {
+    "repository": "https://github.com/theronic/datalevin.git",
+    "branch": "agent/certify-datalevin-ordered-generation-proofs",
+    "commit": "a7e29c25a3034b54814e58a2d317e8c6877d1933",
+    "tree": "2755e1dc9a4c0a45c56bab086cccf09c82e643dc",
+    "cleanCheckoutObserved": true,
+    "remoteBranchCommitObserved": "a7e29c25a3034b54814e58a2d317e8c6877d1933",
+    "nearestTag": "1.0.2",
+    "nearestTagCommit": "f72466372ce5fbe5410f3aa2ae7cdd597d10f429",
+    "candidateTagged": false,
+    "sourceFiles": {
+      "deps.edn": "sha256:97faecb12db2144dbbfa0883592e1430e1cfa74954dcca95870dfbc244224046",
+      "doc/read-snapshots.md": "sha256:182f6b102c247501041b3174a1076e02a0f5b09ea52f790b96e17f1a9f4403b0",
+      "doc/write-policy.md": "sha256:063c9f18f4f0723cec26ae4e58b4ccd864b3423a6111e85f17b108dab40e108b"
+    }
+  },
+  "release": {
+    "coordinate": "dev.eacl/datalevin-embedded-eacl",
+    "repository": "https://repo.clojars.org",
+    "artifactApiStatus": 404,
+    "mavenMetadataStatus": 404,
+    "published": false,
+    "cleanRemoteConsumerInstallPassed": false
+  },
+  "eaclAdapter": {
+    "demoLockedCoreCommit": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "module": "modules/eacl-datalevin",
+    "moduleDepsSha256": "sha256:7cfa123eb8b2971a16f926a6db5ac05b36b688f00d89631a99da095210b546f3",
+    "forkDependencyKind": "local-root-development-only",
+    "releaseCoordinateRequired": "dev.eacl/datalevin-embedded-eacl",
+    "cleanRemoteConsumerInstallPassed": false
+  },
+  "capabilities": {
+    "explicitOwnedReadSnapshotApi": true,
+    "acquiringPlatformThreadConfinement": true,
+    "exactOnceIdempotentCloseContract": true,
+    "ordinaryDbValueIsNotSnapshot": true,
+    "inMemoryFlag": "MDB_INMEMORY",
+    "nilDirectoryImpliesInMemory": true,
+    "currentSnapshotOnly": true
+  },
+  "native": {
+    "coordinate": "org.clojars.huahaiy/dtlvnative-linux-arm64",
+    "version": "0.18.8",
+    "artifactBytes": 3691430,
+    "artifactSha1": "0b69d0a24d6fe01182321a1afbfbae83e919a2c4",
+    "artifactSha256": "427e294ea996632df355695c43eca08bd9d0b24e77db60e36a057faf3ac6896d",
+    "platform": "linux/arm64",
+    "libraries": [
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libdtlv.so",
+        "sha256": "890fbbec886c772297babef169fce250965662ab4fc49d6ca802d56804a22288",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.38",
+        "needed": ["ld-linux-aarch64.so.1", "libc.so.6", "libgcc_s.so.1", "libgomp.so.1", "libm.so.6", "libmvec.so.1"]
+      },
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libgomp.so",
+        "sha256": "33c8bcb7d33228fe5101bfeb201bcaff4563d4ecf09497229b9deba522ebaf3d",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.38",
+        "needed": ["ld-linux-aarch64.so.1", "libc.so.6"]
+      },
+      {
+        "path": "datalevin/dtlvnative/linux-arm64/libjniDTLV.so",
+        "sha256": "209c3ca56bda18d4d1f908791183219160d63c47bd5e1a8afd70033dc91a0f16",
+        "format": "elf64-littleaarch64",
+        "maximumRequiredGlibc": "2.38",
+        "needed": ["ld-linux-aarch64.so.1", "libc.so.6", "libdtlv.so", "libgcc_s.so.1"]
+      }
+    ],
+    "lambdaRuntime": "java25",
+    "lambdaOperatingSystem": "Amazon Linux 2023",
+    "lambdaGlibc": "2.34",
+    "abiCompatible": false
+  },
+  "al2023NativeCandidate": {
+    "status": "locally-qualified-unpublished",
+    "builderDefinition": "dependencies/datalevin-native-al2023-builder.v1.json",
+    "version": "0.18.8-eacl.al2023.1",
+    "artifactSha256": "be264ee95cf67148194a87b9ef9d533d74caa7dbb2f64bac29a1e159498dcb63",
+    "platform": "linux/arm64",
+    "maximumRequiredGlibc": "2.34",
+    "absoluteRuntimePathsAbsent": true,
+    "nativeInMemoryRoundTripPassed": true,
+    "byteForByteNoCacheRebuildPassed": true,
+    "published": false,
+    "cleanRemoteConsumerInstallPassed": false
+  },
+  "evidence": {
+    "machine": "verification/datalevin-memory/native-abi-current-2026-08-26.json",
+    "human": "verification/datalevin-memory/native-abi-current-2026-08-26.md",
+    "al2023CandidateMachine": "verification/datalevin-memory/native-abi-al2023-candidate-2026-08-26.json",
+    "al2023CandidateHuman": "verification/datalevin-memory/native-abi-al2023-candidate-2026-08-26.md"
+  },
+  "promotionBlockers": [
+    "Publish the exact maintained fork candidate under the reserved immutable coordinate.",
+    "Pass a clean remote-consumer install of both the fork and the locked EACL adapter without local roots.",
+    "Publish the exact locally-qualified AL2023 arm64 native closure under a new immutable maintained coordinate; never overwrite upstream 0.18.8.",
+    "Pass a clean remote-consumer resolution of that exact native artifact without local files or sibling repositories.",
+    "Publish one schema-valid immutable versioned lifecycle record and prove every bootstrap reaches its exact native source UUID and final revision before constructing the EACL client.",
+    "Complete the Lambda source-lifecycle, snapshot ownership, restore, memory, and production-path qualification gates."
+  ]
+}

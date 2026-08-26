@@ -1,0 +1,104 @@
+(ns eacl-demo.jank-memory.lineage-counters-test
+  (:require [eacl.datomic.memory :as memory]
+            [eacl.datomic.memory.db :as memory-db]
+            [eacl.datomic.memory.source :as memory-source]
+            [eacl.datomic.memory.store :as memory-store]
+            [eacl.execution :as execution]
+            [eacl.request.context :as context]
+            [eacl.request.counters :as counters]
+            [eacl.store :as store]))
+
+(def connection (memory/connect))
+(def source-scope (memory-store/identities connection))
+(def ledger (counters/make-ledger))
+(def selected (memory/select-snapshot connection :minimize-latency))
+(def request-context
+  (context/make-context
+   {:selection selected
+    :operations (memory-db/read-operation-table)
+    :source-scope source-scope
+    :contract (execution/normalize {} :lineage-counter-test {})
+    :counter-ledger ledger}))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(assert
+ (= {:source-scope {:backend :datomic-memory
+                    :source-id (:store-id source-scope)
+                    :branch nil}
+     :source-lifecycle (:lifecycle-id source-scope)}
+    (context/lineage request-context)))
+(assert
+ (= {:backend :datomic-memory
+     :source-id (:store-id source-scope)
+     :branch nil
+     :source-lifecycle (:lifecycle-id source-scope)
+     :basis-kind :ordinary
+     :revision 0
+     :exact-locator 0
+     :backend-snapshot-id {:basis 0}}
+    (context/basis-identity request-context)))
+(assert (= source-scope (context/source-scope request-context)))
+(assert (= store/read-operation-keys
+           (set (keys (context/operations request-context)))))
+(assert (not-any? #(contains? (context/operations request-context) %)
+                  [:source-scope :source-lifecycle :select-current
+                   :select-authoritative :select-at-least :select-exact
+                   :transact! :writer]))
+(assert (contains? (set counters/counter-keys) :writer-submissions))
+(assert (zero? (:writer-submissions (context/counters request-context))))
+(assert (= 2 (:adapter-reads (context/counters request-context))))
+(assert (= 1 (:acquisitions (context/counters request-context))))
+(assert (= 1 (:context-constructions (context/counters request-context))))
+
+;; Cross-request publication may be suppressed independently, but the owning
+;; request must still retain false and nil memo results without recomputation.
+(assert (= {:found? false :value nil}
+           (context/memo-value request-context :decisions :local-denial)))
+(assert (false?
+         (context/install-memo!
+          request-context :decisions :local-denial false)))
+(assert (= {:found? true :value false}
+           (context/memo-value request-context :decisions :local-denial)))
+(assert (false?
+         (context/install-memo!
+          request-context :decisions :local-denial true)))
+(assert (nil?
+         (context/install-memo!
+          request-context :catalog-values :local-missing nil)))
+(assert (= {:found? true :value nil}
+           (context/memo-value
+            request-context :catalog-values :local-missing)))
+
+(let [mismatched-selected
+      (memory/select-snapshot connection :minimize-latency)
+      error
+      (error-data
+       #(context/make-context
+         {:selection mismatched-selected
+          :operations (memory-db/read-operation-table)
+          :source-scope
+          (assoc source-scope
+                 :lifecycle-id "ffffffffffffffffffffffffffffffff")
+          :contract (execution/normalize {} :lineage-mismatch-test {})}))]
+  (assert (= :eacl.request/invalid-context (:type error)))
+  (assert (= :selection-source-scope-mismatch (:reason error)))
+  (assert (memory-source/released? mismatched-selected)))
+
+(counters/add! ledger :writer-submissions)
+(assert (= 1 (:writer-submissions (context/counters request-context))))
+(assert (true? (context/close! request-context)))
+(assert (memory-source/released? selected))
+(assert (context/closed? request-context))
+(assert (false? (context/close! request-context)))
+(assert (= 1 (:releases (counters/snapshot ledger))))
+(assert (= :eacl.request/context-closed
+           (:type (context/access-error-data request-context))))
+
+(println :jank-lineage-counters-pass)

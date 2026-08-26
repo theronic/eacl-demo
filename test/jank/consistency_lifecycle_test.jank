@@ -1,0 +1,195 @@
+(ns eacl-demo.jank-memory.consistency-lifecycle-test
+  (:require [eacl.cancellation :as cancellation]
+            [eacl.datomic.memory :as memory]
+            [eacl.datomic.memory.source :as memory-source]
+            [eacl.datomic.memory.store :as memory-store]
+            [eacl.datomic.memory.token :as memory-token]
+            [eacl.runtime.native.clock :as clock]
+            [eacl.secure-keyring :as secure-keyring]))
+
+(def fixed-key
+  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+
+(def keyring
+  (secure-keyring/keyring
+   {:active-kid "consistency-test"
+    :keys {"consistency-test" fixed-key}}))
+
+(def connection
+  (memory/connect
+   {:history-limit 2
+    :token-keyring keyring
+    :token-ttl-seconds 3600}))
+
+(def initial-token (memory/causal-token connection))
+(def first-transaction
+  (memory/transact! connection [{:eacl/id "object-1"}]))
+(def first-token (:causal-token first-transaction))
+(def second-transaction
+  (memory/transact! connection [{:eacl/id "object-2"}]))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(defn selection-error
+  [descriptor]
+  (error-data #(memory/select-snapshot connection descriptor)))
+
+(defn selected-token-payload
+  [selected]
+  (memory-token/decode keyring (:causal-token selected)))
+
+(assert (= 2 (:basis second-transaction)))
+(assert (= [1 2] (memory-store/retained-bases connection)))
+
+(doseq [mode [:minimize-latency :fully-consistent]]
+  (let [selected (memory/select-snapshot connection mode)]
+    (assert (memory-source/selection? selected))
+    (assert (not (memory-source/released? selected)))
+    (assert (= mode (:mode selected)))
+    (assert (= 2 (:basis selected)))
+    (assert (string? (:causal-token selected)))
+    (assert (= :borrowed (:ownership selected)))
+    (assert (= memory-source/execution-constraints
+               (:execution-constraints selected)))
+    (assert (memory-source/semantic-identity?
+             (:semantic-identity selected)))
+    (assert (= :ordinary
+               (get-in selected [:semantic-identity :basis-kind])))
+    (assert (= 2 (get-in selected [:semantic-identity :revision])))
+    (assert (= 2 (get-in selected [:semantic-identity :exact-locator])))
+    (assert (= {:basis 2}
+               (get-in selected
+                       [:semantic-identity :backend-snapshot-id])))
+    (let [payload (selected-token-payload selected)]
+      (assert (= (get-in selected [:semantic-identity :source-id])
+                 (:store payload)))
+      (assert (= (get-in selected [:semantic-identity :source-lifecycle])
+                 (:lifecycle payload)))
+      (assert (= (:basis selected) (:revision payload)))
+      (assert (= (:basis selected) (:locator payload))))
+    (assert (true? (memory-source/release! selected)))
+    (assert (memory-source/released? selected))
+    (assert (false? (memory-source/release! selected)))
+    (assert (= :eacl/snapshot-released
+               (:type (error-data #(memory-source/database selected)))))))
+
+(let [selected
+      (memory/select-snapshot
+       connection {:mode :at-least-as-fresh :token first-token})]
+  (assert (= :at-least-as-fresh (:mode selected)))
+  (assert (= 2 (:basis selected)))
+  (assert (= :ordinary
+             (get-in selected [:semantic-identity :basis-kind])))
+  (assert (not= first-token (:causal-token selected)))
+  (let [payload (selected-token-payload selected)]
+    (assert (= 2 (:revision payload)))
+    (assert (= 2 (:locator payload))))
+  (assert (true? (memory-source/release! selected))))
+
+(let [selected
+      (memory/select-snapshot
+       connection {:mode :at-exact-snapshot :token first-token})]
+  (assert (= :at-exact-snapshot (:mode selected)))
+  (assert (= 1 (:basis selected)))
+  (assert (= :as-of
+             (get-in selected [:semantic-identity :basis-kind])))
+  (assert (= 1 (get-in selected [:semantic-identity :revision])))
+  (assert (= 1 (get-in selected [:semantic-identity :exact-locator])))
+  (assert (= first-token (:causal-token selected)))
+  (let [payload (selected-token-payload selected)]
+    (assert (= 1 (:revision payload)))
+    (assert (= 1 (:locator payload))))
+  (assert (true? (memory-source/release! selected))))
+
+(let [unavailable
+      (selection-error {:mode :at-exact-snapshot :token initial-token})]
+  (assert (= :eacl.snapshot/history-unavailable (:type unavailable)))
+  (assert (= 0 (:basis unavailable)))
+  (assert (= 2 (:current-basis unavailable))))
+
+(let [foreign-connection
+      (memory/connect {:token-keyring keyring})
+      error
+      (error-data
+       #(memory/select-snapshot
+         foreign-connection
+         {:mode :at-exact-snapshot :token first-token}))]
+  (assert (= :eacl.consistency/foreign-token (:type error)))
+  (assert (= :foreign-store (:reason error))))
+
+(let [{:keys [store-id lifecycle-id]} (memory-store/identities connection)
+      now (bigint (quot (clock/unix-time-millis) 1000))
+      token-for
+      (fn [overrides]
+        (memory-token/issue
+         (merge
+          {:store-id store-id
+           :lifecycle-id lifecycle-id
+           :revision 1
+           :issued-at now
+           :ttl-seconds 3600
+           :keyring keyring}
+          overrides)))]
+  (let [error
+        (selection-error
+         {:mode :at-exact-snapshot
+          :token
+          (token-for
+           {:lifecycle-id
+            "ffffffffffffffffffffffffffffffff"})})]
+    (assert (= :eacl.consistency/lifecycle-unavailable (:type error)))
+    (assert (= :foreign-lifecycle (:reason error))))
+  (let [error
+        (selection-error
+         {:mode :at-exact-snapshot
+          :token (token-for {:issued-at (- now 2) :ttl-seconds 1})})]
+    (assert (= :eacl.consistency/token-expired (:type error)))
+    (assert (= :expired (:reason error))))
+  (let [error
+        (selection-error
+         {:mode :at-exact-snapshot
+          :token (token-for {:issued-at (+ now 301) :ttl-seconds 600})})]
+    (assert (= :eacl.consistency/invalid-token (:type error)))
+    (assert (= :issued-in-future (:reason error))))
+  (let [error
+        (selection-error
+         {:mode :at-least-as-fresh
+          :token (token-for {:revision 3})})]
+    (assert (= :eacl.consistency/freshness-unavailable (:type error)))
+    (assert (= :revision-not-reached (:reason error)))
+    (assert (= 3 (:requested error)))
+    (assert (= 2 (:current error)))))
+
+(let [cancel-token (cancellation/cancellation-token)
+      _ (cancellation/cancel! cancel-token)
+      error
+      (error-data
+       #(memory/select-snapshot
+         connection :minimize-latency
+         {:cancellation-token cancel-token}))]
+  (assert (= :eacl.execution/cancelled (:type error)))
+  (assert (= :before-snapshot-selection (:phase error))))
+
+(let [error
+      (error-data
+       #(memory/select-snapshot
+         connection :minimize-latency
+         {:deadline-nanos (clock/monotonic-nanos)}))]
+  (assert (= :eacl.execution/deadline-exceeded (:type error)))
+  (assert (= :before-snapshot-selection (:phase error))))
+
+(let [error
+      (error-data
+       #(memory/select-snapshot
+         connection :minimize-latency
+         {:unknown-control true}))]
+  (assert (= :eacl/invalid-request (:type error)))
+  (assert (= :invalid-controls (:reason error))))
+
+(println :jank-consistency-lifecycle-pass)

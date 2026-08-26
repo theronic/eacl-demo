@@ -1,0 +1,114 @@
+(ns eacl-demo.jank-memory.profile
+  (:refer-clojure :exclude [descriptor])
+  (:require [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.fixture :as fixture]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def runtime-core-baseline-sha
+  "1cbf80c7aaf4bfcf2564d2bf30135794ff406383")
+
+(def required-release-core-sha
+  "8dc3b16498788dd822b68e1c4fe25b37a8e8879f")
+
+(defn- fail!
+  [field]
+  (throw
+   (ex-info
+    "Jank deployment identity is invalid."
+    {:type :eacl-demo.jank/identity-mismatch :field field})))
+
+(defn- exact-sha?
+  [value size]
+  (and (string? value)
+       (= size (count value))
+       (boolean (re-matches #"[0-9a-f]+" value))))
+
+(defn- deployment-id?
+  [value]
+  (and (string? value)
+       (<= 1 (count value) 256)
+       (boolean (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]*" value))))
+
+(defn- memory-size
+  [value]
+  (when-not
+   (and (string? value)
+        (<= 3 (count value) 5)
+        (boolean (re-matches #"[0-9]+" value)))
+    (fail! :memory-size))
+  (let [parsed (read-string value)]
+    (when-not (<= 128 parsed 10240)
+      (fail! :memory-size))
+    parsed))
+
+(defn deployment-identity
+  []
+  (let [demo-sha (runtime-api/environment "EACL_DEMO_SHA")
+        core-sha (runtime-api/environment "EACL_CORE_SHA")
+        artifact-sha (runtime-api/environment "EACL_ARTIFACT_SHA256")
+        deployment-id (runtime-api/environment "EACL_DEPLOYMENT_ID")
+        manifest-sha (runtime-api/environment "EACL_DATA_MANIFEST_SHA256")]
+    (when-not (exact-sha? demo-sha 40) (fail! :demo-sha))
+    ;; The current vendored port is deliberately truthful about its older
+    ;; runtime baseline. Release promotion remains impossible until this
+    ;; compiled constant equals required-release-core-sha.
+    (when-not (= runtime-core-baseline-sha core-sha) (fail! :eacl-sha))
+    (when-not (exact-sha? artifact-sha 64) (fail! :artifact-sha256))
+    (when-not (deployment-id? deployment-id) (fail! :deployment-id))
+    (when-not (= (subs fixture/expected-manifest-digest 7) manifest-sha)
+      (fail! :data-manifest-sha256))
+    {"profileId" "jank-memory"
+     "demoSha" demo-sha
+     "eaclSha" core-sha
+     "artifactSha256" artifact-sha
+     "deploymentId" deployment-id
+     "dataManifestSha256" manifest-sha}))
+
+(defn descriptor
+  [value]
+  (when-not (and (= true (:ready value)) (= true (:frozen value))
+                 (integer? (:basis-t value)))
+    (throw
+     (ex-info
+      "Jank descriptor requires a verified frozen store."
+      {:type :eacl-demo.jank/invalid-profile-store})))
+  (let [identity (deployment-identity)
+        captured-at (runtime-api/utc-timestamp)
+        basis
+        {"behavior" "rebuild-lifecycle"
+         "id" (str "jank-memory:" (:basis-t value) ":"
+                   (subs (get identity "dataManifestSha256") 0 16))
+         "capturedAt" captured-at
+         "fixedForEnvironment" true}]
+    {"contract"
+     {"name" "explorer.v1" "routeMajor" 1 "revision" 1
+      "minimumClientRevision" 1}
+     "identity" identity
+     "profile" {"backend" "jank" "storage" "memory"}
+     "runtime"
+     {"execution" "lambda" "name" "jank-native"
+      "architecture" "x86_64" "snapStart" "disabled"}
+     "capabilities"
+     {"operations" (vec (sort dispatcher/operations))
+      "consistencyModes" ["current" "minimize"]
+      "snapshotBehavior" "rebuild-lifecycle"
+      "cacheBehavior" "environment-local"
+      "mutationLocality" "initialization-before-ready"
+      "limitations"
+      ["read-only" "ephemeral" "no-durability"
+       "datomic-like-not-datomic-pro" "no-datalog-api" "no-distribution"
+       "not-production-database" "unequal-dataset-scale"
+       "no-snapstart" "lifecycle-rebuild" "unsupported-consistency"]}
+     "limits"
+     [{"name" "requestDeadlineMs" "value" 10000}
+      {"name" "admissionConcurrency" "value" 1}
+      {"name" "responseBodyBytes" "value" 1048576}
+      {"name" "memoryMiB"
+       "value" (memory-size
+                 (runtime-api/environment
+                  "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"))}]
+     "dataset"
+     {"fixtureId" fixture/fixture-id
+      "logicalResourceCount" fixture/logical-resources
+      "manifestSha256" (subs fixture/expected-manifest-digest 7)}
+     "basis" basis}))

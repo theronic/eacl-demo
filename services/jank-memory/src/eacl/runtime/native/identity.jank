@@ -1,0 +1,86 @@
+(ns eacl.runtime.native.identity
+  "Exact current-thread ownership identities for synchronous snapshot views.")
+
+(cpp/raw "#include <atomic>
+          #include <climits>
+          #include <cstdint>
+          #include <cstdlib>
+          #include <pthread.h>
+
+          namespace eacl_jank_identity
+          {
+            namespace
+            {
+              std::atomic<unsigned long long> next_identity{ 1 };
+              pthread_key_t identity_key;
+              pthread_once_t identity_once = PTHREAD_ONCE_INIT;
+
+              void initialize_identity_key()
+              {
+                if(pthread_key_create(&identity_key, nullptr) != 0)
+                {
+                  std::abort();
+                }
+              }
+            }
+
+            long long current()
+            {
+              if(pthread_once(&identity_once, initialize_identity_key) != 0)
+              {
+                std::abort();
+              }
+
+              auto const existing = pthread_getspecific(identity_key);
+              if(existing != nullptr)
+              {
+                return static_cast<long long>(
+                  reinterpret_cast<std::uintptr_t>(existing));
+              }
+
+              auto const value = next_identity.fetch_add(
+                1, std::memory_order_relaxed);
+              if(value > LLONG_MAX)
+              {
+                std::abort();
+              }
+              auto const encoded = reinterpret_cast<void*>(
+                static_cast<std::uintptr_t>(value));
+              if(pthread_setspecific(identity_key, encoded) != 0)
+              {
+                std::abort();
+              }
+              return static_cast<long long>(value);
+            }
+          }")
+
+(defn current-execution-identity
+  "Return a positive, process-lifetime-unique identity for the current thread."
+  []
+  (cpp/eacl_jank_identity.current))
+
+(defn execution-identity?
+  [value]
+  (and (integer? value) (pos? value)))
+
+(defn same-execution?
+  [owner]
+  (and (execution-identity? owner)
+       (= owner (current-execution-identity))))
+
+(defn require-owner!
+  [owner]
+  (when-not (execution-identity? owner)
+    (throw
+     (ex-info
+      "Snapshot execution owner identity is invalid."
+      {:type :eacl.snapshot/invalid-owner
+       :eacl/error :eacl.snapshot/invalid-owner
+       :owner owner})))
+  (when-not (same-execution? owner)
+    (throw
+     (ex-info
+      "Snapshot view cannot be used from another execution."
+      {:type :eacl.snapshot/cross-execution-use
+       :eacl/error :eacl.snapshot/cross-execution-use})))
+  true)

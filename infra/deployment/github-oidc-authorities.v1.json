@@ -1,0 +1,150 @@
+{
+  "schema": "eacl-demo.github-oidc-authorities.v1",
+  "accountId": "843761893873",
+  "providerArn": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "audience": "sts.amazonaws.com",
+  "repository": {
+    "owner": "theronic",
+    "ownerId": "1011676",
+    "name": "eacl-demo",
+    "repositoryId": "1345904214",
+    "fullName": "theronic/eacl-demo",
+    "deploymentRef": "refs/heads/demos",
+    "immutableSubjectPrefix": "repo:theronic@1011676/eacl-demo@1345904214"
+  },
+  "subjectCustomization": {
+    "use_default": false,
+    "use_immutable_subject": true,
+    "include_claim_keys": [
+      "repo",
+      "ref",
+      "workflow_ref",
+      "environment",
+      "event_name",
+      "runner_environment"
+    ]
+  },
+  "authorities": [
+    {
+      "id": "deploy-static",
+      "authorityClass": "ordinary-deployment",
+      "activation": "after-target-is-deployment-eligible",
+      "workflowName": "Deploy EACL demos",
+      "workflowFile": ".github/workflows/deploy-demos.yml",
+      "eventName": "push",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-production-static",
+      "roleVariable": "AWS_STATIC_DEPLOY_ROLE_ARN",
+      "permissionScope": "static-only"
+    },
+    {
+      "id": "deploy-datahike-s3",
+      "authorityClass": "ordinary-deployment",
+      "activation": "after-target-is-deployment-eligible",
+      "workflowName": "Deploy EACL demos",
+      "workflowFile": ".github/workflows/deploy-demos.yml",
+      "eventName": "push",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-production-datahike-s3",
+      "roleVariable": "AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN",
+      "permissionScope": "datahike-s3-runtime-only"
+    },
+    {
+      "id": "deploy-datahike-dynamodb",
+      "authorityClass": "ordinary-deployment",
+      "activation": "after-target-is-deployment-eligible",
+      "workflowName": "Deploy EACL demos",
+      "workflowFile": ".github/workflows/deploy-demos.yml",
+      "eventName": "push",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-production-datahike-dynamodb",
+      "roleVariable": "AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN",
+      "permissionScope": "datahike-dynamodb-runtime-only"
+    },
+    {
+      "id": "deploy-datomic-dynamodb",
+      "authorityClass": "ordinary-deployment",
+      "activation": "after-target-is-deployment-eligible",
+      "workflowName": "Deploy EACL demos",
+      "workflowFile": ".github/workflows/deploy-demos.yml",
+      "eventName": "push",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-production-datomic-dynamodb",
+      "roleVariable": "AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN",
+      "permissionScope": "datomic-dynamodb-runtime-only"
+    },
+    {
+      "id": "deploy-datalevin-memory",
+      "authorityClass": "ordinary-deployment",
+      "activation": "after-target-is-deployment-eligible",
+      "workflowName": "Deploy EACL demos",
+      "workflowFile": ".github/workflows/deploy-demos.yml",
+      "eventName": "push",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-production-datalevin-memory",
+      "roleVariable": "AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN",
+      "permissionScope": "datalevin-memory-runtime-only"
+    },
+    {
+      "id": "qualify-profile-memory",
+      "authorityClass": "manual-qualification",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Exercise one profile runtime manually",
+      "workflowFile": ".github/workflows/exercise-profile-runtime.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-manual-qualification",
+      "roleVariable": "AWS_QUALIFICATION_ROLE_ARN",
+      "permissionScope": "published-function-observation-only"
+    },
+    {
+      "id": "exercise-profile-transition",
+      "authorityClass": "manual-transition",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Exercise one profile migration or rollback",
+      "workflowFile": ".github/workflows/exercise-profile-transition.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-manual-transition",
+      "roleVariable": "AWS_TRANSITION_EXERCISE_ROLE_ARN",
+      "permissionScope": "exercise-alias-only"
+    },
+    {
+      "id": "stateful-datahike-dynamodb",
+      "authorityClass": "stateful-maintenance",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Stateful Datahike DynamoDB generation",
+      "workflowFile": ".github/workflows/stateful-datahike-dynamodb.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-stateful-datahike-dynamodb",
+      "roleVariable": "AWS_STATEFUL_ROLE_ARN",
+      "permissionScope": "authorized-datahike-generation-only"
+    },
+    {
+      "id": "stateful-datomic-dynamodb",
+      "authorityClass": "stateful-maintenance",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Stateful Datomic DynamoDB generation",
+      "workflowFile": ".github/workflows/stateful-datomic-dynamodb.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-stateful-datomic-dynamodb",
+      "roleVariable": "AWS_STATEFUL_DATOMIC_ROLE_ARN",
+      "permissionScope": "authorized-datomic-generation-only"
+    },
+    {
+      "id": "stateful-datomic-seed",
+      "authorityClass": "stateful-maintenance",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Stateful Datomic transactor and seed",
+      "workflowFile": ".github/workflows/stateful-datomic-seed.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-stateful-datomic-seed",
+      "roleVariable": "AWS_STATEFUL_DATOMIC_SEED_ROLE_ARN",
+      "permissionScope": "authorized-datomic-seed-compute-only"
+    }
+  ]
+}

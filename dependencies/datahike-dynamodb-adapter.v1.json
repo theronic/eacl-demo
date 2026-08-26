@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "decision": "audit-upstream-build-local-read-only-serving-adapter",
+  "datahike": {
+    "coordinate": "org.replikativ/datahike",
+    "version": "0.8.1801",
+    "jarSha256": "91cdd5f52f695d3c4ea02f972c9f5964ba242ba9f4da6ee7361d13e896f6ec5d"
+  },
+  "konserve": {
+    "coordinate": "org.replikativ/konserve",
+    "version": "0.9.378",
+    "jarSha256": "ab5831f84752dca33cc35b09fa75a6d5a63bb7f5a260f2f43446d552065c63da"
+  },
+  "dynamodbSdk": {
+    "coordinate": "software.amazon.awssdk/dynamodb",
+    "version": "2.29.3",
+    "jarSha256": "5d94384e06860e2c57d7929395258b35972d7254a75f98ac491b4b0eeced21a1"
+  },
+  "upstreamAdapter": {
+    "coordinate": "org.replikativ/konserve-dynamodb",
+    "version": "0.1.33",
+    "repository": "https://github.com/replikativ/konserve-dynamodb.git",
+    "commit": "a8c160ca7221b9c17e45e0ffc015f059043f2f54",
+    "sourceSha256": "dca6032ca72897fbb77c14263b591e97c2b13a4e702058bd0692a8a25ea8a2b2",
+    "jarSha256": "547d87e6e00e954dacbd08431afb544fdee87507d7fc9df170925feb08c1c4fd",
+    "alias": "datahike-dynamodb-upstream-audit",
+    "servingClosure": false,
+    "qualification": "rejected",
+    "findings": [
+      "get-item catches every Exception and returns nil",
+      "consistent-read? defaults to false",
+      "BatchGetItem UnprocessedKeys are ignored",
+      "table and item deletion remain reachable"
+    ]
+  },
+  "servingAdapter": {
+    "kind": "local-read-only",
+    "source": "services/datahike-dynamodb/src",
+    "alias": "datahike-dynamodb",
+    "upstreamArtifactOnClasspath": false
+  }
+}

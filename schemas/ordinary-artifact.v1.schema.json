@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/ordinary-artifact.v1.schema.json",
+  "title": "EACL ordinary deployment artifact handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "target", "demoSha", "eaclSha", "files", "artifactSha256", "artifactName"],
+  "properties": {
+    "schema": {"const": "eacl-demo.ordinary-artifact.v1"},
+    "target": {
+      "enum": ["static", "datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory"]
+    },
+    "demoSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "eaclSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "bytes", "sha256"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^payload/[A-Za-z0-9._/-]+$", "maxLength": 512},
+          "bytes": {"type": "integer", "minimum": 0, "maximum": 536870912},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "artifactSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "artifactName": {"type": "string", "pattern": "^eacl-demo-[a-z0-9-]+-[0-9a-f]{64}$", "maxLength": 128}
+  }
+}

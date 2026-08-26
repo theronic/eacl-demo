@@ -1,0 +1,56 @@
+{
+  "schema": "eacl-demo.github-oidc-public-audit.v1",
+  "observedAt": "2026-08-26T03:16:36Z",
+  "mutationPerformed": false,
+  "repositoryApi": {
+    "url": "https://api.github.com/repos/theronic/eacl-demo",
+    "id": 1345904214,
+    "fullName": "theronic/eacl-demo",
+    "ownerId": 1011676,
+    "createdAt": "2026-08-25T09:00:21Z",
+    "defaultBranch": "main",
+    "visibility": "public"
+  },
+  "subjectConfigurationApi": {
+    "url": "https://api.github.com/repos/theronic/eacl-demo/actions/oidc/customization/sub",
+    "useDefault": true,
+    "useImmutableSubject": false,
+    "subClaimPrefix": "repo:theronic@1011676/eacl-demo@1345904214",
+    "interpretation": "The repository uses GitHub's post-2026-07-15 immutable default prefix even though it has not explicitly opted into a custom or legacy-repository immutable template."
+  },
+  "remoteAuthority": {
+    "observedBy": "git ls-remote and git ls-tree",
+    "mainSha": "858e11a807668c17b00345e89da90bc276b60126",
+    "demosSha": "858e11a807668c17b00345e89da90bc276b60126",
+    "workflowFilesAtDemos": [],
+    "interpretation": "No GitHub Actions workflow in the local implementation is live on the remote demos branch yet."
+  },
+  "issuerMetadata": {
+    "url": "https://token.actions.githubusercontent.com/.well-known/openid-configuration",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "jwksUri": "https://token.actions.githubusercontent.com/.well-known/jwks",
+    "idTokenSigningAlgorithms": [
+      "RS256"
+    ],
+    "requiredClaimsObserved": [
+      "aud",
+      "environment",
+      "event_name",
+      "job_workflow_ref",
+      "ref",
+      "repository",
+      "repository_id",
+      "repository_owner_id",
+      "runner_environment",
+      "sub",
+      "workflow",
+      "workflow_ref"
+    ]
+  },
+  "limitations": [
+    "This is a public metadata audit, not the required claim capture from a live eacl-demo Actions job.",
+    "The remote demos branch had no workflow files, so no local OIDC authority can currently run there.",
+    "The repository subject customization and AWS role trusts were not changed.",
+    "The live token shape and successful role assumption remain external gates."
+  ]
+}

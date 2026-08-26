@@ -1,0 +1,67 @@
+{
+  "$schema": "../../schemas/storage-benchmark-workload.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "datahike-storage-million-v1",
+  "comparison": {
+    "backend": "datahike",
+    "storages": ["s3", "dynamodb"],
+    "region": "us-east-1",
+    "contract": "explorer.v1",
+    "fixtureManifest": "fixtures/manifests/fixture-1000000.v1.json",
+    "fixtureDigest": "sha256:102bb7c51779bb66ab343dabff42019af95f99bded708e214b13fd56ab3bf33c",
+    "logicalResources": 1000000
+  },
+  "runtime": {
+    "lambdaRuntime": "java25",
+    "architecture": "arm64",
+    "snapStart": "None",
+    "timeoutSeconds": 30,
+    "ephemeralStorageMiB": 512,
+    "memorySelection": "maximum-of-the-two-lowest-qualified-memory-values",
+    "artifactRule": "same-demo-and-eacl-shas-and-byte-identical-service-artifact-except-closed-storage-configuration"
+  },
+  "schedule": {
+    "algorithm": "weighted-block-sha256-sort-v1",
+    "seed": "20260825",
+    "requestsPerWave": 100,
+    "operations": [
+      {"id": "authorize-direct-allow", "operation": "authorize", "weightPer100": 8, "method": "POST", "input": {"subjectType": "user", "subjectId": "user-1", "resourceType": "account", "resourceId": "account-0", "permission": "admin", "consistency": "current"}},
+      {"id": "authorize-direct-deny", "operation": "authorize", "weightPer100": 8, "method": "POST", "input": {"subjectType": "user", "subjectId": "user-2", "resourceType": "account", "resourceId": "account-0", "permission": "admin", "consistency": "current"}},
+      {"id": "authorize-arrow-relation", "operation": "authorize", "weightPer100": 8, "method": "POST", "input": {"subjectType": "user", "subjectId": "super-user", "resourceType": "server", "resourceId": "account-4-server-15", "permission": "view", "consistency": "current"}},
+      {"id": "authorize-arrow-permission", "operation": "authorize", "weightPer100": 8, "method": "POST", "input": {"subjectType": "user", "subjectId": "account-0-team-0-leader", "resourceType": "server", "resourceId": "account-0-server-12", "permission": "view", "consistency": "current"}},
+      {"id": "authorize-cycle-allow", "operation": "authorize", "weightPer100": 4, "method": "POST", "input": {"subjectType": "user", "subjectId": "user-1", "resourceType": "account", "resourceId": "account-1", "permission": "view", "consistency": "current"}},
+      {"id": "authorize-cycle-deny", "operation": "authorize", "weightPer100": 4, "method": "POST", "input": {"subjectType": "user", "subjectId": "user-2", "resourceType": "account", "resourceId": "account-1", "permission": "view", "consistency": "current"}},
+      {"id": "get-account", "operation": "get-object", "weightPer100": 5, "method": "POST", "input": {"type": "account", "id": "account-4", "consistency": "current"}},
+      {"id": "get-server", "operation": "get-object", "weightPer100": 5, "method": "POST", "input": {"type": "server", "id": "account-4-server-15", "consistency": "current"}},
+      {"id": "list-server-relationships", "operation": "list-relationships", "weightPer100": 10, "method": "POST", "input": {"resourceType": "server", "resourceId": "account-4-server-15", "pageSize": 25, "consistency": "current"}},
+      {"id": "list-account-relationships", "operation": "list-relationships", "weightPer100": 5, "method": "POST", "input": {"resourceType": "account", "resourceId": "account-1", "pageSize": 25, "consistency": "current"}},
+      {"id": "reverse-team-relationships", "operation": "reverse-relationships", "weightPer100": 5, "method": "POST", "input": {"subjectType": "team", "subjectId": "account-0-team-0", "relation": "team", "pageSize": 25, "consistency": "current"}},
+      {"id": "reverse-user-relationships", "operation": "reverse-relationships", "weightPer100": 5, "method": "POST", "input": {"subjectType": "user", "subjectId": "user-1", "relation": "owner", "pageSize": 25, "consistency": "current"}},
+      {"id": "list-subjects", "operation": "list-subjects", "weightPer100": 5, "method": "POST", "input": {"type": "user", "pageSize": 100}},
+      {"id": "count-servers", "operation": "count-objects", "weightPer100": 10, "method": "POST", "input": {"kind": "objects", "type": "server", "ceiling": 1000000, "consistency": "current"}},
+      {"id": "read-schema", "operation": "get-schema", "weightPer100": 5, "method": "POST", "input": {"consistency": "current"}},
+      {"id": "bootstrap", "operation": "bootstrap", "weightPer100": 5, "method": "GET", "input": {}}
+    ]
+  },
+  "lanes": [
+    {"id": "warm-cache-disabled", "cacheMaxEntries": 0, "prewarmWaves": 1, "measuredWaves": 30, "concurrency": [1, 8], "primary": true},
+    {"id": "warm-cache-enabled", "cacheMaxEntries": 32768, "prewarmWaves": 3, "measuredWaves": 30, "concurrency": [1, 8], "primary": false},
+    {"id": "cold-restore-first-result", "cacheMaxEntries": 32768, "prewarmWaves": 0, "measuredWaves": 30, "concurrency": [1], "primary": false}
+  ],
+  "measurement": {
+    "harnessLocation": "dedicated-temporary-us-east-1-compute",
+    "profileOrder": "deterministic-interleaved-abba",
+    "requestDeadlineMs": 10000,
+    "record": ["clientElapsedMs", "serviceElapsedMs", "lambdaBilledDurationMs", "lambdaInitDurationMs", "lambdaRestoreDurationMs", "status", "errorCode", "awsRequestId", "logStream", "dataBasis"],
+    "coldAcceptance": "first bootstrap response from 30 distinct verified execution-environment log streams per storage",
+    "retryPolicy": "no measured-request retry; infrastructure-invalid waves are retained and reported separately"
+  },
+  "analysis": {
+    "primaryMetric": "operation-weighted-warm-cache-disabled-service-p95-ms",
+    "concurrencyWeights": {"1": 0.5, "8": 0.5},
+    "confidence": "paired-run bootstrap 95-percent interval with 10000 deterministic resamples",
+    "minimumEffectPercent": 5,
+    "tieBreakers": ["lower-cold-restore-first-result-p95", "lower-projected-monthly-cost"],
+    "noClaimRule": "if comparability, qualification, error-rate, sample-count, confidence, or minimum-effect gates fail, publish no fastest claim"
+  }
+}

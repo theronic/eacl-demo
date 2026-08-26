@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/fixture-exemplars.v1.schema.json",
+  "title": "EACL demo fixture exemplars v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "fixtureId", "semanticOrder", "requiredCoverage", "cases"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "fixtureId": {"const": "eacl-demo-fixture-v1"},
+    "semanticOrder": {"const": ["resource.type", "resource.id"]},
+    "requiredCoverage": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["direct", "arrow-relation", "arrow-permission", "cycle", "duplicate", "forward-discovery", "reverse-discovery", "relationship-filter", "count", "pagination"]}
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "expected"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+          "kind": {"enum": ["decision", "duplicate-relationship", "lookup-resources", "lookup-subjects", "count-resources", "pagination"]},
+          "demand": {"type": "object"},
+          "query": {"type": "object"},
+          "relationship": {"type": "object"},
+          "copies": {"type": "integer", "minimum": 2},
+          "expected": {"type": "object"}
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {"if": {"properties": {"kind": {"const": "decision"}}}, "then": {"properties": {"demand": {"type": "object"}}, "required": ["demand"]}},
+          {"if": {"properties": {"kind": {"const": "duplicate-relationship"}}}, "then": {"properties": {"relationship": {"type": "object"}, "copies": {"type": "integer"}}, "required": ["relationship", "copies"]}},
+          {"if": {"properties": {"kind": {"enum": ["lookup-resources", "lookup-subjects", "count-resources", "pagination"]}}}, "then": {"properties": {"query": {"type": "object"}}, "required": ["query"]}}
+        ]
+      }
+    }
+  }
+}

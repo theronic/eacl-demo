@@ -1,0 +1,19 @@
+EACL for Jank
+==============
+
+This repository contains a port and adaptation of EACL, originally developed
+at https://github.com/theronic/eacl and distributed under the Eclipse Public
+License 2.0.
+
+The frozen upstream source baseline is pull request #145 at commit
+1cbf80c7aaf4bfcf2564d2bf30135794ff406383, based on pull request #144 at
+commit 0bb0845139af1acd4dc36fa5676e3cd68c6d7356. Exact source roots, hashes,
+copied paths, and deliberate omissions are recorded in
+compat/manifests/port.edn.
+
+The upstream repository stores the complete license under the British-spelled
+filename LICENCE. This port preserves that filename and file content verbatim.
+
+The in-memory Janktomic module is a conformance and development backend. That
+prototype designation does not apply to the EACL authorization engine, whose
+correctness and performance are release-gated.

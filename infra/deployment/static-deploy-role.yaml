@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Inactive-until-eligible ordinary static deployment role for the exact eacl-demo demos workflow.
+
+Parameters:
+  Activation:
+    Type: String
+    Default: disabled
+    AllowedValues: [disabled, enabled]
+  RoleName:
+    Type: String
+    Default: eacl-demo-deploy-static
+    AllowedPattern: "^[A-Za-z0-9+=,.@_-]{1,64}$"
+  StaticBucketName:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  StaticBucketArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  DistributionArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:cloudfront::843761893873:distribution/[A-Z0-9]{8,32}$"
+
+Rules:
+  StaticBucketNameMatchesArn:
+    Assertions:
+      - Assert: !Equals
+          - !Select [1, !Split ["s3:::", !Ref StaticBucketArn]]
+          - !Ref StaticBucketName
+        AssertDescription: StaticBucketArn must identify exactly StaticBucketName.
+
+Conditions:
+  StaticDeploymentEnabled: !Equals [!Ref Activation, enabled]
+
+Resources:
+  StaticDeployRole:
+    Type: AWS::IAM::Role
+    Condition: StaticDeploymentEnabled
+    Properties:
+      RoleName: !Ref RoleName
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ExactGitHubOidcAuthority
+            Effect: Allow
+            Principal:
+              Federated: arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:environment: demo-production-static
+                token.actions.githubusercontent.com:ref: refs/heads/demos
+                token.actions.githubusercontent.com:repository: theronic/eacl-demo
+                token.actions.githubusercontent.com:repository_id: "1345904214"
+                token.actions.githubusercontent.com:repository_owner_id: "1011676"
+                token.actions.githubusercontent.com:sub: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-static:event_name:push:runner_environment:github-hosted
+                token.actions.githubusercontent.com:workflow: Deploy EACL demos
+      Policies:
+        - PolicyName: exact-static-bucket-configuration-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactStaticBucketConfigurationRead
+                Effect: Allow
+                Action:
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetBucketOwnershipControls
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:GetBucketTagging
+                  - s3:GetBucketVersioning
+                Resource: !Ref StaticBucketArn
+        - PolicyName: exact-static-object-publication
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactVersionedEntryAndStatusObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${StaticBucketArn}/index.html"
+                  - !Sub "${StaticBucketArn}/datascript/index.html"
+                  - !Sub "${StaticBucketArn}/site-manifest.json"
+                  - !Sub "${StaticBucketArn}/registry/static.json"
+              - Sid: ContentAddressedStaticAssets
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${StaticBucketArn}/assets/*"
+                  - !Sub "${StaticBucketArn}/datascript/assets/*"
+        - PolicyName: exact-static-distribution-observation-and-invalidation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactStaticDistribution
+                Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                  - cloudfront:GetDistribution
+                  - cloudfront:GetInvalidation
+                Resource: !Ref DistributionArn
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Component
+          Value: ordinary-static-deployment
+        - Key: Activation
+          Value: !Ref Activation
+
+Outputs:
+  StaticDeployRoleArn:
+    Condition: StaticDeploymentEnabled
+    Value: !GetAtt StaticDeployRole.Arn
+  GitHubVariableName:
+    Condition: StaticDeploymentEnabled
+    Value: AWS_STATIC_DEPLOY_ROLE_ARN

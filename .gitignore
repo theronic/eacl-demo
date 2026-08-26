@@ -3,11 +3,19 @@
 .env.*
 !.env.example
 .cpcache/
+.nrepl-port
 .shadow-cljs/
 build/
 coverage/
 dist/
+target/
 node_modules/
+__pycache__/
+*.pyc
 target/
 *.tsbuildinfo
 *.log
+test-results/
+verification/explorer/artifacts/playwright/
+# Reproducible local build output
+dist/

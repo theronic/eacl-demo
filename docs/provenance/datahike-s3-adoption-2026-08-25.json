@@ -1,0 +1,142 @@
+{
+  "schema": "eacl-demo.legacy-profile-adoption.v1",
+  "capturedAt": "2026-08-25T13:15:22Z",
+  "profileId": "datahike-s3",
+  "region": "us-east-1",
+  "readOnlyCapture": true,
+  "status": "replacement-reader-required",
+  "decision": "Retain the S3 store unchanged, but do not enable the legacy Lambda artifact. Build a source-bound read-only replacement against the same store and qualify its actual dataset honestly.",
+  "source": {
+    "status": "unresolved",
+    "legacyHead": "06d8141a0cfebbd3b423cd719f9f05eb94ca50aa",
+    "capturedDirtyStateSha256": "a8c0f25778d7a85362e3c988d5986279424eb0c7cd30fc5d8cb824d7b245096b",
+    "configuredRemote": "https://github.com/theronic/eacl-datomic-solidjs.git",
+    "eaclVersionClaim": "8.0.0-SNAPSHOT",
+    "eaclSha": null,
+    "reason": "The configured remote is the Datomic demo repository, the deployed application sources came from uncommitted files, and the artifact contains no exact demo or EACL commit manifest. A Git SHA cannot be inferred from class/source similarity."
+  },
+  "artifact": {
+    "status": "resolved",
+    "functionArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:133",
+    "aliasArn": "arn:aws:lambda:us-east-1:843761893873:function:demo-eacl-datahike-lambda-reader-reader:live",
+    "version": "133",
+    "aliasRevisionId": "8380f5c1-74cc-47f4-9b4d-145a279a4454",
+    "sha256": "ad91c6585f95a5ab2f69c48a80b9d603147d4d6427edb757c8bbe108ad1085d9",
+    "lambdaCodeSha256Base64": "rZHGWF+VpasvacSKgLnWAxR9TWQn7bdXyLvhCK0Qhdk=",
+    "downloadVerified": true,
+    "embeddedSourceSha256": {
+      "eacl_datahike_demo/data.clj": "a1ba336c890a447f3207d0efbc6fa69e3332bef268214b8ae5d7f6894a7be631",
+      "eacl_datahike_demo/api.clj": "5b1f6374bdbee73e435752626769ee0df9844d5c7d4ec96ba10cf43a860b4afb",
+      "eacl_datahike_demo/config.clj": "3bdc5b0ba203e16826175e492b7998ddaf34cd7ff7fc22f145d1f7ae65450e2e",
+      "eacl_datahike_demo/contracts.clj": "fdb7db0ea66e0bd58848c9393b1d3e01fc4d89fd444bf87fef4a9ca066eb539d",
+      "eacl_datahike_demo/eacl_adapter.clj": "26a07cc8293ecc2e47d09fb8d4fca627a85e83d54b143cbc506c388b3109faa9",
+      "eacl_datahike_demo/lambda_adapter.clj": "4a6e269ff5e442e3ba42bdbb16a41e59d628b56ce61d73c7e8f0fd991e13a8ae",
+      "eacl_datahike_demo/lambda_handler.clj": "6f95ea80a7a3dcfc1e7eef2f2fe954e550ff0e0ff24a7c1fb2138bb28bd0377a",
+      "eacl_datahike_demo/read_only_writer.clj": "270ddf981aa1dcbbdc1565847e0dc04f6ebfb3483886673ee8092ce6810f31fe",
+      "eacl_datahike_demo/reader.clj": "c111f98f23923af20fa812866e76a28e181f48f942a69ad453f1f303b5b2b6d8",
+      "eacl_datahike_demo/runtime.clj": "9650aa8cad58c9cc23d6a4e9a02a2910d8b939b89dca3c1cba8ec0e9a82a42f1",
+      "eacl_datahike_demo/snapshots.clj": "8f4f1a5195df01371e0be6107a0090b6377ec2d58cdf06335923c6d491eddaff",
+      "eacl_datahike_demo/system.clj": "ab83bcd08a8b8636cc52942eeee359d559e8fb88d58dbb8453f5b397eaf64e4b"
+    },
+    "forbiddenServingClosureWitnesses": [
+      "eacl_datahike_demo/api$handle_seed_write.class",
+      "eacl_datahike_demo/api$handle_schema_write.class",
+      "eacl_datahike_demo/api$handle_cache_evict.class",
+      "eacl_datahike_demo/storage_gc__init.class",
+      "eacl_datahike_demo/data$transact_BANG_.class"
+    ]
+  },
+  "runtime": {
+    "status": "resolved",
+    "runtime": "java25",
+    "buildJdk": "26",
+    "architecture": "arm64",
+    "packageType": "Zip",
+    "handler": "eacl_datahike_demo.LambdaHandler",
+    "memoryMiB": 1024,
+    "timeoutSeconds": 35,
+    "ephemeralStorageMiB": 512,
+    "snapStart": "On",
+    "layer": "arn:aws:lambda:us-east-1:843761893873:layer:ReaderCacheExtensionLayer:5"
+  },
+  "dependencies": {
+    "datahike": "0.8.1801",
+    "konserve": "0.9.378",
+    "konserveS3": "0.1.38",
+    "clojure": "1.12.5",
+    "eacl": "8.0.0-SNAPSHOT",
+    "eaclDatahike": "8.0.0-SNAPSHOT"
+  },
+  "configuration": {
+    "status": "resolved-with-secrets-redacted",
+    "mode": "production",
+    "storeBackend": "s3",
+    "bucket": "demo-eacl-datahike-v2-843761893873-us-east-1",
+    "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310",
+    "maximumEaclConcurrency": 1,
+    "requestTimeoutMs": 30000,
+    "warmDepth": "with-leaves",
+    "warmBudget": 800,
+    "sharedCacheBucket": "demo-eacl-datahik-readercachebucke-fucenilrmipn--use1-az4--x-s3",
+    "sensitiveEnvironmentPresent": ["EACL_DATAHIKE_DEMO_ADMIN_TOKEN", "EACL_DATAHIKE_DEMO_SECURITY_KEY"]
+  },
+  "storage": {
+    "status": "resolved",
+    "bucket": "demo-eacl-datahike-v2-843761893873-us-east-1",
+    "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310",
+    "versioning": "disabled",
+    "encryption": "AES256",
+    "customerManagedKms": false,
+    "publicAccessBlocked": true,
+    "metadataObject": {
+      "key": "4e67bb31-557d-4f49-8b4c-699d39577310_.konserve-metadata",
+      "etag": "b2f1f5c0a57366ecc06e38300b833a8d",
+      "contentLength": 8,
+      "lastModified": "2026-08-24T17:39:25Z"
+    }
+  },
+  "basis": {
+    "status": "resolved",
+    "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+    "revision": 536872941,
+    "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+    "branch": "db",
+    "sourceStoreId": "4e67bb31-557d-4f49-8b4c-699d39577310",
+    "freshness": "retained-snapshot",
+    "capturedAt": "2026-08-25T10:06:55.413022045Z",
+    "historyKept": false
+  },
+  "legacyFixture": {
+    "status": "counts-resolved-digest-unresolved",
+    "generatorSourceSha256": "a1ba336c890a447f3207d0efbc6fa69e3332bef268214b8ae5d7f6894a7be631",
+    "manifestSha256": null,
+    "semanticRecordsSha256": null,
+    "counts": {"servers": 1000000, "accounts": 228, "teams": 903, "vpcs": 452, "users": 1586},
+    "schema": {"definitions": 6, "relations": 13, "permissions": 20},
+    "reason": "The retained store and bootstrap expose counts and schema shape but no canonical record or manifest digest. Full store traversal was deliberately not inferred or performed as a mutation-free provenance shortcut."
+  },
+  "canonicalFixtureComparison": {
+    "status": "mismatch",
+    "manifestSha256": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
+    "semanticRecordsSha256": "sha256:60d1e2aa531bd20025b2a5fe068657a1b1366c60b265f4ca0cf5bebddf5a3dad",
+    "counts": {"servers": 998417, "accounts": 226, "teams": 904, "vpcs": 452, "users": 1585, "logicalResources": 1000000},
+    "reason": "The legacy database contains one million server entities plus ancillary resources; the canonical million-resource cut point contains one million resources total. These datasets must not share a fixture digest or comparable-benchmark claim."
+  },
+  "iam": {
+    "status": "legacy-role-not-strictly-read-only",
+    "role": "arn:aws:iam::843761893873:role/demo-eacl-datahike-lambda-reader-ReaderRole-Pxn0RZew3DD1",
+    "policy": "exact-read-only-datahike-access",
+    "dataReadsScoped": true,
+    "dataDeletesDenied": true,
+    "dataMetadataMarkerPutAllowed": true,
+    "sharedCacheReadWriteSessionAllowed": true,
+    "reason": "The adopted store is protected, but the legacy serving role still allows a Konserve metadata marker write and a read-write S3 Express cache session. A replacement serving role must remove both."
+  },
+  "readOnlyEvidence": [
+    "Lambda get-alias/get-function/get-function-configuration",
+    "IAM list/get role policies",
+    "S3 get versioning/encryption/public-access-block, head-object, and one-key listing",
+    "public health/bootstrap GET",
+    "presigned Lambda artifact download and local inspection"
+  ]
+}

@@ -1,0 +1,19 @@
+(ns eacl-demo.jank-memory.fixture-test
+  (:require [eacl-demo.jank-memory.fixture :as fixture]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def counts (atom {"object" 0 "relationship" 0}))
+
+(def evidence
+  (fixture/verify-stream!
+   (runtime-api/environment "EACL_JANK_FIXTURE_PATH")
+   (fn [record]
+     (swap! counts update (get record "kind") inc))))
+
+(assert (= {"object" 10080 "relationship" 38613} @counts))
+(assert (= fixture/expected-fixture-digest
+           (get evidence "fixtureSha256")))
+(assert (= fixture/expected-semantic-digest
+           (get evidence "semanticRecordsSha256")))
+
+(println :jank-fixture-pass)

@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/fixture-manifest.v1.schema.json",
+  "title": "EACL demo fixture manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "fixtureId", "algorithm", "cutPoint", "format", "schema", "exemplars", "counts", "prefixProofs", "digests"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "fixtureId": {"const": "eacl-demo-fixture-v1"},
+    "algorithm": {"$ref": "#/$defs/algorithm"},
+    "cutPoint": {"$ref": "#/$defs/cutPoint"},
+    "format": {"$ref": "#/$defs/format"},
+    "schema": {"$ref": "#/$defs/schemaIdentity"},
+    "exemplars": {"$ref": "#/$defs/exemplarIdentity"},
+    "counts": {"$ref": "#/$defs/counts"},
+    "prefixProofs": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 2,
+      "propertyNames": {"enum": ["10000", "1000000"]},
+      "additionalProperties": {"$ref": "#/$defs/prefixProof"}
+    },
+    "digests": {"$ref": "#/$defs/digests"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "count": {"type": "integer", "minimum": 0},
+    "algorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "seed", "generatorSource", "generatorDigest", "arithmetic"],
+      "properties": {
+        "id": {"const": "eacl-demo-fixture"},
+        "version": {"const": 1},
+        "seed": {"const": "20260813"},
+        "generatorSource": {"const": "packages/fixture-generator/generator.mjs"},
+        "generatorDigest": {"$ref": "#/$defs/digest"},
+        "arithmetic": {"const": "unsigned-64-bit-modulo-2^64"}
+      }
+    },
+    "cutPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logicalResources", "semanticPrefixOf"],
+      "properties": {
+        "logicalResources": {"enum": [10000, 1000000]},
+        "semanticPrefixOf": {"oneOf": [{"const": 1000000}, {"type": "null"}]}
+      }
+    },
+    "format": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mediaType", "canonicalization", "headerRecords", "recordKinds"],
+      "properties": {
+        "mediaType": {"const": "application/x-ndjson"},
+        "canonicalization": {"type": "string", "minLength": 1},
+        "headerRecords": {"const": 1},
+        "recordKinds": {"const": ["object", "relationship"]}
+      }
+    },
+    "schemaIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "digest", "definitions", "relations", "permissions"],
+      "properties": {
+        "source": {"const": "fixtures/schema.v1.zed"},
+        "digest": {"$ref": "#/$defs/digest"},
+        "definitions": {"const": 6},
+        "relations": {"const": 13},
+        "permissions": {"const": 9}
+      }
+    },
+    "exemplarIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "digest", "cases"],
+      "properties": {
+        "source": {"const": "fixtures/exemplars.v1.json"},
+        "digest": {"$ref": "#/$defs/digest"},
+        "cases": {"const": 14}
+      }
+    },
+    "byType": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"enum": ["user", "platform", "account", "team", "vpc", "server"]},
+      "additionalProperties": {"$ref": "#/$defs/count"}
+    },
+    "objectGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "byType"],
+      "properties": {"total": {"$ref": "#/$defs/count"}, "byType": {"$ref": "#/$defs/byType"}}
+    },
+    "objects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "subjects", "resources"],
+      "properties": {
+        "total": {"$ref": "#/$defs/count"},
+        "subjects": {"$ref": "#/$defs/objectGroup"},
+        "resources": {"$ref": "#/$defs/objectGroup"}
+      }
+    },
+    "relationships": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "unique", "byRelation"],
+      "properties": {
+        "total": {"$ref": "#/$defs/count"},
+        "unique": {"$ref": "#/$defs/count"},
+        "byRelation": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"enum": ["super_admin", "owner", "platform", "parent", "account", "leader", "shared_admin", "team", "vpc"]},
+          "additionalProperties": {"$ref": "#/$defs/count"}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundles", "objects", "relationships", "records"],
+      "properties": {
+        "bundles": {"$ref": "#/$defs/count"},
+        "objects": {"$ref": "#/$defs/objects"},
+        "relationships": {"$ref": "#/$defs/relationships"},
+        "records": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "canonicalBytes"],
+          "properties": {"total": {"$ref": "#/$defs/count"}, "canonicalBytes": {"$ref": "#/$defs/count"}}
+        }
+      }
+    },
+    "prefixProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordCount", "recordsDigest"],
+      "properties": {"recordCount": {"$ref": "#/$defs/count"}, "recordsDigest": {"$ref": "#/$defs/digest"}}
+    },
+    "digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixture", "semanticRecords", "manifest"],
+      "properties": {
+        "fixture": {"$ref": "#/$defs/digest"},
+        "semanticRecords": {"$ref": "#/$defs/digest"},
+        "manifest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

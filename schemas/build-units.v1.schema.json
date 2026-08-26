@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/build-units.v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "units"],
+  "properties": {
+    "$schema": {"const": "./schemas/build-units.v1.schema.json"},
+    "schemaVersion": {"const": 1},
+    "units": {
+      "type": "object",
+      "minProperties": 10,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "source", "target", "deploymentTrack", "ordinaryDeploymentTarget", "deploymentEligible"],
+        "properties": {
+          "kind": {"enum": ["static-entry", "browser-worker", "lambda-source", "fixture-manifest", "infrastructure-plan"]},
+          "source": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "pattern": "^dist/"},
+          "deploymentTrack": {"enum": ["active", "parked"]},
+          "ordinaryDeploymentTarget": {
+            "type": ["string", "null"],
+            "enum": ["static", "datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", null]
+          },
+          "deploymentEligible": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

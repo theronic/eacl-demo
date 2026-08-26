@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/observability-readiness.v1.schema.json",
+  "title": "EACL demo observability readiness v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "identity", "route", "completedAt", "logs", "signals", "alarms", "dashboard", "synthetics", "runbook", "evidenceId"],
+  "properties": {
+    "schema": {"const": "eacl-demo.observability-readiness.v1"},
+    "identity": {"$ref": "#/$defs/identity"},
+    "route": {"type": "string", "pattern": "^/(?:api/v1/[a-z0-9-]+|datascript/?)$"},
+    "completedAt": {"$ref": "#/$defs/timestamp"},
+    "logs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["structured", "redactionAudit", "retentionDays"],
+      "properties": {
+        "structured": {"const": true},
+        "redactionAudit": {"const": "passed"},
+        "retentionDays": {"type": "integer", "minimum": 1, "maximum": 30}
+      }
+    },
+    "signals": {
+      "type": "array", "minItems": 9, "maxItems": 9,
+      "items": {"$ref": "#/$defs/signal"},
+      "allOf": [
+        {"contains": {"type": "object", "properties": {"name": {"const": "requests"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "errors"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "duration"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "initialization"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "restore"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "throttles"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "timeouts"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "oom"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "storage"}}, "required": ["name"]}}
+      ]
+    },
+    "alarms": {
+      "type": "array", "minItems": 7, "maxItems": 7,
+      "items": {"$ref": "#/$defs/alarm"},
+      "allOf": [
+        {"contains": {"type": "object", "properties": {"name": {"const": "duration"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "errors"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "health"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "initialization"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "oom"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "throttles"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "timeouts"}}, "required": ["name"]}}
+      ]
+    },
+    "dashboard": {"$ref": "#/$defs/dashboardReference"},
+    "synthetics": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"$ref": "#/$defs/synthetic"},
+      "allOf": [
+        {"contains": {"type": "object", "properties": {"name": {"const": "bootstrap"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "exemplar"}}, "required": ["name"]}},
+        {"contains": {"type": "object", "properties": {"name": {"const": "health"}}, "required": ["name"]}}
+      ]
+    },
+    "runbook": {"$ref": "#/$defs/runbookReference"},
+    "evidenceId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"},
+    "documentReference": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/#-]{0,255}$"},
+    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profileId", "demoSha", "eaclSha", "artifactSha256", "deploymentId", "dataManifestSha256"],
+      "properties": {
+        "profileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "demoSha": {"$ref": "#/$defs/sha1"},
+        "eaclSha": {"$ref": "#/$defs/sha1"},
+        "artifactSha256": {"$ref": "#/$defs/sha256"},
+        "deploymentId": {"$ref": "#/$defs/identifier"},
+        "dataManifestSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "signal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "status"],
+      "properties": {
+        "name": {"enum": ["requests", "errors", "duration", "initialization", "restore", "throttles", "timeouts", "oom", "storage"]},
+        "status": {"const": "ready"}
+      }
+    },
+    "alarm": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "status", "state", "actionsEnabled", "notificationPath", "scope"],
+      "properties": {
+        "name": {"enum": ["duration", "errors", "health", "initialization", "oom", "throttles", "timeouts"]},
+        "status": {"const": "ready"},
+        "state": {"const": "OK"},
+        "actionsEnabled": {"const": true},
+        "notificationPath": {"const": "sns-telegram"},
+        "scope": {
+          "type": "object", "additionalProperties": false,
+          "required": ["profileId", "resourceIdentifier"],
+          "properties": {
+            "profileId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+            "resourceIdentifier": {"$ref": "#/$defs/identifier"}
+          }
+        }
+      }
+    },
+    "dashboardReference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "identifier"],
+      "properties": {
+        "status": {"const": "ready"},
+        "identifier": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "runbookReference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "identifier"],
+      "properties": {
+        "status": {"const": "ready"},
+        "identifier": {"$ref": "#/$defs/documentReference"}
+      }
+    },
+    "synthetic": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "status", "target", "checkedAt", "observedIdentity"],
+      "properties": {
+        "name": {"enum": ["bootstrap", "exemplar", "health"]},
+        "status": {"const": "passed"},
+        "target": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "baseUrl"],
+          "properties": {
+            "kind": {"const": "staged-cloudfront"},
+            "baseUrl": {"type": "string", "format": "uri", "pattern": "^https://"}
+          }
+        },
+        "checkedAt": {"$ref": "#/$defs/timestamp"},
+        "observedIdentity": {"$ref": "#/$defs/identity"}
+      }
+    }
+  }
+}

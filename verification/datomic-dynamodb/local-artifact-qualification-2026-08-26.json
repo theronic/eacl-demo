@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "profileId": "datomic-dynamodb",
+  "environment": "pinned-al2023-x86_64-local",
+  "status": "passed-local-artifact-only",
+  "completedAt": "2026-08-26T00:33:22Z",
+  "currentClosure": {
+    "foundationSourceDigest": "sha256:e405fbccc1d7033444b37309d85a216de7a6d4f3c2f5c421a6ff90d5f2ef5f83",
+    "foundationSourceDigestMethod": "sha256(sorted relative-path NUL file-sha256 LF)",
+    "lambdaArtifactSha256": "7d7a18b3db2433040b7ddd90cfbd1f08c1b8e29395727cad9c5b60950f1ff964",
+    "lambdaArtifactBytes": 35120357,
+    "seedArtifactSha256": "c2430a634786f64960bc31237494db0e992628ff0e471834f2879a5067fe6eaa",
+    "seedArtifactBytes": 35098046,
+    "pinnedJava25QualificationRun": true,
+    "deploymentEligible": false
+  },
+  "artifactQualification": {
+    "result": "passed",
+    "operatingSystem": "Amazon Linux 2023 x86_64",
+    "containerImage": "public.ecr.aws/amazonlinux/amazonlinux@sha256:26b860d6ace0e868b1dd786be29b2a6b32a213b72f43074043090512871e9532",
+    "node": "24.19.0",
+    "nodeArchiveSha256": "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647",
+    "java": "Eclipse Temurin 25.0.4+101.0.LTS",
+    "javaRuntime": "25.0.4.1+1-LTS",
+    "javaArchiveSha256": "dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e",
+    "clojureCli": "1.12.5.1664",
+    "clojureCliArchiveSha256": "77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3",
+    "lambdaBuildsByteIdentical": true,
+    "seedBuildsByteIdentical": true,
+    "kernelClassMajor": 69,
+    "lambdaPackagedAuditPassed": true,
+    "seedPackagedAuditPassed": true
+  },
+  "proved": [
+    "the serving and seed JARs are each byte-for-byte reproducible with the exact pinned toolchain in pinned AL2023 x86_64",
+    "the packaged EACL kernel is Java 25 classfile major 69 and loads in both packaged audits",
+    "the packaged serving handler emits bounded redacted EMF request and non-SnapStart cold lifecycle signals without CloudWatch PutMetricData permission",
+    "the serving JAR cold-loads the Lambda bridge and retains fixed-current read-only boundary checks",
+    "the separate seed JAR retains its writable maintenance path and excludes serving entry points"
+  ],
+  "notProvedByLocal": [
+    "a provisioned Datomic DynamoDB table or database",
+    "million-resource seed completion, retained history, prior-basis as-of, or history queries",
+    "real AWS IAM denial or storage behavior",
+    "actual Lambda execution, memory sweep, staged route, or production qualification"
+  ],
+  "cleanup": {
+    "temporaryContainerStoppedAndRemoved": true,
+    "awsCalls": 0
+  }
+}

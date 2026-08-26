@@ -1,0 +1,12 @@
+{
+  "$schema": "../../schemas/profiles.v1.schema.json",
+  "schema": "eacl-demo.profiles.v1",
+  "profiles": [
+    {"id": "datahike-s3", "backend": "datahike", "storage": "s3"},
+    {"id": "datahike-dynamodb", "backend": "datahike", "storage": "dynamodb"},
+    {"id": "datomic-dynamodb", "backend": "datomic", "storage": "dynamodb"},
+    {"id": "datalevin-memory", "backend": "datalevin", "storage": "memory"},
+    {"id": "jank-memory", "backend": "jank", "storage": "memory"},
+    {"id": "datascript-browser-memory", "backend": "datascript", "storage": "browser-memory"}
+  ]
+}

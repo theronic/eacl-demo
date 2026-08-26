@@ -1,0 +1,164 @@
+(ns eacl-demo.jank-memory.handler-cursor-test
+  (:require [eacl.cursor :as cursor]
+            [eacl.secure-keyring :as secure-keyring]
+            [eacl.runtime.native.clock :as clock]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.function-url :as function-url]
+            [eacl-demo.jank-memory.handlers :as handlers]
+            [eacl-demo.jank-memory.main :as main]
+            [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def fixed-key
+  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+
+(def value
+  {:ready true
+   :frozen true
+   :subjects [{:type "user" :id "user-1"}
+              {:type "user" :id "user-2"}]
+   :objects [{:type "user" :id "user-1"}
+             {:type "user" :id "user-2"}]
+   :object-types {"user" 2}
+   :relationship-count 0
+   :relationship-resource-types {}
+   :cursor-keyring
+   (secure-keyring/keyring
+    {:active-kid "jank-memory-v1"
+     :keys {"jank-memory-v1" fixed-key}})
+   :source-scope {:store-id "handler-test-store"
+                  :lifecycle-id "handler-test-lifecycle"}
+   :basis-t 1
+   :schema-generation 1
+   :cursor-snapshot-token "handler-test-snapshot"
+   :cursor-proof
+   "0000000000000000000000000000000000000000000000000000000000000000"})
+
+(def public-dispatcher
+  (handlers/create-handlers
+   value
+   {"identity" {"profileId" "jank-memory"}
+    "basis" {"id" "handler-test-basis"}}))
+
+(def runtime
+  {:store value
+   :descriptor {"identity" {"profileId" "jank-memory"}
+                "basis" {"id" "handler-test-basis"}}
+   :dispatcher public-dispatcher})
+
+(defn invoke
+  [operation input]
+  (dispatcher/dispatch
+   public-dispatcher
+   {:ok true :operation operation :input input}
+   (function-url/request-controls (+ (clock/unix-time-millis) 10000))))
+
+(defn http-invoke
+  [input]
+  (let [result
+        (main/handle-event
+         runtime
+         {"version" "2.0" "routeKey" "$default"
+          "rawPath" "/api/v1/jank-memory/list-subjects"
+          "rawQueryString" ""
+          "headers" {"content-type" "application/json"}
+          "requestContext" {"requestId" "handler-cursor-test"
+                            "http" {"method" "POST"}}
+          "isBase64Encoded" false
+          "body" (response/json-encode input)}
+         (+ (clock/unix-time-millis) 10000))]
+    {:status (get result "statusCode")
+     :body (runtime-api/parse-json (get result "body"))}))
+
+(defn reissue
+  ([payload changes]
+   (cursor/issue (:cursor-keyring value) 3600 (merge payload changes)))
+  ([payload changes issued-at ttl-seconds]
+   (cursor/issue-at
+    (:cursor-keyring value) ttl-seconds issued-at (merge payload changes))))
+
+(defn cursor-error-code
+  [encoded]
+  (get-in
+   (http-invoke {"type" "user" "pageSize" 1 "cursor" encoded})
+   [:body "error" "code"]))
+
+(defn error-data
+  [f]
+  (try
+    (f)
+    nil
+    (catch cpp/jank.runtime.object_ref error
+      (ex-data error))))
+
+(let [data
+      (error-data
+       #(cursor/decode (:cursor-keyring value) "not-a-cursor"))]
+  (assert (= :eacl.pagination/invalid-cursor (:type data)))
+  (assert (= (:type data) (:eacl/error data)))
+  (assert (= :malformed (:reason data))))
+
+(let [first-page (invoke "list-subjects" {"type" "user" "pageSize" 1})
+      cursor (get-in first-page ["pageInfo" "endCursor"])
+      second-page
+      (invoke "list-subjects"
+              {"type" "user" "pageSize" 1 "cursor" cursor})]
+  (assert (= "user-1" (get-in first-page ["items" 0 "id"])))
+  (assert (string? cursor))
+  (assert (= "user-2" (get-in second-page ["items" 0 "id"])))
+  (assert
+   (= "cursor-scope-mismatch"
+      (get-in
+       (http-invoke {"type" "account" "pageSize" 1 "cursor" cursor})
+       [:body "error" "code"])))
+  (let [payload (cursor/decode (:cursor-keyring value) cursor)
+        foreign-fingerprint (cursor/fingerprint [:foreign-query])
+        foreign-proof (cursor/fingerprint [:foreign-proof])
+        mismatches
+        [{:operation :eacl-demo.jank-memory/other-operation}
+         {:query-fingerprint foreign-fingerprint}
+         {:source-scope {:store-id "foreign-store"
+                         :lifecycle-id "handler-test-lifecycle"}}
+         {:source-scope {:store-id "handler-test-store"
+                         :lifecycle-id "foreign-lifecycle"}}
+         {:snapshot-token "foreign-snapshot"}
+         {:native-revision 2}
+         {:schema-generation 2}
+         {:ordering-abi (inc (:ordering-abi payload))}
+         {:dependency-proof-fingerprint foreign-proof}
+         {:anchor ["user"]}]]
+    (doseq [changes mismatches]
+      (assert (= "cursor-scope-mismatch"
+                 (cursor-error-code (reissue payload changes)))))
+    (let [now (cursor/now-seconds)]
+      (assert (= "cursor-expired"
+                 (cursor-error-code
+                  (reissue payload {} (- now 2) 1))))
+      (assert (= "cursor-invalid"
+                 (cursor-error-code
+                  (reissue
+                   ;; This integration path reads the real clock again after
+                   ;; encryption and HTTP normalization. Keep the issued time
+                   ;; decisively beyond the permitted skew so crossing a
+                   ;; one-second boundary cannot turn the vector into the
+                   ;; accepted +300-second edge. The exact +301 boundary is
+                   ;; covered by the deterministic consistency vector.
+                   payload {} (+ now cursor/maximum-future-skew-seconds 60)
+                   600)))))))
+
+(assert
+ (= {"kind" "objects" "value" 1 "exact" false "ceiling" 1}
+    (invoke "count-objects" {"kind" "objects" "ceiling" 1})))
+
+(assert
+ (= "unsupported-consistency"
+    (handlers/error-code
+     (ex-info "unsupported consistency"
+              {:type :eacl/unsupported-consistency}))))
+(assert
+ (= "internal-error"
+    (handlers/error-code
+     (ex-info "unrelated unsupported feature"
+              {:type :eacl/unsupported-feature}))))
+
+(println :jank-handler-cursor-pass)

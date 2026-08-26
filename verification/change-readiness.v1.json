@@ -1,0 +1,159 @@
+{
+  "schema": "eacl-demo.change-readiness.v1",
+  "schemaVersion": 1,
+  "change": "consolidate-eacl-demo-backends",
+  "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
+  "expected": {
+    "completed": 125,
+    "open": 66,
+    "total": 191
+  },
+  "freeze": {
+    "active": true,
+    "reason": "The user reported unexpected Telegram alarms and directed the work to stop spending money unnecessarily. External mutation and reauthentication stay frozen until the user explicitly lifts that restriction.",
+    "prohibitedActions": [
+      "aws-mutation",
+      "aws-reauthentication",
+      "chrome-mutation",
+      "deployment",
+      "durable-seeding",
+      "ec2-launch",
+      "github-mutation",
+      "telegram-test"
+    ]
+  },
+  "gateGroups": [
+    {
+      "id": "live-profile-qualification",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.7", "10.8", "11.10", "11.11", "11.12", "12.4", "15.5"],
+      "condition": "These tasks require production-path storage, Lambda, CloudFront, memory, restore, benchmark, origin-denial, or promotion evidence that local definitions cannot supply.",
+      "requiredEvidence": [
+        "Content-addressed reports from the exact staged or production topology",
+        "Exact source, artifact, deployment, data, runtime, architecture, and memory identities",
+        "Passing bounded smoke or qualification results with cleanup and cost evidence"
+      ],
+      "safeActionNow": "Keep every affected profile unavailable and retain the deterministic no-speed-claim fallback."
+    },
+    {
+      "id": "durable-aws-state",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["8.12", "8.13", "9.3", "9.5", "9.6", "9.14", "13.12", "13.13", "15.3", "15.4"],
+      "condition": "Completion would create, seed, transition, inspect, or clean durable AWS data and temporary compute.",
+      "requiredEvidence": [
+        "Pre-action exact-resource preview and live cost-control readiness",
+        "Immutable seed, normal-Peer history, backup, cap-transition, and publication evidence",
+        "Exact post-run proof that compute, roles, volumes, addresses, and unintended writers are absent"
+      ],
+      "safeActionNow": "Do not reauthenticate, create tables, seed data, launch EC2, transition caps, or send Telegram tests while the freeze is active."
+    },
+    {
+      "id": "canonical-s3-separate-authorization",
+      "disposition": "awaiting-separate-authorization",
+      "taskIds": ["8.14"],
+      "condition": "The user's DynamoDB seed approval does not authorize a new canonical one-million-resource S3 generation.",
+      "requiredEvidence": [
+        "New explicit authorization naming the S3 generation and expected spend",
+        "Exact blue-green generation, fixture, encryption, backup, publication, and rollback evidence"
+      ],
+      "safeActionNow": "Preserve the adopted S3 store unchanged and do not relabel it as the canonical comparable fixture."
+    },
+    {
+      "id": "datalevin-release-and-integration",
+      "disposition": "blocked-by-external-prerequisite",
+      "taskIds": ["10.1", "10.2", "10.3", "10.4", "10.5"],
+      "condition": "A pinned AL2023 arm64 native candidate passes exact ABI, runtime-path, Java 25 load, and true MDB_INMEMORY round-trip checks locally. A dependency-independent local boundary now binds lifecycle state to exact deployment/code/artifact identities, rejects restore/rebuild/rollback identity drift and regression, owns one platform-thread snapshot with bounded transport realization and exact-once release, and reports closed lifecycle/native/process-memory telemetry under adversarial fake-operation tests. The maintained Datalevin fork, native candidate, and EACL adapter are still unpublished; no clean remote consumer, assembled Lambda service, real Datalevin ownership run, SnapStart lifecycle run, or memory sweep exists.",
+      "requiredEvidence": [
+        "Immutable maintained-fork release and clean remote-consumer resolution",
+        "Immutable publication and clean remote resolution of the exact locally-qualified AL2023 arm64 native closure",
+        "Assembled Java Lambda connecting the local lifecycle/ownership boundary to the immutable fixture and published Datalevin/EACL/native releases",
+        "Real Datalevin and SnapStart evidence for fixture freeze, snapshot ownership/release, restore strategies, cancellation/failure, native memory, RSS, handles, and load"
+      ],
+      "safeActionNow": "Keep the profile unavailable; continue dependency-independent lifecycle/runtime tests and preserve the pinned local arm64 builder without publishing, deploying, or substituting x86_64, a container runtime, EFS, or a durable LMDB path."
+    },
+    {
+      "id": "jank-linux-builder",
+      "disposition": "blocked-by-external-prerequisite",
+      "taskIds": ["11.2", "11.3", "11.4", "11.5"],
+      "condition": "The content-addressed x86_64 AL2023 builder has not run on the declared x64 Linux runner, the vendored runtime port still targets an older EACL Core, and no exact ELF ZIP evidence exists.",
+      "requiredEvidence": [
+        "Pinned builder image digest, provenance, SBOM, compiler health, and exact source closure",
+        "ELF64 x86_64 bootstrap ZIP with AL2023 glibc and closed native/license evidence",
+        "Clean immutable provided.al2023 self-test bound to the exact artifact digest"
+      ],
+      "safeActionNow": "Retain provided.al2023/x86_64/SnapStart-disabled definitions and do not treat local macOS or arm64 output as qualification."
+    },
+    {
+      "id": "stack-and-rollback-coordinates",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["12.1", "12.10", "15.7", "15.8", "16.7"],
+      "condition": "The local stack boundaries exist, but legacy compatibility, live reversibility, and retirement reporting require exact healthy targets, certificates, hosted-zone records, deployed coordinates, and recovery evidence.",
+      "requiredEvidence": [
+        "Exact healthy legacy fallback target and certificate coverage",
+        "Exact DNS, static, alias, data-generation, and rollback coordinates",
+        "Independent rehearsal and legacy dependency, backup, cost, impact, and recovery report"
+      ],
+      "safeActionNow": "Keep legacy compatibility non-executable and perform no DNS or retirement action from ordinary deployment."
+    },
+    {
+      "id": "telegram-live-routing",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["13.6"],
+      "condition": "Templates define alarm, budget, anomaly, deployment-failure, and watchdog routing, but a local template cannot prove live Telegram delivery or quiet recovery behavior.",
+      "requiredEvidence": [
+        "Exact deployed SNS, notifier, EventBridge, Budget, anomaly, alarm, and dead-letter identities",
+        "Nonce-bound successful Telegram delivery and failure-queue readiness",
+        "Proof that initial INSUFFICIENT_DATA-to-OK transitions do not notify"
+      ],
+      "safeActionNow": "Do not send another synthetic notification or alter live alarm actions while the freeze is active."
+    },
+    {
+      "id": "ordinary-ci-after-eligibility",
+      "disposition": "blocked-by-external-prerequisite",
+      "taskIds": ["13.9", "14.8", "14.9", "14.10", "14.11", "14.12", "14.13", "15.12"],
+      "condition": "The automatic demos workflow is intentionally absent while no active ordinary deployment target is eligible. Its deterministic renderer, content-addressed handoff, static transaction, and local Datahike/Datomic server candidate-smoke-alias-status transactions are implemented, but Datalevin has no deployable artifact and all live execution evidence remains open. Once one target qualifies, the single generated workflow must include every independently eligible target and exclude ineligible or parked targets; enabling a placeholder before then would deploy unqualified artifacts.",
+      "requiredEvidence": [
+        "Each active ordinary target marked eligible only after every build unit in its target-local closure passes runtime-specific artifact and production-path gates",
+        "One exact demos-push workflow with isolated unprivileged build and same-target credentialed deploy pairs",
+        "Executed mixed-generation, sibling-failure, stateful-denial, smoke, promotion, and rollback evidence"
+      ],
+      "safeActionNow": "Keep the automatic workflow absent while no ordinary target is eligible; continue local server adapter/least-privilege validation and retain structural tests that admit only independently eligible active targets."
+    },
+    {
+      "id": "github-settings-and-oidc",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["14.1", "14.2", "14.3", "14.4", "14.5", "14.6", "14.7"],
+      "condition": "Local manifests and trust policies are definitions only; completion requires authenticated GitHub settings, live allowlisted claim capture, AWS role migration, variables, and a redacted secrets/settings audit.",
+      "requiredEvidence": [
+        "Reverified immutable owner/repository IDs and live OIDC claim captures for every authority",
+        "Trust-first custom-subject migration with exact StringEquals conditions and legacy-subject removal",
+        "Branch, environment, token-permission, variable, and absence-of-sensitive-secret audit"
+      ],
+      "safeActionNow": "Do not mutate GitHub, Chrome, secrets, variables, environments, branch rules, subject templates, or AWS trusts while the freeze is active."
+    },
+    {
+      "id": "initial-deployment-and-cutover",
+      "disposition": "awaiting-separate-authorization",
+      "taskIds": ["15.2", "15.6", "15.9", "15.10", "15.11"],
+      "condition": "Foundation/staging publication and production DNS cutover are live mutations; DNS requires fresh explicit approval immediately before the change.",
+      "requiredEvidence": [
+        "Deployed non-stateful foundation, static shell, registry, route isolation, headers, origin denial, and synthetics",
+        "Staged two-step selector, mixed-generation, DataScript isolation, and browser evidence",
+        "Fresh DNS approval plus immediate cutover checks and exact rollback result if a threshold fails"
+      ],
+      "safeActionNow": "Do not deploy staging or production resources and do not request DNS approval while prerequisite profiles remain unqualified."
+    },
+    {
+      "id": "release-observation-and-retirement",
+      "disposition": "blocked-by-live-evidence",
+      "taskIds": ["16.4", "16.6", "16.8", "16.9", "16.10"],
+      "condition": "The checked-in report is explicitly pre-release. Final reporting, observation, retirement, and closure depend on deployed immutable evidence and separately approved destructive batches.",
+      "requiredEvidence": [
+        "Released content-addressed aggregate with exact per-profile deployment, artifact, data, memory, cost-control, and rollback identities",
+        "Completed production observation window covering health, outcomes, latency, errors, throttles, cost, Telegram, and orphan checks",
+        "Per-batch retirement approvals, recorded reversible actions, recovery windows, and strict final OpenSpec validation"
+      ],
+      "safeActionNow": "Keep the pre-release report honest, retire nothing, and leave the change open."
+    }
+  ]
+}

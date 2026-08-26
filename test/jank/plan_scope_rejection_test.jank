@@ -1,0 +1,10 @@
+(ns eacl-demo.jank-memory.plan-scope-rejection-test
+  (:require [eacl.engine.sealed-plan :as sealed-plan]))
+
+;; This executable rejection fixture is expected to terminate with
+;; :relation-outside-dependency-closure. Its Node harness treats success as a
+;; policy failure, avoiding exception-catching across the pinned Jank
+;; toolchain's unsafe indirect unwind frames.
+(sealed-plan/certify-plan-read-scope!
+ {:rules [{:relation-eid 2}]}
+ [1])

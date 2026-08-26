@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "fixtureId", "algorithmVersion", "seed", "cutPoint", "logicalResourceCount", "schemaSha256", "manifestSha256"],
+  "properties": {
+    "schema": {"const": "eacl-demo.fixture-manifest.v1"},
+    "fixtureId": {"type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},
+    "algorithmVersion": {"type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},
+    "seed": {"type": "string", "minLength": 1, "maxLength": 128},
+    "cutPoint": {"enum": [10000, 1000000]},
+    "logicalResourceCount": {"enum": [10000, 1000000]},
+    "schemaSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "manifestSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/datalevin-lifecycle-state.v1.schema.json",
+  "title": "EACL demo Datalevin lifecycle state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "profileId",
+    "stateKind",
+    "demoSha",
+    "eaclSha",
+    "artifactSha256",
+    "deploymentId",
+    "runtime",
+    "architecture",
+    "storageMode",
+    "snapshotStrategy",
+    "maximumConcurrency",
+    "dataManifestSha256",
+    "bootstrapPlanSha256",
+    "sourceLifecycle",
+    "nativeSourceId",
+    "revisionWatermark",
+    "logicalResourceCount",
+    "mutationPolicy"
+  ],
+  "properties": {
+    "schema": {"const": "eacl-demo.datalevin-lifecycle-state.v1"},
+    "profileId": {"const": "datalevin-memory"},
+    "stateKind": {"const": "external-control-plane-metadata"},
+    "demoSha": {"$ref": "#/$defs/gitSha"},
+    "eaclSha": {"$ref": "#/$defs/gitSha"},
+    "artifactSha256": {"$ref": "#/$defs/sha256"},
+    "deploymentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "runtime": {"const": "java25"},
+    "architecture": {"const": "arm64"},
+    "storageMode": {"const": "memory"},
+    "snapshotStrategy": {
+      "enum": ["after-restore-rebuild", "pre-checkpoint-quiesced"]
+    },
+    "maximumConcurrency": {"const": 1},
+    "dataManifestSha256": {"$ref": "#/$defs/sha256"},
+    "bootstrapPlanSha256": {"$ref": "#/$defs/sha256"},
+    "sourceLifecycle": {"$ref": "#/$defs/uuid"},
+    "nativeSourceId": {"$ref": "#/$defs/uuid"},
+    "revisionWatermark": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "logicalResourceCount": {"const": 10000},
+    "mutationPolicy": {"const": "immutable-after-publication"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    }
+  }
+}

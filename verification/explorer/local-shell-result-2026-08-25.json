@@ -1,0 +1,25 @@
+{
+  "schema": "eacl-demo.explorer-local-shell-result.v1",
+  "scope": "local-prequalification-only",
+  "releaseQualification": false,
+  "reason": "The working tree is not yet represented by an immutable demo commit or deployed identity.",
+  "executedAt": "2026-08-25T12:16:47Z",
+  "platform": "darwin-arm64",
+  "toolchain": {
+    "node": "24.19.0",
+    "playwright": "1.62.1",
+    "axeCorePlaywright": "4.13.0"
+  },
+  "projects": ["desktop-chromium", "desktop-firefox", "desktop-webkit", "mobile-chromium", "mobile-webkit"],
+  "testsPerProject": 3,
+  "total": 15,
+  "passed": 15,
+  "failed": 0,
+  "checks": ["two-step-selection", "canonical-url", "keyboard-focus", "wcag-automated", "responsive-overflow", "theme-persistence", "reduced-motion", "browser-console"],
+  "localBuild": {
+    "indexHtmlSha256": "991563f77fc6c13b5e03c23a7c14f256621e4785170c57b78e354d02dab819f3",
+    "cssSha256": "eab01aa59e617a453ad7592b26047e5cf807b322f71a68fd3782d0f1f2978983",
+    "javascriptSha256": "52423bcba54e5d3ad271bb4f4f4957da4e8b7d468e55a73cbc2e0c1682e2f175"
+  },
+  "manualAssessment": "not-run"
+}

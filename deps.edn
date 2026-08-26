@@ -1,0 +1,105 @@
+{:paths ["packages/contracts/src"
+         "packages/fixture-types/src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.5"}}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}}
+  :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
+          :main-opts ["-m" "nrepl.cmdline" "--bind" "127.0.0.1"]}
+  :datascript-worker
+  {:extra-paths ["apps/explorer-datascript/worker-src"]
+   :extra-deps
+   {org.clojure/clojurescript {:mvn/version "1.12.42"}
+    dev.eacl/eacl-datascript
+    {:git/url "https://github.com/theronic/eacl.git"
+     :git/sha "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+     :deps/root "modules/eacl-datascript"}}}
+  :datahike-s3
+  {:extra-paths
+   ["services/datahike-s3/src"
+    "fixtures"
+    "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/target/formal/java/classes"]
+   :extra-deps
+   {org.clojure/data.json {:mvn/version "2.5.2"}
+    dev.eacl/eacl-datahike
+    {:git/url "https://github.com/theronic/eacl.git"
+     :git/sha "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+     :deps/root "modules/eacl-datahike"}
+    org.replikativ/datahike
+    {:mvn/version "0.8.1801"
+     :exclusions [org.clojure/clojurescript]}
+    org.replikativ/konserve-s3
+    {:mvn/version "0.1.38"
+     :exclusions [org.clojure/clojurescript]}}}
+  :datahike-s3-upstream-audit
+  {:extra-paths ["services/datahike-s3/upstream-test"]}
+  :datahike-dynamodb
+  {:extra-paths
+   ["services/datahike-dynamodb/src"
+    "fixtures"
+    "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/target/formal/java/classes"]
+   :extra-deps
+   {dev.eacl/eacl-datahike
+    {:git/url "https://github.com/theronic/eacl.git"
+     :git/sha "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+     :deps/root "modules/eacl-datahike"}
+    org.replikativ/datahike
+    {:mvn/version "0.8.1801"
+     :exclusions [org.clojure/clojurescript]}
+    org.replikativ/konserve
+    {:mvn/version "0.9.378"
+     :exclusions [org.clojure/clojurescript]}
+    software.amazon.awssdk/dynamodb
+    {:mvn/version "2.29.3"
+     :exclusions [software.amazon.awssdk/netty-nio-client
+                  software.amazon.awssdk/apache-client]}
+    software.amazon.awssdk/url-connection-client {:mvn/version "2.29.3"}}}
+  :datahike-dynamodb-upstream-audit
+  {:extra-paths ["services/datahike-dynamodb/upstream-test"]
+   :extra-deps
+   {org.replikativ/konserve-dynamodb {:mvn/version "0.1.33"}}}
+  :datomic-dynamodb
+  {:extra-paths
+   ["services/datomic-dynamodb/src"
+    "fixtures"
+    "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/target/formal/java/classes"]
+   :extra-deps
+   {dev.eacl/eacl-datomic
+    {:git/url "https://github.com/theronic/eacl.git"
+     :git/sha "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+     :deps/root "modules/eacl-datomic"}
+    com.datomic/peer {:mvn/version "1.0.7705"}
+    software.amazon.awssdk/dynamodb
+    {:mvn/version "2.31.45"
+     :exclusions [software.amazon.awssdk/netty-nio-client
+                  software.amazon.awssdk/apache-client]}
+    software.amazon.awssdk/url-connection-client {:mvn/version "2.31.45"}}}
+  :lambda-jvm
+  {:extra-deps
+   {com.amazonaws/aws-lambda-java-core {:mvn/version "1.4.0"}
+    org.clojure/data.json {:mvn/version "2.5.2"}}}
+  :datomic-maintenance
+  {:extra-paths ["maintenance/datomic-dynamodb/src"
+                 "infra/data"]}
+  :build
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
+   :ns-default build}
+  :datalevin-memory
+  {:extra-paths
+   ["services/datalevin-memory/src"
+    "fixtures"
+    "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/target/formal/java/classes"]
+   :jvm-opts ["--enable-native-access=ALL-UNNAMED"
+              "--add-opens=java.base/java.lang=ALL-UNNAMED"
+              "--add-opens=java.base/java.nio=ALL-UNNAMED"
+              "--add-opens=java.base/java.util=ALL-UNNAMED"
+              "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"]
+   :override-deps
+   {org.clojars.huahaiy/dtlvnative-linux-arm64
+    {:local/root
+     "dist/datalevin-native-al2023/dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar"}}
+   :extra-deps
+   {org.clojure/data.json {:mvn/version "2.5.2"}
+    dev.eacl/eacl-datalevin
+    {:local/root
+     "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/modules/eacl-datalevin"}}}}}

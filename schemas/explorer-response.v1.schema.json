@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/explorer-response.v1.schema.json",
+  "oneOf": [{"$ref": "explorer.v1.schema.json#/$defs/success"}, {"$ref": "explorer.v1.schema.json#/$defs/failure"}]
+}

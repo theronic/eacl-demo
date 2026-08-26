@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Exact read-only Datomic/DynamoDB Lambda role for one immutable generation.
+
+Parameters:
+  TableArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  FunctionLogGroupArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:logs:[a-z0-9-]+:[0-9]{12}:log-group:/aws/lambda/eacl-demo-datomic-dynamodb-[A-Za-z0-9_-]+$"
+
+Resources:
+  ServingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: documented-datomic-ddb-reads
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactGenerationReads
+                Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !Ref TableArn
+        - PolicyName: exact-function-log-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ExactLogGroupWrites
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "${FunctionLogGroupArn}:*"
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datomic-dynamodb
+        - Key: Access
+          Value: serving-read-only
+
+Outputs:
+  ServingRoleArn:
+    Value: !GetAtt ServingRole.Arn
+  TableArn:
+    Value: !Ref TableArn

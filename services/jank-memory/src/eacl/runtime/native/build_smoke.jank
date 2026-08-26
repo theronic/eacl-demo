@@ -1,0 +1,6 @@
+(ns eacl.runtime.native.build-smoke)
+
+(defn status
+  []
+  {:status :ok
+   :runtime :jank})

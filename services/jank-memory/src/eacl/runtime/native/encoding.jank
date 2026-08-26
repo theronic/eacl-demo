@@ -1,0 +1,242 @@
+(ns eacl.runtime.native.encoding
+  "Strict UTF-8, lowercase-hex, and unpadded canonical base64url conversion.")
+
+(cpp/raw "#include <openssl/evp.h>
+          #include <string>
+          #include <vector>
+
+          namespace eacl_jank_encoding
+          {
+            int hex_digit(unsigned char const value)
+            {
+              if(value >= '0' && value <= '9') return value - '0';
+              if(value >= 'a' && value <= 'f') return value - 'a' + 10;
+              return -1;
+            }
+
+            bool valid_hex(std::string const& input)
+            {
+              if((input.size() % 2) != 0) return false;
+              for(auto const value : input)
+              {
+                if(hex_digit(static_cast<unsigned char>(value)) < 0)
+                  return false;
+              }
+              return true;
+            }
+
+            std::string to_hex(std::string const& input)
+            {
+              static constexpr char digits[]{ \"0123456789abcdef\" };
+              std::string result;
+              result.reserve(input.size() * 2);
+              for(auto const raw : input)
+              {
+                auto const value = static_cast<unsigned char>(raw);
+                result.push_back(digits[(value >> 4) & 0x0f]);
+                result.push_back(digits[value & 0x0f]);
+              }
+              return result;
+            }
+
+            std::string from_hex(std::string const& input)
+            {
+              std::string result;
+              result.reserve(input.size() / 2);
+              for(std::size_t index{}; index < input.size(); index += 2)
+              {
+                auto const high = hex_digit(
+                  static_cast<unsigned char>(input[index]));
+                auto const low = hex_digit(
+                  static_cast<unsigned char>(input[index + 1]));
+                result.push_back(static_cast<char>((high << 4) | low));
+              }
+              return result;
+            }
+
+            bool continuation(unsigned char const value)
+            {
+              return (value & 0xc0) == 0x80;
+            }
+
+            bool valid_utf8_bytes(std::string const& input)
+            {
+              std::size_t index{};
+              while(index < input.size())
+              {
+                auto const first = static_cast<unsigned char>(input[index]);
+                if(first <= 0x7f)
+                {
+                  ++index;
+                  continue;
+                }
+                if(first >= 0xc2 && first <= 0xdf)
+                {
+                  if(index + 1 >= input.size()
+                     || !continuation(static_cast<unsigned char>(input[index + 1])))
+                    return false;
+                  index += 2;
+                  continue;
+                }
+                if(first >= 0xe0 && first <= 0xef)
+                {
+                  if(index + 2 >= input.size()) return false;
+                  auto const second = static_cast<unsigned char>(input[index + 1]);
+                  auto const third = static_cast<unsigned char>(input[index + 2]);
+                  if(!continuation(third)) return false;
+                  if(first == 0xe0 && (second < 0xa0 || second > 0xbf))
+                    return false;
+                  if(first == 0xed && (second < 0x80 || second > 0x9f))
+                    return false;
+                  if(first != 0xe0 && first != 0xed && !continuation(second))
+                    return false;
+                  index += 3;
+                  continue;
+                }
+                if(first >= 0xf0 && first <= 0xf4)
+                {
+                  if(index + 3 >= input.size()) return false;
+                  auto const second = static_cast<unsigned char>(input[index + 1]);
+                  auto const third = static_cast<unsigned char>(input[index + 2]);
+                  auto const fourth = static_cast<unsigned char>(input[index + 3]);
+                  if(!continuation(third) || !continuation(fourth)) return false;
+                  if(first == 0xf0 && (second < 0x90 || second > 0xbf))
+                    return false;
+                  if(first == 0xf4 && (second < 0x80 || second > 0x8f))
+                    return false;
+                  if(first != 0xf0 && first != 0xf4 && !continuation(second))
+                    return false;
+                  index += 4;
+                  continue;
+                }
+                return false;
+              }
+              return true;
+            }
+
+            std::string utf8_to_hex(std::string const& input)
+            {
+              return to_hex(input);
+            }
+
+            bool valid_utf8_hex(std::string const& input)
+            {
+              return valid_hex(input) && valid_utf8_bytes(from_hex(input));
+            }
+
+            std::string hex_to_utf8(std::string const& input)
+            {
+              return from_hex(input);
+            }
+
+            std::string hex_to_base64url(std::string const& input)
+            {
+              auto const bytes = from_hex(input);
+              if(bytes.empty()) return {};
+              std::string result;
+              result.resize(4 * ((bytes.size() + 2) / 3));
+              auto const written = EVP_EncodeBlock(
+                reinterpret_cast<unsigned char*>(result.data()),
+                reinterpret_cast<unsigned char const*>(bytes.data()),
+                static_cast<int>(bytes.size()));
+              result.resize(static_cast<std::size_t>(written));
+              while(!result.empty() && result.back() == '=') result.pop_back();
+              for(auto& value : result)
+              {
+                if(value == '+') value = '-';
+                else if(value == '/') value = '_';
+              }
+              return result;
+            }
+
+            bool valid_base64url_syntax(std::string const& input)
+            {
+              if((input.size() % 4) == 1) return false;
+              for(auto const value : input)
+              {
+                auto const valid =
+                  (value >= 'A' && value <= 'Z')
+                  || (value >= 'a' && value <= 'z')
+                  || (value >= '0' && value <= '9')
+                  || value == '-' || value == '_';
+                if(!valid) return false;
+              }
+              return true;
+            }
+
+            std::string base64url_to_hex(std::string input)
+            {
+              if(input.empty()) return {};
+              for(auto& value : input)
+              {
+                if(value == '-') value = '+';
+                else if(value == '_') value = '/';
+              }
+              auto const unpadded_size = input.size();
+              while((input.size() % 4) != 0) input.push_back('=');
+              std::vector<unsigned char> decoded((input.size() / 4) * 3);
+              auto written = EVP_DecodeBlock(
+                decoded.data(),
+                reinterpret_cast<unsigned char const*>(input.data()),
+                static_cast<int>(input.size()));
+              if(written < 0) return {};
+              auto const padding = input.size() - unpadded_size;
+              written -= static_cast<int>(padding);
+              return to_hex(std::string(
+                reinterpret_cast<char const*>(decoded.data()),
+                static_cast<std::size_t>(written)));
+            }
+          }")
+
+(defn- invalid-encoding!
+  [encoding value]
+  (throw
+   (ex-info
+    "Encoded value is malformed or non-canonical."
+    {:type :eacl.runtime/invalid-encoding
+     :eacl/error :eacl.runtime/invalid-encoding
+     :encoding encoding
+     :value value})))
+
+(defn hex-string?
+  [value]
+  (and (string? value)
+       (cpp/eacl_jank_encoding.valid_hex (cpp/cast std.string value))))
+
+(defn utf8->hex
+  [value]
+  (when-not (string? value)
+    (invalid-encoding! :utf-8 value))
+  (cpp/eacl_jank_encoding.utf8_to_hex (cpp/cast std.string value)))
+
+(defn hex->utf8
+  [value]
+  (when-not (and (hex-string? value)
+                 (cpp/eacl_jank_encoding.valid_utf8_hex
+                  (cpp/cast std.string value)))
+    (invalid-encoding! :utf-8-hex value))
+  (cpp/eacl_jank_encoding.hex_to_utf8 (cpp/cast std.string value)))
+
+(defn hex->base64url
+  [value]
+  (when-not (hex-string? value)
+    (invalid-encoding! :hex value))
+  (cpp/eacl_jank_encoding.hex_to_base64url (cpp/cast std.string value)))
+
+(defn base64url->hex
+  [value]
+  (when-not (and (string? value)
+                 (cpp/eacl_jank_encoding.valid_base64url_syntax
+                  (cpp/cast std.string value)))
+    (invalid-encoding! :base64url value))
+  (let [decoded
+        (cpp/eacl_jank_encoding.base64url_to_hex (cpp/cast std.string value))]
+    (when-not (= value (hex->base64url decoded))
+      (invalid-encoding! :base64url value))
+    decoded))
+
+(defn byte-length
+  [hex]
+  (when-not (hex-string? hex)
+    (invalid-encoding! :hex hex))
+  (quot (count hex) 2))

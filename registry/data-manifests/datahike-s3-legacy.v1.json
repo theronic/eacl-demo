@@ -1,0 +1,30 @@
+{
+  "schema": "eacl-demo.legacy-data-manifest.v1",
+  "fixtureId": "legacy-datahike-s3-20260824-basis-6a7df54b",
+  "status": "counts-only-semantic-digest-unresolved",
+  "backend": "datahike",
+  "storage": "s3",
+  "bucket": "demo-eacl-datahike-v2-843761893873-us-east-1",
+  "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310",
+  "basis": {
+    "id": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+    "revision": 536872941,
+    "exactLocator": "6a7df54b-1cb0-5529-9aff-504a79627f73",
+    "historyKept": false
+  },
+  "logicalResourceCount": 1001584,
+  "counts": {
+    "resources": {"server": 1000000, "account": 228, "team": 903, "vpc": 452, "platform": 1},
+    "subjects": {"user": 1586},
+    "relationships": null
+  },
+  "schema": {"definitions": 6, "relations": 13, "permissions": 20},
+  "semanticRecordsSha256": null,
+  "canonicalFixture": false,
+  "limitations": [
+    "The store exposes no canonical semantic-record digest.",
+    "The logical counts differ from eacl-demo-fixture-v1 at 1,000,000 resources.",
+    "The database was created with keep-history disabled."
+  ],
+  "provenance": "docs/provenance/datahike-s3-adoption-2026-08-25.json"
+}

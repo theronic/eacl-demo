@@ -1,0 +1,184 @@
+(ns eacl-demo.jank-memory.response
+  (:require [clojure.string :as str]
+            [eacl.runtime.native.encoding :as encoding]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]))
+
+(def response-body-bytes 1048576)
+
+(def errors
+  {"validation-error"
+   {:status 400 :retryable false :message "The request is invalid."}
+   "request-too-large"
+   {:status 413 :retryable false
+    :message "The request exceeds a public limit."}
+   "method-not-allowed"
+   {:status 405 :retryable false
+    :message "The HTTP method is not allowed."}
+   "route-not-found"
+   {:status 404 :retryable false
+    :message "The route is not available."}
+   "unsupported-media-type"
+   {:status 415 :retryable false
+    :message "The content type is not supported."}
+   "cursor-invalid"
+   {:status 400 :retryable false
+    :message "The cursor is malformed or has been altered."}
+   "cursor-expired"
+   {:status 410 :retryable false
+    :message "The cursor has expired; restart from the first page."}
+   "cursor-scope-mismatch"
+   {:status 409 :retryable false
+    :message "The cursor belongs to a different request or profile."}
+   "unsupported-consistency"
+   {:status 422 :retryable false
+    :message "The requested consistency mode is not supported by this profile."}
+   "cancelled"
+   {:status 499 :retryable true :message "The request was cancelled."}
+   "deadline-exceeded"
+   {:status 504 :retryable true
+    :message "The request deadline was exceeded."}
+   "overloaded"
+   {:status 503 :retryable true
+    :message "The profile has reached its admission limit."}
+   "throttled"
+   {:status 429 :retryable true
+    :message "A dependency throttled the request."}
+   "dependency-unavailable"
+   {:status 503 :retryable true
+    :message "A required dependency is unavailable."}
+   "storage-missing"
+   {:status 503 :retryable false
+    :message "Required immutable storage data is missing."}
+   "storage-corrupt"
+   {:status 503 :retryable false
+    :message "Required immutable storage data failed integrity checks."}
+   "identity-mismatch"
+   {:status 409 :retryable false
+    :message "The route or artifact identity does not match the registry."}
+   "response-too-large"
+   {:status 500 :retryable false
+    :message "The bounded response could not be produced."}
+   "internal-error"
+   {:status 500 :retryable false
+    :message "The request failed internally."}})
+
+(declare json-encode)
+
+(defn- json-key
+  [value]
+  (cond
+    (string? value) value
+    (keyword? value) (name value)
+    :else
+    (throw
+     (ex-info
+      "JSON object keys must be strings or keywords."
+      {:type :eacl-demo.jank/invalid-response}))))
+
+(defn- json-object
+  [value]
+  (str
+   "{"
+   (str/join
+    ","
+    (map
+     (fn [[key entry]]
+       (str (runtime-api/json-quote (json-key key))
+            ":" (json-encode entry)))
+     (sort-by (fn [[key _]] (json-key key)) value)))
+   "}"))
+
+(defn json-encode
+  [value]
+  (cond
+    (nil? value) "null"
+    (true? value) "true"
+    (false? value) "false"
+    (string? value) (runtime-api/json-quote value)
+    (keyword? value) (runtime-api/json-quote (name value))
+    (integer? value) (str value)
+    (map? value) (json-object value)
+    (or (vector? value) (sequential? value))
+    (str "[" (str/join "," (map json-encode value)) "]")
+    :else
+    (throw
+     (ex-info
+      "Response contains an unsupported JSON value."
+      {:type :eacl-demo.jank/invalid-response}))))
+
+(defn- byte-length
+  [value]
+  (encoding/byte-length (encoding/utf8->hex value)))
+
+(defn- context-meta
+  [context]
+  (when-not
+   (and (map? context)
+        (= #{:request-id :operation :identity :basis}
+           (set (keys context)))
+        (string? (:request-id context))
+        (<= 1 (count (:request-id context)) 128)
+        (contains? dispatcher/operation-set (:operation context))
+        (map? (:identity context)))
+    (throw
+     (ex-info
+      "Response context is invalid."
+      {:type :eacl-demo.jank/invalid-response-context})))
+  {"contractVersion" "explorer.v1"
+   "requestId" (:request-id context)
+   "operation" (:operation context)
+   "identity" (:identity context)
+   "basis" (:basis context)})
+
+(defn success
+  [context data]
+  {"ok" true "meta" (context-meta context) "data" data})
+
+(defn failure
+  ([context code] (failure context code []))
+  ([context code details]
+   (let [definition (get errors code)]
+     (when-not
+      (and definition
+           (vector? details)
+           (<= (count details) 32)
+           (every? (fn [detail]
+                     (and (string? detail) (<= (count detail) 256)))
+                   details))
+       (throw
+        (ex-info
+         "Stable failure is invalid."
+         {:type :eacl-demo.jank/invalid-response})))
+     {"ok" false
+      "meta" (context-meta context)
+      "error"
+      {"code" code
+       "message" (:message definition)
+       "retryable" (:retryable definition)
+       "details" details}})))
+
+(defn function-url-response
+  ([envelope] (function-url-response envelope nil))
+  ([envelope allowed-methods]
+   (let [body (json-encode envelope)
+         code (get-in envelope ["error" "code"])
+         status (if (get envelope "ok")
+                  200
+                  (:status (get errors code)))
+         headers
+         (cond->
+          {"content-type" "application/json; charset=utf-8"
+           "cache-control" "no-store"
+           "x-content-type-options" "nosniff"}
+           (and (= 405 status) (seq allowed-methods))
+           (assoc "allow" (str/join ", " (sort allowed-methods))))]
+     (when-not (and status (<= (byte-length body) response-body-bytes))
+       (throw
+        (ex-info
+         "Bounded Function URL response could not be produced."
+         {:type :eacl-demo.jank/response-too-large})))
+     {"statusCode" status
+      "headers" headers
+      "body" body
+      "isBase64Encoded" false})))

@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/release-report.v1.schema.json",
+  "title": "EACL demo release report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema", "contractVersion", "reportId", "reportState", "release", "source", "benchmarkEvidence", "storageDefaults", "fixtures", "profiles", "costControls", "blockers"],
+  "properties": {
+    "$schema": {"const": "../schemas/release-report.v1.schema.json"},
+    "schema": {"const": "eacl-demo.release-report.v1"},
+    "contractVersion": {"const": "explorer.v1"},
+    "reportId": {"$ref": "#/$defs/digest"},
+    "reportState": {"enum": ["pre-release", "released"]},
+    "release": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/release"}]},
+    "source": {"$ref": "#/$defs/sourceSet"},
+    "benchmarkEvidence": {"type": "array", "items": {"$ref": "#/$defs/evidenceSummary"}},
+    "storageDefaults": {
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "items": {"$ref": "#/$defs/storageDefault"}
+    },
+    "fixtures": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {"$ref": "#/$defs/fixture"}
+    },
+    "profiles": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {"$ref": "#/$defs/profile"}
+    },
+    "costControls": {"$ref": "#/$defs/costControls"},
+    "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"reportState": {"const": "pre-release"}}, "required": ["reportState"]},
+      "then": {
+        "properties": {
+          "release": {"type": "null"},
+          "source": {
+            "type": "object",
+            "properties": {
+              "demo": {"type": "object", "properties": {"sha": {"type": "null"}, "status": {"const": "uncommitted"}}},
+              "eacl": {"type": "object", "properties": {"status": {"const": "locked"}}}
+            }
+          },
+          "blockers": {"type": "array", "minItems": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "release": {"$ref": "#/$defs/release"},
+          "source": {
+            "type": "object",
+            "properties": {
+              "demo": {"type": "object", "properties": {"sha": {"$ref": "#/$defs/sha1"}, "status": {"const": "committed"}}},
+              "eacl": {"type": "object", "properties": {"status": {"const": "locked"}}}
+            }
+          },
+          "blockers": {"type": "array", "maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "nullableDigest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "nullableSha1": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "definition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?:dependencies|fixtures|infra)/[a-z0-9._/-]+$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentIdentity", "releaseManifestSha256", "publishedAt"],
+      "properties": {
+        "deploymentIdentity": {"type": "string", "pattern": "^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$"},
+        "releaseManifestSha256": {"$ref": "#/$defs/sha256"},
+        "publishedAt": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "sourceSet": {
+      "type": "object", "additionalProperties": false,
+      "required": ["demo", "eacl"],
+      "properties": {
+        "demo": {
+          "type": "object", "additionalProperties": false,
+          "required": ["repository", "sha", "status", "reason"],
+          "properties": {
+            "repository": {"const": "https://github.com/theronic/eacl-demo.git"},
+            "sha": {"$ref": "#/$defs/nullableSha1"},
+            "status": {"enum": ["uncommitted", "committed"]},
+            "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320}
+          }
+        },
+        "eacl": {
+          "type": "object", "additionalProperties": false,
+          "required": ["repository", "sha", "status", "reason", "lock"],
+          "properties": {
+            "repository": {"const": "https://github.com/theronic/eacl.git"},
+            "sha": {"$ref": "#/$defs/sha1"},
+            "status": {"const": "locked"},
+            "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320},
+            "lock": {"$ref": "#/$defs/definition"}
+          }
+        }
+      }
+    },
+    "storageDefault": {
+      "type": "object", "additionalProperties": false,
+      "required": ["outcome", "profileId", "storage", "claim", "evidenceId", "measuredAt", "reason", "backend"],
+      "properties": {
+        "outcome": {"enum": ["none", "sole-qualified", "fallback", "winner", "benchmark-tiebreak"]},
+        "profileId": {"type": ["string", "null"]},
+        "storage": {"type": ["string", "null"]},
+        "claim": {"enum": [null, "fastest-qualified", "benchmark-selected"]},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"},
+        "measuredAt": {"type": ["string", "null"], "format": "date-time"},
+        "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]}
+      }
+    },
+    "evidenceSummary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceId", "backend", "profiles", "measuredAt", "expiresAt", "path", "sha256"],
+      "properties": {
+        "evidenceId": {"$ref": "#/$defs/digest"},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+        "profiles": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]}},
+        "measuredAt": {"$ref": "#/$defs/timestamp"},
+        "expiresAt": {"$ref": "#/$defs/timestamp"},
+        "path": {"type": "string", "pattern": "^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "fixtureIdentity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["fixtureId", "logicalResources", "manifestSha256"],
+      "properties": {
+        "fixtureId": {"const": "eacl-demo-fixture-v1"},
+        "logicalResources": {"enum": [10000, 1000000]},
+        "manifestSha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "fixture": {
+      "type": "object", "additionalProperties": false,
+      "required": ["fixtureId", "logicalResources", "manifestSha256", "fixtureSha256", "semanticRecordsSha256", "path"],
+      "properties": {
+        "fixtureId": {"const": "eacl-demo-fixture-v1"},
+        "logicalResources": {"enum": [10000, 1000000]},
+        "manifestSha256": {"$ref": "#/$defs/digest"},
+        "fixtureSha256": {"$ref": "#/$defs/digest"},
+        "semanticRecordsSha256": {"$ref": "#/$defs/digest"},
+        "path": {"type": "string", "pattern": "^fixtures/manifests/fixture-(?:10000|1000000)\\.v1\\.json$"}
+      }
+    },
+    "profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "backend", "storage", "route", "availabilityState", "availabilityReason", "buildUnits", "deploymentEligible", "deployment", "lastOutcome", "fixture", "runtime", "memory", "alarms", "rollback"],
+      "properties": {
+        "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
+        "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
+        "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
+        "route": {"type": "string", "pattern": "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},
+        "availabilityState": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
+        "availabilityReason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320},
+        "buildUnits": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}},
+        "deploymentEligible": {"type": "boolean"},
+        "deployment": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/deployment"}]},
+        "lastOutcome": {"$ref": "#/$defs/outcome"},
+        "fixture": {"$ref": "#/$defs/fixtureIdentity"},
+        "runtime": {"$ref": "#/$defs/runtime"},
+        "memory": {"$ref": "#/$defs/memory"},
+        "alarms": {"$ref": "#/$defs/alarms"},
+        "rollback": {"$ref": "#/$defs/rollback"}
+      }
+    },
+    "deployment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["demoSha", "eaclSha", "artifact", "deploymentId", "dataManifestSha256", "deployedAt"],
+      "properties": {
+        "demoSha": {"$ref": "#/$defs/sha1"},
+        "eaclSha": {"$ref": "#/$defs/sha1"},
+        "artifact": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "sha256", "version"],
+          "properties": {
+            "kind": {"enum": ["static", "lambda-version", "browser-worker"]},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "version": {"type": "string", "minLength": 1, "maxLength": 1024}
+          }
+        },
+        "deploymentId": {"type": "string", "minLength": 1, "maxLength": 320},
+        "dataManifestSha256": {"$ref": "#/$defs/sha256"},
+        "deployedAt": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["outcome", "attemptedDemoSha", "attemptedEaclSha", "artifactSha256", "at", "message"],
+      "properties": {
+        "outcome": {"enum": ["never-deployed", "succeeded", "failed", "rolled-back"]},
+        "attemptedDemoSha": {"$ref": "#/$defs/nullableSha1"},
+        "attemptedEaclSha": {"$ref": "#/$defs/nullableSha1"},
+        "artifactSha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "at": {"type": ["string", "null"], "format": "date-time"},
+        "message": {"type": "string", "minLength": 1, "maxLength": 320}
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "architecture", "snapStart"],
+      "properties": {
+        "name": {"enum": ["java25", "provided.al2023", "browser-javascript"]},
+        "architecture": {"enum": ["arm64", "x86_64", "browser-managed"]},
+        "snapStart": {"enum": ["disabled", "enabled", "unsupported", "not-applicable"]}
+      }
+    },
+    "memory": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "configuredMiB", "qualifiedMiB", "evidenceId", "definition"],
+      "properties": {
+        "status": {"enum": ["candidate-unqualified", "qualified", "browser-managed"]},
+        "configuredMiB": {"type": ["integer", "null"], "minimum": 128, "maximum": 10240},
+        "qualifiedMiB": {"type": ["integer", "null"], "minimum": 128, "maximum": 10240},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"},
+        "definition": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/definition"}]}
+      }
+    },
+    "alarms": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "count", "definition", "evidenceId", "reason"],
+      "properties": {
+        "status": {"enum": ["defined-not-deployed", "verified", "not-applicable"]},
+        "count": {"type": "integer", "minimum": 0, "maximum": 7},
+        "definition": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/definition"}]},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"},
+        "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320}
+      }
+    },
+    "rollback": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "kind", "alias", "statusObject", "static", "reason"],
+      "properties": {
+        "status": {"enum": ["unavailable", "ready"]},
+        "kind": {"enum": [null, "lambda-alias-and-versioned-status", "static-versioned-prefix"]},
+        "alias": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/aliasRollback"}]},
+        "statusObject": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/statusRollback"}]},
+        "static": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/staticRollback"}]},
+        "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320}
+      }
+    },
+    "aliasRollback": {
+      "type": "object", "additionalProperties": false,
+      "required": ["functionName", "aliasName", "currentVersion", "revisionId", "restoreVersion"],
+      "properties": {
+        "functionName": {"type": "string", "minLength": 1, "maxLength": 64},
+        "aliasName": {"type": "string", "minLength": 1, "maxLength": 128},
+        "currentVersion": {"type": "string", "pattern": "^[1-9][0-9]*$"},
+        "revisionId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "restoreVersion": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+      }
+    },
+    "statusRollback": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bucket", "key", "etag", "versionId", "publicationId"],
+      "properties": {
+        "bucket": {"type": "string", "minLength": 3, "maxLength": 63},
+        "key": {"type": "string", "pattern": "^registry/profiles/[a-z0-9-]+\\.json$"},
+        "etag": {"type": "string", "minLength": 32, "maxLength": 80},
+        "versionId": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "publicationId": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "staticRollback": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bucket", "activePrefix", "restorePrefix", "distributionId"],
+      "properties": {
+        "bucket": {"type": "string", "minLength": 3, "maxLength": 63},
+        "activePrefix": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "restorePrefix": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "distributionId": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "costControls": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "dynamodb", "budgets", "anomalyDetection", "notifications"],
+      "properties": {
+        "status": {"enum": ["defined-not-deployed", "verified"]},
+        "dynamodb": {"$ref": "#/$defs/dynamodbControls"},
+        "budgets": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/budget"}},
+        "anomalyDetection": {"$ref": "#/$defs/anomalyDetection"},
+        "notifications": {"$ref": "#/$defs/notifications"}
+      }
+    },
+    "dynamodbControls": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "alarmCountPerTable", "definition", "policy", "profiles", "evidenceId"],
+      "properties": {
+        "status": {"enum": ["defined-not-deployed", "verified"]},
+        "alarmCountPerTable": {"const": 9},
+        "definition": {"$ref": "#/$defs/definition"},
+        "policy": {"$ref": "#/$defs/definition"},
+        "profiles": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/dynamodbCaps"}},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"}
+      }
+    },
+    "dynamodbCaps": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profileId", "seed", "serving"],
+      "properties": {
+        "profileId": {"enum": ["datahike-dynamodb", "datomic-dynamodb"]},
+        "seed": {"$ref": "#/$defs/capPhase"},
+        "serving": {"$ref": "#/$defs/capPhase"}
+      }
+    },
+    "capPhase": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maxReadRequestUnits", "maxWriteRequestUnits"],
+      "properties": {
+        "maxReadRequestUnits": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "maxWriteRequestUnits": {"type": "integer", "minimum": 1, "maximum": 10000}
+      }
+    },
+    "budget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "amountUsd", "thresholdsPercent", "filter", "status", "definition", "evidenceId"],
+      "properties": {
+        "id": {"enum": ["monthly-project", "seed"]},
+        "amountUsd": {"type": "number", "exclusiveMinimum": 0},
+        "thresholdsPercent": {"const": [50, 80, 100]},
+        "filter": {"enum": ["Project=eacl-demo", "Workload=eacl-demo-seed"]},
+        "status": {"enum": ["defined-not-deployed", "verified"]},
+        "definition": {"$ref": "#/$defs/definition"},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"}
+      }
+    },
+    "anomalyDetection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["thresholdUsd", "status", "definition", "evidenceId"],
+      "properties": {
+        "thresholdUsd": {"type": "number", "exclusiveMinimum": 0},
+        "status": {"enum": ["defined-not-deployed", "verified"]},
+        "definition": {"$ref": "#/$defs/definition"},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"}
+      }
+    },
+    "notifications": {
+      "type": "object", "additionalProperties": false,
+      "required": ["channel", "status", "definition", "evidenceId", "reason"],
+      "properties": {
+        "channel": {"const": "telegram"},
+        "status": {"enum": ["defined-not-verified", "verified"]},
+        "definition": {"$ref": "#/$defs/definition"},
+        "evidenceId": {"$ref": "#/$defs/nullableDigest"},
+        "reason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320}
+      }
+    },
+    "blocker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "profiles", "reason", "requiredEvidence"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "profiles": {"type": "array", "uniqueItems": true, "items": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]}},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 320},
+        "requiredEvidence": {"type": "string", "minLength": 1, "maxLength": 320}
+      }
+    }
+  }
+}

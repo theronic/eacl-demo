@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "eacl-demo-fixture-v1",
+  "semanticOrder": ["resource.type", "resource.id"],
+  "requiredCoverage": ["direct", "arrow-relation", "arrow-permission", "cycle", "duplicate", "forward-discovery", "reverse-discovery", "relationship-filter", "count", "pagination"],
+  "cases": [
+    {
+      "id": "direct-owner-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-1"}, "permission": "admin", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"allowed": true, "pathClass": "direct"}
+    },
+    {
+      "id": "direct-owner-deny",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-2"}, "permission": "admin", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"allowed": false}
+    },
+    {
+      "id": "platform-arrow-relation-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "super-user"}, "permission": "view", "resource": {"type": "server", "id": "account-4-server-15"}},
+      "expected": {"allowed": true, "pathClass": "arrow-relation"}
+    },
+    {
+      "id": "team-arrow-permission-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "account-0-team-0-leader"}, "permission": "view", "resource": {"type": "server", "id": "account-0-server-12"}},
+      "expected": {"allowed": true, "pathClass": "arrow-permission"}
+    },
+    {
+      "id": "vpc-relation-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "account-0-vpc-0-admin"}, "permission": "view", "resource": {"type": "vpc", "id": "account-0-vpc-0"}},
+      "expected": {"allowed": true, "pathClass": "direct"}
+    },
+    {
+      "id": "recursive-parent-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resource": {"type": "account", "id": "account-3"}},
+      "expected": {"allowed": true, "pathClass": "recursive-permission-arrow"}
+    },
+    {
+      "id": "cycle-allow-terminates",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resource": {"type": "account", "id": "account-1"}},
+      "expected": {"allowed": true, "cyclePresent": true, "mustTerminate": true}
+    },
+    {
+      "id": "cycle-deny-terminates",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-2"}, "permission": "view", "resource": {"type": "account", "id": "account-1"}},
+      "expected": {"allowed": false, "cyclePresent": true, "mustTerminate": true}
+    },
+    {
+      "id": "duplicate-touch-is-idempotent",
+      "kind": "duplicate-relationship",
+      "relationship": {"subject": {"type": "user", "id": "user-1"}, "relation": "owner", "resource": {"type": "account", "id": "account-0"}},
+      "copies": 2,
+      "expected": {"logicalMultiplicity": 1, "decisionUnchanged": true}
+    },
+    {
+      "id": "forward-server-discovery",
+      "kind": "lookup-resources",
+      "query": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resourceType": "server"},
+      "expected": {"count": 64, "first": {"type": "server", "id": "account-0-server-0"}}
+    },
+    {
+      "id": "reverse-account-discovery",
+      "kind": "lookup-subjects",
+      "query": {"subjectType": "user", "permission": "view", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"containsIds": ["account-0-owner", "account-1-owner", "super-user", "user-1"], "excludesIds": ["user-2"]}
+    },
+    {
+      "id": "team-relationship-filter",
+      "kind": "lookup-resources",
+      "query": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resourceType": "server", "relationshipFilter": {"relation": "team", "subject": {"type": "team", "id": "account-0-team-0"}}},
+      "expected": {"ids": ["account-0-server-0", "account-0-server-12", "account-0-server-4", "account-0-server-8"]}
+    },
+    {
+      "id": "bounded-count-truncates",
+      "kind": "count-resources",
+      "query": {"subject": {"type": "user", "id": "super-user"}, "permission": "view", "resourceType": "server", "limit": 10},
+      "expected": {"count": 10, "truncated": true}
+    },
+    {
+      "id": "stable-pagination",
+      "kind": "pagination",
+      "query": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resourceType": "server", "pageSize": 3},
+      "expected": {"firstPageIds": ["account-0-server-0", "account-0-server-1", "account-0-server-10"], "concatenatedCount": 64, "duplicates": 0}
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+(ns eacl-demo.jank-memory.main
+  (:require [clojure.string :as str]
+            [eacl.runtime.native.clock :as clock]
+            [eacl-demo.jank-memory.dispatcher :as dispatcher]
+            [eacl-demo.jank-memory.function-url :as function-url]
+            [eacl-demo.jank-memory.handlers :as handlers]
+            [eacl-demo.jank-memory.observability :as observability]
+            [eacl-demo.jank-memory.profile :as profile]
+            [eacl-demo.jank-memory.response :as response]
+            [eacl-demo.jank-memory.runtime-api :as runtime-api]
+            [eacl-demo.jank-memory.store :as store]))
+
+(def init-error-json
+  "{\"errorMessage\":\"Initialization failed.\",\"errorType\":\"Runtime.InitError\"}")
+
+(def invocation-error-json
+  "{\"errorMessage\":\"Invocation failed.\",\"errorType\":\"Runtime.Unhandled\"}")
+
+(defn- runtime-paths
+  []
+  (let [root (runtime-api/environment "LAMBDA_TASK_ROOT")
+        fixture-path (runtime-api/environment "EACL_JANK_FIXTURE_PATH")]
+    (when-not (and (string? root) (not (empty? root)))
+      (throw
+       (ex-info
+        "Lambda task root is unavailable."
+        {:type :eacl-demo.jank/runtime-root-unavailable})))
+    (let [expected-fixture-path (str root "/fixture-10000.ndjson")]
+      (when-not (or (nil? fixture-path)
+                    (= expected-fixture-path fixture-path))
+        (throw
+         (ex-info
+          "Jank fixture path does not match the immutable task resource."
+          {:type :eacl-demo.jank/fixture-path-mismatch})))
+    {:fixture-path expected-fixture-path
+     :schema-path (str root "/schema.v1.zed")
+     :wire-schema-path (str root "/schema-wire.v1.json")
+     :exemplar-path (str root "/exemplars.v1.json")
+     :manifest-path (str root "/fixture-10000.v1.json")})))
+
+(defn initialize-runtime!
+  []
+  (let [value (store/initialize! (runtime-paths))
+        descriptor (profile/descriptor value)
+        public-dispatcher (handlers/create-handlers value descriptor)]
+    {:store value
+     :descriptor descriptor
+     :dispatcher public-dispatcher}))
+
+(defn- fallback-request-id
+  [event]
+  (let [headers (get event "headers")
+        client-id (some (fn [[key value]]
+                          (when (= "x-eacl-request-id"
+                                   (some-> key str/lower-case))
+                            value))
+                        headers)
+        candidate (if (and (string? client-id)
+                           (<= 1 (count client-id) 128))
+                    client-id
+                    (get-in event ["requestContext" "requestId"]))]
+    (if (and (string? candidate) (<= 1 (count candidate) 128))
+      candidate
+      "invalid")))
+
+(defn- fallback-operation
+  [event]
+  (let [request-path (get event "rawPath")
+        prefix "/api/v1/jank-memory/"
+        candidate
+        (when (and (string? request-path)
+                   (str/starts-with? request-path prefix))
+          (subs request-path (count prefix)))]
+    (if (contains? dispatcher/operation-set candidate) candidate "health")))
+
+(defn- response-context
+  [runtime event normalized]
+  {:request-id (or (:request-id normalized) (fallback-request-id event))
+   :operation (or (:operation normalized) (fallback-operation event))
+   :identity (get-in runtime [:descriptor "identity"])
+   :basis (get-in runtime [:descriptor "basis"])})
+
+(defn- bounded-response
+  [context envelope allowed-methods]
+  (try
+    (response/function-url-response envelope allowed-methods)
+    (catch cpp/jank.runtime.object_ref _
+      (response/function-url-response
+       (response/failure context "response-too-large")))))
+
+(defn handle-event
+  [runtime event deadline-ms]
+  (let [normalized (function-url/normalize-event event)
+        context (response-context runtime event normalized)]
+    (if-not (:ok normalized)
+      (bounded-response
+       context (response/failure context (:code normalized))
+       (:allowed-methods normalized))
+      (let [controls (function-url/request-controls deadline-ms)]
+        (if-not (:ok controls)
+          (bounded-response
+           context (response/failure context (:code controls)) nil)
+          (try
+            (let [data
+                  (dispatcher/dispatch
+                   (:dispatcher runtime) normalized controls)]
+              (bounded-response context (response/success context data) nil))
+            (catch cpp/jank.runtime.object_ref error
+              (bounded-response
+               context
+               (response/failure context (handlers/error-code error))
+               nil))))))))
+
+(defn- post-invocation-error-safe!
+  [request-id]
+  (try
+    (runtime-api/post-error! request-id invocation-error-json)
+    (catch cpp/jank.runtime.object_ref _ false)))
+
+(defn- process-invocation!
+  [runtime telemetry-context invocation]
+  (let [request-id (get invocation "requestId")
+        event (get invocation "event")
+        started (clock/monotonic-nanos)]
+    (try
+      (let [deadline-ms (get invocation "deadlineMs")
+            output (handle-event runtime event deadline-ms)]
+        (runtime-api/post-response! request-id (response/json-encode output))
+        (observability/observe-response! telemetry-context output started))
+      (catch cpp/jank.runtime.object_ref error
+        (observability/observe-exception!
+         telemetry-context event started error)
+        (post-invocation-error-safe! request-id)
+        ;; Do not risk request-local or native adapter state crossing into a
+        ;; subsequent warm invocation after an unexpected boundary failure.
+        (throw error)))))
+
+(defn- invocation-loop!
+  [runtime telemetry-context]
+  (loop []
+    (process-invocation!
+     runtime telemetry-context (runtime-api/next-invocation))
+    (recur)))
+
+(defn- event
+  [request-path body]
+  {"version" "2.0"
+   "routeKey" "$default"
+   "rawPath" request-path
+   "rawQueryString" ""
+   "headers" (if body {"content-type" "application/json"} {})
+   "requestContext" {"requestId" "self-test"
+                     "http" {"method" (if body "POST" "GET")}}
+   "isBase64Encoded" false
+   "body" body})
+
+(defn- self-test!
+  [runtime]
+  (let [deadline (+ 10000 (clock/unix-time-millis))
+        health (handle-event
+                runtime (event "/api/v1/jank-memory/health" nil) deadline)
+        allowed
+        (handle-event
+         runtime
+         (event
+          "/api/v1/jank-memory/authorize"
+          "{\"subjectType\":\"user\",\"subjectId\":\"user-1\",\"resourceType\":\"account\",\"resourceId\":\"account-0\",\"permission\":\"admin\"}")
+         deadline)
+        rejected-route
+        (handle-event
+         runtime (event "/api/v1/jank-memory/seed" "{}") deadline)]
+    (when-not
+     (and (= 200 (get health "statusCode"))
+          (= true
+             (get-in (runtime-api/parse-json (get allowed "body"))
+                     ["data" "allowed"]))
+          (= 404 (get rejected-route "statusCode")))
+      (throw
+       (ex-info
+        "Jank runtime self-test failed."
+        {:type :eacl-demo.jank/self-test-failed})))
+    (println "eacl-jank-self-test-pass")
+    true))
+
+(defn- post-init-error-safe!
+  []
+  (try
+    (runtime-api/post-init-error! init-error-json)
+    (catch cpp/jank.runtime.object_ref _ false)))
+
+(defn- initialize-or-report!
+  [mode telemetry-context]
+  (try
+    (observability/initialize-with-telemetry!
+     telemetry-context initialize-runtime!)
+    (catch cpp/jank.runtime.object_ref error
+      (when (= "lambda" mode) (post-init-error-safe!))
+      (throw error))))
+
+(defn- run-runtime!
+  [mode]
+  (let [telemetry-context (observability/runtime-context "jank-memory")
+        runtime (initialize-or-report! mode telemetry-context)]
+    (case mode
+      "lambda" (invocation-loop! runtime telemetry-context)
+      "self-test" (self-test! runtime)
+      (throw
+       (ex-info
+        "Jank runtime mode is invalid."
+        {:type :eacl-demo.jank/invalid-runtime-mode})))))
+
+(defn -main
+  [& _]
+  (run-runtime! (or (runtime-api/environment "EACL_JANK_MODE") "lambda")))
