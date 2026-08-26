@@ -24,12 +24,12 @@ test("canonical staged synthetics are exactly health, bootstrap, and one exempla
   const operations = [];
   const transport = { async request(operation) {
     operations.push(operation);
-    const meta = { operation, identity };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
     if (operation === "health") {
-      return { ok: true, meta, data: { ready: true, status: "ready", identity } };
+      return { meta, data: { ready: true, status: "ready", identity } };
     }
-    if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-    if (operation === "authorize") return { ok: true, meta, data: { allowed: true } };
+    if (operation === "bootstrap") return { meta, data: { identity } };
+    if (operation === "authorize") return { meta, data: { allowed: true } };
     throw new Error("unexpected operation");
   } };
   let second = 0;
@@ -50,10 +50,10 @@ test("canonical staged synthetics are exactly health, bootstrap, and one exempla
 
 test("direct origins, route drift, identity drift, and exemplar mismatch fail closed", async () => {
   const passing = { async request(operation) {
-    const meta = { operation, identity };
-    if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity } };
-    if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-    return { ok: true, meta, data: { allowed: false } };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
+    if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
+    if (operation === "bootstrap") return { meta, data: { identity } };
+    return { meta, data: { allowed: false } };
   } };
   await assert.rejects(
     runObservabilitySynthetics({ transport: passing, expectedIdentity: identity,

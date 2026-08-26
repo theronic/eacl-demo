@@ -52,18 +52,16 @@ interface ProfileDescriptor {
     cacheBehavior: string;
     limitations: string[];
   };
-  dataset: { logicalResourceCount: number };
+  dataset: { logicalResourceCount: number; serverCount: number };
   basis: { id: string; capturedAt: string; behavior: string; fixedForEnvironment: boolean };
 }
 
 interface WireEnvelope<T> {
-  ok: boolean;
   data?: T;
-  error?: { code: string; message: string; details?: unknown };
+  error?: { code: string; message: string };
   meta: {
     requestId: string;
-    revision?: string;
-    basis?: ProfileDescriptor["basis"] | null;
+    revision: string;
     elapsedMs?: number;
     cacheStatus?: ApiMeta["cacheStatus"];
   };
@@ -133,12 +131,11 @@ export function createProfileApi(
     signal?: AbortSignal | null,
   ): Promise<WireEnvelope<T>> => {
     const result = (await transport.request(operation, input, { signal })) as WireEnvelope<T>;
-    if (result.ok !== true || result.data === undefined) {
+    if (result.error || result.data === undefined) {
       throw new ApiError(400, {
         error: {
           code: result.error?.code ?? "unexpected-api-response",
           message: result.error?.message ?? "The profile request failed.",
-          details: result.error?.details,
         },
       });
     }
@@ -178,13 +175,15 @@ export function createProfileApi(
     meta: presentMeta(profile, requestId, basis, elapsedMs, cacheStatus),
   });
   const wireEnvelope = <T, U>(data: T, result: WireEnvelope<U>): ApiSuccess<T> =>
-    envelope(
+    ({
       data,
-      result.meta.requestId,
-      result.meta.basis,
-      result.meta.elapsedMs,
-      result.meta.cacheStatus,
-    );
+      meta: {
+        revision: result.meta.revision,
+        requestId: result.meta.requestId,
+        ...(result.meta.elapsedMs === undefined ? {} : { elapsedMs: result.meta.elapsedMs }),
+        ...(result.meta.cacheStatus === undefined ? {} : { cacheStatus: result.meta.cacheStatus }),
+      },
+    });
 
   const dispatcher: ApiDispatcher = async <T>(
     path: string,
@@ -319,7 +318,7 @@ export function createProfileApi(
       return {
         data: { allowed: result.data!.allowed } as PermissionDecision,
         meta: {
-          revision: result.meta.revision ?? result.meta.basis?.id ?? active.basis.id,
+          revision: result.meta.revision,
           requestId: result.meta.requestId,
           ...(result.meta.elapsedMs === undefined ? {} : { elapsedMs: result.meta.elapsedMs }),
           ...(result.meta.cacheStatus === undefined ? {} : { cacheStatus: result.meta.cacheStatus }),
@@ -399,9 +398,9 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
       serversAdded: 0,
       serversCompleted: 0,
       serversTarget: 0,
-      totalServers: descriptor.dataset.logicalResourceCount,
+      totalServers: descriptor.dataset.serverCount,
     },
-    totals: { servers: descriptor.dataset.logicalResourceCount },
+    totals: { servers: descriptor.dataset.serverCount },
     schema,
     quickSubjects: [
       { id: "super-user", label: "Super user" },

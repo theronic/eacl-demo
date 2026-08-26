@@ -68,18 +68,15 @@
     (is (= expected (:code (function-url/normalize-event malformed))))))
 
 (deftest bounded-function-url-response-test
-  (let [base {:meta {:contractVersion "explorer.v1" :operation "authorize"
-                     :requestId "r" :identity {} :basis nil}}
+  (let [base {:meta {:revision "fixture:1" :requestId "r"}}
         success (function-url/create-response
-                 (assoc base :ok true :data {:allowed true}))
+                 (assoc base :data {:allowed true}))
         failure (function-url/create-response
-                 (assoc base :ok false
-                        :error {:code "method-not-allowed"
-                                :message "The HTTP method is not allowed."
-                                :retryable false :details []})
+                 (assoc base :error {:code "method-not-allowed"
+                                     :message "The HTTP method is not allowed."})
                  :post)
         oversized (function-url/create-response
-                   (assoc base :ok true :data {:value (apply str (repeat 1048576 "a"))}))]
+                   (assoc base :data {:value (apply str (repeat 1048576 "a"))}))]
     (is (= 200 (:statusCode success)))
     (is (= "no-store" (get-in success [:headers "cache-control"])))
     (is (= 405 (:statusCode failure)))
@@ -87,3 +84,14 @@
     (is (= "response-too-large"
            (get-in (json/read-str (:body oversized) :key-fn keyword)
                    [:error :code])))))
+
+(deftest internal-error-response-retains-the-compact-contract-test
+  (let [request (assoc-in (event "/api/v1/datomic-dynamodb/health" "GET" nil)
+                          [:headers "X-EACL-Request-ID"] "browser-9-1")
+        response (function-url/internal-error-response request "deploy-1")]
+    (is (= 500 (:statusCode response)))
+    (is (= {:error {:code "internal-error"
+                    :message "The request failed internally."}
+            :meta {:revision "deploy-1" :requestId "browser-9-1"}}
+           (json/read-str (:body response) :key-fn keyword))))
+  (is (= "invalid" (function-url/event-request-id {:headers {1 "bad"}}))))

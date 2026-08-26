@@ -5,17 +5,15 @@ const SHA256 = /^[0-9a-f]{64}$/u;
 const errors = new Map(errorCatalog.errors.map((error) => [error.code, error]));
 
 export function createSuccess(context, data) {
-  return { ok: true, meta: createMeta(context), data };
+  return { data, meta: createMeta(context) };
 }
 
-export function createFailure(context, code, details = []) {
+export function createFailure(context, code) {
   const definition = errors.get(code);
   if (!definition) throw new Error(`unknown stable error code: ${code}`);
-  if (!Array.isArray(details) || details.length > 32 || details.some((detail) => typeof detail !== "string" || detail.length > 256)) throw new Error("failure details exceed contract limits");
   return {
-    ok: false,
     meta: createMeta(context),
-    error: { code, message: definition.message, retryable: definition.retryable, details: [...details] }
+    error: { code, message: definition.message }
   };
 }
 
@@ -30,7 +28,9 @@ function createMeta(context) {
   if (typeof context.requestId !== "string" || context.requestId.length < 1 || context.requestId.length > 128) throw new Error("request ID is invalid");
   if (!new Set(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]).has(context.operation)) throw new Error("response operation is invalid");
   const identity = validateIdentity(context.identity);
-  return { contractVersion: "explorer.v1", requestId: context.requestId, operation: context.operation, identity: { ...identity }, basis: context.basis === null ? null : structuredClone(context.basis) };
+  const revision = context.basis?.id ?? identity.deploymentId;
+  if (typeof revision !== "string" || revision.length < 1 || revision.length > 256) throw new Error("response revision is invalid");
+  return { revision, requestId: context.requestId };
 }
 
 function validateIdentity(identity) {

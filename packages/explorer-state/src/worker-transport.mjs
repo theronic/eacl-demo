@@ -45,8 +45,7 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     if (message.type !== "response") return;
     try {
       if (!initialized || request.kind === "initialize") throw identityError("The worker responded before the identity handshake completed.");
-      if (message.response?.meta?.requestId !== message.requestId || message.response?.meta?.operation !== request.operation) throw identityError("The worker response correlation does not match its request.");
-      assertExactIdentity(message.response?.meta?.identity, expectedIdentity);
+      if (message.response?.meta?.requestId !== message.requestId) throw identityError("The worker response correlation does not match its request.");
     } catch (error) {
       pending.delete(message.requestId);
       request.cleanup();
@@ -55,8 +54,8 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     }
     pending.delete(message.requestId);
     request.cleanup();
-    if (message.response.ok) request.resolve(message.response);
-    else request.reject(typedError(message.response.error.code, message.response.error.message, message.response.error.retryable, message.response));
+    if (message.response && "data" in message.response && !("error" in message.response)) request.resolve(message.response);
+    else request.reject(typedError(message.response.error.code, message.response.error.message, retryableError(message.response.error.code), message.response));
   };
   worker.addEventListener("message", onMessage);
 
@@ -66,7 +65,7 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     if (initializing) throw new Error("DataScript worker identity initialization is already in progress");
     initializing = true;
     const requestId = nextRequestId();
-    return enqueue({ ...base("initialize", requestId, epoch), identity: structuredClone(expectedIdentity) }, signal, { kind: "initialize", operation: null })
+    return enqueue({ ...base("initialize", requestId, epoch), identity: structuredClone(expectedIdentity) }, signal, "initialize")
       .finally(() => { initializing = false; });
   }
 
@@ -76,7 +75,7 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     const requestId = nextRequestId();
     const message = base("request", requestId, epoch);
     Object.assign(message, { operation, input });
-    return enqueue(message, signal, { kind: "request", operation });
+    return enqueue(message, signal, "request");
   }
 
   function reset({ signal } = {}) {
@@ -86,7 +85,7 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     rejectAll("canceled", "The DataScript worker epoch was replaced.");
     epoch += 1;
     const requestId = nextRequestId();
-    return enqueue(base("reset", requestId, epoch), signal, { kind: "reset", operation: "bootstrap" });
+    return enqueue(base("reset", requestId, epoch), signal, "reset");
   }
 
   function cancel(requestId) {
@@ -108,12 +107,12 @@ export function createDataScriptWorkerTransport({ worker, expectedIdentity, vali
     return true;
   }
 
-  function enqueue(message, signal, { kind, operation }) {
+  function enqueue(message, signal, kind) {
     if (signal?.aborted) return Promise.reject(abortError());
     return new Promise((resolve, reject) => {
       const abort = () => cancel(message.requestId);
       const cleanup = () => signal?.removeEventListener("abort", abort);
-      pending.set(message.requestId, { resolve, reject, cleanup, kind, operation });
+      pending.set(message.requestId, { resolve, reject, cleanup, kind });
       signal?.addEventListener("abort", abort, { once: true });
       worker.postMessage(structuredClone(message));
     });
@@ -210,4 +209,8 @@ function typedError(code, message, retryable, response = null) {
   error.retryable = retryable;
   error.response = response;
   return error;
+}
+
+function retryableError(code) {
+  return new Set(["cancelled", "canceled", "deadline-exceeded", "overloaded", "throttled", "dependency-unavailable"]).has(code);
 }

@@ -45,7 +45,7 @@
 - [x] 4.3 Define bounded request and response limits for bodies, strings, arrays, pages, counts, cursors, diagnostics, and total output.
 - [x] 4.4 Implement /api/v1/{profile-id} routing and the equivalent DataScript worker message contract.
 - [x] 4.5 Implement runtime boundary validation for client, server, worker, fixture, descriptor, registry, and release-manifest data.
-- [x] 4.6 Implement common success and error envelopes carrying request, profile, deployed demo SHA, deployed core SHA, artifact, and data identities.
+- [x] 4.6 Implement one common compact success/error envelope carrying only operation data or error plus revision, request ID, and optional elapsed/cache metadata.
 - [x] 4.7 Implement identity-checked health/bootstrap descriptors and reject route, artifact, or registry mismatches before normal use.
 - [x] 4.8 Implement closed method, route, content-type, query, path, and body allowlists.
 - [x] 4.9 Implement deadlines, cancellation propagation, admission bounds, response-size limits, and deterministic cleanup.
@@ -54,6 +54,7 @@
 - [x] 4.12 Implement N/N-1 contract compatibility and require a new API route version for incompatible changes.
 - [x] 4.13 Add redaction and route-table tests proving failures cannot expose secrets and unlisted requests cannot reach mutating or expensive handlers.
 - [x] 4.14 Add a reusable Lambda Function URL event and response contract suite for JVM and custom runtimes.
+- [x] 4.15 Remove the consolidation-only `ok`, contract-version, operation, identity, structured-basis, retryability, explanation-path, and reason-code fields from every backend response; retain exact deployment identity in health/bootstrap only.
 
 ## 5. Canonical fixture and comparable storage benchmark
 
@@ -104,6 +105,7 @@
 
 - [x] 8.1 Resolve the existing Datahike/S3 reader's exact fixture, schema, counts, selected basis, source, artifact, runtime, configuration, and storage provenance without mutating its store.
 - [x] 8.2 Adopt the S3 reader behind the common prefix, descriptor, envelope, cancellation, admission, and immutable request-snapshot boundary.
+- [x] 8.18 Preserve the adopted store and basis without reseeding, and distinguish its 1,000,000 servers from its 1,001,584 aggregate non-user resources in the descriptor/UI.
 - [x] 8.3 Preserve truthful S3 consistency and cache claims and exclude mutation, setup, benchmark, and administration routes.
 - [ ] 8.4 Qualify the one-million-resource S3 profile, publish an immutable Lambda alias and descriptor, and enable it only after staged smoke passes.
 - [x] 8.5 Pin the Datahike, Konserve, and DynamoDB adapter dependency path and turn known broad-exception, eventual-read, partial-batch, and destructive-delete findings into regression tests.
@@ -143,12 +145,13 @@
 
 - [ ] 10.1 Verify the maintained fork release, explicit read-snapshot API, EACL adapter, clean remote-consumer install, and Linux arm64 native packaging.
 - [ ] 10.2 Define and qualify the ephemeral Lambda source lifecycle and watermark across concurrent environments, rebuild, deployment, rollback, and lifecycle rotation.
-- [ ] 10.3 Build the Java Lambda with true Datalevin memory mode and no remote, HA, WAL, EFS, or durable LMDB serving path.
-- [ ] 10.4 Generate the deterministic 10,000-resource fixture at the qualified lifecycle point and freeze public data, schema, and relation writes after readiness.
+- [x] 10.3 Build the Java Lambda with true Datalevin memory mode and no remote, HA, WAL, EFS, or durable LMDB serving path.
+- [x] 10.4 Generate the deterministic 10,000-resource fixture at initialization and freeze public data, schema, and relation writes after readiness.
 - [ ] 10.5 Instrument snapshot ownership and exact-once release plus heap, direct, native, RSS, handle, and lifecycle state.
 - [ ] 10.6 Qualify both the quiesced pre-checkpoint and after-restore rebuild strategies, including repeated restores, simultaneous environments, eviction, stale handles, cancellation, failures, and load.
-- [ ] 10.7 Select a SnapStart lifecycle only from passing evidence and validate incompatibilities such as provisioned concurrency, EFS, container or OS-only runtimes, and ephemeral storage above supported limits.
-- [ ] 10.8 Sweep memory and publish the smallest passing Java SnapStart configuration and immutable descriptor.
+- [ ] 10.7 Treat SnapStart as a future optional optimization that cannot be enabled until native-handle restore safety passes; it is not required for the current demo.
+- [ ] 10.8 Sweep memory and publish the smallest passing managed-Java configuration and immutable descriptor.
+- [x] 10.9 Reduce cold initialization transactions from roughly one hundred to eleven by seeding objects and relationships in bounded 5,000-record batches, and print the first candidate health wall time in the ordinary deployment smoke.
 
 ## 11. Jank Amazon Linux x86_64 profile
 

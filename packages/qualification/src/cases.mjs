@@ -39,8 +39,7 @@ function authorizationCase(exemplar) {
       consistency: "current"
     }), "authorize");
     if (decision.allowed !== exemplar.expected.allowed) throw new Error(`authorization exemplar ${exemplar.id} disagrees`);
-    if (!Array.isArray(decision.path) || decision.path.length > 64) throw new Error("authorization explanation path is unbounded");
-    return { allowed: decision.allowed, pathSteps: decision.path.length };
+    return { allowed: decision.allowed };
   });
 }
 
@@ -175,7 +174,7 @@ async function expectFailure(fn, code) {
 async function captureFailure(fn) {
   try {
     const response = await fn();
-    if (response?.ok === false) return { code: response.error?.code, public: response };
+    if (response && "error" in response && !("data" in response)) return { code: response.error?.code, public: response };
     return { code: null, public: response };
   } catch (error) {
     return { code: error?.code, public: { code: error?.code, message: error?.message } };

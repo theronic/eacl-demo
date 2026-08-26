@@ -29,7 +29,8 @@
              "lifecycle-rebuild" "unequal-dataset-scale"
              "unsupported-consistency" "no-snapstart"}
            (set (get-in descriptor [:capabilities :limitations]))))
-    (is (= "disabled" (get-in descriptor [:runtime :snapStart])))))
+    (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
+    (is (= 9922 (get-in descriptor [:dataset :serverCount])))))
 
 (deftest descriptor-rejects-an-unbound-data-manifest-test
   (is (thrown? clojure.lang.ExceptionInfo

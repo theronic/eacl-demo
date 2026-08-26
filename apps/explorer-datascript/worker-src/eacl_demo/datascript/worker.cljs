@@ -83,13 +83,12 @@
 
 (defn- response-meta [request runtime cache-status]
   (cond->
-   {:contractVersion contract-version
+   {:revision (if runtime
+                (:id (basis runtime (:clientEpoch request)))
+                (:deploymentId (deployment-identity)))
     :requestId (:requestId request)
-    :operation (:operation request)
-    :identity (deployment-identity)
-    :basis (when runtime (basis runtime (:clientEpoch request)))
     :elapsedMs (max 0 (- (.now js/performance) (:startedAt request)))}
-    cache-status (assoc :cacheStatus cache-status)))
+   cache-status (assoc :cacheStatus cache-status)))
 
 (defn- post-response! [request response]
   (when (current-epoch? (:clientEpoch request))
@@ -109,17 +108,15 @@
    (when (active-request? (:clientEpoch request) (:requestId request))
      (post-response!
       request
-      {:ok true
-       :meta (response-meta request runtime cache-status)
-       :data data}))))
+      {:data data
+       :meta (response-meta request runtime cache-status)}))))
 
-(defn- failure! [request runtime code message retryable]
+(defn- failure! [request runtime code message]
   (when (current-epoch? (:clientEpoch request))
     (post-response!
      request
-     {:ok false
-      :meta (response-meta request runtime nil)
-      :error {:code code :message message :retryable retryable :details []}})))
+     {:error {:code code :message message}
+      :meta (response-meta request runtime nil)})))
 
 (defn- bootstrap-data [runtime epoch]
   {:contract {:name contract-version :routeMajor 1 :revision 1 :minimumClientRevision 0}
@@ -141,6 +138,7 @@
             {:name "fixture-resources" :value fixture/small-resource-count}]
    :dataset {:fixtureId fixture/fixture-id
              :logicalResourceCount fixture/small-resource-count
+             :serverCount 9922
              :manifestSha256 fixture/small-manifest-sha256}
    :basis (basis runtime epoch)})
 
@@ -165,21 +163,8 @@
         decision (when (and (contains? (:objects runtime) subject-key)
                             (contains? (:objects runtime) resource-key))
                    (eacl/check-permission (:client runtime) request))
-        allowed (true? (:allowed? decision))
-        reason (cond
-                 (not (contains? (:objects runtime) subject-key)) "subject-not-found"
-                 (not (contains? (:objects runtime) resource-key)) "object-not-found"
-                 allowed "granted"
-                 :else "denied")]
-    {:data
-     {:subjectType (:subjectType input)
-      :subjectId (:subjectId input)
-      :resourceType (:resourceType input)
-      :resourceId (:resourceId input)
-      :permission (:permission input)
-      :allowed allowed
-      :reasonCode reason
-      :path []}
+        allowed (true? (:allowed? decision))]
+    {:data {:allowed allowed}
      :cache-status
      (cond
        (false? (:cache input)) "disabled"
@@ -400,35 +385,33 @@
         "list-subjects" (success! request runtime (list-subjects-data runtime (:input request)))
         "get-object" (if-let [data (object-data runtime (:input request))]
                        (success! request runtime data)
-                       (failure! request runtime "storage-missing" "The requested fixture object does not exist." false))
+                       (failure! request runtime "storage-missing" "The requested fixture object does not exist."))
         "list-relationships" (success! request runtime (relationships-data runtime (:input request)))
         "reverse-relationships" (success! request runtime (reverse-data runtime (:input request)))
         "authorize" (let [{:keys [data cache-status]}
-                            (authorization-data runtime (:input request))]
-                        (success! request runtime data cache-status))
+                          (authorization-data runtime (:input request))]
+                      (success! request runtime data cache-status))
         "lookup-resources" (let [{:keys [data cache-status]}
-                                   (lookup-resources-data runtime (:input request))]
-                               (success! request runtime data cache-status))
+                                 (lookup-resources-data runtime (:input request))]
+                             (success! request runtime data cache-status))
         "lookup-subjects" (let [{:keys [data cache-status]}
-                                  (lookup-subjects-data runtime (:input request))]
-                              (success! request runtime data cache-status))
+                                (lookup-subjects-data runtime (:input request))]
+                            (success! request runtime data cache-status))
         "count-resources" (let [{:keys [data cache-status]}
-                                  (count-resources-data runtime (:input request))]
-                              (success! request runtime data cache-status))
+                                (count-resources-data runtime (:input request))]
+                            (success! request runtime data cache-status))
         "get-schema" (success! request runtime fixture/wire-schema)
         "get-cache-info" (success! request runtime (cache-data))
         "count-objects" (success! request runtime (count-data runtime (:input request)))
         (failure! request runtime "validation-error"
-                  "This operation is outside the worker dispatcher."
-                  false))
+                  "This operation is outside the worker dispatcher."))
       (catch :default error
         (let [code (:code (ex-data error))]
           (case code
-            "cursor-invalid" (failure! request runtime code "The cursor is invalid or expired." false)
-            "cursor-scope-mismatch" (failure! request runtime code "The cursor belongs to another query or lifecycle." false)
+            "cursor-invalid" (failure! request runtime code "The cursor is invalid or expired.")
+            "cursor-scope-mismatch" (failure! request runtime code "The cursor belongs to another query or lifecycle.")
             (failure! request runtime "internal-error"
-                      "The browser-local explorer operation failed."
-                      false)))))))
+                      "The browser-local explorer operation failed.")))))))
 
 (defn- relationship [record]
   (eacl/->Relationship
@@ -477,7 +460,7 @@
                                              {:eacl/id (get-in record [:object :id])})))
                              records)
                relationships (into [] (comp (filter #(= :relationship (:kind %)))
-                                             (map relationship))
+                                            (map relationship))
                                    records)
                next-accumulator (reduce add-record accumulator records)
                next-completed (+ completed (count batch))]
@@ -506,8 +489,7 @@
              (swap! lifecycle assoc :runtime nil :initialization nil :waiters {})
              (doseq [waiter waiters]
                (failure! waiter nil "internal-error"
-                         "The browser-local fixture could not be initialized."
-                         true)))))
+                         "The browser-local fixture could not be initialized.")))))
        (do
          (post-progress! request "canceled" completed "Fixture initialization was canceled and its worker-owned state was released.")
          (swap! lifecycle assoc :initialization nil :runtime nil :waiters {}))))
@@ -531,8 +513,7 @@
     (catch :default _
       (swap! lifecycle assoc :initialization nil :runtime nil :waiters {})
       (failure! request nil "internal-error"
-                "The EACL DataScript adapter could not start."
-                true))))
+                "The EACL DataScript adapter could not start."))))
 
 (defn- ensure-runtime! [request]
   (let [{:keys [runtime initialization]} @lifecycle]
@@ -782,8 +763,7 @@
       (do
         (swap! lifecycle assoc-in [:requests (:requestId request)] request)
         (failure! request nil "unsupported-consistency"
-                  "DataScript does not retain exact or externally synchronized historical snapshots."
-                  false))
+                  "DataScript does not retain exact or externally synchronized historical snapshots."))
       (not (valid-operation-input? request))
       (protocol-error! request "validation-error" "The operation input failed closed validation.")
       :else
@@ -801,7 +781,7 @@
                    (update :requests dissoc (:requestId request))
                    (update :waiters dissoc (:requestId request))
                    (update :canceled conj (:requestId request)))))
-      (failure! active (:runtime @lifecycle) "canceled" "The browser-local request was canceled." true))))
+      (failure! active (:runtime @lifecycle) "canceled" "The browser-local request was canceled."))))
 
 (defn- reset-worker! [request]
   (let [epoch (:clientEpoch request)]

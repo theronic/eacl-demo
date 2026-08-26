@@ -43,7 +43,7 @@ test("classic and structured Lambda platform REPORT records parse exactly", () =
 test("Lambda invocation rejects version drift and returns only bounded envelope plus REPORT", () => {
   const report = "REPORT RequestId: abc Duration: 12.34 ms Billed Duration: 13 ms Memory Size: 512 MB Max Memory Used: 123 MB\n";
   const metadata = JSON.stringify({ StatusCode: 200, ExecutedVersion: "7", LogResult: Buffer.from(report).toString("base64") });
-  const response = JSON.stringify({ statusCode: 200, body: JSON.stringify({ ok: true, meta: { operation: "health", requestId: "sample-1" }, data: {} }) });
+  const response = JSON.stringify({ statusCode: 200, body: JSON.stringify({ meta: { revision: "basis-1", requestId: "sample-1" }, data: {} }) });
   assert.deepEqual(parseLambdaInvocation(metadata, response, { qualifier: "7" }), { envelope: JSON.parse(JSON.parse(response).body), durationMs: 12.34, billedDurationMs: 13, memorySizeMiB: 512, maxMemoryUsedMiB: 123, initDurationMs: null, restoreDurationMs: null });
   assert.throws(() => parseLambdaInvocation(metadata, response, { qualifier: "8" }), /exact immutable version/u);
   assert.throws(() => parseLambdaInvocation(JSON.stringify({ StatusCode: 200, ExecutedVersion: "7", LogResult: "not base64" }), response, { qualifier: "7" }), /tail log is invalid/u);

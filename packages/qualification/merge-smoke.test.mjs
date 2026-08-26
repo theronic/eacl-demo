@@ -15,11 +15,11 @@ test("merge smoke is exactly health, identity, allow, deny, and mutation denial"
   const transport = {
     async request(operation, input) {
       operations.push(operation);
-      const meta = { operation, identity };
-      if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity } };
-      if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-      if (operation === "authorize") return { ok: true, meta, data: { ...input, allowed: input.subjectId === "user-1" } };
-      if (operation === "seed") return { ok: false, meta, error: { code: "route-not-found" } };
+      const meta = { revision: "basis-1", requestId: `request-${operation}` };
+      if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
+      if (operation === "bootstrap") return { meta, data: { identity } };
+      if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+      if (operation === "seed") return { meta, error: { code: "route-not-found", message: "The route is not available." } };
       throw new Error(`unexpected operation ${operation}`);
     }
   };
@@ -36,11 +36,11 @@ test("identity drift and an exposed mutation fail merge smoke without adding dee
   const drift = { ...identity, artifactSha256: "e".repeat(64) };
   const transport = {
     async request(operation, input) {
-      const meta = { operation, identity: operation === "health" ? drift : identity };
-      if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity: drift } };
-      if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-      if (operation === "authorize") return { ok: true, meta, data: { ...input, allowed: input.subjectId === "user-1" } };
-      return { ok: true, meta, data: { seeded: true } };
+      const meta = { revision: "basis-1", requestId: `request-${operation}` };
+      if (operation === "health") return { meta, data: { ready: true, status: "ready", identity: drift } };
+      if (operation === "bootstrap") return { meta, data: { identity } };
+      if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+      return { meta, data: { seeded: true } };
     }
   };
   let index = 0;
@@ -51,11 +51,11 @@ test("identity drift and an exposed mutation fail merge smoke without adding dee
 
 test("local targets, route drift, stale timestamps, tampering, and replay against another deployment fail closed", async () => {
   const transport = { async request(operation, input) {
-    const meta = { operation, identity };
-    if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity } };
-    if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-    if (operation === "authorize") return { ok: true, meta, data: { ...input, allowed: input.subjectId === "user-1" } };
-    return { ok: false, meta, error: { code: "route-not-found" } };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
+    if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
+    if (operation === "bootstrap") return { meta, data: { identity } };
+    if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+    return { meta, error: { code: "route-not-found", message: "The route is not available." } };
   } };
   let index = 0;
   const report = await runMergeSmoke({ transport, expectedIdentity: identity, target, allowedDemand, deniedDemand, clock: () => times[index++] });

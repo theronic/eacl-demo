@@ -15,13 +15,13 @@ const descriptor = {
   profile: { backend: "datahike", storage: "s3" },
   runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
   capabilities: { operations: ["authorize"], consistencyModes: ["current"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only"] },
-  limits: [{ name: "page-size", value: 25 }], dataset: { fixtureId: "canonical-v1", logicalResourceCount: 1000000, manifestSha256: sha256 }, basis
+  limits: [{ name: "page-size", value: 25 }], dataset: { fixtureId: "canonical-v1", logicalResourceCount: 1000000, serverCount: 998417, manifestSha256: sha256 }, basis
 };
 
 test("all runtime boundaries accept canonical values", async () => {
   assert.equal(validate.client({ contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "r1", operation: "authorize", input: {} }).requestId, "r1");
-  assert.equal(validate.server({ ok: true, meta: { contractVersion: "explorer.v1", requestId: "r1", operation: "get-object", identity, basis }, data: { object: { type: "server", id: "server-1", displayName: null, attributes: [] } } }).ok, true);
-  assert.equal(validate.server({ ok: true, meta: { revision: "datomic:fixture:42", requestId: "r2", elapsedMs: 0.8, cacheStatus: "hit" }, data: { allowed: true } }).data.allowed, true);
+  assert.equal(validate.server({ meta: { revision: "basis-1", requestId: "r1" }, data: { object: { type: "server", id: "server-1", displayName: null, attributes: [] } } }).data.object.id, "server-1");
+  assert.equal(validate.server({ meta: { revision: "datomic:fixture:42", requestId: "r2", elapsedMs: 0.8, cacheStatus: "hit" }, data: { allowed: true } }).data.allowed, true);
   assert.equal(validate.worker({ type: "request", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "r1", clientEpoch: 1, operation: "authorize", input: {} }).profileId, "datascript-browser-memory");
   const workerIdentity = { ...identity, profileId: "datascript-browser-memory" };
   assert.equal(validate.worker({ type: "initialize", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "init-1", clientEpoch: 1, identity: workerIdentity }).type, "initialize");

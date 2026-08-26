@@ -8,8 +8,7 @@
             [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader])
   (:import [com.amazonaws.services.lambda.runtime Context]
-           [java.io InputStream OutputStream]
-           [java.util UUID]))
+           [java.io InputStream OutputStream]))
 
 (def ^:private pinned-eacl-sha
   "8dc3b16498788dd822b68e1c4fe25b37a8e8879f")
@@ -84,7 +83,7 @@
     (if-not (:ok? normalized)
       (function-url/create-response
        (boundary/failure-envelope
-        {:request-id "invalid"} "health" (:identity descriptor) nil
+        {:request-id (function-url/event-request-id event)} (:identity descriptor) nil
         (:code normalized)))
       (let [remaining (if (and (integer? remaining-time-ms)
                                (pos? remaining-time-ms))
@@ -110,16 +109,10 @@
             response (handle-event @runtime event
                                    (when context
                                      (.getRemainingTimeInMillis context)))]
-        (observability/observe-response! telemetry-context response started)
+        (observability/observe-response! telemetry-context event response started)
         (json/write response writer))
       (catch Throwable error
         (observability/observe-exception! telemetry-context @event* started error)
-        (json/write
-         {:statusCode 500
-          :headers {"content-type" "application/json; charset=utf-8"
-                    "cache-control" "no-store"
-                    "x-content-type-options" "nosniff"}
-          :body "{\"ok\":false,\"transportError\":{\"code\":\"internal-error\",\"message\":\"The request could not be processed.\"}}"
-          :isBase64Encoded false}
-         writer))
+        (json/write (function-url/internal-error-response
+                     @event* (:deployment-id telemetry-context)) writer))
       (finally (.flush writer)))))

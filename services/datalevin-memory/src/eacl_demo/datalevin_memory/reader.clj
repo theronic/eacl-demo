@@ -20,6 +20,8 @@
                 :db/cardinality :db.cardinality/many
                 :db/index true}})
 
+(def ^:private seed-batch-size 5000)
+
 (defn- fixture-records
   []
   (with-open [reader (io/reader (or (io/resource "fixture-10000.ndjson")
@@ -36,7 +38,8 @@
 
 (defn- seed-objects!
   [conn records]
-  (doseq [batch (partition-all 500 (filter #(= "object" (:kind %)) records))]
+  (doseq [batch (partition-all seed-batch-size
+                               (filter #(= "object" (:kind %)) records))]
     (d/transact!
      conn
      (map-indexed
@@ -76,7 +79,7 @@
 
 (defn- seed-relationships!
   [conn watermark write-token records]
-  (doseq [batch (partition-all 500
+  (doseq [batch (partition-all seed-batch-size
                                (filter #(= "relationship" (:kind %)) records))]
     (let [database (d/db conn)
           physical (mapv #(physical-relationship database %) batch)

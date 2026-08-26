@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
-import { assertEnvelopeIdentity, assertIdentity, successfulData } from "./runner.mjs";
+import { assertEnvelope, assertIdentity, successfulData } from "./runner.mjs";
 import { SERVER_PROFILE_IDS } from "./targets.mjs";
 
 const FAULT_CASES = Object.freeze([
@@ -155,7 +155,7 @@ async function runBoundedLoad({ transport, expectedIdentity, allowedDemand, deni
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(new DOMException("manual exercise deadline", "TimeoutError")), requestTimeoutMs);
       try {
-        const response = assertEnvelopeIdentity(await transport.request("authorize", input, { signal: controller.signal }), "authorize", expectedIdentity);
+        const response = assertEnvelope(await transport.request("authorize", input, { signal: controller.signal }), "authorize");
         const decision = successfulData(response, "authorize");
         assertDecision(decision, input, allowed);
         outcomes.push({ ok: true });
@@ -193,7 +193,7 @@ async function runFaultCampaign(transport, requestTimeoutMs) {
       const result = await transport.probeFault(kind, { requestTimeoutMs });
       if (kind === "client-cancel") {
         if (result?.aborted !== true) throw new Error("client cancellation was not observed");
-      } else if (result?.aborted !== false || result.status !== status || result.envelope?.ok !== false || result.envelope?.error?.code !== code) {
+      } else if (result?.aborted !== false || result.status !== status || !result.envelope || !("error" in result.envelope) || "data" in result.envelope || result.envelope.error?.code !== code) {
         throw new Error(`${kind} did not return the closed ${status}/${code} failure`);
       }
       results.push(passed(`fault-${kind}`, performance.now() - started));
@@ -207,7 +207,7 @@ async function runFaultCampaign(transport, requestTimeoutMs) {
 async function readinessCase(cases, id, transport, expectedIdentity, operation, requestTimeoutMs) {
   const started = performance.now();
   try {
-    const response = assertEnvelopeIdentity(await transport.request(operation, {}, { signal: AbortSignal.timeout(requestTimeoutMs) }), operation, expectedIdentity);
+    const response = assertEnvelope(await transport.request(operation, {}, { signal: AbortSignal.timeout(requestTimeoutMs) }), operation);
     const value = successfulData(response, operation);
     assertIdentity(value.identity, expectedIdentity);
     if (operation === "health" && (value.ready !== true || value.status !== "ready")) throw new Error("profile health is not ready");
@@ -267,7 +267,7 @@ function validateMemorySummary(value, bounds, reportResult, profileId, target) {
 
 function validateMemoryObservation(value, configuration, expectedIdentity, operation, input, expectedAllowed) {
   exactKeys(value, ["envelope", "memorySizeMiB", "maxMemoryUsedMiB", "durationMs", "billedDurationMs", "initDurationMs", "restoreDurationMs"], "Lambda memory observation");
-  const envelope = assertEnvelopeIdentity(value.envelope, operation, expectedIdentity);
+  const envelope = assertEnvelope(value.envelope, operation);
   const data = successfulData(envelope, operation);
   if (operation === "health") {
     assertIdentity(data.identity, expectedIdentity);
@@ -353,11 +353,10 @@ function boundedInteger(value, minimum, maximum, name) {
 
 function demandInput(demand) {
   if (!demand?.subject || !demand?.resource || typeof demand.permission !== "string") throw new TypeError("manual exercise demand is invalid");
-  return { subjectType: demand.subject.type, subjectId: demand.subject.id, resourceType: demand.resource.type, resourceId: demand.resource.id, permission: demand.permission, consistency: "current" };
+  return { subjectType: demand.subject.type, subjectId: demand.subject.id, resourceType: demand.resource.type, resourceId: demand.resource.id, permission: demand.permission };
 }
 
 function assertDecision(decision, input, expectedAllowed) {
-  for (const key of ["subjectType", "subjectId", "resourceType", "resourceId", "permission"]) if (decision?.[key] !== input[key]) throw new Error("load response does not match its request scope");
   if (decision.allowed !== expectedAllowed) throw new Error("load authorization result disagreed with the canonical exemplar");
 }
 

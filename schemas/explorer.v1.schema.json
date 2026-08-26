@@ -51,18 +51,6 @@
       "type": "object", "additionalProperties": false, "required": ["kind", "value", "exact", "ceiling"],
       "properties": {"kind": {"enum": ["subjects", "objects", "relationships"]}, "value": {"type": "integer", "minimum": 0}, "exact": {"type": "boolean"}, "ceiling": {"type": ["integer", "null"], "minimum": 1}}
     },
-    "authorizationStep": {
-      "type": "object", "additionalProperties": false, "required": ["kind", "label", "allowed"],
-      "properties": {"kind": {"enum": ["direct", "relationship-arrow", "permission-arrow", "cycle-guard"]}, "label": {"type": "string", "minLength": 1, "maxLength": 256}, "allowed": {"type": "boolean"}}
-    },
-    "authorizationDecision": {
-      "type": "object", "additionalProperties": false, "required": ["subjectType", "subjectId", "resourceType", "resourceId", "permission", "allowed", "reasonCode", "path"],
-      "properties": {
-        "subjectType": {"$ref": "#/$defs/identifier"}, "subjectId": {"$ref": "#/$defs/identifier"}, "resourceType": {"$ref": "#/$defs/identifier"}, "resourceId": {"$ref": "#/$defs/identifier"}, "permission": {"$ref": "#/$defs/identifier"},
-        "allowed": {"type": "boolean"}, "reasonCode": {"enum": ["granted", "denied", "object-not-found", "subject-not-found"]},
-        "path": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/authorizationStep"}}
-      }
-    },
     "permissionDecision": {
       "type": "object", "additionalProperties": false, "required": ["allowed"],
       "properties": {"allowed": {"type": "boolean"}}
@@ -165,22 +153,13 @@
           }
         },
         "dataset": {
-          "type": "object", "additionalProperties": false, "required": ["fixtureId", "logicalResourceCount", "manifestSha256"],
-          "properties": {"fixtureId": {"type": "string"}, "logicalResourceCount": {"type": "integer", "minimum": 1}, "manifestSha256": {"$ref": "#/$defs/sha256"}}
+          "type": "object", "additionalProperties": false, "required": ["fixtureId", "logicalResourceCount", "serverCount", "manifestSha256"],
+          "properties": {"fixtureId": {"type": "string"}, "logicalResourceCount": {"type": "integer", "minimum": 1}, "serverCount": {"type": "integer", "minimum": 1}, "manifestSha256": {"$ref": "#/$defs/sha256"}}
         },
         "basis": {"$ref": "#/$defs/basis"}
       }
     },
     "responseMeta": {
-      "type": "object", "additionalProperties": false, "required": ["contractVersion", "requestId", "operation", "identity", "basis"],
-      "properties": {
-        "contractVersion": {"const": "explorer.v1"}, "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
-        "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]},
-        "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]},
-        "elapsedMs": {"type": "number", "minimum": 0}, "cacheStatus": {"enum": ["hit", "miss", "disabled"]}
-      }
-    },
-    "compactResponseMeta": {
       "type": "object", "additionalProperties": false, "required": ["revision", "requestId"],
       "properties": {
         "revision": {"type": "string", "minLength": 1, "maxLength": 256},
@@ -188,78 +167,33 @@
         "elapsedMs": {"type": "number", "minimum": 0}, "cacheStatus": {"enum": ["hit", "miss", "disabled"]}
       }
     },
-    "profileSuccess": {
-      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "data"],
-      "properties": {"ok": {"const": true}, "meta": {"$ref": "#/$defs/responseMeta"}, "data": {}},
-      "allOf": [{
-        "oneOf": [
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "health"}}}, "data": {"$ref": "#/$defs/health"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "bootstrap"}}}, "data": {"$ref": "#/$defs/bootstrap"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "list-subjects"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-object"}}}, "data": {"$ref": "#/$defs/objectResult"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "list-relationships"}}}, "data": {"$ref": "#/$defs/relationshipPage"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "reverse-relationships"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "authorize"}}}, "data": {"$ref": "#/$defs/authorizationDecision"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "lookup-resources"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "lookup-subjects"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "count-resources"}}}, "data": {"$ref": "#/$defs/count"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-schema"}}}, "data": {"$ref": "#/$defs/schema"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-cache-info"}}}, "data": {"$ref": "#/$defs/cacheInfo"}}},
-          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "count-objects"}}}, "data": {"$ref": "#/$defs/count"}}}
-        ]
-      }]
-    },
-    "compactAuthorizationSuccess": {
-      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "data"],
-      "properties": {
-        "ok": {"const": true},
-        "meta": {"$ref": "#/$defs/compactResponseMeta"},
-        "data": {"$ref": "#/$defs/permissionDecision"}
-      }
-    },
     "success": {
-      "oneOf": [
-        {"$ref": "#/$defs/profileSuccess"},
-        {"$ref": "#/$defs/compactAuthorizationSuccess"}
-      ]
-    },
-    "profileFailure": {
-      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "error"],
+      "type": "object", "additionalProperties": false, "required": ["meta", "data"],
       "properties": {
-        "ok": {"const": false},
         "meta": {"$ref": "#/$defs/responseMeta"},
-        "error": {
-          "type": "object", "additionalProperties": false, "required": ["code", "message", "retryable", "details"],
-          "properties": {
-            "code": {"$ref": "error-codes.v1.schema.json#/$defs/code"},
-            "message": {"type": "string", "minLength": 1, "maxLength": 512},
-            "retryable": {"type": "boolean"},
-            "details": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 256}}
-          }
-        }
-      }
-    },
-    "compactAuthorizationFailure": {
-      "type": "object", "additionalProperties": false, "required": ["ok", "meta", "error"],
-      "properties": {
-        "ok": {"const": false},
-        "meta": {"$ref": "#/$defs/compactResponseMeta"},
-        "error": {
-          "type": "object", "additionalProperties": false, "required": ["code", "message", "retryable", "details"],
-          "properties": {
-            "code": {"$ref": "error-codes.v1.schema.json#/$defs/code"},
-            "message": {"type": "string", "minLength": 1, "maxLength": 512},
-            "retryable": {"type": "boolean"},
-            "details": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 256}}
-          }
+        "data": {
+          "anyOf": [
+            {"$ref": "#/$defs/health"}, {"$ref": "#/$defs/bootstrap"},
+            {"$ref": "#/$defs/objectPage"}, {"$ref": "#/$defs/objectResult"},
+            {"$ref": "#/$defs/relationshipPage"}, {"$ref": "#/$defs/permissionDecision"},
+            {"$ref": "#/$defs/count"}, {"$ref": "#/$defs/schema"},
+            {"$ref": "#/$defs/cacheInfo"}
+          ]
         }
       }
     },
     "failure": {
-      "oneOf": [
-        {"$ref": "#/$defs/profileFailure"},
-        {"$ref": "#/$defs/compactAuthorizationFailure"}
-      ]
+      "type": "object", "additionalProperties": false, "required": ["error", "meta"],
+      "properties": {
+        "meta": {"$ref": "#/$defs/responseMeta"},
+        "error": {
+          "type": "object", "additionalProperties": false, "required": ["code", "message"],
+          "properties": {
+            "code": {"$ref": "error-codes.v1.schema.json#/$defs/code"},
+            "message": {"type": "string", "minLength": 1, "maxLength": 512}
+          }
+        }
+      }
     }
   }
 }

@@ -30,25 +30,25 @@ function fixtureTransport() {
   const cursors = new Set(["cursor-1"]);
   return {
     async request(operation, input) {
-      const meta = { operation, identity };
-      if (operation === "bootstrap") return { ok: true, meta, data: descriptor };
-      if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity, basis } };
+      const meta = { revision: basis.id, requestId: `request-${operation}` };
+      if (operation === "bootstrap") return { meta, data: descriptor };
+      if (operation === "health") return { meta, data: { ready: true, status: "ready", identity, basis } };
       if (operation === "authorize") {
         if (!input.resourceType || !input.permission) return failure(meta, "validation-error");
         if (input.consistency !== "current") return failure(meta, "unsupported-consistency");
-        return { ok: true, meta, data: { ...input, allowed: input.subjectId !== "user-2", reasonCode: input.subjectId === "user-2" ? "denied" : "granted", path: [] } };
+        return { meta, data: { allowed: input.subjectId !== "user-2" } };
       }
-      if (operation === "list-relationships") return { ok: true, meta, data: { items: [{ resourceType: "account", resourceId: "account-0", relation: "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
-      if (operation === "reverse-relationships") return { ok: true, meta, data: { items: [{ type: "account", id: "account-0", displayName: null, attributes: [] }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
+      if (operation === "list-relationships") return { meta, data: { items: [{ resourceType: "account", resourceId: "account-0", relation: "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
+      if (operation === "reverse-relationships") return { meta, data: { items: [{ type: "account", id: "account-0", displayName: null, attributes: [] }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
       if (operation === "list-subjects") {
         if (input.cursor && !cursors.has(input.cursor)) return failure(meta, "invalid-cursor");
-        return { ok: true, meta, data: { items: [{ type: "user", id: input.cursor ? "user-2" : "user-1", displayName: null, attributes: [] }], pageInfo: { hasNextPage: !input.cursor, endCursor: input.cursor ? null : "cursor-1", pageSize: 1 } } };
+        return { meta, data: { items: [{ type: "user", id: input.cursor ? "user-2" : "user-1", displayName: null, attributes: [] }], pageInfo: { hasNextPage: !input.cursor, endCursor: input.cursor ? null : "cursor-1", pageSize: 1 } } };
       }
-      if (operation === "get-cache-info") return { ok: true, meta, data: { behavior: "environment-local", hit: null, scope: "profile", entries: 1, limitations: [] } };
+      if (operation === "get-cache-info") return { meta, data: { behavior: "environment-local", hit: null, scope: "profile", entries: 1, limitations: [] } };
       throw new Error(`unexpected operation ${operation}`);
     },
     async release() { return true; }
   };
 }
 
-function failure(meta, code) { return { ok: false, meta, error: { code, message: "Rejected.", retryable: false, details: [] } }; }
+function failure(meta, code) { return { meta, error: { code, message: "Rejected." } }; }

@@ -18,14 +18,7 @@ export function redactRecord(value, depth = 0) {
 
 export function createSafeFailure(context, error) {
   const code = STABLE_CODES.has(error?.code) ? error.code : "internal-error";
-  const details = Array.isArray(error?.publicDetails)
-    ? error.publicDetails.map((detail) => String(detail)).filter((detail) => !containsSensitiveShape(detail)).slice(0, 32).map((detail) => detail.slice(0, 256))
-    : [];
-  const envelope = createFailure(context, code, details);
-  if (new TextEncoder().encode(JSON.stringify(envelope.error)).length > limits.diagnosticBytes) return createFailure(context, code, []);
+  const envelope = createFailure(context, code);
+  if (new TextEncoder().encode(JSON.stringify(envelope.error)).length > limits.diagnosticBytes) return createFailure(context, "internal-error");
   return envelope;
-}
-
-function containsSensitiveShape(value) {
-  return /(?:-----BEGIN|[?&](?:secret|token|password|credential)=|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b|\b[0-9]{8,12}:[A-Za-z0-9_-]{30,50}\b)/u.test(value);
 }

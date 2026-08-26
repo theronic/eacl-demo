@@ -75,11 +75,11 @@ test("a failed attempt writes status only after the healthy alias is retained or
 
 async function passingSmoke() {
   const transport = { async request(operation, input) {
-    const meta = { operation, identity };
-    if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity } };
-    if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
-    if (operation === "authorize") return { ok: true, meta, data: { ...input, allowed: input.subjectId === "user-1" } };
-    return { ok: false, meta, error: { code: "route-not-found" } };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
+    if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
+    if (operation === "bootstrap") return { meta, data: { identity } };
+    if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+    return { meta, error: { code: "route-not-found", message: "The route is not available." } };
   } };
   const times = ["2026-08-25T12:00:01Z", "2026-08-25T12:00:02Z"];
   let index = 0;

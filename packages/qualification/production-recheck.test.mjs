@@ -12,9 +12,9 @@ test("post-promotion recheck is exactly production health and bootstrap identity
   const operations = [];
   const transport = { async request(operation) {
     operations.push(operation);
-    const meta = { operation, identity };
-    if (operation === "health") return { ok: true, meta, data: { ready: true, status: "ready", identity } };
-    if (operation === "bootstrap") return { ok: true, meta, data: { identity } };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
+    if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
+    if (operation === "bootstrap") return { meta, data: { identity } };
     throw new Error(`unexpected operation ${operation}`);
   } };
   const times = ["2026-08-25T12:00:01Z", "2026-08-25T12:00:02Z"];
@@ -28,9 +28,9 @@ test("post-promotion recheck is exactly production health and bootstrap identity
 test("wrong route kind, identity drift, failed readiness, and tampering fail closed", async () => {
   const drift = { ...identity, artifactSha256: "e".repeat(64) };
   const transport = { async request(operation) {
-    const meta = { operation, identity: operation === "health" ? drift : identity };
-    if (operation === "health") return { ok: true, meta, data: { ready: false, status: "starting", identity: drift } };
-    return { ok: true, meta, data: { identity } };
+    const meta = { revision: "basis-1", requestId: `request-${operation}` };
+    if (operation === "health") return { meta, data: { ready: false, status: "starting", identity: drift } };
+    return { meta, data: { identity } };
   } };
   const times = ["2026-08-25T12:00:01Z", "2026-08-25T12:00:02Z"];
   let index = 0;

@@ -90,7 +90,7 @@ async function runOperation(transport, entry) {
 }
 
 async function requireSuccess(response) {
-  if (!response || response.ok !== true) throw Object.assign(new Error(`workload request failed: ${response?.error?.code ?? "invalid-envelope"}`), { code: response?.error?.code ?? "invalid-envelope" });
+  if (!response || !("data" in response) || "error" in response) throw Object.assign(new Error(`workload request failed: ${response?.error?.code ?? "invalid-envelope"}`), { code: response?.error?.code ?? "invalid-envelope" });
   return response;
 }
 

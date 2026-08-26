@@ -65,7 +65,7 @@ export function unsupportedResult(reason) {
 }
 
 export function successfulData(response, operation) {
-  if (!response || response.ok !== true || response.meta?.operation !== operation || !response.data) {
+  if (!response || !("data" in response) || "error" in response) {
     const code = response?.error?.code ?? "invalid-envelope";
     throw new Error(`${operation} qualification request failed: ${code}`);
   }
@@ -80,16 +80,15 @@ export function assertIdentity(actual, expected) {
   return true;
 }
 
-export function assertEnvelopeIdentity(response, operation, expectedIdentity) {
-  if (!response || response.meta?.operation !== operation) throw new Error(`qualification ${operation} response correlation mismatch`);
-  assertIdentity(response.meta.identity, expectedIdentity);
+export function assertEnvelope(response, operation) {
+  if (!response || !response.meta || typeof response.meta.requestId !== "string") throw new Error(`qualification ${operation} response correlation mismatch`);
   return response;
 }
 
 function identityCheckedTransport(transport, expectedIdentity) {
   return Object.freeze({
     async request(operation, input = {}) {
-      return assertEnvelopeIdentity(await transport.request(operation, input), operation, expectedIdentity);
+      return assertEnvelope(await transport.request(operation, input), operation);
     },
     ...(typeof transport.probeCancellationCleanup === "function"
       ? { probeCancellationCleanup: transport.probeCancellationCleanup.bind(transport) }

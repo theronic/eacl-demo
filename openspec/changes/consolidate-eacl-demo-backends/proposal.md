@@ -15,7 +15,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
   - Datahike/S3 using the existing one-million-resource store and Lambda reader;
   - Datahike/DynamoDB using a new dedicated one-million-resource table after adapter and real-AWS qualification;
   - Datomic Pro/DynamoDB using a temporary provisioning transactor, history-preserving storage for the later separately qualified EC2 demo, and a Lambda read-only Peer that serves only the fixed current snapshot captured at environment initialization;
-  - Datalevin/in-memory using approximately ten thousand deterministic resources in a managed Java Lambda with separately qualified SnapStart lifecycle behavior;
+  - Datalevin/in-memory using approximately ten thousand deterministic resources in a managed Java Lambda that rebuilds ephemeral native state on a cold environment, with SnapStart disabled;
   - Jank using its bundled in-memory Datomic-like conformance store in a Linux x86_64 `provided.al2023` Lambda custom runtime with no SnapStart claim or dependency; and
   - DataScript running entirely in a browser worker at `/datascript/`.
 - Keep Jank registered and fail-closed but park it outside the active rollout. Datahike, Datomic, Datalevin, DataScript, and their shared static/data/infrastructure units SHALL become deployable without waiting for Jank; Jank re-enters ordinary deployment only after an explicit unpark decision and its existing Linux qualification gates pass.
@@ -38,7 +38,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
 - `unified-demo-api`: Versioned read-only HTTP and worker contracts, response/source metadata, errors, cancellation, limits, and capability discovery.
 - `datahike-storage-demos`: Adoption and comparison requirements for Datahike/S3 and qualification-gated Datahike/DynamoDB.
 - `datomic-read-only-demo`: One-million-resource Datomic/DynamoDB provisioning and a transactor-free Lambda serving one fixed current database value.
-- `datalevin-memory-demo`: Approximately ten-thousand-resource Datalevin in-memory Lambda and native/SnapStart lifecycle qualification.
+- `datalevin-memory-demo`: Approximately ten-thousand-resource Datalevin in-memory Lambda, bounded cold rebuild, and honest ephemeral-storage lifecycle.
 - `datascript-browser-demo`: EACL v8 DataScript browser worker, separate artifact boundary, deterministic local data, and shared explorer behavior.
 - `jank-lambda-demo`: Linux x86_64 `provided.al2023` Jank custom-runtime Lambda using the bundled in-memory Datomic-like conformance store without SnapStart.
 - `demo-backend-conformance`: Deterministic fixtures, one-time backend qualification, lightweight merge smoke gates, comparable storage performance evidence, provenance, and honest limitations.
@@ -56,4 +56,4 @@ None. `eacl-demo` has no archived main specifications; sibling changes remain ev
 - **AWS:** one canonical CloudFront/static foundation; isolated Lambda functions and aliases; two new, non-shared DynamoDB datasets; temporary seed/transactor/build compute where required; least-privilege OIDC/deployment and serving roles; dashboards, throughput caps, alarms, budgets, anomaly detection, SNS, and Telegram delivery.
 - **Data operations:** reproducible private seeds, exactly one million resources for both durable DynamoDB comparison profiles, declared counts for smaller profiles, immutable serving datasets, and mandatory temporary-compute teardown.
 - **Rollout:** active profiles and workflow runs are intentionally uncoordinated and may expose different generations. Each descriptor exposes its actual source/deployment identity; a failed active profile keeps its previous healthy deployment rather than blocking or rolling back siblings. Parked Jank remains outside ordinary fan-out.
-- **Known gates:** Datahike/DynamoDB still requires real-AWS adapter evidence; Datalevin still requires a published maintained fork, AL2023-compatible native closure, and SnapStart lifecycle evidence; Datomic storage retains history but its read-only Lambda supports only its fixed current snapshot. Jank is parked and, if later unparked, must build and smoke on Linux x86_64/AL2023 and cannot use Lambda SnapStart.
+- **Known gates:** Datahike/DynamoDB still requires real-AWS adapter evidence; Datalevin still needs a full memory/latency sweep although its pinned AL2023 native closure and cold-rebuilt demo artifact are deployed; Datomic storage retains history but its read-only Lambda supports only its fixed current snapshot. Jank is parked and, if later unparked, must build and smoke on Linux x86_64/AL2023 and cannot use Lambda SnapStart.

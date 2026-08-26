@@ -144,13 +144,14 @@ export function createExplorerController({
         signal: controller.signal
       });
       if (!isCurrentPanelRequest(panelId, request) || controller.signal.aborted || current.epoch !== epoch) return { outcome: "stale", epoch: current.epoch, requestId };
-      if (result?.ok === false) {
+      if (result && "error" in result && !("data" in result)) {
         const error = safeEnvelopeError(result.error);
         publishPanel(panelId, { phase: "error", requestId, error, retryable: error.retryable, meta: result.meta ?? null }, `${panelId} failed.`, "assertive");
         return { outcome: "failure", epoch: current.epoch, requestId, error };
       }
-      const value = validate(result?.ok === true ? result.data : result);
-      publishPanel(panelId, { phase: "ready", requestId, value, error: null, retryable: false, meta: result?.ok === true ? result.meta : null }, `${panelId} updated.`);
+      if (!result || !("data" in result) || "error" in result) throw typedError("invalid-response", "The profile returned an invalid response.", false);
+      const value = validate(result.data);
+      publishPanel(panelId, { phase: "ready", requestId, value, error: null, retryable: false, meta: result.meta ?? null }, `${panelId} updated.`);
       return { outcome: "success", epoch: current.epoch, requestId, value: structuredClone(value) };
     } catch (error) {
       if (!isCurrentPanelRequest(panelId, request) || current.epoch !== epoch) return { outcome: "stale", epoch: current.epoch, requestId };

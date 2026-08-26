@@ -17,7 +17,7 @@ Several platform facts determine the design:
 
 1. Datomic Pro read-only connections return one fixed database/log value and support `d/db`, `d/log`, and `d/release`, not live synchronization. The current EACL Datomic source advertises modes whose authoritative/at-least/exact paths call `d/sync`. Therefore the read-only Lambda must serve direct snapshots over one captured `d/db` value and reject those modes before the generic source path. The underlying schema/storage still retains normal Datomic transaction history for the later separately qualified live EC2 demo.
 2. The Datahike DynamoDB adapter path still needs repair for typed failures, consistent publication reads, unprocessed keys, deadlines, and real AWS behavior. DynamoDB Local cannot prove those properties.
-3. Datalevin in-memory mode uses native resources whose snapshot ownership and SnapStart restore lifecycle need one-time deployment qualification.
+3. Datalevin in-memory mode uses native resources and rebuilds its packaged fixture for each cold Lambda environment. SnapStart remains disabled unless a later native-handle restore qualification justifies it.
 4. Jank compiles natively. Lambda requires a Linux binary matching the configured architecture. `provided.al2023` supports x86_64 and arm64 custom runtimes, but AWS SnapStart excludes OS-only runtimes and container images. Upstream Jank currently exercises Linux release builds on GitHub's x64 `ubuntu-24.04` runner, not its arm64 runner, so Linux x86_64/AL2023 is the defensible initial target. Jank should start through AOT and does not need SnapStart.
 5. AWS Budgets data is delayed; immediate DynamoDB cost defense must use on-demand maximums and CloudWatch consumption/throttle/write signals.
 6. The current Datahike deployment already contains a tested Telegram notifier path using SNS, Lambda, an AWS-held token, and end-to-end ALARM/OK tests. Consolidation should generalize that implementation and reuse the token rather than introduce GitHub-held Telegram credentials.
@@ -72,7 +72,7 @@ The first selector is a stable backend ID. The second is filtered by enabled reg
 | --- | --- | --- | --- |
 | Datahike | S3, DynamoDB | managed Java arm64 Lambda; SnapStart disabled until a storage-specific restore lifecycle qualifies | exactly 1,000,000 for both |
 | Datomic | DynamoDB | managed Java Lambda, read-only Peer | exactly 1,000,000 |
-| Datalevin | in-memory LMDB | managed Java Lambda/SnapStart | exactly 10,000 |
+| Datalevin | in-memory LMDB | managed Java Lambda; rebuilt on cold environment, SnapStart disabled | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
 | DataScript | browser memory | ClojureScript Web Worker | exactly 10,000 by default |
 
@@ -129,6 +129,13 @@ statements remain exact-resource scoped.
 
 Health/bootstrap descriptors include exact profile, backend, storage, `eacl-sha`, `demo-sha`, artifact/deployment/data identity, capabilities, limits, and limitations, and the UI identity-checks them before ordinary use. Ordinary responses keep the earlier Explorer's compact metadata shape instead of repeating deployment facts on every operation.
 
+Every backend, including DataScript, uses exactly the same ordinary envelope:
+success is `{data, meta}` and failure is `{error, meta}`. `meta` contains only
+`revision`, `requestId`, and optional `elapsedMs`/`cacheStatus`. Authorization
+data is only `{allowed}`. Retry behavior is inferred from stable error codes;
+there is no backend-specific `ok`, operation, identity, basis, retryability,
+reason, or explanation-path payload.
+
 Independent rollout means the shell may be N while one profile is N-1. Contract additions are optional/capability-discovered for one compatibility window. Incompatible semantics introduce `/api/v2` and dual support; they do not require a fleet-atomic release. The selector visibly reports each actually deployed source pair and its last deployment outcome.
 
 Only portable semantic intent enters URLs/history. Cursors, basis tokens, revisions, request IDs, cached values, and seed state never do.
@@ -152,6 +159,12 @@ adopted store is never mutated or relabeled. Until the canonical S3 generation
 exists, qualified choices use the deterministic S3 fallback with no speed
 claim—even if DynamoDB is also enabled. DynamoDB seed authorization does not
 authorize this additional S3 state or spend.
+
+The adopted manifest's aggregate non-user resource count is 1,001,584
+(1,000,000 servers plus accounts, teams, VPCs, and the platform object). The
+descriptor therefore carries both aggregate logical-resource count and exact
+server count; the Explorer's Servers total uses the latter. The consolidation
+does not seed or select another S3 bucket.
 
 The DynamoDB adapter must preserve typed failure categories, handle every
 unprocessed key, use strong publication reads or equivalent proof, implement
@@ -189,37 +202,23 @@ double-builds and Java 25 kernel-load audits. That closes only the artifact
 boundary; provisioning, seeding, history proof, actual Lambda execution,
 memory selection, and staged publication remain open.
 
-### 9. Datalevin SnapStart remains a one-time topology gate
+### 9. Datalevin is an ephemeral cold-rebuilt Lambda
 
-The maintained fork/native closure must support Linux arm64, explicit read snapshots, single owning platform-thread use/release, immutable public operation, and a durable source-lifecycle/watermark definition for deployment/rollback.
+The active artifact is a Java 25/arm64 ZIP built from the pinned maintained
+fork commit `a7e29c25` and the pinned AL2023-compatible native JAR whose ABI
+audit caps required glibc at 2.34. It opens Datalevin with a `nil` directory,
+which selects native in-memory LMDB; it has no remote server, EFS, S3,
+DynamoDB, WAL, or durable LMDB serving path. Its data exists only in one Lambda
+execution environment's memory and disappears with that environment.
 
-The current maintained-fork candidate is clean and remotely addressable at
-commit `a7e29c25`, and its source exposes explicit owned read snapshots plus
-true `MDB_INMEMORY` mode. It is not yet a release: the candidate is untagged,
-the reserved `dev.eacl/datalevin-embedded-eacl` coordinate is unpublished, and
-the locked EACL adapter still resolves it through a development-only local
-root. The pinned Linux arm64 native `0.18.8` JAR is also unusable on the target:
-its three AArch64 shared libraries require glibc 2.38, while the managed Java
-25 Lambda runtime uses Amazon Linux 2023/glibc 2.34. A fork release and native
-closure rebuilt against an AL2023-compatible sysroot are therefore hard gates
-before a Lambda artifact can exist; neither another architecture nor a
-container-only topology may silently substitute for the declared managed Java
-arm64 profile.
-
-The qualification-only CloudFormation boundary fixes that eventual topology
-to a Java 25/arm64 ZIP, true memory mode, one concurrency slot, 512 MiB
-ephemeral storage, and SnapStart on a published version. Its role reads only
-one exact version of an SSE-S3 control-plane metadata object and delivers logs;
-it cannot write that object or any durable data store. The closed metadata
-record binds the data manifest, bootstrap transaction plan, externally
-retained lifecycle, deterministic native source UUID, and final revision
-watermark. Every rebuilt environment must reach those exact values before
-constructing the EACL client, whose synchronous watermark callback rereads the
-immutable record rather than trusting process-local state. This prevents
-independent environments from inventing different source identities or racing
-to advance one shared watermark. The template remains visibly blocked and is
-not a runtime artifact; it does not satisfy the release, native ABI, lifecycle,
-telemetry, memory-sweep, or staged-publication tasks.
+Each cold environment parses the packaged 10,000-resource NDJSON fixture,
+installs the schema, and writes 10,080 objects plus 38,613 relationships. The
+original consolidation performed roughly one hundred 500-record transactions;
+the active implementation uses bounded 5,000-record batches (three object and
+eight relationship transactions). The ordinary candidate smoke prints wall
+time for the first health invocation so cold behavior is measured on every
+deployment. SnapStart stays disabled: enabling it would be a separate native
+handle/restore decision, not a requirement for this demo.
 
 Initial qualification evaluates quiesced pre-checkpoint native state versus full post-restore in-memory construction, within AWS restore-hook limits. Repeated restore/eviction/concurrency/handle/lock/load evidence chooses the strategy. Ordinary merges do not rerun the campaign; they build, deploy, and smoke the already qualified topology.
 

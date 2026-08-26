@@ -39,41 +39,8 @@
 
       :else {:ok? true :operation operation})))
 
-(defn success-envelope
-  ([request operation identity basis data]
-   (success-envelope request operation identity basis data nil nil))
-  ([request operation identity basis data elapsed-ms cache-status]
-  {:ok true
-   :meta (cond-> {:contractVersion "explorer.v1"
-                  :operation operation
-                  :requestId (:request-id request)
-                  :identity identity
-                  :basis basis}
-           (some? elapsed-ms) (assoc :elapsedMs elapsed-ms)
-           (some? cache-status) (assoc :cacheStatus cache-status))
-   :data data}))
-
-(defn failure-envelope
-  [request operation identity basis code]
-  {:ok false
-   :meta {:contractVersion "explorer.v1"
-          :operation operation
-          :requestId (:request-id request)
-          :identity identity
-          :basis basis}
-   :error {:code code
-           :message (case code
-                      "route-not-found" "The route is not available."
-                      "method-not-allowed" "The HTTP method is not allowed."
-                      "unsupported-consistency" "The consistency mode is not supported."
-                      "cancelled" "The request was cancelled."
-                      "deadline-exceeded" "The request deadline was exceeded."
-                      "overloaded" "The profile has reached its admission limit."
-                      "internal-error" "The request failed internally."
-                      "The request is invalid.")
-           :retryable (contains? #{"cancelled" "deadline-exceeded" "overloaded"}
-                                 code)
-           :details []}})
+(def success-envelope http/success-envelope)
+(def failure-envelope http/failure-envelope)
 
 (defn descriptor
   [{:keys [identity runtime dataset basis capabilities limits]}]
@@ -117,14 +84,14 @@
         input (:input input-result)]
     (cond
       (not (http/valid-request-id? request-id))
-      (failure-envelope (assoc request :request-id "invalid") operation
+      (failure-envelope (assoc request :request-id "invalid")
                         identity nil "validation-error")
       (not ok?)
-      (failure-envelope request operation identity nil code)
+      (failure-envelope request identity nil code)
       (not (:ok? input-result))
-      (failure-envelope request operation identity nil (:code input-result))
+      (failure-envelope request identity nil (:code input-result))
       (not (.tryAcquire permits))
-      (failure-envelope request operation identity nil "overloaded")
+      (failure-envelope request identity nil "overloaded")
       :else
       (let [started-nanos (System/nanoTime)
             snapshot* (atom nil)
@@ -155,16 +122,16 @@
                          :basis (:basis snapshot)
                          :check-active! check-active!})]
               (check-active!)
-              (success-envelope request operation identity (:basis snapshot)
+              (success-envelope request identity (:basis snapshot)
                                 data
                                 (response-meta/elapsed-ms started-nanos)
                                 (response-meta/cache-status data))))
           (catch clojure.lang.ExceptionInfo error
-            (failure-envelope request operation identity
+            (failure-envelope request identity
                               (some-> @snapshot* :basis)
                               (or (:code (ex-data error)) "internal-error")))
           (catch Throwable _
-            (failure-envelope request operation identity
+            (failure-envelope request identity
                               (some-> @snapshot* :basis) "internal-error"))
           (finally
             (try

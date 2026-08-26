@@ -3,7 +3,7 @@ import test from "node:test";
 import { summarizeDemoSmoke } from "./lib/demo-smoke-result.mjs";
 
 const manifest = "a".repeat(64);
-const response = (data) => ({ statusCode: 200, envelope: { ok: true, data } });
+const response = (data) => ({ statusCode: 200, envelope: { data, meta: { revision: "basis-1", requestId: "smoke-1" } } });
 const expectedIdentity = {
   profileId: "datomic-dynamodb",
   demoSha: "b".repeat(40),

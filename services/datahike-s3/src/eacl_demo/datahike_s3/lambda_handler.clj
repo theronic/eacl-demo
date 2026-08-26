@@ -10,7 +10,6 @@
             [eacl-demo.datahike-s3.reader :as reader])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]
-           [java.nio.charset StandardCharsets]
            [java.util UUID]))
 
 (def ^:private pinned-eacl-sha
@@ -23,7 +22,7 @@
   #"(?=.{3,63}$)(?![0-9]+(?:\.[0-9]+){3}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?")
 
 (declare handle-event initialize parse-environment parse-nonnegative-int
-         parse-positive-int safe-request-id)
+         parse-positive-int)
 
 (defonce ^:private runtime
   (delay
@@ -74,7 +73,7 @@
     (if-not (:ok? normalized)
       (function-url/create-response
        (boundary/failure-envelope
-        {:request-id (safe-request-id event)} "health"
+        {:request-id (function-url/event-request-id event)}
         (:identity descriptor) nil (:code normalized)))
       (let [request (:request normalized)
             remaining (if (and (integer? remaining-time-ms)
@@ -104,18 +103,12 @@
             response (handle-event @runtime event
                                    (when context
                                      (.getRemainingTimeInMillis context)))]
-        (observability/observe-response! telemetry-context response started)
+        (observability/observe-response! telemetry-context event response started)
         (json/write response writer))
       (catch Throwable error
         (observability/observe-exception! telemetry-context @event* started error)
-        (json/write
-         {:statusCode 500
-          :headers {"content-type" "application/json; charset=utf-8"
-                    "cache-control" "no-store"
-                    "x-content-type-options" "nosniff"}
-          :body "{\"ok\":false,\"transportError\":{\"code\":\"internal-error\",\"message\":\"The request could not be processed.\"}}"
-          :isBase64Encoded false}
-         writer))
+        (json/write (function-url/internal-error-response
+                     @event* (:deployment-id telemetry-context)) writer))
       (finally
         (.flush writer)))))
 
@@ -193,14 +186,3 @@
       (let [parsed (Integer/parseInt value)]
         (when (nat-int? parsed) parsed))
       (catch NumberFormatException _ nil))))
-
-(defn- safe-request-id
-  [event]
-  (let [value (get-in event [:requestContext :requestId])]
-    (if (and (string? value)
-             (not-empty value)
-             (<= (alength (.getBytes ^String value
-                                     StandardCharsets/UTF_8))
-                 128))
-      value
-      "invalid")))

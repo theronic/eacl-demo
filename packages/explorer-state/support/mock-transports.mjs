@@ -51,7 +51,7 @@ export function createMockTransportEnvironment(scenarioValue, options = {}) {
         }
         const configuredResponse = options.responses?.[operation];
         const data = configuredResponse ? (typeof configuredResponse === "function" ? configuredResponse(input, calls.filter((call) => call.operation === operation).length) : structuredClone(configuredResponse)) : responseData(selected, operation, input);
-        return { ok: true, meta: responseMeta(selected, requestId ?? `mock-${calls.length}`, operation), data };
+        return { data, meta: responseMeta(selected, requestId ?? `mock-${calls.length}`) };
       },
       cancel(requestId) { cancellations.push(requestId); },
       async release() { if (!released) { released = true; releases.push(selected.profile.id); } }
@@ -106,7 +106,7 @@ function responseData(selected, operation, input) {
     "get-object": { object },
     "list-relationships": { items: [{ resourceType: object.type, resourceId: object.id, relation: input.relation ?? "owner", subjectType: subject.type, subjectId: subject.id, subjectRelation: null }], pageInfo },
     "reverse-relationships": { items: [object], pageInfo },
-    authorize: { subjectType: subject.type, subjectId: subject.id, resourceType: object.type, resourceId: object.id, permission: input.permission ?? "view", allowed: true, reasonCode: "granted", path: [{ kind: "direct", label: "fixture grant", allowed: true }] },
+    authorize: { allowed: true },
     "get-schema": { sha256: SHA.schema, types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
     "get-cache-info": { behavior: selected.descriptor.capabilities.cacheBehavior, hit: null, scope: selected.profile.id, entries: null, limitations: [...selected.descriptor.capabilities.limitations] },
     "count-objects": { kind: "objects", value: Math.min(input.ceiling ?? selected.descriptor.dataset.logicalResourceCount, selected.descriptor.dataset.logicalResourceCount), exact: (input.ceiling ?? 1_000_000) >= selected.descriptor.dataset.logicalResourceCount, ceiling: input.ceiling ?? 1_000_000 }
@@ -114,17 +114,16 @@ function responseData(selected, operation, input) {
   return structuredClone(responses[operation]);
 }
 
-function responseMeta(selected, requestId, operation) {
+function responseMeta(selected, requestId) {
   const descriptor = selected.descriptor;
   return {
-    contractVersion: "explorer.v1", requestId, operation,
-    identity: descriptor.identity,
-    basis: descriptor.basis
+    revision: descriptor.basis.id,
+    requestId
   };
 }
 
-function oneMillion() { return { fixtureId: "canonical-v1-1000000", logicalResourceCount: 1_000_000, manifestSha256: SHA.data }; }
-function tenThousand() { return { fixtureId: "canonical-v1-10000", logicalResourceCount: 10_000, manifestSha256: SHA.data }; }
+function oneMillion() { return { fixtureId: "canonical-v1-1000000", logicalResourceCount: 1_000_000, serverCount: 998_417, manifestSha256: SHA.data }; }
+function tenThousand() { return { fixtureId: "canonical-v1-10000", logicalResourceCount: 10_000, serverCount: 9_922, manifestSha256: SHA.data }; }
 function lambda(name, architecture, snapStart) { return { execution: "lambda", name, architecture, snapStart }; }
 
 function delay(milliseconds, signal) {

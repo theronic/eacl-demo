@@ -44,7 +44,7 @@ export function createHttpQualificationTransport(target, { fetchImpl = globalThi
       const mergedHeaders = mergeAuthorizationHeaders(headers, authorization);
       const response = await fetchImpl(url, { method, headers: mergedHeaders, ...(body === null ? {} : { body }), signal: boundedSignal(signal, requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
       const envelope = await readBoundedJsonResponse(response);
-      if (envelope?.meta?.requestId !== requestId || envelope?.meta?.operation !== operation) throw new Error("qualification response correlation mismatch");
+      if (envelope?.meta?.requestId !== requestId) throw new Error("qualification response correlation mismatch");
       return envelope;
     },
     async probeFault(kind) {

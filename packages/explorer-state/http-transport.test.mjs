@@ -17,7 +17,7 @@ const descriptor = {
   runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
   capabilities: { operations: ["health", "bootstrap", "authorize"], consistencyModes: ["current"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"] },
   limits: [{ name: "responseBodyBytes", value: 1_048_576 }],
-  dataset: { fixtureId: "fixture-v1", logicalResourceCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
+  dataset: { fixtureId: "fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
 };
 
 test("server transport starts health and bootstrap sequentially on the reserved-concurrency-one runtime", async () => {
@@ -59,7 +59,7 @@ test("server transport serializes concurrent operations to preserve the runtime 
   });
   const requests = ["parallel-1", "parallel-2", "parallel-3"].map((requestId) => transport.request("authorize", {}, { requestId }));
   const envelopes = await Promise.all(requests);
-  assert.equal(envelopes.every(({ ok }) => ok === true), true);
+  assert.equal(envelopes.every(({ data }) => data.allowed === true), true);
   assert.equal(maximumInFlight, 1);
 });
 
@@ -70,14 +70,14 @@ test("POST bodies carry the exact payload hash and validated request scope", asy
     return response(success("authorize", "9-2", { allowed: true }));
   });
   const envelope = await transport.request("authorize", { subjectId: "alice" }, { epoch: 9, requestId: "9-2" });
-  assert.equal(envelope.ok, true);
+  assert.equal(envelope.data.allowed, true);
   assert.equal(observed.init.body, '{"subjectId":"alice"}');
   assert.equal(observed.init.headers["x-eacl-request-id"], "9-2");
   assert.equal(observed.init.headers["x-amz-content-sha256"], "9707c3f229275ea24bb9c5771bc3be55636e7c96d010873b6ebe6a929665beaf");
   assert.equal(observed.init.cache, "no-store");
 });
 
-test("Datomic authorization accepts the original compact decision metadata after bootstrap identity validation", async () => {
+test("every backend accepts the same original compact decision metadata", async () => {
   const datomicProfile = {
     ...profile,
     id: "datomic-dynamodb",
@@ -87,7 +87,6 @@ test("Datomic authorization accepts the original compact decision metadata after
     deployment: { ...profile.deployment },
   };
   const transport = createTransport(async () => response({
-    ok: true,
     meta: { revision: "datomic:fixture:42", requestId: "compact-1", elapsedMs: 0.8, cacheStatus: "hit" },
     data: { allowed: true },
   }), { profile: datomicProfile });
@@ -95,23 +94,16 @@ test("Datomic authorization accepts the original compact decision metadata after
   assert.deepEqual(envelope.data, { allowed: true });
   assert.equal(envelope.meta.identity, undefined);
   assert.equal(envelope.meta.basis, undefined);
-  const wrongProfile = createTransport(async () => response({
-    ok: true,
+  const datahike = createTransport(async () => response({
     meta: { revision: "basis-1", requestId: "compact-2" },
     data: { allowed: true },
   }));
-  await assert.rejects(wrongProfile.request("authorize", {}, { requestId: "compact-2" }), /match|identity/u);
+  assert.deepEqual((await datahike.request("authorize", {}, { requestId: "compact-2" })).data, { allowed: true });
 });
 
-test("response operation, request, deployment, and status drift all fail closed", async () => {
-  const variants = [
-    success("authorize", "wrong", {}),
-    { ...success("authorize", "1-1", {}), meta: { ...success("authorize", "1-1", {}).meta, identity: { ...identity, artifactSha256: "e".repeat(64) } } }
-  ];
-  for (const candidate of variants) {
-    const transport = createTransport(async () => response(candidate));
-    await assert.rejects(transport.request("authorize", {}, { requestId: "1-1" }), /identity|match/u);
-  }
+test("request correlation and HTTP status drift still fail closed", async () => {
+  const wrongRequest = createTransport(async () => response(success("authorize", "wrong", {})));
+  await assert.rejects(wrongRequest.request("authorize", {}, { requestId: "1-1" }), /identity|match/u);
   const badStatus = createTransport(async () => response(success("authorize", "1-1", {}), 503));
   await assert.rejects(badStatus.request("authorize", {}, { requestId: "1-1" }), /status/u);
 });
@@ -154,7 +146,7 @@ function createTransport(fetchImpl, overrides = {}) {
 }
 
 function success(operation, requestId, data) {
-  return { ok: true, meta: { contractVersion: "explorer.v1", requestId, operation, identity, basis }, data };
+  return { data, meta: { revision: basis.id, requestId } };
 }
 
 function response(value, status = 200) {

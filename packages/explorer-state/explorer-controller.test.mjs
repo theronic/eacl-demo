@@ -54,7 +54,7 @@ test("profile switching clears owned state and suppresses late panel completion"
 test("panel failures and cancellation do not erase settled sibling data", async () => {
   const environment = createMockTransportEnvironment("datahike-dynamodb", {
     delays: { "list-relationships": 30 },
-    failures: { authorize: { ok: false, meta: null, error: { code: "dependency-unavailable", message: "The profile dependency is unavailable.", retryable: true, details: [] } } }
+    failures: { authorize: { meta: { revision: "basis-1", requestId: "request-authorize" }, error: { code: "dependency-unavailable", message: "The profile dependency is unavailable." } } }
   });
   const controller = createExplorerController({ transportFactory: environment.transportFactory });
   await controller.switchProfile(environment.profile);
@@ -121,7 +121,7 @@ test("startup can be canceled and retried without a late readiness transition", 
 test("retry preserves panel response validation and announces recovery", async () => {
   let failures = 0;
   const environment = createMockTransportEnvironment("datahike-dynamodb", { failures: {
-    "get-schema": () => failures++ === 0 ? { ok: false, meta: null, error: { code: "dependency-unavailable", message: "The dependency is unavailable.", retryable: true, details: [] } } : null
+    "get-schema": () => failures++ === 0 ? { meta: { revision: "basis-1", requestId: "request-get-schema" }, error: { code: "dependency-unavailable", message: "The dependency is unavailable." } } : null
   } });
   const controller = createExplorerController({ transportFactory: environment.transportFactory });
   await controller.switchProfile(environment.profile);
