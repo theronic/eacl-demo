@@ -3,6 +3,7 @@ name: Deploy demos
 on:
   push:
     branches: [demos]
+  workflow_dispatch:
 
 permissions:
   contents: read
