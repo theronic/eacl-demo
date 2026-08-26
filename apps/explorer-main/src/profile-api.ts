@@ -68,6 +68,16 @@ interface WireEnvelope<T> {
   };
 }
 
+export interface ExplorerTransport {
+  bootstrap: (options?: { signal?: AbortSignal | null }) => Promise<unknown>;
+  request: (
+    operation: string,
+    input?: Record<string, unknown>,
+    options?: { signal?: AbortSignal | null },
+  ) => Promise<unknown>;
+  release: () => Promise<unknown>;
+}
+
 interface WireObject {
   type: string;
   id: string;
@@ -99,11 +109,14 @@ const validateResponse = createRuntimeBoundaryValidator(
   "serverResponse",
 );
 
-export function createProfileApi(profile: ExplorerProfile): {
+export function createProfileApi(
+  profile: ExplorerProfile,
+  options: { transport?: ExplorerTransport } = {},
+): {
   dispatcher: ApiDispatcher;
   release: () => Promise<void>;
 } {
-  const transport = createServerProfileTransport({
+  const transport = options.transport ?? createServerProfileTransport({
     profile,
     baseUrl: window.location.href,
     validateRequest,

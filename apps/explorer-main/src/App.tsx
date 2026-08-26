@@ -1,4 +1,5 @@
 import {
+  type Accessor,
   createMemo,
   createSignal,
   onCleanup,
@@ -22,7 +23,11 @@ import { createUrlStateController } from "../../../packages/explorer-state/src/u
 import { ApiProvider } from "./api";
 import { ProfileSelector } from "./components/ProfileSelector";
 import { Explorer } from "./Explorer";
-import { createProfileApi, type ExplorerProfile } from "./profile-api";
+import {
+  createProfileApi,
+  type ExplorerProfile,
+  type ExplorerTransport,
+} from "./profile-api";
 import { readPreferences, writePreferences } from "./preferences";
 import { AppStateProvider } from "./state";
 
@@ -74,10 +79,20 @@ const catalog = catalogData as {
   storages: Array<{ id: StorageId; label: string }>;
 };
 
-export default function App(): JSX.Element {
+export interface ExplorerAppProps {
+  entry?: "server" | "datascript";
+  createDataScriptTransport?: (profile: ExplorerProfile) => ExplorerTransport;
+  startupMessage?: Accessor<string | null>;
+}
+
+export default function App(props: ExplorerAppProps): JSX.Element {
   const initialBackend = catalog.backends.find(({ id }) => id === catalog.defaultBackend) ?? catalog.backends[0];
   const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
-  const [selection, setSelection] = createSignal<Selection>(fromUrl);
+  const [selection, setSelection] = createSignal<Selection>(
+    props.entry === "datascript"
+      ? { backend: "datascript", storage: "browser-memory" }
+      : fromUrl,
+  );
   const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
   let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
   const publicationController = new AbortController();
@@ -91,6 +106,15 @@ export default function App(): JSX.Element {
       eventTarget: window,
       onState: (state: unknown) => setSelection(state as Selection),
     });
+    if (props.entry === "datascript") {
+      const next = {
+        ...(parseCanonicalUrl(window.location.search, catalog).state as Selection),
+        backend: "datascript" as const,
+        storage: "browser-memory" as const,
+      };
+      setSelection(next);
+      urlController.navigate(next, { replace: true });
+    }
     void refreshProfilePublications();
   });
   onCleanup(() => {
@@ -116,7 +140,7 @@ export default function App(): JSX.Element {
     registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
 
   const selectBackend = (backend: BackendId) => {
-    if (backend === "datascript") {
+    if (backend === "datascript" && props.entry !== "datascript") {
       window.open("/datascript/", "_blank", "noopener,noreferrer");
       setSelection({ ...selection() });
       queueMicrotask(() => {
@@ -201,11 +225,11 @@ export default function App(): JSX.Element {
   return (
     <Show
       keyed
-      when={selection().backend === "datascript"
-        ? { kind: "datascript" as const, key: `${selection().backend}:${selection().storage}` }
-        : selectedProfile()?.state === "enabled" && selectedProfile()?.deployment
-          ? { kind: "server" as const, profile: selectedProfile() as ExplorerProfile }
-          : null}
+      when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment
+        ? selection().backend === "datascript" && !props.createDataScriptTransport
+          ? { kind: "datascript-link" as const }
+          : { kind: "explorer" as const, profile: selectedProfile() as ExplorerProfile }
+        : null}
       fallback={
         <StandaloneExplorer
           backendLabel={selectedBackend().label}
@@ -214,7 +238,7 @@ export default function App(): JSX.Element {
         />
       }
     >
-      {(entry) => entry.kind === "datascript" ? (
+      {(entry) => entry.kind === "datascript-link" ? (
         <StandaloneExplorer
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
@@ -227,6 +251,10 @@ export default function App(): JSX.Element {
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
+          transport={entry.profile.backend === "datascript"
+            ? props.createDataScriptTransport?.(entry.profile)
+            : undefined}
+          startupMessage={props.startupMessage}
         />
       )}
     </Show>
@@ -238,8 +266,10 @@ function ConfiguredExplorer(props: {
   backendLabel: string;
   storageLabel: string;
   selector: JSX.Element;
+  transport?: ExplorerTransport;
+  startupMessage?: Accessor<string | null>;
 }): JSX.Element {
-  const api = createProfileApi(props.profile);
+  const api = createProfileApi(props.profile, { transport: props.transport });
   onCleanup(() => void api.release());
   return (
     <ApiProvider dispatcher={api.dispatcher}>
@@ -248,6 +278,7 @@ function ConfiguredExplorer(props: {
           backendLabel={props.backendLabel}
           storageLabel={props.storageLabel}
           profileSelector={props.selector}
+          startupMessage={props.startupMessage}
         />
       </AppStateProvider>
     </ApiProvider>

@@ -17,6 +17,7 @@
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
     "list-relationships" "reverse-relationships" "authorize"
+    "lookup-resources" "lookup-subjects" "count-resources"
     "get-schema" "get-cache-info" "count-objects"})
 (def ^:private unsupported-consistency
   #{"exact" "at-least" "authoritative" "historical-date"})
@@ -80,12 +81,15 @@
 (defn- deployment-identity []
   (:identity @lifecycle))
 
-(defn- response-meta [request runtime]
-  {:contractVersion contract-version
-   :requestId (:requestId request)
-   :operation (:operation request)
-   :identity (deployment-identity)
-   :basis (when runtime (basis runtime (:clientEpoch request)))})
+(defn- response-meta [request runtime cache-status]
+  (cond->
+   {:contractVersion contract-version
+    :requestId (:requestId request)
+    :operation (:operation request)
+    :identity (deployment-identity)
+    :basis (when runtime (basis runtime (:clientEpoch request)))
+    :elapsedMs (max 0 (- (.now js/performance) (:startedAt request)))}
+    cache-status (assoc :cacheStatus cache-status)))
 
 (defn- post-response! [request response]
   (when (current-epoch? (:clientEpoch request))
@@ -98,18 +102,23 @@
                (update :waiters dissoc (:requestId request))
                (update :canceled disj (:requestId request))))))
 
-(defn- success! [request runtime data]
-  (when (active-request? (:clientEpoch request) (:requestId request))
-    (post-response!
-     request
-     {:ok true :meta (response-meta request runtime) :data data})))
+(defn- success!
+  ([request runtime data]
+   (success! request runtime data nil))
+  ([request runtime data cache-status]
+   (when (active-request? (:clientEpoch request) (:requestId request))
+     (post-response!
+      request
+      {:ok true
+       :meta (response-meta request runtime cache-status)
+       :data data}))))
 
 (defn- failure! [request runtime code message retryable]
   (when (current-epoch? (:clientEpoch request))
     (post-response!
      request
      {:ok false
-      :meta (response-meta request runtime)
+      :meta (response-meta request runtime nil)
       :error {:code code :message message :retryable retryable :details []}})))
 
 (defn- bootstrap-data [runtime epoch]
@@ -120,6 +129,7 @@
    :capabilities
    {:operations ["health" "bootstrap" "list-subjects" "get-object"
                  "list-relationships" "reverse-relationships" "authorize"
+                 "lookup-resources" "lookup-subjects" "count-resources"
                  "get-schema" "get-cache-info" "count-objects"]
     :consistencyModes ["current" "minimize"]
     :snapshotBehavior "worker-lifecycle"
@@ -127,7 +137,7 @@
     :mutationLocality "browser-worker-initialization"
     :limitations ["browser-local" "ephemeral" "no-durability" "unequal-dataset-scale" "unsupported-consistency"]}
    :limits [{:name "message-bytes" :value maximum-message-bytes}
-            {:name "page-size" :value 100}
+            {:name "page-size" :value 1000}
             {:name "fixture-resources" :value fixture/small-resource-count}]
    :dataset {:fixtureId fixture/fixture-id
              :logicalResourceCount fixture/small-resource-count
@@ -147,7 +157,9 @@
         resource (eacl/spice-object (keyword (:resourceType input)) (:resourceId input))
         request (cond-> {:subject subject
                          :permission (keyword (:permission input))
-                         :resource resource}
+                         :resource resource
+                         :cache? (not (false? (:cache input)))
+                         :populate-cache? (not (false? (:populateCache input)))}
                   (= "minimize" (:consistency input))
                   (assoc :consistency :minimize-latency))
         decision (when (and (contains? (:objects runtime) subject-key)
@@ -159,14 +171,20 @@
                  (not (contains? (:objects runtime) resource-key)) "object-not-found"
                  allowed "granted"
                  :else "denied")]
-    {:subjectType (:subjectType input)
-     :subjectId (:subjectId input)
-     :resourceType (:resourceType input)
-     :resourceId (:resourceId input)
-     :permission (:permission input)
-     :allowed allowed
-     :reasonCode reason
-     :path []}))
+    {:data
+     {:subjectType (:subjectType input)
+      :subjectId (:subjectId input)
+      :resourceType (:resourceType input)
+      :resourceId (:resourceId input)
+      :permission (:permission input)
+      :allowed allowed
+      :reasonCode reason
+      :path []}
+     :cache-status
+     (cond
+       (false? (:cache input)) "disabled"
+       (true? (:cached? decision)) "hit"
+       :else "miss")}))
 
 (defn- normalized-relationship [record]
   {:resourceType (get-in record [:resource :type])
@@ -296,6 +314,76 @@
      :exact exact
      :ceiling (when-not exact ceiling)}))
 
+(defn- wire-object [runtime object]
+  (let [type (name (:type object))
+        id (:id object)]
+    (or (get (:objects runtime) [type id])
+        {:type type :id id :displayName id :attributes []})))
+
+(defn- wire-page [runtime result]
+  (let [page-info (:page-info result)
+        items (mapv #(wire-object runtime %) (:data result))
+        has-next (true? (:has-next-page? page-info))]
+    {:items items
+     :pageInfo {:hasNextPage has-next
+                :endCursor (when has-next (:end-cursor page-info))
+                :pageSize (count items)}}))
+
+(defn- cached-status [result input]
+  (cond
+    (false? (:cache input)) "disabled"
+    (true? (:cached? result)) "hit"
+    :else "miss"))
+
+(defn- common-query [input]
+  (cond-> {:cache? (not (false? (:cache input)))
+           :populate-cache? (not (false? (:populateCache input)))}
+    (= "minimize" (:consistency input))
+    (assoc :consistency :minimize-latency)))
+
+(defn- lookup-resources-data [runtime input]
+  (let [query (cond->
+               (merge
+                (common-query input)
+                {:subject (eacl/spice-object (keyword (:subjectType input))
+                                             (:subjectId input))
+                 :resource/type (keyword (:resourceType input))
+                 :permission (keyword (:permission input))
+                 :first (:pageSize input)})
+                (:cursor input) (assoc :after (:cursor input)))
+        result (eacl/lookup-resources (:client runtime) query)]
+    {:data (wire-page runtime result)
+     :cache-status (cached-status result input)}))
+
+(defn- lookup-subjects-data [runtime input]
+  (let [query (cond->
+               (merge
+                (common-query input)
+                {:resource (eacl/spice-object (keyword (:resourceType input))
+                                              (:resourceId input))
+                 :subject/type (keyword (:subjectType input))
+                 :permission (keyword (:permission input))
+                 :first (:pageSize input)})
+                (:cursor input) (assoc :after (:cursor input)))
+        result (eacl/lookup-subjects (:client runtime) query)]
+    {:data (wire-page runtime result)
+     :cache-status (cached-status result input)}))
+
+(defn- count-resources-data [runtime input]
+  (let [query (merge
+               (common-query input)
+               {:subject (eacl/spice-object (keyword (:subjectType input))
+                                            (:subjectId input))
+                :resource/type (keyword (:resourceType input))
+                :permission (keyword (:permission input))
+                :count-limit (:ceiling input)})
+        result (eacl/count-resources (:client runtime) query)]
+    {:data {:kind "objects"
+            :value (:count result)
+            :exact (not (true? (:truncated? result)))
+            :ceiling (:ceiling input)}
+     :cache-status (cached-status result input)}))
+
 (defn- cache-data []
   {:behavior "browser-worker-local"
    :hit nil
@@ -315,7 +403,18 @@
                        (failure! request runtime "storage-missing" "The requested fixture object does not exist." false))
         "list-relationships" (success! request runtime (relationships-data runtime (:input request)))
         "reverse-relationships" (success! request runtime (reverse-data runtime (:input request)))
-        "authorize" (success! request runtime (authorization-data runtime (:input request)))
+        "authorize" (let [{:keys [data cache-status]}
+                            (authorization-data runtime (:input request))]
+                        (success! request runtime data cache-status))
+        "lookup-resources" (let [{:keys [data cache-status]}
+                                   (lookup-resources-data runtime (:input request))]
+                               (success! request runtime data cache-status))
+        "lookup-subjects" (let [{:keys [data cache-status]}
+                                  (lookup-subjects-data runtime (:input request))]
+                              (success! request runtime data cache-status))
+        "count-resources" (let [{:keys [data cache-status]}
+                                  (count-resources-data runtime (:input request))]
+                              (success! request runtime data cache-status))
         "get-schema" (success! request runtime fixture/wire-schema)
         "get-cache-info" (success! request runtime (cache-data))
         "count-objects" (success! request runtime (count-data runtime (:input request)))
@@ -476,7 +575,7 @@
   (contains? #{nil "current" "minimize"} value))
 
 (defn- page-size? [value]
-  (and (integer? value) (<= 1 value 100)))
+  (and (integer? value) (<= 1 value 1000)))
 
 (defn- cursor? [value]
   (and (string? value)
@@ -516,16 +615,59 @@
       (and (exact-or-optional-keys?
             keys
             #{:subjectType :subjectId}
-            #{:subjectType :subjectId :relation :consistency :pageSize :cursor})
+            #{:subjectType :subjectId :relation :consistency :pageSize :cursor
+              :cache :populateCache})
            (every? identifier? ((juxt :subjectType :subjectId) input))
            (or (nil? (:relation input)) (identifier? (:relation input)))
            (consistency? (:consistency input))
+           (or (nil? (:cache input)) (boolean? (:cache input)))
+           (or (nil? (:populateCache input)) (boolean? (:populateCache input)))
            (or (nil? (:pageSize input)) (page-size? (:pageSize input)))
            (or (nil? (:cursor input)) (cursor? (:cursor input))))
       "authorize"
       (and (set/subset? #{:subjectType :subjectId :resourceType :resourceId :permission} keys)
-           (set/subset? keys #{:subjectType :subjectId :resourceType :resourceId :permission :consistency})
+           (set/subset? keys #{:subjectType :subjectId :resourceType :resourceId
+                               :permission :consistency :cache :populateCache})
            (every? identifier? ((juxt :subjectType :subjectId :resourceType :resourceId :permission) input))
+           (consistency? (:consistency input))
+           (or (nil? (:cache input)) (boolean? (:cache input)))
+           (or (nil? (:populateCache input)) (boolean? (:populateCache input))))
+      "lookup-resources"
+      (and (exact-or-optional-keys?
+            keys
+            #{:subjectType :subjectId :resourceType :permission}
+            #{:subjectType :subjectId :resourceType :permission :pageSize
+              :cursor :cache :populateCache :consistency})
+           (every? identifier? ((juxt :subjectType :subjectId :resourceType :permission) input))
+           (or (nil? (:pageSize input)) (page-size? (:pageSize input)))
+           (or (nil? (:cursor input)) (cursor? (:cursor input)))
+           (or (nil? (:cache input)) (boolean? (:cache input)))
+           (or (nil? (:populateCache input)) (boolean? (:populateCache input)))
+           (consistency? (:consistency input)))
+      "lookup-subjects"
+      (and (exact-or-optional-keys?
+            keys
+            #{:resourceType :resourceId :subjectType :permission}
+            #{:resourceType :resourceId :subjectType :permission :pageSize
+              :cursor :cache :populateCache :consistency})
+           (every? identifier? ((juxt :resourceType :resourceId :subjectType :permission) input))
+           (or (nil? (:pageSize input)) (page-size? (:pageSize input)))
+           (or (nil? (:cursor input)) (cursor? (:cursor input)))
+           (or (nil? (:cache input)) (boolean? (:cache input)))
+           (or (nil? (:populateCache input)) (boolean? (:populateCache input)))
+           (consistency? (:consistency input)))
+      "count-resources"
+      (and (exact-or-optional-keys?
+            keys
+            #{:subjectType :subjectId :resourceType :permission}
+            #{:subjectType :subjectId :resourceType :permission :ceiling
+              :cache :populateCache :consistency})
+           (every? identifier? ((juxt :subjectType :subjectId :resourceType :permission) input))
+           (or (nil? (:ceiling input))
+               (and (integer? (:ceiling input))
+                    (<= 1 (:ceiling input) 1000000)))
+           (or (nil? (:cache input)) (boolean? (:cache input)))
+           (or (nil? (:populateCache input)) (boolean? (:populateCache input)))
            (consistency? (:consistency input)))
       "get-schema"
       (and (exact-or-optional-keys? keys #{} #{:consistency})
@@ -545,12 +687,16 @@
 (defn- normalize-operation-input [request]
   (let [operation (:operation request)
         input (:input request)
-        paged? (contains? #{"list-subjects" "list-relationships" "reverse-relationships"} operation)
+        paged? (contains? #{"list-subjects" "list-relationships" "reverse-relationships"
+                            "lookup-resources" "lookup-subjects"} operation)
         consistent? (contains? #{"get-object" "list-relationships" "reverse-relationships"
-                                 "authorize" "get-schema" "count-objects"} operation)]
+                                 "authorize" "lookup-resources" "lookup-subjects"
+                                 "count-resources" "get-schema" "count-objects"} operation)]
     (cond-> input
       (and paged? (nil? (:pageSize input))) (assoc :pageSize default-page-size)
       (and consistent? (nil? (:consistency input))) (assoc :consistency "current")
+      (and (= "count-resources" operation) (nil? (:ceiling input)))
+      (assoc :ceiling default-count-ceiling)
       (and (= "count-objects" operation) (nil? (:ceiling input))) (assoc :ceiling default-count-ceiling))))
 
 (defn- base-valid? [message]
@@ -621,7 +767,8 @@
         (post-event! (assoc (event-base "initialized" request) :identity identity))))))
 
 (defn- accept-request! [request]
-  (let [epoch (:clientEpoch request)
+  (let [request (assoc request :startedAt (.now js/performance))
+        epoch (:clientEpoch request)
         current (:epoch @lifecycle)]
     (cond
       (< epoch current) nil
@@ -640,7 +787,8 @@
       (not (valid-operation-input? request))
       (protocol-error! request "validation-error" "The operation input failed closed validation.")
       :else
-      (let [request (assoc request :input (normalize-operation-input request))]
+      (let [request (assoc request
+                           :input (normalize-operation-input request))]
         (swap! lifecycle assoc-in [:requests (:requestId request)] request)
         (ensure-runtime! request)))))
 
@@ -659,7 +807,11 @@
   (let [epoch (:clientEpoch request)]
     (when (> epoch (:epoch @lifecycle))
       (cleanup-for-epoch! epoch)
-      (let [bootstrap-request (assoc request :type "request" :operation "bootstrap" :input {})]
+      (let [bootstrap-request (assoc request
+                                     :type "request"
+                                     :operation "bootstrap"
+                                     :input {}
+                                     :startedAt (.now js/performance))]
         (swap! lifecycle assoc-in [:requests (:requestId request)] bootstrap-request)
         (ensure-runtime! bootstrap-request)))))
 

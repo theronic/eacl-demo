@@ -6,6 +6,7 @@ import test from "node:test";
 
 const repository = resolve(import.meta.dirname, "..");
 const demoSource = resolve(repository, "apps/explorer-main/src");
+const datascriptSource = resolve(repository, "apps/explorer-datascript/src");
 const datahikeSource = resolve(repository, "../eacl-datahike-demo/client/src");
 const datomicSource = resolve(repository, "../eacl-datomic-solidjs/client/src");
 
@@ -79,6 +80,39 @@ test("canonical layout order is unchanged except for the profile selector", () =
   assert.equal((selector.match(/type="radio"/gu) ?? []).length, 2);
   assert.doesNotMatch(selector, /<select|<option/iu);
   assert.match(selector, /Backend &amp; Storage/u);
+});
+
+test("DataScript has no independent presentation component or stylesheet", () => {
+  assert.equal(
+    file(resolve(repository, "apps/explorer-datascript/index.html")),
+    file(resolve(repository, "apps/explorer-main/index.html")),
+  );
+  const app = file(resolve(datascriptSource, "App.tsx"));
+  assert.match(app, /import ExplorerApp from "\.\.\/\.\.\/explorer-main\/src\/App";/u);
+  assert.match(app, /<ExplorerApp\s/u);
+  for (const forbidden of [
+    "packages/ui",
+    "ServerExplorer",
+    "ExplorerHeader",
+    "PanelBoundary",
+    "ThemeControl",
+    "class=",
+  ]) assert.doesNotMatch(app, new RegExp(escapeRegExp(forbidden), "u"), forbidden);
+
+  const entry = file(resolve(datascriptSource, "main.tsx"));
+  assert.match(entry, /import "\.\.\/\.\.\/explorer-main\/src\/styles\.css";/u);
+  assert.equal((entry.match(/\.css";/gu) ?? []).length, 1);
+  assert.equal(existsSync(resolve(datascriptSource, "styles.css")), false);
+  assert.equal(existsSync(resolve(demoSource, "ServerExplorer.tsx")), false);
+});
+
+test("both deployments instantiate the canonical Explorer through one App", () => {
+  const app = file(resolve(demoSource, "App.tsx"));
+  assert.match(app, /entry\?: "server" \| "datascript"/u);
+  assert.match(app, /createDataScriptTransport\?:/u);
+  assert.match(app, /const api = createProfileApi\(props\.profile, \{ transport: props\.transport \}\)/u);
+  assert.equal((app.match(/<Explorer\s/gu) ?? []).length, 1);
+  assert.doesNotMatch(app, /packages\/ui|ServerExplorer/u);
 });
 
 test("Detail is the union of Datomic decisions and Datahike query semantics", () => {

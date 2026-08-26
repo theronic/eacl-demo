@@ -23,6 +23,22 @@ const datascript = path.join(root, "dist", "datascript-entry", "static");
 const worker = path.join(root, "dist", "datascript-worker", "datascript-worker.js");
 const workerArtifact = JSON.parse(await readFile(path.join(root, "dist", "datascript-worker", "artifact.json"), "utf8"));
 const workerRelative = `datascript/assets/datascript-worker-${workerArtifact.artifact.sha256}.js`;
+const [mainManifest, datascriptManifest] = await Promise.all([
+  readFile(path.join(main, ".vite", "manifest.json"), "utf8").then(JSON.parse),
+  readFile(path.join(datascript, ".vite", "manifest.json"), "utf8").then(JSON.parse),
+]);
+const mainCss = mainManifest["index.html"]?.css ?? [];
+const datascriptCss = datascriptManifest["index.html"]?.css ?? [];
+if (JSON.stringify(mainCss) !== JSON.stringify(datascriptCss) || mainCss.length !== 1) {
+  throw new Error("main and DataScript entries must emit the same single canonical stylesheet");
+}
+const [mainCssBytes, datascriptCssBytes] = await Promise.all([
+  readFile(path.join(main, mainCss[0])),
+  readFile(path.join(datascript, datascriptCss[0])),
+]);
+if (!mainCssBytes.equals(datascriptCssBytes)) {
+  throw new Error("main and DataScript canonical stylesheet bytes differ");
+}
 await rm(target, { recursive: true, force: true });
 await cp(main, target, { recursive: true, errorOnExist: true, force: false });
 await cp(datascript, path.join(target, "datascript"), { recursive: true, errorOnExist: true, force: false });

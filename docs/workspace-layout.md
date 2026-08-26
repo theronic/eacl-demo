@@ -6,17 +6,17 @@
 apps ────────┐
 services ────┼──> packages/contracts + packages/fixture-types
              ├──> profile-local implementation
-apps ────────┴──> packages/explorer-state + packages/ui
+apps ────────┴──> apps/explorer-main canonical components + packages/explorer-state
 fixtures ───────> language-neutral generated inputs/manifests
 infra ──────────> immutable artifacts/manifests, never application internals
 verification ──> public contracts and deployed transports
 ```
 
-- `apps/explorer-main` owns the server-profile static entry.
-- `apps/explorer-datascript` owns the separate DataScript entry and worker; its dependency graph cannot be reached from the main entry.
+- `apps/explorer-main` owns the canonical Explorer component tree, exact stylesheet, and server-profile static entry.
+- `apps/explorer-datascript` owns only the separate DataScript build entry, verified transport wiring, and worker; it imports the canonical main components and stylesheet, while its worker dependency graph cannot be reached from the main entry.
 - `packages/contracts` owns closed `explorer.v1` transport/logical shapes and validation.
 - `packages/explorer-state` owns selector, URL, request epoch, cancellation, and mixed-generation state.
-- `packages/ui` owns backend-neutral SolidJS components.
+- `packages/ui` retains backend-neutral contract-era components and tests, but no deployed Explorer entry imports it; the one canonical deployed presentation lives under `apps/explorer-main/src`.
 - `packages/fixture-types` owns language-neutral fixture/manifest types; `fixtures` owns generator inputs and generated golden data.
 - Each `services/*` directory owns exactly one composite profile and may not import another profile service.
 - Infrastructure is split into shared foundation/static, one runtime unit per profile, one data unit per durable generation, observability, and legacy compatibility.

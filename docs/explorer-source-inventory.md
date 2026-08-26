@@ -12,13 +12,14 @@ Explorer. The visual and interaction authority is the current source in:
 Those worktrees are comparison inputs only. They are not modified by the
 consolidation. `scripts/explorer-ui-parity-policy.test.mjs` checks exact source
 digests, the stylesheet union, canonical layout order, the Detail-panel union,
-page-size parity, and response metadata on every static deployment.
+page-size parity, response metadata, and that the DataScript entry owns no
+presentation component or stylesheet of its own on every static deployment.
 
 ## File reconciliation
 
 | Source area | Datahike lines | Datomic lines | Consolidated lines | Reconciliation |
 | --- | ---: | ---: | ---: | --- |
-| `App.tsx` / `Explorer.tsx` | 139 | 116 | 144 | Datahike layout unchanged; backend/storage selector inserted immediately after the original header; labels/footer made backend-neutral. |
+| `App.tsx` / `Explorer.tsx` | 139 | 116 | 145 | Datahike Explorer layout unchanged; the shared App coordinates profile selection and transport injection, while the backend/storage selector remains immediately after the original header. |
 | `api.ts` | 182 | 176 | 200 | Datahike request behavior unchanged; only an injected profile dispatcher was added so the same components can call the selected backend. |
 | `format.ts` | 16 | 16 | 16 | Byte-identical to both sources. |
 | `preferences.ts` | 83 | 78 | 83 | Byte-identical to Datahike, including cache population and the original default page size. |
@@ -34,6 +35,14 @@ page-size parity, and response metadata on every static deployment.
 | `SchemaGraph.tsx` | 151 | 151 | 151 | Byte-identical to both sources. |
 | `SchemaPanel.tsx` | 214 | 210 | 214 | Byte-identical to Datahike. |
 | `SubjectsPanel.tsx` | 237 | 229 | 237 | Byte-identical to Datahike. |
+
+Both static entries instantiate `apps/explorer-main/src/App.tsx`, which in
+turn instantiates the single `Explorer.tsx` and `components/*` tree above.
+`apps/explorer-datascript/src/App.tsx` contains only the verified worker
+transport wiring. Its entry imports `apps/explorer-main/src/styles.css`
+directly. The former alternate `ServerExplorer.tsx` and DataScript-local
+stylesheet were deleted, so there is no second deployed presentation surface
+that can drift.
 
 ## Preserved feature inventory
 
@@ -52,7 +61,7 @@ states, and the original three-column Subjects/Resources/Detail layout.
 
 The only new visible control is the Backend & Storage section. It uses radio
 options and the original panel/radio classes. DataScript is a separate new-tab
-entry. Backend-specific framework names, dashboard/report copy, deployment
+deployment of the same component tree. Backend-specific framework names, dashboard/report copy, deployment
 statistics, verified-fact cards, and storage statistics are not part of the
 Explorer UI.
 
@@ -68,3 +77,9 @@ The original clients also offer page sizes 250, 500, and 1000. The shared
 request validator, response schema, client preferences, URL state, and active
 JVM handlers therefore use a maximum of 1000 and the original default of 20.
 The 1 MiB serialized response ceiling remains authoritative.
+
+The DataScript worker implements the same `lookup-resources`,
+`count-resources`, `lookup-subjects`, and `authorize` operations consumed by
+the canonical Explorer adapter. It returns worker-measured elapsed time and
+EACL cache provenance, so the same paging, bounded-count, permission-holder,
+and per-permission decision components behave identically without a UI fork.

@@ -33,7 +33,9 @@ if (!entry?.isEntry || typeof entry.file !== "string") throw new Error("main Vit
 const files = await enumerate(mainRoot);
 const scripts = files.filter((file) => file.endsWith(".js"));
 const maps = files.filter((file) => file.endsWith(".js.map"));
-if (scripts.length !== 1 || maps.length !== 1) throw new Error("main build must contain one script and one source map");
+if (scripts.length < 1 || maps.length < 1 || scripts.length !== maps.length) {
+  throw new Error("every main JavaScript chunk must have a source map");
+}
 if (files.some((file) => /(?:datascript|worker|\.wasm$)/iu.test(file))) throw new Error("main output contains a DataScript-only artifact path");
 
 const mainBytes = [];

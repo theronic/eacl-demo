@@ -4,4 +4,4 @@ import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root mount element");
-render(() => <App />, root);
+render(() => <App entry="server" />, root);

@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createSignal } from "solid-js";
 
 import errorCodesSchema from "../../../schemas/error-codes.v1.schema.json";
 import explorerSchema from "../../../schemas/explorer.v1.schema.json";
@@ -8,15 +8,11 @@ import availabilityData from "../../../registry/profile-registry.v1.json";
 import profileData from "../../../packages/contracts/profiles.v1.json";
 import { createRuntimeBoundaryValidator } from "../../../packages/contracts/src/runtime-validation.mjs";
 import { createDataScriptProfileTransport } from "../../../packages/explorer-state/src/datascript-profile-transport.mjs";
-import { loadProfilePublication } from "../../../packages/explorer-state/src/profile-publication.mjs";
-import { createThemeController, readUiPreferences } from "../../../packages/explorer-state/src/ui-preferences.mjs";
-import { ErrorState, ExplorerHeader, LoadingState, PanelBoundary, ThemeControl } from "../../../packages/ui/src/components";
-import ServerExplorer, { type ExplorerProfile } from "../../explorer-main/src/ServerExplorer";
-
-type PublicationState =
-  | { phase: "loading" }
-  | { phase: "ready"; profile: ExplorerProfile }
-  | { phase: "error"; message: string; code: string };
+import ExplorerApp from "../../explorer-main/src/App";
+import {
+  type ExplorerProfile,
+  type ExplorerTransport,
+} from "../../explorer-main/src/profile-api";
 
 const validateWorkerEvent = createRuntimeBoundaryValidator(
   { errorCodesSchema, explorerSchema, responseSchema, workerEventSchema },
@@ -25,53 +21,8 @@ const validateWorkerEvent = createRuntimeBoundaryValidator(
 );
 
 export default function App() {
-  const initialPreferences = readUiPreferences();
-  const [theme, setTheme] = createSignal<"system" | "light" | "dark">(initialPreferences.theme as "system" | "light" | "dark");
-  const [publication, setPublication] = createSignal<PublicationState>({ phase: "loading" });
   const [workerProgress, setWorkerProgress] = createSignal<string | null>(null);
-  let publicationController: AbortController | undefined;
-  let themeController: any;
-
-  onMount(() => {
-    themeController = (createThemeController as any)({ onChange: ({ preference }: { preference: string }) => setTheme(preference as "system" | "light" | "dark") });
-    void loadPublication();
-  });
-
-  onCleanup(() => {
-    publicationController?.abort();
-    themeController?.close();
-  });
-
-  async function loadPublication() {
-    publicationController?.abort();
-    publicationController = new AbortController();
-    const signal = publicationController.signal;
-    setPublication({ phase: "loading" });
-    setWorkerProgress(null);
-    try {
-      const record = await loadProfilePublication({
-        baseUrl: window.location.href,
-        profileId: "datascript-browser-memory",
-        profileDefinitions: profileData,
-        baseRegistry: availabilityData,
-        signal
-      });
-      if (signal.aborted) return;
-      const profile = record.profile;
-      if (profile.state !== "enabled" || !profile.deployment || profile.deployment.artifact.kind !== "browser-worker") {
-        const error = new Error(profile.reason ?? "The DataScript worker is not enabled.") as Error & { code?: string };
-        error.code = "profile-unavailable";
-        throw error;
-      }
-      setPublication({ phase: "ready", profile: profile as ExplorerProfile });
-    } catch (error) {
-      if (signal.aborted) return;
-      const failure = error as Error & { code?: string };
-      setPublication({ phase: "error", message: failure.message, code: failure.code ?? "publication-invalid" });
-    }
-  }
-
-  const transportFactory = (profile: ExplorerProfile) => (createDataScriptProfileTransport as any)({
+  const createDataScriptTransport = (profile: ExplorerProfile): ExplorerTransport => (createDataScriptProfileTransport as any)({
     profile,
     baseUrl: window.location.href,
     profileDefinitions: profileData,
@@ -81,35 +32,10 @@ export default function App() {
   });
 
   return (
-    <main class="app-shell">
-      <ExplorerHeader
-        eyebrow="EACL v8 + DataScript + Browser Memory"
-        title="🦅 EACL Explorer"
-        description="Reactive authorization over explicit, inspectable browser-local queries."
-        actions={<>
-          <nav class="explorer-header__sources" aria-label="Source repositories">
-            <a class="explorer-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
-            <a class="explorer-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
-          </nav>
-          <ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />
-        </>}
-      />
-      <Show when={publication().phase === "loading"}>
-        <PanelBoundary id="datascript-publication" title="Verifying DataScript deployment" busy>
-          <LoadingState label="Checking the independently published profile and immutable worker identity." onCancel={() => publicationController?.abort()} />
-        </PanelBoundary>
-      </Show>
-      <Show when={publication().phase === "error" ? publication() as Extract<PublicationState, { phase: "error" }> : null}>{(state) => {
-        const failure = state();
-        return <PanelBoundary id="datascript-publication-error" title="DataScript is unavailable"><ErrorState message={failure.message} code={failure.code} retryable onRetry={() => void loadPublication()} /></PanelBoundary>;
-      }}</Show>
-      <Show when={publication().phase === "ready" ? publication() as Extract<PublicationState, { phase: "ready" }> : null}>{(state) => {
-        const ready = state();
-        return <>
-          <Show when={workerProgress()}>{(message) => <p class="worker-progress" role="status" aria-live="polite" aria-atomic="true">{message()}</p>}</Show>
-          <ServerExplorer profile={ready.profile} transportFactory={transportFactory} />
-        </>;
-      }}</Show>
-    </main>
+    <ExplorerApp
+      entry="datascript"
+      createDataScriptTransport={createDataScriptTransport}
+      startupMessage={workerProgress}
+    />
   );
 }
