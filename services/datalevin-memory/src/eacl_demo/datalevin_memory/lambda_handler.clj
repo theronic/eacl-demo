@@ -22,6 +22,14 @@
        (observability/runtime-context "datalevin-memory" environment)
        #(initialize environment)))))
 
+(defn initialize-runtime!
+  "Realize the immutable in-memory reader during Lambda initialization so a
+  published SnapStart version captures the ready database rather than the
+  unrealized delay."
+  []
+  @runtime
+  nil)
+
 (defn- positive-int
   [value]
   (when (and (string? value) (re-matches #"[1-9][0-9]{0,8}" value))

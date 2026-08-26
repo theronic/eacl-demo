@@ -1,8 +1,9 @@
 # `datalevin-memory`
 
-Planned managed Java Lambda with one ephemeral Datalevin in-memory environment
-and an evidence-selected SnapStart lifecycle strategy. It is intentionally
-source-only and cannot be deployed yet.
+Managed Java 25 arm64 Lambda with one ephemeral Datalevin in-memory environment.
+The demo uses true native in-memory LMDB and preinitializes its immutable reader
+before Lambda snapshots each published SnapStart version. CI publishes the
+profile only after the optimized restored candidate passes bounded live smoke.
 
 `dependencies/datalevin-memory.v1.json` records the exact maintained-fork
 candidate and its current blockers. The branch exposes an explicit owned

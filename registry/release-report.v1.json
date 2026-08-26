@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:b73c0498d7d26c7ea9d460b95830dfb2fcddc563212295406f22cf3bcf3c1184",
+  "reportId": "sha256:382cd9553ad733932a9e7be636304250c5d014e3bf5fa2a5fe1b3f12d3b23667",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -132,7 +132,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "4089ca8d1bdaa7d8309087b359c49a2b2f471339d0cb0e28d287812d13906702"
+          "sha256": "edc9383254d19b7054c79cd4b674e4df7e9a3b46ceeeb108f853da40d3e1a96b"
         }
       },
       "alarms": {
@@ -191,7 +191,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "328fcd9ca9a1c2769a49a1c6e20d8e98e518e3065d3789af1a0af070e5c24cd2"
+          "sha256": "7659073ad3561f9292d8ec144011b6b113494013be90edb0ef72db1171c580eb"
         }
       },
       "alarms": {
@@ -250,7 +250,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "81de6e040fc82ce7a02995723ee75f13f669bfe1da9813df09fa84d7506c3c89"
+          "sha256": "f7bc967781fa78ac1aa9c72f4eed0cb4d1f87cb9c396fafef0f6b685d897fe81"
         }
       },
       "alarms": {
@@ -309,7 +309,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "e750eb7b62944f2f33f424392e8d1191dcfc89f7f363c76a181f0327582956f4"
+          "sha256": "9d72702335c4e6967df868a80c36a1fdc57c78daa63b7666ea4efab7cd02a736"
         }
       },
       "alarms": {
@@ -368,7 +368,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/jank-memory-runtime.yaml",
-          "sha256": "54c1aaf5defd58fcf8b03ea43f10915f2184c00c2b718d70d9800dd391d10b9b"
+          "sha256": "dcae57f9cb86ec85cb4153e231f12d50ff80942f42973966f55e440c8135b863"
         }
       },
       "alarms": {

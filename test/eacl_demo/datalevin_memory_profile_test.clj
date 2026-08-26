@@ -27,9 +27,9 @@
            (get-in descriptor [:capabilities :snapshotBehavior])))
     (is (= #{"read-only" "ephemeral" "no-durability"
              "lifecycle-rebuild" "unequal-dataset-scale"
-             "unsupported-consistency" "no-snapstart"}
+             "unsupported-consistency"}
            (set (get-in descriptor [:capabilities :limitations]))))
-    (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
+    (is (= "enabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 9922 (get-in descriptor [:dataset :serverCount])))))
 
 (deftest descriptor-rejects-an-unbound-data-manifest-test
