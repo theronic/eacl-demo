@@ -39,8 +39,15 @@ export function createServerProfileTransport({
   const lifecycle = new AbortController();
   let released = false;
   let sequence = 0;
+  let requestTail = Promise.resolve();
 
-  async function request(operation, input = {}, options = {}) {
+  function request(operation, input = {}, options = {}) {
+    const pending = requestTail.then(() => performRequest(operation, input, options));
+    requestTail = pending.then(() => undefined, () => undefined);
+    return pending;
+  }
+
+  async function performRequest(operation, input, options) {
     if (released) throw publicError("cancelled", "The selected profile transport has been released.", true);
     if (!OPERATIONS.has(operation)) throw new TypeError("HTTP profile operation is not closed");
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("HTTP profile input must be an object");

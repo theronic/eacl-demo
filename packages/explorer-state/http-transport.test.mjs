@@ -45,6 +45,24 @@ test("server transport starts health and bootstrap sequentially on the reserved-
   assert.equal(await transport.release(), false);
 });
 
+test("server transport serializes concurrent operations to preserve the runtime concurrency cap", async () => {
+  let inFlight = 0;
+  let maximumInFlight = 0;
+  const transport = createTransport(async (url, init) => {
+    inFlight += 1;
+    maximumInFlight = Math.max(maximumInFlight, inFlight);
+    await new Promise((resolve) => setImmediate(resolve));
+    const operation = new URL(url).pathname.split("/").at(-1);
+    const requestId = init.headers["x-eacl-request-id"];
+    inFlight -= 1;
+    return response(success(operation, requestId, { allowed: true }));
+  });
+  const requests = ["parallel-1", "parallel-2", "parallel-3"].map((requestId) => transport.request("authorize", {}, { requestId }));
+  const envelopes = await Promise.all(requests);
+  assert.equal(envelopes.every(({ ok }) => ok === true), true);
+  assert.equal(maximumInFlight, 1);
+});
+
 test("POST bodies carry the exact payload hash and validated request scope", async () => {
   let observed;
   const transport = createTransport(async (url, init) => {
