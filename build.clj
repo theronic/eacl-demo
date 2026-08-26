@@ -233,6 +233,8 @@
   (b/delete {:path datalevin-memory-class-dir})
   (b/delete {:path datalevin-memory-uber-file})
   (doseq [command [["node" "scripts/prepare-eacl-core.mjs"]
+                   ["clojure" "-X:deps" "prep" ":aliases"
+                    "[:datalevin-memory :lambda-jvm]"]
                    ["node" "scripts/qualify-datalevin-native-arm64.mjs"
                     "--artifact" datalevin-memory-native-jar
                     "--expectations"
