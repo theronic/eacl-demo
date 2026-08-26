@@ -106,7 +106,7 @@ export default function App() {
       <Show when={publication().phase === "ready" ? publication() as Extract<PublicationState, { phase: "ready" }> : null}>{(state) => {
         const ready = state();
         return <>
-          <Show when={workerProgress()}>{(message) => <p class="registry-load-status" role="status" aria-live="polite" aria-atomic="true">{message()}</p>}</Show>
+          <Show when={workerProgress()}>{(message) => <p class="worker-progress" role="status" aria-live="polite" aria-atomic="true">{message()}</p>}</Show>
           <ServerExplorer profile={ready.profile} transportFactory={transportFactory} />
         </>;
       }}</Show>
