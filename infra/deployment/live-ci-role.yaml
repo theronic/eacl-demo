@@ -48,6 +48,7 @@ Resources:
                   - !Sub "${StaticBucketArn}/*"
               - Effect: Allow
                 Action:
+                  - lambda:GetFunction
                   - lambda:GetFunctionConfiguration
                   - lambda:InvokeFunction
                   - lambda:UpdateFunctionConfiguration
