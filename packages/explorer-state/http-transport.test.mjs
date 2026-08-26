@@ -20,17 +20,25 @@ const descriptor = {
   dataset: { fixtureId: "fixture-v1", logicalResourceCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
 };
 
-test("server transport uses only canonical same-origin routes and binds bootstrap identity", async () => {
+test("server transport starts health and bootstrap sequentially on the reserved-concurrency-one runtime", async () => {
   const calls = [];
+  let inFlight = 0;
+  let maximumInFlight = 0;
   const transport = createTransport(async (url, init) => {
     calls.push({ url, init });
+    inFlight += 1;
+    maximumInFlight = Math.max(maximumInFlight, inFlight);
+    await new Promise((resolve) => setImmediate(resolve));
     const operation = new URL(url).pathname.split("/").at(-1);
-    return operation === "health"
+    const result = operation === "health"
       ? response(success("health", "browser-4-1", { status: "ready", ready: true, identity, basis }))
       : response(success("bootstrap", "browser-4-2", descriptor));
+    inFlight -= 1;
+    return result;
   });
   assert.deepEqual(await transport.bootstrap({ epoch: 4 }), descriptor);
-  assert.deepEqual(calls.map(({ url }) => url).sort(), ["https://demo.eacl.dev/api/v1/datahike-s3/bootstrap", "https://demo.eacl.dev/api/v1/datahike-s3/health"]);
+  assert.deepEqual(calls.map(({ url }) => url), ["https://demo.eacl.dev/api/v1/datahike-s3/health", "https://demo.eacl.dev/api/v1/datahike-s3/bootstrap"]);
+  assert.equal(maximumInFlight, 1);
   assert.equal(calls.every(({ init }) => init.method === "GET" && !("body" in init) && init.credentials === "omit" && init.redirect === "error"), true);
   assert.deepEqual(calls.map(({ init }) => init.headers["x-eacl-request-id"]).sort(), ["browser-4-1", "browser-4-2"]);
   assert.equal(await transport.release(), true);

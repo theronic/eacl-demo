@@ -83,13 +83,10 @@ export function createServerProfileTransport({
   return Object.freeze({
     async bootstrap(options = {}) {
       const { requestId: _ignoredRequestId, ...startupOptions } = options;
-      const [health, bootstrap] = await Promise.all([
-        request("health", {}, startupOptions),
-        request("bootstrap", {}, startupOptions)
-      ]);
-      for (const envelope of [health, bootstrap]) {
-        if (envelope.ok !== true) throw publicError(envelope.error.code, envelope.error.message, envelope.error.retryable);
-      }
+      const health = await request("health", {}, startupOptions);
+      if (health.ok !== true) throw publicError(health.error.code, health.error.message, health.error.retryable);
+      const bootstrap = await request("bootstrap", {}, startupOptions);
+      if (bootstrap.ok !== true) throw publicError(bootstrap.error.code, bootstrap.error.message, bootstrap.error.retryable);
       validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
       assertDescriptorIdentity(profile, bootstrap.data);
       return bootstrap.data;
