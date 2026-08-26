@@ -14,6 +14,9 @@
    "list-relationships" :post
    "reverse-relationships" :post
    "authorize" :post
+   "lookup-resources" :post
+   "lookup-subjects" :post
+   "count-resources" :post
    "get-schema" :post
    "get-cache-info" :post
    "count-objects" :post})
@@ -163,7 +166,7 @@
 
 (defn descriptor
   [{:keys [identity runtime dataset basis capabilities limits]}]
-  {:contract {:name "explorer.v1" :routeMajor 1 :revision 1
+  {:contract {:name "explorer.v1" :routeMajor 1 :revision 2
               :minimumClientRevision 1}
    :identity identity
    :profile {:backend "datahike" :storage "s3"}

@@ -5,7 +5,8 @@ import { assertDescriptorIdentity } from "./profile-controller.mjs";
 const OPERATIONS = new Set([
   "health", "bootstrap", "list-subjects", "get-object",
   "list-relationships", "reverse-relationships", "authorize", "get-schema",
-  "get-cache-info", "count-objects"
+  "get-cache-info", "count-objects", "lookup-resources", "lookup-subjects",
+  "count-resources"
 ]);
 const GET_OPERATIONS = new Set(["health", "bootstrap"]);
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);

@@ -8,6 +8,7 @@
 (def closed-operations
   #{"health" "bootstrap" "list-subjects" "get-object"
     "list-relationships" "reverse-relationships" "authorize" "get-schema"
+    "lookup-resources" "lookup-subjects" "count-resources"
     "get-cache-info" "count-objects"})
 
 (defn descriptor

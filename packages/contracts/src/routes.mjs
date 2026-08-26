@@ -6,6 +6,9 @@ const OPERATION_ROUTES = Object.freeze([
   ["list-relationships", "POST"],
   ["reverse-relationships", "POST"],
   ["authorize", "POST"],
+  ["lookup-resources", "POST"],
+  ["lookup-subjects", "POST"],
+  ["count-resources", "POST"],
   ["get-schema", "POST"],
   ["get-cache-info", "POST"],
   ["count-objects", "POST"]

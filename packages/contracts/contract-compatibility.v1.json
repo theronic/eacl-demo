@@ -3,8 +3,8 @@
   "schema": "eacl-demo.contract-compatibility.v1",
   "contract": "explorer.v1",
   "routeMajor": 1,
-  "currentRevision": 1,
-  "minimumCompatibleProfileRevision": 0,
+  "currentRevision": 2,
+  "minimumCompatibleProfileRevision": 1,
   "compatibilityWindow": 2,
   "incompatibleChangeRequiresNewRouteMajor": true
 }

@@ -22,6 +22,6 @@ test("identity binds profile, both sources, artifact, deployment, and data", () 
 
 test("success data is closed and correlated with its operation", () => {
   const variants = schema.$defs.success.allOf[0].oneOf;
-  assert.equal(variants.length, 10);
-  assert.deepEqual(variants.map(({ properties }) => properties.meta.properties.operation.const), ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]);
+  assert.equal(variants.length, 13);
+  assert.deepEqual(variants.map(({ properties }) => properties.meta.properties.operation.const), ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]);
 });

@@ -12,6 +12,7 @@
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
     "list-relationships" "reverse-relationships" "authorize"
+    "lookup-resources" "lookup-subjects" "count-resources"
     "get-schema" "get-cache-info" "count-objects"})
 (def ^:private stable-error-codes
   #{"validation-error" "request-too-large" "method-not-allowed"

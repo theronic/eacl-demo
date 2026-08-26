@@ -137,8 +137,8 @@
           "required": ["operations", "consistencyModes", "snapshotBehavior", "cacheBehavior", "mutationLocality", "limitations"],
           "properties": {
             "operations": {
-              "type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true,
-              "items": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]}
+              "type": "array", "minItems": 1, "maxItems": 13, "uniqueItems": true,
+              "items": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]}
             },
             "consistencyModes": {
               "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true,
@@ -171,7 +171,7 @@
       "type": "object", "additionalProperties": false, "required": ["contractVersion", "requestId", "operation", "identity", "basis"],
       "properties": {
         "contractVersion": {"const": "explorer.v1"}, "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
-        "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]},
+        "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]},
         "identity": {"$ref": "#/$defs/identity"}, "basis": {"anyOf": [{"$ref": "#/$defs/basis"}, {"type": "null"}]}
       }
     },
@@ -187,6 +187,9 @@
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "list-relationships"}}}, "data": {"$ref": "#/$defs/relationshipPage"}}},
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "reverse-relationships"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "authorize"}}}, "data": {"$ref": "#/$defs/authorizationDecision"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "lookup-resources"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "lookup-subjects"}}}, "data": {"$ref": "#/$defs/objectPage"}}},
+          {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "count-resources"}}}, "data": {"$ref": "#/$defs/count"}}},
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-schema"}}}, "data": {"$ref": "#/$defs/schema"}}},
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "get-cache-info"}}}, "data": {"$ref": "#/$defs/cacheInfo"}}},
           {"properties": {"meta": {"type": "object", "properties": {"operation": {"const": "count-objects"}}}, "data": {"$ref": "#/$defs/count"}}}
