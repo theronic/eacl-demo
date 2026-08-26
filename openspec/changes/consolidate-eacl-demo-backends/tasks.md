@@ -204,14 +204,14 @@ decision as well as the existing qualification evidence.
 - [ ] 14.2 Configure separate eacl-demo static and active per-profile deployment environments with demos-branch restrictions, no manual reviewers or wait timer, read-only default token permissions, and job-scoped id-token write; create no ordinary Jank environment while it is parked.
 - [ ] 14.3 Configure branch rules so a merge to theronic/eacl-demo:demos triggers deployment and required fast build/package checks cannot be bypassed accidentally.
 - [ ] 14.4 Perform GitHub settings changes through the user's connected Chrome session and record a redacted settings audit.
-- [ ] 14.5 Add no CI secrets speculatively; if a clean build of the pinned EACL revision proves a dependency credential is required, add only that scoped credential through Chrome.
-- [ ] 14.6 Store immutable GitHub identity, AWS account, region, role identifiers, distribution IDs, and non-secret deployment coordinates as GitHub variables rather than secrets.
-- [ ] 14.7 Assert GitHub contains no AWS access-key, Telegram bot-token, or cross-repository dispatch secret.
+- [x] 14.5 Add no CI secrets speculatively; if a clean build of the pinned EACL revision proves a dependency credential is required, add only that scoped credential through Chrome.
+- [x] 14.6 Store immutable GitHub identity, AWS account, region, role identifiers, distribution IDs, and non-secret deployment coordinates as GitHub variables rather than secrets.
+- [x] 14.7 Assert GitHub contains no AWS access-key, Telegram bot-token, or cross-repository dispatch secret.
 - [ ] 14.8 As soon as any active ordinary target is deployment-eligible, build one workflow triggered only by pushes to eacl-demo:demos that verifies the pinned EACL SHA is reachable and fans out explicit unprivileged build plus credentialed deploy pairs for every independently eligible target among static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Ineligible active targets remain visible but unqueued and non-gating. Registered parked Jank/memory remains unavailable, unqueued, and non-gating until explicitly unparked.
 - [ ] 14.9 Give each deploy job only a digest-verified same-target artifact dependency; add no sibling/global barrier, and for any matrix set fail-fast false and omit max-parallel; add no GitHub concurrency group, cancel-in-progress setting, latest-head guard, or cross-run ordering dependency.
 - [ ] 14.10 Build and package without OIDC, upload a content-addressed artifact through pinned actions, download and verify it in a separate exact-environment OIDC job without installing/building, deploy a candidate, run only the minimal merge smoke, promote that run's healthy profile alias, and roll back only that profile on failure.
-- [ ] 14.11 Allow mixed and out-of-order profile generations and publish the exact deployed demo SHA, locked EACL SHA, artifact identity, and last outcome without claiming latest-source convergence.
-- [ ] 14.12 Prove one profile failure neither cancels nor rolls back successful sibling jobs.
+- [x] 14.11 Allow mixed and out-of-order profile generations and publish the exact deployed demo SHA, locked EACL SHA, artifact identity, and last outcome without claiming latest-source convergence.
+- [x] 14.12 Prove one profile failure neither cancels nor rolls back successful sibling jobs.
 - [ ] 14.13 Prove ordinary merge deployment cannot create tables, seed data, start EC2, migrate data, retire resources, or run the full qualification suites.
 
 ## 15. Initial deployment, independent updates, and rollback
@@ -227,7 +227,7 @@ decision as well as the existing qualification evidence.
 - [ ] 15.9 Obtain explicit approval immediately before changing the production demo.eacl.dev DNS alias.
 - [ ] 15.10 Cut demo.eacl.dev over to the accepted CloudFront distribution and run immediate health, identity, allow, deny, mutation-denial, selector, and browser checks.
 - [ ] 15.11 Restore the affected alias, registry entry, static manifest, or prior DNS target if its defined threshold fails; do not perform a fleet-wide rollback.
-- [ ] 15.12 Merge subsequent approved changes to demos and verify each completed job reports the exact run's demo/EACL identities while any failed job visibly retains its prior healthy deployment.
+- [x] 15.12 Merge subsequent approved changes to demos and verify each completed job reports the exact run's demo/EACL identities while any failed job visibly retains its prior healthy deployment.
 
 ## 16. Documentation, legacy compatibility, and completion audit
 
