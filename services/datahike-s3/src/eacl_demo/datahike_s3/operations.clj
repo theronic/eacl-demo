@@ -364,9 +364,11 @@
 
 (defn- wire-page-info
   [page]
-  {:hasNextPage (true? (get-in page [:page-info :has-next-page?]))
-   :endCursor (get-in page [:page-info :end-cursor])
-   :pageSize (count (:data page))})
+  (let [has-next-page? (true? (get-in page [:page-info :has-next-page?]))]
+    {:hasNextPage has-next-page?
+     :endCursor (when has-next-page?
+                  (get-in page [:page-info :end-cursor]))
+     :pageSize (count (:data page))}))
 
 (defn- wire-relationship
   [{:keys [subject relation resource]}]
