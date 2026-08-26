@@ -123,6 +123,12 @@ test("both deployments instantiate the canonical Explorer through one App", () =
   assert.doesNotMatch(app, /packages\/ui|ServerExplorer/u);
 });
 
+test("backend availability is not coupled to optional benchmark evidence", () => {
+  const app = file(resolve(demoSource, "App.tsx"));
+  assert.match(app, /loadProfilePublications/u);
+  assert.doesNotMatch(app, /loadBenchmarkEvidence|benchmark-publication/u);
+});
+
 test("Detail is the union of Datomic decisions and Datahike query semantics", () => {
   const detail = file(resolve(demoSource, "components/DetailPanel.tsx"));
   for (const feature of [
