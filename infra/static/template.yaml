@@ -232,7 +232,6 @@ Resources:
           HeaderBehavior: whitelist
           Headers:
             - content-type
-            - x-amz-content-sha256
             - x-eacl-request-id
         Name: !Sub "${AWS::StackName}-api"
         QueryStringsConfig:

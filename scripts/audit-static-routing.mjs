@@ -17,7 +17,7 @@ for (const path of ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "dat
 assert.match(template, /QueryStringBehavior: all/u);
 assert.match(template, /request\.headers\['x-amz-content-sha256'\]/u);
 assert.match(template, /transportError:/u);
-assert.match(template, /Headers:\s*\n\s+- content-type\s*\n\s+- x-amz-content-sha256\s*\n\s+- x-eacl-request-id/u);
+assert.match(template, /Headers:\s*\n\s+- content-type\s*\n\s+- x-eacl-request-id/u);
 assert.match(template, /worker-src 'self' blob:/u);
 assert.doesNotMatch(template, /unsafe-eval/u);
 assert.equal((template.match(/OriginProtocolPolicy: https-only/gu) ?? []).length, 5);
