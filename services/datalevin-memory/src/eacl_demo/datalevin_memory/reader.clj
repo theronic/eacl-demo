@@ -50,24 +50,31 @@
          :demo/roles #{(keyword role)}})
       batch))))
 
+(defn- entity-ids
+  [database]
+  (persistent!
+   (reduce (fn [index datom]
+             (assoc! index (:v datom) (:e datom)))
+           (transient {})
+           (d/datoms database :ave :eacl/id))))
+
 (defn- lookup-eid!
-  [database lookup-ref]
-  (or (d/entid database lookup-ref)
+  [entity-ids id]
+  (or (get entity-ids id)
       (throw (ex-info "Fixture relationship endpoint is absent."
                       {:type :eacl-demo/missing-fixture-endpoint}))))
 
 (defn- physical-relationship
-  [database {:keys [subject relation resource]}]
+  [entity-ids {:keys [subject relation resource]}]
   (let [subject-type (keyword (:type subject))
         resource-type (keyword (:type resource))
         relation-name (keyword relation)
-        subject-eid (lookup-eid! database [:eacl/id (:id subject)])
-        resource-eid (lookup-eid! database [:eacl/id (:id resource)])
+        subject-eid (lookup-eid! entity-ids (:id subject))
+        resource-eid (lookup-eid! entity-ids (:id resource))
         relation-eid
         (lookup-eid!
-         database
-         [:eacl/id (schema-model/->relation-id
-                    resource-type relation-name subject-type)])]
+         entity-ids
+         (schema-model/->relation-id resource-type relation-name subject-type))]
     {:relation-eid relation-eid
      :tx-data
      [[:db/add subject-eid relationship-storage/forward-attribute
@@ -79,19 +86,19 @@
 
 (defn- seed-relationships!
   [conn watermark write-token records]
-  (doseq [batch (partition-all seed-batch-size
-                               (filter #(= "relationship" (:kind %)) records))]
-    (let [database (d/db conn)
-          physical (mapv #(physical-relationship database %) batch)
-          relation-stamps
-          (mapv (fn [relation-eid]
-                  [:db/add relation-eid
-                   :eacl.datalevin/relation-generation :db/current-tx])
-                (distinct (map :relation-eid physical)))]
-      (d/transact! conn
-                   (into relation-stamps (mapcat :tx-data physical))
-                   {:datalevin/write-token write-token})
-      (reset! watermark (:max-tx (d/db conn))))))
+  (let [entity-ids (entity-ids (d/db conn))]
+    (doseq [batch (partition-all seed-batch-size
+                                 (filter #(= "relationship" (:kind %)) records))]
+      (let [physical (mapv #(physical-relationship entity-ids %) batch)
+            relation-stamps
+            (mapv (fn [relation-eid]
+                    [:db/add relation-eid
+                     :eacl.datalevin/relation-generation :db/current-tx])
+                  (distinct (map :relation-eid physical)))]
+        (d/transact! conn
+                     (into relation-stamps (mapcat :tx-data physical))
+                     {:datalevin/write-token write-token})
+        (reset! watermark (:max-tx (d/db conn)))))))
 
 (defn- public-basis
   [snapshot]
