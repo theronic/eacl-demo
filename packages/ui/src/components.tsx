@@ -5,14 +5,9 @@ import type {
   BackendOption,
   CacheInfo,
   DescriptorNotice,
-  DeploymentIdentity,
-  DeploymentOutcome,
-  ExplorerMetadata,
   ExplorerObject,
   ExplorerRelationship,
   ExplorerSchema,
-  ProfileAvailability,
-  ProfilePhase,
   StorageChoice
 } from "./types";
 
@@ -47,7 +42,7 @@ export function ProfileSelector(props: {
   return (
     <section class="selector-card" aria-labelledby="profile-selector-heading">
       <div class="section-heading">
-        <div><p class="panel-kicker">Runtime profile</p><h2 id="profile-selector-heading">Backend &amp; storage</h2><p>Choose a backend, then one of its supported storage layers.</p></div>
+        <h2 id="profile-selector-heading">Backend &amp; storage</h2>
       </div>
       <div class="selectors">
         <label>
@@ -60,66 +55,18 @@ export function ProfileSelector(props: {
           <span>Storage</span>
           <select
             value={props.storage}
-            aria-describedby="storage-availability-help"
             onChange={(event) => {
               const choice = storageChoice(event.currentTarget.value);
               if (choice?.selectable) props.onStorage(choice.storage);
             }}
           >
             <For each={props.storageChoices}>{(choice) => (
-              <option value={choice.storage} disabled={!choice.selectable}>{choice.label} · {choice.state}</option>
+              <option value={choice.storage} disabled={!choice.selectable}>{choice.label}</option>
             )}</For>
           </select>
         </label>
       </div>
-      <p id="storage-availability-help" class="visually-muted">Only enabled, qualified profiles can open a transport. Other choices remain visible with their status below.</p>
     </section>
-  );
-}
-
-export function ProfileStatus(props: {
-  backendLabel: string;
-  storageLabel: string;
-  phase?: ProfilePhase;
-  choices: Array<Pick<StorageChoice, "label" | "state" | "reason" | "deployment" | "lastOutcome">>;
-}) {
-  return (
-    <section class="profile-status" aria-labelledby="profile-status-heading">
-      <h2 id="profile-status-heading" class="visually-hidden">Selected profile status</h2>
-      <p class="selection" aria-live="polite" aria-atomic="true">
-        Selected: <strong>{props.backendLabel}</strong> with <strong>{props.storageLabel}</strong>
-        <Show when={props.phase && props.phase !== "idle"}> · {props.phase}</Show>
-      </p>
-      <ul class="availability-list" aria-label="Storage profile availability">
-        <For each={props.choices}>{(choice) => <AvailabilityItem {...choice} />}</For>
-      </ul>
-    </section>
-  );
-}
-
-function AvailabilityItem(props: { label: string; state: ProfileAvailability; reason: string | null; deployment?: DeploymentIdentity | null; lastOutcome?: DeploymentOutcome }) {
-  return (
-    <li data-state={props.state}>
-      <span>{props.label}</span>
-      <strong>{props.state}</strong>
-      <Show when={props.reason}><p>{props.reason}</p></Show>
-      <Show when={props.lastOutcome}>{(outcome) => (
-        <div class="deployment-outcome">
-          <p>Last deployment outcome: <strong>{outcome().outcome}</strong><Show when={outcome().at}> · {outcome().at}</Show></p>
-          <p>{outcome().message}</p>
-          <Show when={outcome().attemptedDemoSha}><p>Attempted demo <code>{outcome().attemptedDemoSha}</code> · EACL <code>{outcome().attemptedEaclSha}</code> · artifact <code>{outcome().artifactSha256}</code></p></Show>
-        </div>
-      )}</Show>
-      <Show when={props.deployment}>{(deployment) => (
-        <dl class="deployment-identity" aria-label={`${props.label} active deployment identity`}>
-          <dt>Active demo SHA</dt><dd><code>{deployment().demoSha}</code></dd>
-          <dt>Active EACL SHA</dt><dd><code>{deployment().eaclSha}</code></dd>
-          <dt>Artifact</dt><dd><code>{deployment().artifact.kind}:{deployment().artifact.version}:{deployment().artifact.sha256}</code></dd>
-          <dt>Data manifest</dt><dd><code>{deployment().dataManifestSha256}</code></dd>
-          <dt>Deployment</dt><dd><code>{deployment().deploymentId}</code> · {deployment().deployedAt}</dd>
-        </dl>
-      )}</Show>
-    </li>
   );
 }
 
@@ -307,15 +254,6 @@ export function ConsistencySelector(props: {
       <LimitationList limitations={props.limitations ?? []} />
     </fieldset>
   );
-}
-
-export function MetadataView(props: { metadata: ExplorerMetadata }) {
-  const facts: Array<[string, string]> = [
-    ["Profile", props.metadata.profileId], ["Backend", props.metadata.backend], ["Storage", props.metadata.storage], ["Runtime", props.metadata.runtime],
-    ["Demo SHA", props.metadata.demoSha], ["EACL Core SHA", props.metadata.eaclSha], ["Artifact", props.metadata.artifactSha256], ["Deployment", props.metadata.deploymentId],
-    ["Fixture", props.metadata.fixtureId], ["Data manifest", props.metadata.dataManifestSha256], ["Basis", props.metadata.basisId]
-  ];
-  return <dl class="metadata-list"><For each={facts}>{([name, value]) => <><dt>{name}</dt><dd><code>{value}</code></dd></>}</For></dl>;
 }
 
 export function LimitationList(props: { limitations: DescriptorNotice[] }) {

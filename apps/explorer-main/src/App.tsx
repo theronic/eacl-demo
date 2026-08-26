@@ -8,7 +8,7 @@ import { composeProfileRegistry, createFailClosedRegistry, loadProfilePublicatio
 import { selectBackend as transitionBackend } from "../../../packages/explorer-state/src/selection.mjs";
 import { parseCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
 import { createUrlStateController } from "../../../packages/explorer-state/src/url-controller.mjs";
-import { ExplorerHeader, ProfileSelector, ProfileStatus, ThemeControl } from "../../../packages/ui/src/components";
+import { ExplorerHeader, ProfileSelector, ThemeControl } from "../../../packages/ui/src/components";
 import { createThemeController, readUiPreferences } from "../../../packages/explorer-state/src/ui-preferences.mjs";
 import ServerExplorer from "./ServerExplorer";
 
@@ -52,7 +52,6 @@ export default function App() {
   const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
   const [selection, setSelection] = createSignal<Selection>(fromUrl);
   const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
-  const [publicationStatus, setPublicationStatus] = createSignal({ phase: "loading" as "loading" | "complete" | "partial", loaded: 0, total: profileData.profiles.length });
   let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
   const publicationController = new AbortController();
   let urlController: any;
@@ -66,7 +65,6 @@ export default function App() {
   const selectedBackend = createMemo(() => catalog.backends.find(({ id }) => id === selection().backend) ?? initialBackend);
   const storageOptions = createMemo(() => selectedBackend().storages.map((id) => catalog.storages.find((storage) => storage.id === id)!));
   const profileChoices = createMemo(() => choicesForBackend(catalog, profileData, registry(), selection().backend) as Array<{ id: string; storage: StorageId; label: string; state: ProfileState; reason: string | null; selectable: boolean; deployment?: DeploymentIdentity | null; lastOutcome?: DeploymentOutcome }>);
-  const selectedStorageDefault = createMemo(() => registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === selection().backend));
   const selectedProfile = createMemo(() => registry().profiles.find((candidate: { backend: string; storage: string }) => candidate.backend === selection().backend && candidate.storage === selection().storage));
   const registryDefault = (backend: BackendId) => registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
 
@@ -86,7 +84,6 @@ export default function App() {
       const composed = await (composeProfileRegistry as any)({ baseRegistry: availabilityData, profileDefinitions: profileData, publications: loaded.publications, evidenceRecords: benchmarks.evidenceRecords });
       if (publicationController.signal.aborted) return;
       setRegistry(composed.registry);
-      setPublicationStatus({ phase: loaded.publications.length === profileData.profiles.length ? "complete" : "partial", loaded: loaded.publications.length, total: profileData.profiles.length });
       if (shouldApplyRegistryDefault) {
         shouldApplyRegistryDefault = false;
         const preferred = registryDefault(selection().backend);
@@ -96,9 +93,7 @@ export default function App() {
           urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next }, { replace: true });
         }
       }
-    } catch {
-      if (!publicationController.signal.aborted) setPublicationStatus({ phase: "partial", loaded: 0, total: profileData.profiles.length });
-    }
+    } catch { return; }
   };
 
   return (
@@ -130,28 +125,11 @@ export default function App() {
           urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
         }}
       />
-      <p class="registry-load-status" role="status" aria-live="polite" aria-atomic="true">
-        <Show when={publicationStatus().phase !== "loading"} fallback="Verifying independently published profile status…">
-          Verified {publicationStatus().loaded} of {publicationStatus().total} independent profile status records.
-          <Show when={publicationStatus().phase === "partial"}> Missing or invalid records remain unavailable without suppressing healthy siblings.</Show>
-        </Show>
-      </p>
-      <Show when={selectedStorageDefault()}>{(decision) => (
-        <p class="storage-default-status">
-          Storage default: <strong>{decision().profileId ?? "none"}</strong>. {decision().reason}
-          <Show when={decision().evidenceId}> Evidence <code>{decision().evidenceId}</code>, measured {decision().measuredAt}.</Show>
-        </p>
-      )}</Show>
-      <ProfileStatus
-        backendLabel={selectedBackend().label}
-        storageLabel={storageOptions().find(({ id }) => id === selection().storage)?.label ?? selection().storage}
-        choices={profileChoices()}
-      />
       <Show
         when={selection().backend === "datascript"}
         fallback={<Show when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment ? selectedProfile() : null}>{(profile) => <ServerExplorer profile={profile() as any} />}</Show>}
       >
-        <section class="datascript-entry-callout" aria-labelledby="datascript-entry-heading"><h2 id="datascript-entry-heading">Browser-local explorer</h2><p>The DataScript runtime is isolated in its own entry and worker bundle.</p><a class="button" href="/datascript/" target="_blank" rel="noopener noreferrer">Open DataScript explorer in a new tab</a></section>
+        <section class="datascript-entry-callout" aria-label="DataScript explorer"><a class="button" href="/datascript/" target="_blank" rel="noopener noreferrer">Open DataScript explorer in a new tab</a></section>
       </Show>
     </main>
   );

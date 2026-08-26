@@ -10,34 +10,22 @@ import {
   LiveAnnouncer,
   LoadingState,
   PanelBoundary,
-  ProfileSelector,
-  ProfileStatus
+  ProfileSelector
 } from "./src/components";
 
 describe("shared explorer component states", () => {
-  it("keeps unavailable storage visible but disabled with its reason", () => {
+  it("keeps unavailable storage visible but presents only the product selector", () => {
     const choices = [
       { id: "datahike-s3", storage: "s3", label: "S3", state: "enabled" as const, reason: null, selectable: true },
       { id: "datahike-dynamodb", storage: "dynamodb", label: "DynamoDB", state: "unavailable" as const, reason: "The table generation is not published.", selectable: false }
     ];
-    const html = renderToString(() => <><ProfileSelector backends={[{ id: "datahike", label: "Datahike" }]} backend="datahike" storage="s3" storageChoices={choices} onBackend={() => {}} onStorage={() => {}} /><ProfileStatus backendLabel="Datahike" storageLabel="S3" choices={choices} /></>);
+    const html = renderToString(() => <ProfileSelector backends={[{ id: "datahike", label: "Datahike" }]} backend="datahike" storage="s3" storageChoices={choices} onBackend={() => {}} onStorage={() => {}} />);
     expect(html).toContain("DynamoDB");
-    expect(html).toContain("unavailable");
     expect(html).toMatch(/<option[^>]*value="dynamodb"[^>]*disabled/u);
-    expect(html).toContain("The table generation is not published.");
-    expect(html).toContain('aria-live="polite"');
-  });
-
-  it("shows the active and attempted immutable identities for mixed-generation diagnosis", () => {
-    const choice = {
-      id: "datahike-s3", storage: "s3", label: "S3", state: "enabled" as const, reason: null, selectable: true,
-      deployment: { demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifact: { kind: "lambda-version" as const, sha256: "c".repeat(64), version: "7" }, deploymentId: "deploy-7", dataManifestSha256: "d".repeat(64), deployedAt: "2026-08-25T12:00:00Z" },
-      lastOutcome: { outcome: "failed" as const, attemptedDemoSha: "e".repeat(40), attemptedEaclSha: "f".repeat(40), artifactSha256: "1".repeat(64), at: "2026-08-25T12:05:00Z", message: "Candidate smoke failed; the prior deployment remains active." }
-    };
-    const html = renderToString(() => <ProfileStatus backendLabel="Datahike" storageLabel="S3" choices={[choice]} />);
-    for (const value of [choice.deployment.demoSha, choice.deployment.eaclSha, choice.deployment.artifact.sha256, choice.deployment.dataManifestSha256, choice.lastOutcome.attemptedDemoSha, choice.lastOutcome.artifactSha256]) expect(html).toContain(value);
-    expect(html).toContain("Last deployment outcome");
-    expect(html).toContain("failed");
+    expect(html).not.toContain("unavailable");
+    expect(html).not.toContain("The table generation is not published.");
+    expect(html).not.toContain("Runtime profile");
+    expect(html).not.toContain("qualified profiles");
   });
 
   it("renders bounded loading, error, and announcement semantics", () => {

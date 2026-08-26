@@ -2,7 +2,7 @@
 
 Backend-neutral accessible SolidJS explorer components. Capabilities and limitations come from descriptors, never backend-name conditionals.
 
-`src/components.tsx` exports the shared header, two-step selector, profile status, panel boundary, loading/error/empty states, bounded live announcer, cursor pagination, subject and permission selection, object list/detail, relationship list, authorization result, schema view, cache view, consistency selector, limitation list, and immutable metadata view. `src/types.ts` mirrors normalized `explorer.v1` presentation data without importing a backend adapter.
+`src/components.tsx` exports the shared header, two-step selector, panel boundary, loading/error/empty states, bounded live announcer, cursor pagination, subject and permission selection, object list/detail, relationship list, authorization result, schema view, cache view, consistency selector, and limitation list. `src/types.ts` mirrors normalized `explorer.v1` presentation data without importing a backend adapter.
 
 The shared stylesheet provides one semantic class system, keyboard focus, responsive reflow, and reduced-motion handling. Applications may provide theme tokens but must not fork component markup by backend.
 

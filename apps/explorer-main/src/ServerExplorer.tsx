@@ -16,17 +16,15 @@ import {
   CursorPagination,
   EmptyState,
   ErrorState,
-  LimitationList,
   LiveAnnouncer,
   LoadingState,
-  MetadataView,
   ObjectDetail,
   ObjectList,
   PanelBoundary,
   RelationshipList,
   SchemaView
 } from "../../../packages/ui/src/components";
-import type { AuthorizationDecision, CacheInfo, ExplorerMetadata, ExplorerObject, ExplorerRelationship, ExplorerSchema } from "../../../packages/ui/src/types";
+import type { AuthorizationDecision, CacheInfo, ExplorerObject, ExplorerRelationship, ExplorerSchema } from "../../../packages/ui/src/types";
 
 export interface ExplorerProfile {
   id: string;
@@ -116,23 +114,6 @@ export default function ServerExplorer(props: { profile: ExplorerProfile; transp
   const reversePagerKey = createMemo(() => `reverse:${subjectType()}:${subjectId()}:${relation() || "all"}`);
   const relationshipPager = createMemo(() => operationState()?.pagers?.[relationshipPagerKey()] ?? null);
   const reversePager = createMemo(() => operationState()?.pagers?.[reversePagerKey()] ?? null);
-  const metadata = createMemo<ExplorerMetadata | null>(() => {
-    const value = descriptor();
-    if (!value) return null;
-    return {
-      profileId: value.identity.profileId,
-      backend: value.profile.backend,
-      storage: value.profile.storage,
-      runtime: `${value.runtime.name}/${value.runtime.architecture}`,
-      demoSha: value.identity.demoSha,
-      eaclSha: value.identity.eaclSha,
-      artifactSha256: value.identity.artifactSha256,
-      deploymentId: value.identity.deploymentId,
-      fixtureId: value.dataset.fixtureId,
-      dataManifestSha256: value.identity.dataManifestSha256,
-      basisId: value.basis.id
-    };
-  });
 
   async function activate(profile: ExplorerProfile, identity: string) {
     resetLocalResults();
@@ -234,13 +215,11 @@ export default function ServerExplorer(props: { profile: ExplorerProfile; transp
         </PanelBoundary>
       </Show>
       <Show when={explorerState()?.status === "ready" && presentation()}>{(facts) => <>
-        <PanelBoundary id="profile-facts" title="Verified profile facts" summary={`${facts().snapshot.label}. ${facts().cache.label}.`}>
-          <Show when={metadata()}>{(value) => <MetadataView metadata={value()} />}</Show>
-          <Show when={facts().controls.consistency}>
-            <ConsistencySelector modes={facts().consistency.modes} value={explorerState().preferences.consistencyMode} onChange={(mode) => controller.setPreferences({ consistencyMode: mode })} limitations={[facts().snapshot]} />
-          </Show>
-          <LimitationList limitations={facts().limitations} />
-        </PanelBoundary>
+        <Show when={facts().controls.consistency}>
+          <PanelBoundary id="consistency" title="Read basis">
+            <ConsistencySelector modes={facts().consistency.modes} value={explorerState().preferences.consistencyMode} onChange={(mode) => controller.setPreferences({ consistencyMode: mode })} />
+          </PanelBoundary>
+        </Show>
 
         <Show when={facts().controls.subjects}>
           <PanelBoundary id="subjects" title="Subjects" summary="Browse one bounded cursor page at a time." busy={subjectsPanel()?.phase === "loading"} actions={<button type="button" class="button button--quiet" onClick={() => { void operations.listSubjects(); }}>Reload first page</button>}>
@@ -301,14 +280,14 @@ export default function ServerExplorer(props: { profile: ExplorerProfile; transp
         </Show>
 
         <Show when={facts().controls.schema}>
-          <PanelBoundary id="schema" title="Read-only schema" busy={schemaPanel()?.phase === "loading"} actions={<button type="button" class="button button--quiet" onClick={() => { void operations.getSchema(); }}>Reload</button>}>
+          <PanelBoundary id="schema" title="Schema" busy={schemaPanel()?.phase === "loading"} actions={<button type="button" class="button button--quiet" onClick={() => { void operations.getSchema(); }}>Reload</button>}>
             <PanelFeedback panel={schemaPanel()} onCancel={() => operations.cancel("schema")} onRetry={() => { void controller.retryPanel("schema"); }} />
             <Show when={schemaPanel()?.phase === "ready"}><SchemaView schema={schemaPanel().value as ExplorerSchema} /></Show>
           </PanelBoundary>
         </Show>
 
         <Show when={facts().controls.cache}>
-          <PanelBoundary id="cache" title="Cache facts" busy={cachePanel()?.phase === "loading"} actions={<button type="button" class="button button--quiet" onClick={() => { void operations.getCacheInfo(); }}>Refresh</button>}>
+          <PanelBoundary id="cache" title="Cache" busy={cachePanel()?.phase === "loading"} actions={<button type="button" class="button button--quiet" onClick={() => { void operations.getCacheInfo(); }}>Refresh</button>}>
             <PanelFeedback panel={cachePanel()} onCancel={() => operations.cancel("cache")} onRetry={() => { void controller.retryPanel("cache"); }} />
             <Show when={cachePanel()?.phase === "ready"}><CacheView cache={cachePanel().value as CacheInfo} /></Show>
           </PanelBoundary>

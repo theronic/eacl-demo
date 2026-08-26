@@ -1,4 +1,3 @@
-export type ProfilePhase = "idle" | "switching" | "ready" | "error" | "canceled" | "closed";
 export type ProfileAvailability = "enabled" | "disabled" | "qualifying" | "unavailable";
 export type Scalar = string | number | boolean | null;
 
@@ -78,20 +77,6 @@ export interface AuthorizationDecision {
   allowed: boolean;
   reasonCode: string;
   path: Array<{ kind: string; label: string; allowed: boolean }>;
-}
-
-export interface ExplorerMetadata {
-  profileId: string;
-  backend: string;
-  storage: string;
-  runtime: string;
-  demoSha: string;
-  eaclSha: string;
-  artifactSha256: string;
-  deploymentId: string;
-  fixtureId: string;
-  dataManifestSha256: string;
-  basisId: string;
 }
 
 export interface DescriptorNotice {

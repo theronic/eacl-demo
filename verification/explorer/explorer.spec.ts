@@ -46,7 +46,7 @@ test("two-step selection, canonical normalization, and keyboard focus remain usa
   await backend.selectOption("datomic");
   await expect(storage).toHaveValue("dynamodb");
   await expect(page).toHaveURL(/backend=datomic&storage=dynamodb/u);
-  await expect(page.getByText("history-preserving DynamoDB database", { exact: false })).toBeVisible();
+  await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
 
   await page.keyboard.press("Tab");
   const focus = await page.evaluate(() => {
@@ -168,10 +168,13 @@ test("an enabled publication opens the schema-validated server explorer over the
   });
 
   await page.reload();
-  await expect(page.getByText("Verified 6 of 6 independent profile status records.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Verified profile facts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Backend & storage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Read basis" })).toBeVisible();
+  await expect(page.getByText(/independent profile status records/u)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
+  await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /User one/u })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Read-only schema" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Schema" })).toBeVisible();
   await page.getByRole("button", { name: "Check permission" }).click();
   await expect(page.getByRole("heading", { name: "view: Allowed" })).toBeVisible();
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "get-cache-info", "count-objects", "authorize"]));
