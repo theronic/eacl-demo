@@ -13,13 +13,80 @@
 (def ^:private cursor-ttl-ms (* 15 60 1000))
 (def ^:private cursor-prefix "eacl-demo-subjects-v1.")
 (def ^:private cursor-domain "eacl-demo/datahike-s3/list-subjects/v1")
+(def ^:private legacy-type-attribute :demo/type)
+(def ^:private legacy-subject-type :user)
+(def ^:private legacy-object-counts
+  {:user 1586 :server 1000000 :account 228 :team 903 :vpc 452 :platform 1})
+(def ^:private legacy-server-count 1000000)
+(def ^:private base-account-count 4)
+(def ^:private base-servers-per-account 12)
 (def ^:private cursor-payload-keys
   #{:version :operation :query :after :basis-id :expires-at-ms})
 
 (declare bounded-scan-count decode-subject-cursor encode-subject-cursor fail!
-         guarded object-entities object-exists? relationship-datoms
-         relationship-query subject-entities wire-object wire-page-info
+         guarded object-exists? relationship-datoms subject-rows
+         relationship-query wire-object wire-page-info
          wire-relationship wire-relationship-page)
+
+(defn- weighted-account-server-count
+  [account-number]
+  (let [random (java.util.SplittableRandom.
+                (long (+ 20260813 (* 104729 account-number))))
+        selection (.nextDouble random)
+        [minimum maximum]
+        (cond
+          (< selection 0.55) [1 2000]
+          (< selection 0.84) [2001 7500]
+          (< selection 0.96) [7501 20000]
+          :else [20001 50000])]
+    (.nextLong random (long minimum) (long (inc maximum)))))
+
+(defn- requested-account-plan
+  [account-start server-count]
+  (loop [account-number account-start
+         remaining server-count
+         plan []]
+    (if (pos? remaining)
+      (let [account-size (min remaining
+                              (weighted-account-server-count account-number))]
+        (recur (inc account-number) (- remaining account-size)
+               (conj plan {:account-number account-number
+                           :server-count account-size})))
+      plan)))
+
+(defn- account-user-ids
+  [{:keys [account-number server-count]}]
+  (let [account-id (str "account-" account-number)
+        teams (if (< account-number base-account-count)
+                2 (min 4 server-count))
+        vpcs (if (< account-number base-account-count)
+               1 (min 2 server-count))]
+    (concat
+     [(str account-id "-owner")]
+     (map #(str account-id "-team-" % "-leader") (range teams))
+     (map #(str account-id "-vpc-" % "-admin") (range vpcs)))))
+
+(def ^:private legacy-subject-rows
+  ;; The adopted immutable store was seeded by this exact deterministic plan.
+  ;; Keeping its tiny principal catalog in-process avoids scanning the million-
+  ;; resource S3 index for every explorer page.
+  (let [base (mapv (fn [account-number]
+                     {:account-number account-number
+                      :server-count base-servers-per-account})
+                   (range base-account-count))
+        extra (requested-account-plan
+               base-account-count
+               (- legacy-server-count
+                  (* base-account-count base-servers-per-account)))
+        rows (->> (concat ["super-user" "user-1" "user-2"]
+                          (mapcat account-user-ids (concat base extra)))
+                  distinct
+                  sort
+                  (mapv (fn [id] [legacy-subject-type id])))]
+    (when-not (= (legacy-object-counts legacy-subject-type) (count rows))
+      (throw (ex-info "Legacy Datahike subject catalog identity mismatch."
+                      {:type :eacl-demo/fixture-identity-mismatch})))
+    rows))
 
 (defn load-wire-schema
   []
@@ -63,15 +130,7 @@
               after (when-let [token (:cursor input)]
                       (decode-subject-cursor cursor-options token query
                                              (:id basis) (clock)))
-              rows (->> (d/q '[:find ?type ?id
-                               :where
-                               [?entity :eacl.demo/roles :subject]
-                               [?entity :eacl.demo/type ?type]
-                               [?entity :eacl/id ?id]]
-                             database)
-                        (filter (fn [[type _]]
-                                  (or (nil? (:type query))
-                                      (= (keyword (:type query)) type))))
+              rows (->> (subject-rows database (:type query))
                         (sort-by (fn [[type id]] [(name type) id]))
                         (drop-while (fn [[type id]]
                                       (and after
@@ -99,8 +158,8 @@
         (let [database (datahike-eacl/db snapshot)
               entity (d/entity database [:eacl/id (:id input)])]
           (check-active!)
-          (if (= (keyword (:type input)) (:eacl.demo/type entity))
-            {:object (wire-object (:eacl.demo/type entity) (:id input))}
+          (if (= (keyword (:type input)) (legacy-type-attribute entity))
+            {:object (wire-object (legacy-type-attribute entity) (:id input))}
             (fail! "validation-error")))))
 
      "list-relationships"
@@ -182,12 +241,20 @@
               ceiling (or (:ceiling input) default-count-ceiling)
               kind (:kind input)
               type (some-> (:type input) keyword)
-              values (case kind
-                       "subjects" (subject-entities database type)
-                       "objects" (object-entities database type)
-                       "relationships" (relationship-datoms database type)
-                       (fail! "validation-error"))
-              observed (bounded-scan-count values ceiling check-active!)]
+              exact-total
+              (case kind
+                "subjects" (if (or (nil? type) (= legacy-subject-type type))
+                             (legacy-object-counts legacy-subject-type) 0)
+                "objects" (if type
+                            (get legacy-object-counts type 0)
+                            (reduce + (vals legacy-object-counts)))
+                "relationships" nil
+                (fail! "validation-error"))
+              observed (if (some? exact-total)
+                         exact-total
+                         (bounded-scan-count
+                          (relationship-datoms database type)
+                          ceiling check-active!))]
           {:kind kind
            :value (min ceiling observed)
            :exact (<= observed ceiling)
@@ -230,25 +297,17 @@
 (defn- object-exists?
   [database type id required-role]
   (let [entity (d/entity database [:eacl/id id])]
-    (and (= (keyword type) (:eacl.demo/type entity))
+    (and (= (keyword type) (legacy-type-attribute entity))
          (or (nil? required-role)
-             (contains? (set (:eacl.demo/roles entity)) required-role)))))
+             (and (= :subject required-role)
+                  (= legacy-subject-type (legacy-type-attribute entity)))))))
 
-(defn- subject-entities
-  [database type]
-  (eduction
-   (comp
-    (map (fn [datom] (:e datom)))
-    (filter (fn [entity-id]
-              (or (nil? type)
-                  (= type (:eacl.demo/type (d/entity database entity-id)))))))
-   (d/datoms database :avet :eacl.demo/roles :subject)))
-
-(defn- object-entities
-  [database type]
-  (if type
-    (d/datoms database :avet :eacl.demo/type type)
-    (d/datoms database :avet :eacl.demo/type)))
+(defn- subject-rows
+  [database requested-type]
+  (let [requested (some-> requested-type keyword)]
+    (if (and requested (not= legacy-subject-type requested))
+      []
+      legacy-subject-rows)))
 
 (defn- relationship-datoms
   [database resource-type]

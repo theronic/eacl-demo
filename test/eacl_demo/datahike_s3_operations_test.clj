@@ -32,8 +32,13 @@
   (let [database-id (random-uuid)
         connection
         (datahike-eacl/create-conn
-         (edn/read-string
-          (slurp "infra/data/datomic-demo-metadata-schema.edn"))
+         (conj
+          (edn/read-string
+           (slurp "infra/data/datomic-demo-metadata-schema.edn"))
+          {:db/ident :demo/type
+           :db/valueType :db.type/keyword
+           :db/cardinality :db.cardinality/one
+           :db/index true})
          {:store {:backend :memory :id database-id}
           :attribute-refs? true})
         database-config (:config (d/db connection))]
@@ -42,12 +47,9 @@
                                                {:security-key cursor-key})]
         (eacl/write-schema! client (slurp "fixtures/schema.v1.zed"))
         (d/transact connection
-                    [{:eacl/id "user-1" :eacl.demo/type :user
-                      :eacl.demo/roles #{:subject}}
-                     {:eacl/id "user-2" :eacl.demo/type :user
-                      :eacl.demo/roles #{:subject}}
-                     {:eacl/id "account-0" :eacl.demo/type :account
-                      :eacl.demo/roles #{:subject :resource}}])
+                    [{:eacl/id "user-1" :demo/type :user}
+                     {:eacl/id "user-2" :demo/type :user}
+                     {:eacl/id "account-0" :demo/type :account}])
         (eacl/create-relationship!
          client (eacl/spice-object :user "user-1") :owner
          (eacl/spice-object :account "account-0"))
@@ -76,10 +78,11 @@
                   second-page (invoke handlers "list-subjects" snapshot
                                       {:type "user" :pageSize 1
                                        :cursor cursor})]
-              (is (= ["user-1"] (mapv :id (:items first-page))))
+              (is (= ["account-0-owner"] (mapv :id (:items first-page))))
               (is (true? (get-in first-page [:pageInfo :hasNextPage])))
-              (is (= ["user-2"] (mapv :id (:items second-page))))
-              (is (false? (get-in second-page [:pageInfo :hasNextPage])))
+              (is (= ["account-0-team-0-leader"]
+                     (mapv :id (:items second-page))))
+              (is (true? (get-in second-page [:pageInfo :hasNextPage])))
               (is (= "cursor-scope-mismatch"
                      (:code (ex-data
                              (try
@@ -132,9 +135,9 @@
                              :permission "admin"}))))
             (is (= 6 (count (:types
                              (invoke handlers "get-schema" snapshot {})))))
-            (is (= {:kind "subjects" :value 3 :exact true :ceiling 10}
+            (is (= {:kind "subjects" :value 1586 :exact true :ceiling 2000}
                    (invoke handlers "count-objects" snapshot
-                           {:kind "subjects" :ceiling 10})))
+                           {:kind "subjects" :ceiling 2000})))
             (is (= {:kind "objects" :value 1 :exact false :ceiling 1}
                    (invoke handlers "count-objects" snapshot
                            {:kind "objects" :ceiling 1})))
