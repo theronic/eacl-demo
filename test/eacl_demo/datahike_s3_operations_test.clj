@@ -133,6 +133,26 @@
                              :resourceType "account"
                              :resourceId "account-0"
                              :permission "admin"}))))
+            (is (= ["account-0"]
+                   (mapv :id
+                         (:items
+                          (invoke handlers "lookup-resources" snapshot
+                                  {:subjectType "user" :subjectId "user-1"
+                                   :resourceType "account"
+                                   :permission "admin" :pageSize 10})))))
+            (is (= ["user-1"]
+                   (mapv :id
+                         (:items
+                          (invoke handlers "lookup-subjects" snapshot
+                                  {:resourceType "account"
+                                   :resourceId "account-0"
+                                   :subjectType "user"
+                                   :permission "admin" :pageSize 10})))))
+            (is (= {:kind "objects" :value 1 :exact true :ceiling 10}
+                   (invoke handlers "count-resources" snapshot
+                           {:subjectType "user" :subjectId "user-1"
+                            :resourceType "account" :permission "admin"
+                            :ceiling 10})))
             (is (= 6 (count (:types
                              (invoke handlers "get-schema" snapshot {})))))
             (is (= {:kind "subjects" :value 1586 :exact true :ceiling 2000}

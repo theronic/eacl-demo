@@ -28,7 +28,7 @@ export function httpStatusForError(code) {
 function createMeta(context) {
   exactKeys(context, ["requestId", "operation", "identity", "basis"], "response context");
   if (typeof context.requestId !== "string" || context.requestId.length < 1 || context.requestId.length > 128) throw new Error("request ID is invalid");
-  if (!new Set(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]).has(context.operation)) throw new Error("response operation is invalid");
+  if (!new Set(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]).has(context.operation)) throw new Error("response operation is invalid");
   const identity = validateIdentity(context.identity);
   return { contractVersion: "explorer.v1", requestId: context.requestId, operation: context.operation, identity: { ...identity }, basis: context.basis === null ? null : structuredClone(context.basis) };
 }

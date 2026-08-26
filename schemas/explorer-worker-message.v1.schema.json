@@ -4,7 +4,7 @@
   "$defs": {
     "requestId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
     "clientEpoch": {"type": "integer", "minimum": 1, "maximum": 2147483647},
-    "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]},
+    "operation": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]},
     "identity": {
       "type": "object", "additionalProperties": false,
       "required": ["profileId", "demoSha", "eaclSha", "artifactSha256", "deploymentId", "dataManifestSha256"],

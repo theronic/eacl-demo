@@ -55,6 +55,7 @@
                                            {:operation operation})]))
                        ["health" "bootstrap" "list-subjects" "get-object"
                         "list-relationships" "reverse-relationships" "authorize"
+                        "lookup-resources" "lookup-subjects" "count-resources"
                         "get-schema" "get-cache-info" "count-objects"])]
     {:release-count release-count
      :boundary
@@ -173,6 +174,7 @@
                           (fn [_] {:operation operation}))]))
                 ["health" "bootstrap" "list-subjects" "get-object"
                  "list-relationships" "reverse-relationships" "authorize"
+                 "lookup-resources" "lookup-subjects" "count-resources"
                  "get-schema" "get-cache-info" "count-objects"])})
         first (future (boundary/invoke! boundary (request "authorize" :post)))]
     @entered

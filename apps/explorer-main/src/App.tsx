@@ -1,16 +1,30 @@
-import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
+import {
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show,
+  type JSX,
+} from "solid-js";
 import catalogData from "../../../packages/contracts/backend-storage.v1.json";
 import availabilityData from "../../../registry/profile-registry.v1.json";
 import profileData from "../../../packages/contracts/profiles.v1.json";
 import { choicesForBackend } from "../../../packages/explorer-state/src/availability.mjs";
 import { loadBenchmarkEvidence } from "../../../packages/explorer-state/src/benchmark-publication.mjs";
-import { composeProfileRegistry, createFailClosedRegistry, loadProfilePublications } from "../../../packages/explorer-state/src/profile-publication.mjs";
+import {
+  composeProfileRegistry,
+  createFailClosedRegistry,
+  loadProfilePublications,
+} from "../../../packages/explorer-state/src/profile-publication.mjs";
 import { selectBackend as transitionBackend } from "../../../packages/explorer-state/src/selection.mjs";
 import { parseCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
 import { createUrlStateController } from "../../../packages/explorer-state/src/url-controller.mjs";
-import { ExplorerHeader, ProfileSelector, ThemeControl } from "../../../packages/ui/src/components";
-import { createThemeController, readUiPreferences } from "../../../packages/explorer-state/src/ui-preferences.mjs";
-import ServerExplorer from "./ServerExplorer";
+import { ApiProvider } from "./api";
+import { ProfileSelector } from "./components/ProfileSelector";
+import { Explorer } from "./Explorer";
+import { createProfileApi, type ExplorerProfile } from "./profile-api";
+import { readPreferences, writePreferences } from "./preferences";
+import { AppStateProvider } from "./state";
 
 type BackendId = "datahike" | "datomic" | "datalevin" | "jank" | "datascript";
 type StorageId = "s3" | "dynamodb" | "memory" | "browser-memory";
@@ -24,7 +38,11 @@ interface Selection {
 interface DeploymentIdentity {
   demoSha: string;
   eaclSha: string;
-  artifact: { kind: "static" | "lambda-version" | "browser-worker"; sha256: string; version: string };
+  artifact: {
+    kind: "static" | "lambda-version" | "browser-worker";
+    sha256: string;
+    version: string;
+  };
   deploymentId: string;
   dataManifestSha256: string;
   deployedAt: string;
@@ -39,15 +57,24 @@ interface DeploymentOutcome {
   message: string;
 }
 
+interface ProfileChoice {
+  id: string;
+  storage: StorageId;
+  label: string;
+  state: ProfileState;
+  reason: string | null;
+  selectable: boolean;
+  deployment?: DeploymentIdentity | null;
+  lastOutcome?: DeploymentOutcome;
+}
+
 const catalog = catalogData as {
   defaultBackend: BackendId;
   backends: Array<{ id: BackendId; label: string; storages: StorageId[] }>;
   storages: Array<{ id: StorageId; label: string }>;
 };
 
-export default function App() {
-  const initialPreferences = readUiPreferences();
-  const [theme, setTheme] = createSignal<"system" | "light" | "dark">(initialPreferences.theme as "system" | "light" | "dark");
+export default function App(): JSX.Element {
   const initialBackend = catalog.backends.find(({ id }) => id === catalog.defaultBackend) ?? catalog.backends[0];
   const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
   const [selection, setSelection] = createSignal<Selection>(fromUrl);
@@ -55,33 +82,93 @@ export default function App() {
   let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
   const publicationController = new AbortController();
   let urlController: any;
-  let themeController: any;
+
   onMount(() => {
-    urlController = (createUrlStateController as any)({ catalog, history: window.history, location: window.location, eventTarget: window, onState: (state: unknown) => setSelection(state as Selection) });
-    themeController = (createThemeController as any)({ onChange: ({ preference }: { preference: string }) => setTheme(preference as "system" | "light" | "dark") });
+    urlController = (createUrlStateController as any)({
+      catalog,
+      history: window.history,
+      location: window.location,
+      eventTarget: window,
+      onState: (state: unknown) => setSelection(state as Selection),
+    });
     void refreshProfilePublications();
   });
-  onCleanup(() => { publicationController.abort(); urlController?.close(); themeController?.close(); });
-  const selectedBackend = createMemo(() => catalog.backends.find(({ id }) => id === selection().backend) ?? initialBackend);
-  const storageOptions = createMemo(() => selectedBackend().storages.map((id) => catalog.storages.find((storage) => storage.id === id)!));
-  const profileChoices = createMemo(() => choicesForBackend(catalog, profileData, registry(), selection().backend) as Array<{ id: string; storage: StorageId; label: string; state: ProfileState; reason: string | null; selectable: boolean; deployment?: DeploymentIdentity | null; lastOutcome?: DeploymentOutcome }>);
-  const selectedProfile = createMemo(() => registry().profiles.find((candidate: { backend: string; storage: string }) => candidate.backend === selection().backend && candidate.storage === selection().storage));
-  const registryDefault = (backend: BackendId) => registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
+  onCleanup(() => {
+    publicationController.abort();
+    urlController?.close();
+  });
+
+  const visibleBackends = createMemo(() => catalog.backends.filter(({ id }) => id !== "jank"));
+  const selectedBackend = createMemo(() =>
+    catalog.backends.find(({ id }) => id === selection().backend) ?? initialBackend,
+  );
+  const profileChoices = createMemo(() =>
+    choicesForBackend(catalog, profileData, registry(), selection().backend) as ProfileChoice[],
+  );
+  const selectedProfile = createMemo(() =>
+    registry().profiles.find((candidate: { backend: string; storage: string }) =>
+      candidate.backend === selection().backend && candidate.storage === selection().storage),
+  );
+  const storageLabel = createMemo(() =>
+    catalog.storages.find(({ id }) => id === selection().storage)?.label ?? selection().storage,
+  );
+  const registryDefault = (backend: BackendId) =>
+    registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
 
   const selectBackend = (backend: BackendId) => {
     shouldApplyRegistryDefault = false;
     const next = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend)) as Selection;
     setSelection(next);
     urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+    queueMicrotask(() => {
+      document.querySelector<HTMLInputElement>(
+        `input[name="explorer-backend"][value="${backend}"]`,
+      )?.focus();
+    });
   };
+
+  const selectStorage = (storage: StorageId) => {
+    shouldApplyRegistryDefault = false;
+    const choice = profileChoices().find((candidate) => candidate.storage === storage);
+    if (!choice?.selectable) return;
+    const next = { ...selection(), storage: choice.storage };
+    setSelection(next);
+    urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+  };
+
+  const selector = () => (
+    <ProfileSelector
+      backends={visibleBackends()}
+      backend={selection().backend}
+      storage={selection().storage}
+      storages={profileChoices().map((choice) => ({
+        id: choice.storage,
+        label: choice.label,
+        selectable: choice.selectable,
+        reason: choice.reason,
+      }))}
+      onBackend={(backend) => selectBackend(backend as BackendId)}
+      onStorage={(storage) => selectStorage(storage as StorageId)}
+    />
+  );
 
   const refreshProfilePublications = async () => {
     try {
       const [loaded, benchmarks] = await Promise.all([
-        loadProfilePublications({ baseUrl: window.location.href, profileDefinitions: profileData, baseRegistry: availabilityData, signal: publicationController.signal }),
-        loadBenchmarkEvidence({ baseUrl: window.location.href, signal: publicationController.signal })
+        loadProfilePublications({
+          baseUrl: window.location.href,
+          profileDefinitions: profileData,
+          baseRegistry: availabilityData,
+          signal: publicationController.signal,
+        }),
+        loadBenchmarkEvidence({ baseUrl: window.location.href, signal: publicationController.signal }),
       ]);
-      const composed = await (composeProfileRegistry as any)({ baseRegistry: availabilityData, profileDefinitions: profileData, publications: loaded.publications, evidenceRecords: benchmarks.evidenceRecords });
+      const composed = await (composeProfileRegistry as any)({
+        baseRegistry: availabilityData,
+        profileDefinitions: profileData,
+        publications: loaded.publications,
+        evidenceRecords: benchmarks.evidenceRecords,
+      });
       if (publicationController.signal.aborted) return;
       setRegistry(composed.registry);
       if (shouldApplyRegistryDefault) {
@@ -90,47 +177,125 @@ export default function App() {
         if (preferred && preferred !== selection().storage) {
           const next = { ...selection(), storage: preferred };
           setSelection(next);
-          urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next }, { replace: true });
+          urlController?.navigate(
+            { ...parseCanonicalUrl(window.location.search, catalog).state, ...next },
+            { replace: true },
+          );
         }
       }
-    } catch { return; }
+    } catch {
+      return;
+    }
   };
 
   return (
-    <main class="app-shell">
-      <ExplorerHeader
-        eyebrow={`EACL v8 + ${selectedBackend().label} + ${storageOptions().find(({ id }) => id === selection().storage)?.label ?? selection().storage} + SolidJS`}
-        title="🦅 EACL Explorer"
-        description="Reactive authorization over explicit, inspectable HTTP queries."
-        actions={<>
-          <nav class="explorer-header__sources" aria-label="Source repositories">
-            <a class="explorer-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
-            <a class="explorer-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
+    <Show
+      keyed
+      when={selection().backend === "datascript"
+        ? { kind: "datascript" as const, key: `${selection().backend}:${selection().storage}` }
+        : selectedProfile()?.state === "enabled" && selectedProfile()?.deployment
+          ? { kind: "server" as const, profile: selectedProfile() as ExplorerProfile }
+          : null}
+      fallback={
+        <StandaloneExplorer
+          backendLabel={selectedBackend().label}
+          storageLabel={storageLabel()}
+          selector={selector()}
+        />
+      }
+    >
+      {(entry) => entry.kind === "datascript" ? (
+        <StandaloneExplorer
+          backendLabel={selectedBackend().label}
+          storageLabel={storageLabel()}
+          selector={selector()}
+          datascript
+        />
+      ) : (
+        <ConfiguredExplorer
+          profile={entry.profile}
+          backendLabel={selectedBackend().label}
+          storageLabel={storageLabel()}
+          selector={selector()}
+        />
+      )}
+    </Show>
+  );
+}
+
+function ConfiguredExplorer(props: {
+  profile: ExplorerProfile;
+  backendLabel: string;
+  storageLabel: string;
+  selector: JSX.Element;
+}): JSX.Element {
+  const api = createProfileApi(props.profile);
+  onCleanup(() => void api.release());
+  return (
+    <ApiProvider dispatcher={api.dispatcher}>
+      <AppStateProvider>
+        <Explorer
+          backendLabel={props.backendLabel}
+          storageLabel={props.storageLabel}
+          profileSelector={props.selector}
+        />
+      </AppStateProvider>
+    </ApiProvider>
+  );
+}
+
+function StandaloneExplorer(props: {
+  backendLabel: string;
+  storageLabel: string;
+  selector: JSX.Element;
+  datascript?: boolean;
+}): JSX.Element {
+  const [theme, setTheme] = createSignal(readPreferences().theme);
+  const toggleTheme = () => {
+    const next = theme() === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    writePreferences({ ...readPreferences(), theme: next });
+  };
+  document.documentElement.dataset.theme = theme();
+  return (
+    <div class="app-shell" data-theme={theme()}>
+      <header class="app-header">
+        <div class="app-header__intro">
+          <p class="eyebrow">EACL v8 + {props.backendLabel} + {props.storageLabel} + SolidJS</p>
+          <h1 class="app-title">🦅 EACL Explorer</h1>
+          <p class="app-subtitle">Reactive authorization over explicit, inspectable HTTP queries.</p>
+        </div>
+        <div class="app-header__actions">
+          <nav class="app-header__sources" aria-label="Source repositories">
+            <a class="app-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
+            <a class="app-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
           </nav>
-          <ThemeControl value={theme()} onChange={(value) => { setTheme(value); themeController?.setTheme(value); }} />
-        </>}
-      />
-      <ProfileSelector
-        backends={catalog.backends}
-        backend={selection().backend}
-        storage={selection().storage}
-        storageChoices={profileChoices()}
-        onBackend={(backend) => selectBackend(backend as BackendId)}
-        onStorage={(storage) => {
-          shouldApplyRegistryDefault = false;
-          const choice = profileChoices().find((candidate) => candidate.storage === storage);
-          if (!choice?.selectable) return;
-          const next = { ...selection(), storage: choice.storage };
-          setSelection(next);
-          urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
-        }}
-      />
-      <Show
-        when={selection().backend === "datascript"}
-        fallback={<Show when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment ? selectedProfile() : null}>{(profile) => <ServerExplorer profile={profile() as any} />}</Show>}
-      >
-        <section class="datascript-entry-callout" aria-label="DataScript explorer"><a class="button" href="/datascript/" target="_blank" rel="noopener noreferrer">Open DataScript explorer in a new tab</a></section>
-      </Show>
-    </main>
+          <div class="app-header__controls">
+            <button class="graph-toggle" type="button" onClick={toggleTheme}>
+              {theme() === "dark" ? "Light theme" : "Dark theme"}
+            </button>
+          </div>
+        </div>
+      </header>
+      {props.selector}
+      <main class="loading-grid">
+        <div class="panel-card">
+          <Show
+            when={props.datascript}
+            fallback={<p class="empty-state">The selected demo is not available.</p>}
+          >
+            <a
+              class="graph-toggle"
+              href="/datascript/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open DataScript explorer in a new tab
+            </a>
+          </Show>
+        </div>
+      </main>
+    </div>
   );
 }

@@ -164,6 +164,71 @@
                          :else "denied")
            :path []})))
 
+     "lookup-resources"
+     (guarded
+      (fn [{:keys [snapshot input check-active!]}]
+        (let [result
+              (eacl/lookup-resources
+               snapshot
+               (cond->
+                {:subject (eacl/spice-object (keyword (:subjectType input))
+                                             (:subjectId input))
+                 :permission (keyword (:permission input))
+                 :resource/type (keyword (:resourceType input))
+                 :first (or (:pageSize input) default-page-size)
+                 :cache? (not= false (:cache input))
+                 :populate-cache? (not= false (:populateCache input))
+                 :consistency :minimize-latency}
+                 (:cursor input) (assoc :after (:cursor input))))]
+          (check-active!)
+          {:items (mapv (fn [resource]
+                          (wire-object (:type resource) (:id resource)))
+                        (:data result))
+           :pageInfo (wire-page-info result)})))
+
+     "lookup-subjects"
+     (guarded
+      (fn [{:keys [snapshot input check-active!]}]
+        (let [result
+              (eacl/lookup-subjects
+               snapshot
+               (cond->
+                {:resource (eacl/spice-object (keyword (:resourceType input))
+                                              (:resourceId input))
+                 :permission (keyword (:permission input))
+                 :subject/type (keyword (:subjectType input))
+                 :first (or (:pageSize input) default-page-size)
+                 :cache? (not= false (:cache input))
+                 :populate-cache? (not= false (:populateCache input))
+                 :consistency :minimize-latency}
+                 (:cursor input) (assoc :after (:cursor input))))]
+          (check-active!)
+          {:items (mapv (fn [subject]
+                          (wire-object (:type subject) (:id subject)))
+                        (:data result))
+           :pageInfo (wire-page-info result)})))
+
+     "count-resources"
+     (guarded
+      (fn [{:keys [snapshot input check-active!]}]
+        (let [ceiling (or (:ceiling input) default-count-ceiling)
+              result
+              (eacl/count-resources
+               snapshot
+               {:subject (eacl/spice-object (keyword (:subjectType input))
+                                            (:subjectId input))
+                :permission (keyword (:permission input))
+                :resource/type (keyword (:resourceType input))
+                :count-limit ceiling
+                :cache? (not= false (:cache input))
+                :populate-cache? (not= false (:populateCache input))
+                :consistency :minimize-latency})]
+          (check-active!)
+          {:kind "objects"
+           :value (:count result)
+           :exact (not (true? (:truncated? result)))
+           :ceiling (:limit result)})))
+
      "get-schema" (fn [_] wire-schema)
 
      "get-cache-info"

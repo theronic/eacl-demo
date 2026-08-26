@@ -9,6 +9,9 @@ const BODY_FIELDS = Object.freeze({
   "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "consistency"] },
   "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "consistency"] },
   "authorize": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["consistency"] },
+  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency"] },
+  "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency"] },
+  "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", "consistency"] },
   "get-schema": { optional: ["consistency"] },
   "get-cache-info": { optional: [] },
   "count-objects": { required: ["kind"], optional: ["type", "ceiling", "consistency"] }
@@ -49,8 +52,9 @@ function validValues(input) {
     if (["pageSize"].includes(key) && (!Number.isSafeInteger(value) || value < 1 || value > limits.maximumPageSize)) return false;
     if (key === "ceiling" && (!Number.isSafeInteger(value) || value < 1 || value > limits.countCeiling)) return false;
     if (key === "cursor" && (typeof value !== "string" || byteLength(value) > limits.cursorBytes)) return false;
+    if (["cache", "populateCache"].includes(key) && typeof value !== "boolean") return false;
     if (key === "consistency" && !CONSISTENCY.has(value)) return false;
-    if (!["pageSize", "ceiling", "cursor", "consistency"].includes(key) && (typeof value !== "string" || byteLength(value) > limits.identifierBytes || !IDENTIFIER.test(value))) return false;
+    if (!["pageSize", "ceiling", "cursor", "cache", "populateCache", "consistency"].includes(key) && (typeof value !== "string" || byteLength(value) > limits.identifierBytes || !IDENTIFIER.test(value))) return false;
   }
   return true;
 }

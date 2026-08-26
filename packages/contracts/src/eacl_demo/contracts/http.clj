@@ -25,6 +25,15 @@
    "authorize"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
     :optional #{:consistency}}
+   "lookup-resources"
+   {:required #{:subjectType :subjectId :resourceType :permission}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency}}
+   "lookup-subjects"
+   {:required #{:resourceType :resourceId :subjectType :permission}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency}}
+   "count-resources"
+   {:required #{:subjectType :subjectId :resourceType :permission}
+    :optional #{:ceiling :cache :populateCache :consistency}}
    "get-schema" {:required #{} :optional #{:consistency}}
    "get-cache-info" {:required #{} :optional #{}}
    "count-objects"
@@ -97,6 +106,10 @@
                       (not-empty value)
                       (<= (alength (.getBytes ^String value StandardCharsets/UTF_8))
                           maximum-cursor-bytes))
+         "validation-error")
+
+       (contains? #{:cache :populateCache} key)
+       (when-not (instance? Boolean value)
          "validation-error")
 
        (= key :consistency)

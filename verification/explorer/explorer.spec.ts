@@ -40,27 +40,19 @@ test.afterEach(async () => {
 });
 
 test("two-step selection, canonical normalization, and keyboard focus remain usable", async ({ page }) => {
-  const backend = page.getByRole("combobox", { name: "Backend", exact: true });
-  const storage = page.getByRole("combobox", { name: "Storage", exact: true });
-  await expect(backend).toHaveValue("datahike");
-  await backend.selectOption("datomic");
-  await expect(storage).toHaveValue("dynamodb");
+  const backend = page.getByRole("radio", { name: "Datomic", exact: true });
+  const storage = page.getByRole("radio", { name: "DynamoDB", exact: true });
+  await expect(page.getByRole("radio", { name: "Datahike", exact: true })).toBeChecked();
+  await backend.check();
+  await expect(storage).toBeChecked();
   await expect(page).toHaveURL(/backend=datomic&storage=dynamodb/u);
   await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
 
-  await page.keyboard.press("Tab");
-  const focus = await page.evaluate(() => {
-    const active = document.activeElement as HTMLElement | null;
-    const style = active ? getComputedStyle(active) : null;
-    return { tag: active?.tagName ?? null, outlineStyle: style?.outlineStyle ?? null, outlineWidth: style?.outlineWidth ?? null };
-  });
-  expect(focus.tag).not.toBe("BODY");
-  expect(focus.outlineStyle).not.toBe("none");
-  expect(focus.outlineWidth).not.toBe("0px");
+  await expect(backend).toBeFocused();
 });
 
 test("DataScript remains a separate browser entry", async ({ page }) => {
-  await page.getByRole("combobox", { name: "Backend", exact: true }).selectOption("datascript");
+  await page.getByRole("radio", { name: "DataScript", exact: true }).check();
   const link = page.getByRole("link", { name: "Open DataScript explorer in a new tab" });
   await expect(link).toHaveAttribute("href", "/datascript/");
   await expect(link).toHaveAttribute("target", "_blank");
@@ -75,11 +67,10 @@ test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ 
 });
 
 test("manual theme preference persists and reduced motion disables continuous animation", async ({ page }) => {
-  const theme = page.getByLabel("Color theme");
-  await theme.selectOption("dark");
+  await page.getByRole("button", { name: "Dark theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
-  await expect(theme).toHaveValue("dark");
+  await expect(page.getByRole("button", { name: "Light theme" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -123,11 +114,11 @@ test("an enabled publication opens the schema-validated server explorer over the
   });
   const basis = { behavior: "request-snapshot", id: "datahike:test-basis-7", capturedAt: deployedAt, fixedForEnvironment: false };
   const descriptor = {
-    contract: { name: "explorer.v1", routeMajor: 1, revision: 1, minimumClientRevision: 1 }, identity,
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 2, minimumClientRevision: 1 }, identity,
     profile: { backend: "datahike", storage: "s3" },
     runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
     capabilities: {
-      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"],
+      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
       consistencyModes: ["current", "minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
     },
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
@@ -160,6 +151,9 @@ test("an enabled publication opens the schema-validated server explorer over the
       "list-relationships": { items: [{ resourceType: input.resourceType, resourceId: input.resourceId, relation: input.relation ?? "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo },
       "reverse-relationships": { items: [object], pageInfo },
       authorize: { subjectType: input.subjectType, subjectId: input.subjectId, resourceType: input.resourceType, resourceId: input.resourceId, permission: input.permission, allowed: true, reasonCode: "granted", path: [{ kind: "direct", label: "fixture grant", allowed: true }] },
+      "lookup-resources": { items: [{ type: input.resourceType, id: "server-1", displayName: "Server one", attributes: [] }], pageInfo },
+      "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
+      "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
       "get-schema": { sha256: "d".repeat(64), types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
       "get-cache-info": { behavior: "environment-local", hit: null, scope: "datahike-s3", entries: null, limitations: [] },
       "count-objects": { kind: input.kind, value: input.ceiling, exact: false, ceiling: input.ceiling }
@@ -168,16 +162,17 @@ test("an enabled publication opens the schema-validated server explorer over the
   });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Backend & storage" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Read basis" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Read Basis" })).toBeVisible();
   await expect(page.getByText(/independent profile status records/u)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /User one/u })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Schema" })).toBeVisible();
-  await page.getByRole("button", { name: "Check permission" }).click();
-  await expect(page.getByRole("heading", { name: "view: Allowed" })).toBeVisible();
-  expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "get-cache-info", "count-objects", "authorize"]));
+  await expect(page.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Schema/u })).toBeVisible();
+  await page.getByRole("button", { name: "Servers" }).click();
+  await page.getByRole("button", { name: /Server 1/u }).click();
+  await expect(page.locator(".permission-decision__status--allowed", { hasText: "Allowed" })).toBeVisible();
+  expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "authorize", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.filter(({ operation }) => !["health", "bootstrap"].includes(operation)).every(({ payloadHash }) => /^[0-9a-f]{64}$/u.test(payloadHash ?? ""))).toBe(true);
 });
