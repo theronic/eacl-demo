@@ -9,6 +9,6 @@ Deployment source is always an immutable pair:
 - the exact `theronic/eacl-demo` commit being built; and
 - the exact reachable `theronic/eacl` commit in `dependencies/eacl-core.lock.json` committed by that demo revision.
 
-Dirty checkouts, local-root dependencies, and branch names are not release identities. Merges to the future `demos` branch will deploy static and profile jobs independently, without a fleet-wide barrier or GitHub concurrency management.
+Dirty checkouts, local-root dependencies, and branch names are not release identities. Merges to the `demos` branch deploy static and profile jobs independently, without a fleet-wide barrier or GitHub concurrency management.
 
 The active implementation plan is the OpenSpec change `consolidate-eacl-demo-backends`.
