@@ -227,6 +227,9 @@ CI waits for the exact version to become active, requires AWS to report
 `OptimizationStatus=On`, then invokes the restored alias through health,
 bootstrap, allow, deny, and mutation-denial smoke before publishing its profile
 record. The first restored health wall time is printed on every deployment.
+Published version 39 in deployment run `33024147774` was AWS-optimized, reported
+SnapStart enabled through its restored bootstrap descriptor, passed the complete
+bounded smoke, and returned the first restored health response in 2,076 ms.
 The data remains native in-memory LMDB; SnapStart changes startup lifecycle,
 not storage or durability. Broader repeated restore/eviction/load evidence can
 still harden the topology later, but formal verification is not a merge gate
@@ -234,7 +237,7 @@ for this demo.
 
 ### 10. DataScript remains a separate worker-backed entry
 
-`/datascript/` shares UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and worker only from its own build graph. The worker owns database/client/cache/cursor lifecycle and bounded request messages. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
+`/datascript/` shares UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and worker only from its own build graph. The worker owns database/client/cache/cursor lifecycle and bounded request messages. It creates the 10,000-resource fixture in one worker-local import rather than ten separate relationship imports; this preserves the exact fixture while removing repeated transaction setup from startup. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
 
 ### 11. Jank targets `provided.al2023` x86_64 and does not use SnapStart
 

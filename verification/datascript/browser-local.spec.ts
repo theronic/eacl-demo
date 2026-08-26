@@ -122,23 +122,23 @@ test("fixture initialization and authorization stay in the browser worker", asyn
       schema: await request("get-schema", {}),
       resources: await request("lookup-resources", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
-        permission: "admin", pageSize: 20, cache: true, populateCache: true,
-        consistency: "current"
+        permission: "admin", pageSize: 20, cache: true, populateCache: true
       }),
       viewResources: await request("lookup-resources", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
-        permission: "view", pageSize: 20, cache: true, populateCache: true,
-        consistency: "current"
+        permission: "view", pageSize: 20, cache: true, populateCache: true
       }),
       resourceCount: await request("count-resources", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
-        permission: "admin", ceiling: 1_000, cache: true, populateCache: true,
-        consistency: "current"
+        permission: "admin", ceiling: 1_000, cache: true, populateCache: true
       }),
       subjectsWithPermission: await request("lookup-subjects", {
         resourceType: "account", resourceId: "account-0", subjectType: "user",
-        permission: "admin", pageSize: 20, cache: true, populateCache: true,
-        consistency: "current"
+        permission: "admin", pageSize: 20, cache: true, populateCache: true
+      }),
+      authorization: await request("authorize", {
+        subjectType: "user", subjectId: "user-1", resourceType: "account",
+        resourceId: "account-0", permission: "admin"
       }),
       unsupportedConsistency: await request("authorize", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
@@ -146,14 +146,15 @@ test("fixture initialization and authorization stay in the browser worker", asyn
       }),
     };
   });
-  expect(defaults.object).toMatchObject({ ok: true, data: { object: { type: "account", id: "account-0" } } });
-  expect(defaults.subjects).toMatchObject({ ok: true, data: { pageInfo: { pageSize: 25, hasNextPage: true } } });
+  expect(Object.keys(defaults.object).sort()).toEqual(["data", "meta"]);
+  expect(defaults.object).toMatchObject({ data: { object: { type: "account", id: "account-0" } } });
+  expect(Object.keys(defaults.object.meta).sort()).toEqual(["elapsedMs", "requestId", "revision"]);
+  expect(defaults.subjects).toMatchObject({ data: { pageInfo: { pageSize: 25, hasNextPage: true } } });
   expect(defaults.subjects.data.items).toHaveLength(25);
-  expect(defaults.count).toMatchObject({ ok: true, data: { kind: "objects", value: 1_000, exact: false, ceiling: 1_000 } });
-  expect(defaults.schema).toMatchObject({ ok: true });
+  expect(defaults.count).toMatchObject({ data: { kind: "objects", value: 1_000, exact: false, ceiling: 1_000 } });
+  expect(Object.keys(defaults.schema).sort()).toEqual(["data", "meta"]);
   expect(defaults.resources).toMatchObject({
-    ok: true,
-    meta: { operation: "lookup-resources", cacheStatus: expect.stringMatching(/^(?:hit|miss)$/u) },
+    meta: { cacheStatus: expect.stringMatching(/^(?:hit|miss)$/u) },
   });
   expect(defaults.resources.data.items).toEqual(expect.arrayContaining([
     expect.objectContaining({ type: "account", id: "account-0" }),
@@ -161,22 +162,22 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   expect(defaults.resources.meta.elapsedMs).toBeGreaterThanOrEqual(0);
   expect(defaults.viewResources.data.pageInfo.endCursor).toBeNull();
   expect(defaults.resourceCount).toMatchObject({
-    ok: true,
-    meta: { operation: "count-resources" },
     data: { kind: "objects", exact: true, ceiling: 1_000 }
-  });
-  expect(defaults.subjectsWithPermission).toMatchObject({
-    ok: true,
-    meta: { operation: "lookup-subjects" },
   });
   expect(defaults.subjectsWithPermission.data.items).toEqual(expect.arrayContaining([
     expect.objectContaining({ type: "user", id: "user-1" }),
   ]));
+  expect(Object.keys(defaults.authorization).sort()).toEqual(["data", "meta"]);
+  expect(defaults.authorization.data).toEqual({ allowed: true });
+  expect(Object.keys(defaults.authorization.meta).sort()).toEqual([
+    "cacheStatus", "elapsedMs", "requestId", "revision",
+  ]);
   expect(defaults.unsupportedConsistency).toMatchObject({
-    ok: false,
     error: { code: "unsupported-consistency" },
-    meta: { operation: "authorize", elapsedMs: expect.any(Number) },
   });
+  expect(Object.keys(defaults.unsupportedConsistency).sort()).toEqual(["error", "meta"]);
+  expect(Object.keys(defaults.unsupportedConsistency.error).sort()).toEqual(["code", "message"]);
+  expect(Object.keys(defaults.unsupportedConsistency.meta).sort()).toEqual(["elapsedMs", "requestId", "revision"]);
 
   requests.length = 0;
   await expect(page.getByRole("heading", { name: "Subjects & permissions" })).toBeVisible();

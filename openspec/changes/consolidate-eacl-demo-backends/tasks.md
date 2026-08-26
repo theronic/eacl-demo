@@ -149,10 +149,10 @@
 - [x] 10.4 Generate the deterministic 10,000-resource fixture at initialization and freeze public data, schema, and relation writes after readiness.
 - [ ] 10.5 Instrument snapshot ownership and exact-once release plus heap, direct, native, RSS, handle, and lifecycle state.
 - [ ] 10.6 Qualify both the quiesced pre-checkpoint and after-restore rebuild strategies, including repeated restores, simultaneous environments, eviction, stale handles, cancellation, failures, and load.
-- [ ] 10.7 Enable managed-Java SnapStart only after the reader is forced during initialization, the published version reports `OptimizationStatus=On`, and restored health/bootstrap/allow/deny/mutation-denial smoke passes; retain broader repeated restore/eviction/load qualification as later hardening rather than a demo merge gate.
+- [x] 10.7 Enable managed-Java SnapStart only after the reader is forced during initialization, the published version reports `OptimizationStatus=On`, and restored health/bootstrap/allow/deny/mutation-denial smoke passes; retain broader repeated restore/eviction/load qualification as later hardening rather than a demo merge gate.
 - [ ] 10.8 Sweep memory and publish the smallest passing managed-Java configuration and immutable descriptor.
 - [x] 10.9 Reduce cold initialization transactions from roughly one hundred to eleven with bounded 5,000-record batches, replace roughly 77,000 relationship endpoint lookups with one post-object `:eacl/id` index scan, and print the first candidate health wall time in the ordinary deployment smoke.
-- [ ] 10.10 Record the first successful live restored-health wall time and verify the restored descriptor reports SnapStart enabled before publishing the profile.
+- [x] 10.10 Record the first successful live restored-health wall time (2,076 ms for published version 39 in deployment run `33024147774`) and verify the restored descriptor reports SnapStart enabled before publishing the profile.
 
 ## 11. Jank Amazon Linux x86_64 profile
 
