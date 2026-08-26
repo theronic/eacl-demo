@@ -121,25 +121,56 @@ async function deployProfile(profileId, profile) {
 }
 
 async function smokeProfile(profileId, functionName, temporary) {
+  const health = await invokeProfile({ profileId, functionName, temporary,
+    operation: "health", method: "GET", input: null });
+  assertHealthy(profileId, health);
+  const decisions = [];
+  for (const [subjectId, expected] of [["user-1", true], ["user-2", false]]) {
+    const response = await invokeProfile({ profileId, functionName, temporary,
+      operation: "authorize", method: "POST",
+      input: { subjectType: "user", subjectId, resourceType: "account",
+        resourceId: "account-0", permission: "admin", consistency: "current" } });
+    if (response.statusCode !== 200 || response.envelope.ok !== true ||
+        response.envelope.data?.allowed !== expected) {
+      throw new Error(`${profileId} ${expected ? "allow" : "deny"} smoke failed`);
+    }
+    decisions.push(response);
+  }
+  const mutation = await invokeProfile({ profileId, functionName, temporary,
+    operation: "seed", method: "POST", input: {} });
+  if (mutation.statusCode !== 404 || mutation.envelope.ok !== false ||
+      mutation.envelope.error?.code !== "route-not-found") {
+    throw new Error(`${profileId} mutation denial smoke failed`);
+  }
+  return JSON.stringify([health, ...decisions, mutation]);
+}
+
+async function invokeProfile({ profileId, functionName, temporary,
+  operation, method, input }) {
   const eventFile = path.join(temporary, "health-event.json");
   const outputFile = path.join(temporary, "health-response.json");
   await writeFile(eventFile, JSON.stringify({
     version: "2.0", routeKey: "$default",
-    rawPath: `/api/v1/${profileId}/health`, rawQueryString: "",
-    headers: {}, requestContext: { requestId: `ci-${demoSha().slice(0, 16)}`,
-      http: { method: "GET" } }, isBase64Encoded: false, body: null
+    rawPath: `/api/v1/${profileId}/${operation}`, rawQueryString: "",
+    headers: input === null ? {} : { "content-type": "application/json" },
+    requestContext: { requestId: `ci-${operation}-${demoSha().slice(0, 12)}`,
+      http: { method } }, isBase64Encoded: false,
+    body: input === null ? null : JSON.stringify(input)
   }));
   aws(["lambda", "invoke", "--function-name", `${functionName}:candidate`,
        "--cli-binary-format", "raw-in-base64-out", "--payload", `fileb://${eventFile}`,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
-  const body = JSON.parse(response.body);
+  return { statusCode: response.statusCode, envelope: JSON.parse(response.body) };
+}
+
+function assertHealthy(profileId, response) {
+  const body = response.envelope;
   if (response.statusCode !== 200 || body.ok !== true || body.data?.ready !== true ||
       body.data?.identity?.demoSha !== demoSha() ||
       body.data?.identity?.eaclSha !== eaclSha()) {
     throw new Error(`${profileId} health smoke failed`);
   }
-  return JSON.stringify(response);
 }
 
 async function publishProfile({ profileId, artifactKind, artifactSha,
