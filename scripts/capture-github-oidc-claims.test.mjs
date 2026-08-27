@@ -31,6 +31,7 @@ const claims = (subject = customSubject(manifest, authority)) => ({
   ref_type: "branch",
   workflow: authority.workflowName,
   workflow_ref: workflowRef(manifest, authority),
+  workflow_sha: "b".repeat(40),
   environment: authority.environment,
   event_name: authority.eventName,
   runner_environment: authority.runnerEnvironment,
@@ -76,7 +77,7 @@ test("transition capture accepts only the two exact migration subjects", () => {
   assert.throws(() => capture(claims("repo:theronic/eacl-demo:environment:demo-stateful-datomic-seed")), /migration subject/u);
 });
 
-test("every trust-relevant claim is exact and reusable-workflow claims are rejected", () => {
+test("every trust-relevant claim is exact and a different called reusable workflow is rejected", () => {
   for (const [name, value] of Object.entries({
     iss: "https://example.invalid",
     aud: "https://github.com/theronic",
@@ -92,7 +93,24 @@ test("every trust-relevant claim is exact and reusable-workflow claims are rejec
     event_name: "push",
     runner_environment: "self-hosted"
   })) assert.throws(() => capture({ ...claims(), [name]: value }), new RegExp(`OIDC ${name} claim`, "u"));
-  assert.throws(() => capture({ ...claims(), job_workflow_ref: workflowRef(manifest, authority) }), /reusable workflow/u);
+  assert.doesNotThrow(() => capture({
+    ...claims(),
+    job_workflow_ref: workflowRef(manifest, authority),
+    job_workflow_sha: "b".repeat(40)
+  }));
+  assert.throws(() => capture({
+    ...claims(),
+    job_workflow_ref: "theronic/eacl-demo/.github/workflows/reusable-deploy.yml@refs/heads/demos"
+  }), /different called reusable workflow/u);
+  assert.throws(() => capture({
+    ...claims(),
+    job_workflow_ref: workflowRef(manifest, authority),
+    job_workflow_sha: "c".repeat(40)
+  }), /different called reusable workflow revision/u);
+  assert.throws(() => capture({
+    ...claims(),
+    job_workflow_sha: "b".repeat(40)
+  }), /different called reusable workflow revision/u);
 });
 
 test("signature, key, format, time, and lifetime failures expose no token material", () => {
