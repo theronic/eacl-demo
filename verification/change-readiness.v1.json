@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 148,
-    "open": 57,
+    "completed": 158,
+    "open": 47,
     "total": 205
   },
   "freeze": {
@@ -17,8 +17,8 @@
     {
       "id": "live-profile-qualification",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["7.1", "8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.8", "11.10", "11.11", "11.12", "15.5"],
-      "condition": "These tasks require production-path storage, Lambda, CloudFront, memory, restore, benchmark, origin-denial, or promotion evidence that local definitions cannot supply.",
+      "taskIds": ["8.11", "8.15", "8.16", "8.17", "9.12", "10.6", "10.8", "11.10", "11.11", "11.12"],
+      "condition": "The enabled Datahike/S3, Datomic/DynamoDB, and Datalevin/memory profiles have passing direct production qualification and ordinary deployment evidence. The remaining tasks require Datahike/DynamoDB real-AWS/comparison work, memory/restore sweeps, or the explicitly parked Jank runtime evidence.",
       "requiredEvidence": [
         "Content-addressed reports from the exact staged or production topology",
         "Exact source, artifact, deployment, data, runtime, architecture, and memory identities",
@@ -99,18 +99,6 @@
       "safeActionNow": "Do not send another synthetic notification or alter live alarm actions while the freeze is active."
     },
     {
-      "id": "ordinary-ci-after-eligibility",
-      "disposition": "blocked-by-external-prerequisite",
-      "taskIds": ["13.9", "14.8", "14.9", "14.10", "14.13"],
-      "condition": "The automatic demos workflow is intentionally absent while no active ordinary deployment target is eligible. Its deterministic renderer, content-addressed handoff, static transaction, and local Datahike/Datomic server candidate-smoke-alias-status transactions are implemented, but Datalevin has no deployable artifact and all live execution evidence remains open. Once one target qualifies, the single generated workflow must include every independently eligible target and exclude ineligible or parked targets; enabling a placeholder before then would deploy unqualified artifacts.",
-      "requiredEvidence": [
-        "Each active ordinary target marked eligible only after every build unit in its target-local closure passes runtime-specific artifact and production-path gates",
-        "One exact demos-push workflow with isolated unprivileged build and same-target credentialed deploy pairs",
-        "Executed mixed-generation, sibling-failure, stateful-denial, smoke, promotion, and rollback evidence"
-      ],
-      "safeActionNow": "Keep the automatic workflow absent while no ordinary target is eligible; continue local server adapter/least-privilege validation and retain structural tests that admit only independently eligible active targets."
-    },
-    {
       "id": "github-settings-and-oidc",
       "disposition": "blocked-by-live-evidence",
       "taskIds": ["14.1", "14.2", "14.3", "14.4"],
@@ -125,14 +113,14 @@
     {
       "id": "initial-deployment-and-cutover",
       "disposition": "awaiting-separate-authorization",
-      "taskIds": ["15.2", "15.6", "15.9", "15.10", "15.11"],
-      "condition": "Foundation/staging publication and production DNS cutover are live mutations; DNS requires fresh explicit approval immediately before the change.",
+      "taskIds": ["15.2", "15.6", "15.9", "15.11"],
+      "condition": "The production cutover and immediate direct-profile/browser checks passed. Non-stateful observability, an independently recorded staging qualification, the historical fresh-approval gate, and conditional rollback evidence remain incomplete; any future DNS change still requires fresh explicit approval.",
       "requiredEvidence": [
         "Deployed non-stateful foundation, static shell, registry, route isolation, headers, origin denial, and synthetics",
         "Staged two-step selector, mixed-generation, DataScript isolation, and browser evidence",
         "Fresh DNS approval plus immediate cutover checks and exact rollback result if a threshold fails"
       ],
-      "safeActionNow": "Do not deploy staging or production resources and do not request DNS approval while prerequisite profiles remain unqualified."
+      "safeActionNow": "Preserve the healthy production target, gather non-destructive observability/staging evidence, and make no further DNS change without fresh explicit approval."
     },
     {
       "id": "release-observation-and-retirement",

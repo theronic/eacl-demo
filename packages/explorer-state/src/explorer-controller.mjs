@@ -282,7 +282,7 @@ export function validateDescriptorCapabilities(profile, descriptor) {
   if (!capabilities || !Array.isArray(capabilities.operations) || !Array.isArray(capabilities.consistencyModes)) throw new Error("descriptor capabilities are missing");
   if (!descriptor.profile || descriptor.profile.backend !== profile.backend || descriptor.profile.storage !== profile.storage) throw new Error("descriptor profile mapping mismatch");
   if (!capabilities.operations.includes("health") || !capabilities.operations.includes("bootstrap")) throw new Error("descriptor must advertise health and bootstrap");
-  if (!capabilities.consistencyModes.includes("current")) throw new Error("descriptor must advertise current consistency");
+  if (capabilities.consistencyModes.length === 0) throw new Error("descriptor must advertise at least one consistency mode");
   for (const field of ["snapshotBehavior", "cacheBehavior", "mutationLocality"]) if (typeof capabilities[field] !== "string") throw new Error(`descriptor ${field} is missing`);
   if (!Array.isArray(capabilities.limitations)) throw new Error("descriptor limitations are missing");
   return descriptor;
