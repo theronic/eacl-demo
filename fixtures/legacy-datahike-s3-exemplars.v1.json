@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "legacy-datahike-s3-20260824-basis-6a7df54b",
+  "semanticOrder": ["resource.type", "resource.id"],
+  "requiredCoverage": ["direct", "arrow-relation", "arrow-permission", "recursive-permission-arrow"],
+  "source": {
+    "repository": "theronic/eacl-datahike-demo",
+    "generatorSha256": "a1ba336c890a447f3207d0efbc6fa69e3332bef268214b8ae5d7f6894a7be631",
+    "basisId": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73"
+  },
+  "limitations": [
+    "The adopted store is not the canonical eacl-demo-fixture-v1 dataset.",
+    "The retained source fixture has recursive parent chains but no account cycle exemplar."
+  ],
+  "cases": [
+    {
+      "id": "direct-owner-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-1"}, "permission": "admin", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"allowed": true, "pathClass": "direct"}
+    },
+    {
+      "id": "direct-owner-deny",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-2"}, "permission": "admin", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"allowed": false}
+    },
+    {
+      "id": "platform-arrow-relation-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "super-user"}, "permission": "view", "resource": {"type": "server", "id": "account-4-server-15"}},
+      "expected": {"allowed": true, "pathClass": "arrow-relation"}
+    },
+    {
+      "id": "team-arrow-permission-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "account-0-team-0-leader"}, "permission": "view", "resource": {"type": "server", "id": "account-0-server-0"}},
+      "expected": {"allowed": true, "pathClass": "arrow-permission"}
+    },
+    {
+      "id": "vpc-relation-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "account-0-vpc-0-admin"}, "permission": "view", "resource": {"type": "vpc", "id": "account-0-vpc-0"}},
+      "expected": {"allowed": true, "pathClass": "direct"}
+    },
+    {
+      "id": "recursive-parent-allow",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-1"}, "permission": "view", "resource": {"type": "account", "id": "account-3"}},
+      "expected": {"allowed": true, "pathClass": "recursive-permission-arrow"}
+    },
+    {
+      "id": "recursive-parent-deny",
+      "kind": "decision",
+      "demand": {"subject": {"type": "user", "id": "user-2"}, "permission": "view", "resource": {"type": "account", "id": "account-0"}},
+      "expected": {"allowed": false, "mustTerminate": true}
+    }
+  ]
+}

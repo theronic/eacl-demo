@@ -95,12 +95,24 @@ function validateWorkload(workload, profileId) {
   for (const phase of workload.phases) if (!new Set(["passed", "failed", "unsupported"]).has(phase.status)) throw new TypeError("qualification workload phase status is invalid");
 }
 
-function redactDeep(value, key = "") {
-  if (Array.isArray(value)) return value.map((item) => redactDeep(item, key));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, redactDeep(child, childKey)]));
+function redactDeep(value, key = "", path = []) {
+  if (Array.isArray(value)) return value.map((item) => redactDeep(item, key, path));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, redactDeep(child, childKey, [...path, childKey])]));
   if (/authorization|credential|password|secret|token/iu.test(key)) return "[redacted]";
+  if (typeof value === "string" && path.join(".") === "qualification.target.origin") return validatedPublicOrigin(value);
   if (typeof value === "string") return value.replace(/https?:\/\/\S+|\b(?:token|secret|password|authorization)\b\s*[:=]\s*\S+|\/(?:Users|home|var|tmp)\/\S+/giu, "[redacted]");
   return value;
+}
+
+function validatedPublicOrigin(value) {
+  try {
+    const origin = new URL(value);
+    if (!new Set(["http:", "https:"]).has(origin.protocol) || origin.username || origin.password
+        || origin.search || origin.hash || origin.pathname !== "/") return "[redacted]";
+    return origin.origin;
+  } catch {
+    return "[redacted]";
+  }
 }
 
 function sortDeep(value) {

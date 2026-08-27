@@ -8,7 +8,7 @@ const SHA256 = /^[0-9a-f]{64}$/u;
 export async function runQualification({ target, createTransport, expectedIdentity, cases = [], now = () => new Date().toISOString() }) {
   validateIdentity(expectedIdentity);
   if (typeof createTransport !== "function") throw new TypeError("createTransport is required");
-  if (!Array.isArray(cases)) throw new TypeError("qualification cases must be an array");
+  if (!Array.isArray(cases) && typeof cases !== "function") throw new TypeError("qualification cases must be an array or descriptor-bound factory");
   const startedAt = now();
   const transport = await createTransport(target);
   const checkedTransport = identityCheckedTransport(transport, expectedIdentity);
@@ -21,10 +21,15 @@ export async function runQualification({ target, createTransport, expectedIdenti
     const response = await checkedTransport.request("bootstrap", {});
     descriptor = successfulData(response, "bootstrap");
     assertIdentity(descriptor.identity, expectedIdentity);
-    results.push(passed("bootstrap-identity", "identity", performance.now() - started, { contractRevision: descriptor.contract.revision }));
+    results.push(passed("bootstrap-identity", "identity", performance.now() - started, {
+      contractRevision: descriptor.contract.revision,
+      fixtureId: descriptor.dataset?.fixtureId ?? null
+    }));
     bootstrapPassed = true;
 
-    for (const qualificationCase of cases) {
+    const selectedCases = typeof cases === "function" ? cases(descriptor) : cases;
+    if (!Array.isArray(selectedCases)) throw new TypeError("qualification case factory must return an array");
+    for (const qualificationCase of selectedCases) {
       const applicability = qualificationCase.applies?.(descriptor) ?? { supported: true };
       if (!applicability.supported) {
         results.push(unsupported(qualificationCase, applicability.reason));

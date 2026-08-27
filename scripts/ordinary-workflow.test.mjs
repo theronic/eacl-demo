@@ -2,9 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { eligibleOrdinaryTargets, renderOrdinaryWorkflow } from "./lib/ordinary-workflow.mjs";
+import { assertLiveOrdinaryTargetPairs, eligibleOrdinaryTargets, renderOrdinaryWorkflow } from "./lib/ordinary-workflow.mjs";
 
 const committed = JSON.parse(await readFile(new URL("../build-units.json", import.meta.url), "utf8"));
+const profiles = JSON.parse(await readFile(new URL("../packages/contracts/profiles.v1.json", import.meta.url), "utf8"));
+const committedWorkflow = await readFile(new URL("../.github/workflows/deploy-demos.yml", import.meta.url), "utf8");
+
+test("committed live workflow pairs match only static and direct Function URL profiles", () => {
+  assert.deepEqual(assertLiveOrdinaryTargetPairs(committedWorkflow, profiles), ["datahike-s3", "datalevin-memory", "datomic-dynamodb", "static"]);
+  assert.throws(() => assertLiveOrdinaryTargetPairs(committedWorkflow.replace(/^  build-datahike-s3:[\s\S]*?(?=^  deploy-datahike-s3:)/mu, ""), profiles), /differ/u);
+  assert.throws(() => assertLiveOrdinaryTargetPairs(`${committedWorkflow}\n  build-jank-memory:\n`, profiles), /differ/u);
+});
 
 test("committed zero-eligibility state renders no push workflow", () => {
   assert.deepEqual(eligibleOrdinaryTargets(committed), []);

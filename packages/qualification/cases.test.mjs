@@ -41,7 +41,7 @@ function fixtureTransport() {
       if (operation === "list-relationships") return { meta, data: { items: [{ resourceType: "account", resourceId: "account-0", relation: "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
       if (operation === "reverse-relationships") return { meta, data: { items: [{ type: "account", id: "account-0", displayName: null, attributes: [] }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };
       if (operation === "list-subjects") {
-        if (input.cursor && !cursors.has(input.cursor)) return failure(meta, "invalid-cursor");
+        if (input.cursor && !cursors.has(input.cursor)) return failure(meta, "cursor-invalid");
         return { meta, data: { items: [{ type: "user", id: input.cursor ? "user-2" : "user-1", displayName: null, attributes: [] }], pageInfo: { hasNextPage: !input.cursor, endCursor: input.cursor ? null : "cursor-1", pageSize: 1 } } };
       }
       if (operation === "get-cache-info") return { meta, data: { behavior: "environment-local", hit: null, scope: "profile", entries: 1, limitations: [] } };

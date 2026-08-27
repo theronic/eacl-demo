@@ -16,7 +16,7 @@ function qualification() {
   return {
     schema: "eacl-demo.qualification-report.v1", result: "pass",
     startedAt: "2026-08-25T12:00:01Z", completedAt: "2026-08-25T12:01:00Z",
-    target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/api/v1/datahike-s3", profileId: identity.profileId },
+    target: { kind: "direct-function-url", origin: "https://abc.lambda-url.us-east-1.on.aws", path: "/api/v1/datahike-s3", profileId: identity.profileId },
     identity, descriptorIdentity: identity, releaseOutcome: "released",
     counts: { passed: categories.length, failed: 0, unsupported: 0 },
     cases: categories.map((category) => ({ id: `${category}-case`, category, status: "passed", durationMs: 1, reason: null, details: {} }))

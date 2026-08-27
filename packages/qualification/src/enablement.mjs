@@ -36,7 +36,7 @@ export function evaluateInitialEnablement({ profile, deployment, qualification, 
   }
   if (reasons.length > 0) return verdict(false, reasons, deployment, qualification, workload, observability);
 
-  if (qualification.target?.kind !== "staged-cloudfront") reasons.push("qualification did not traverse staged CloudFront");
+  if (qualification.target?.kind !== "direct-function-url") reasons.push("qualification did not traverse the direct Function URL");
   if (!sameRoute(qualification.target?.path, profile.route)) reasons.push("qualification target does not match the profile production route");
   if (qualification.target?.profileId !== profile.id) reasons.push("qualification target profile does not match the registry profile");
   if (workload.profileId !== profile.id) reasons.push("representative workload did not pass for this profile");
@@ -116,10 +116,11 @@ function validateQualificationEvidence(report) {
   invariant(startedAt <= completedAt, "qualification completion predates its start");
   invariant(report.target && typeof report.target === "object" && typeof report.target.origin === "string" && typeof report.target.path === "string"
     && /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(report.target.profileId), "qualification target is invalid");
-  invariant(new Set(["local", "staged-origin", "staged-cloudfront"]).has(report.target.kind), "qualification target kind is invalid");
+  invariant(new Set(["local", "direct-function-url", "staged-origin", "staged-cloudfront"]).has(report.target.kind), "qualification target kind is invalid");
   const origin = new URL(report.target.origin);
   invariant(!origin.username && !origin.password && !origin.search && !origin.hash && origin.pathname === "/", "qualification target origin is invalid");
-  invariant(report.target.kind === "local" || origin.protocol === "https:", "staged qualification target must use HTTPS");
+  invariant(report.target.kind === "local" || origin.protocol === "https:", "remote qualification target must use HTTPS");
+  if (report.target.kind === "direct-function-url") invariant(/^[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws$/u.test(origin.hostname), "direct qualification target is not a Function URL");
   invariant(Array.isArray(report.cases) && report.cases.length >= REQUIRED_CATEGORIES.length, "qualification cases are incomplete");
   invariant(report.counts && typeof report.counts === "object", "qualification counts are missing");
   const actual = { passed: 0, failed: 0, unsupported: 0 };

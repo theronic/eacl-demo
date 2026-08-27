@@ -99,7 +99,7 @@
 
 ## 7. Qualification harness and fast merge smoke
 
-- [ ] 7.1 Update the qualification runner for local transports and exact direct alias-qualified Function URLs while retaining exact source, artifact, data, and profile identities.
+- [x] 7.1 Update the qualification runner for local transports and exact direct alias-qualified Function URLs while retaining exact source, artifact, data, and profile identities.
 - [x] 7.2 Implement common contract, authorization, relationship, pagination, cursor, cache, consistency, failure, cleanup, redaction, and identity cases.
 - [x] 7.3 Implement representative cold, restore, and warm workloads with explicit dataset, cache, concurrency, latency, error, and memory-headroom criteria.
 - [x] 7.4 Produce machine-readable and human-readable reports that distinguish unsupported features from failed behavior.
@@ -206,7 +206,7 @@ decision as well as the existing qualification evidence.
 - [ ] 13.6 Route alarm, budget, anomaly, applicable deployment-failure, and overdue temporary-compute notifications to Telegram.
 - [x] 13.7 Send and verify a synthetic Telegram alarm before creating or seeding durable DynamoDB data.
 - [x] 13.8 Implement explicit dispatch-only workflows for table creation, seed, verification, backup, data publication, and temporary compute.
-- [ ] 13.9 Ensure ordinary demos-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.
+- [x] 13.9 Ensure ordinary demos-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.
 - [x] 13.10 Encode the user's authorization for initial DynamoDB seeding and temporary seed, transactor, or Jank-build EC2, while retaining exact-target previews and noninteractive cleanup checks.
 - [x] 13.11 Add expiry-tag enforcement and a watchdog that emits a critical Telegram notification and terminates overdue temporary seed, transactor, or build compute.
 - [ ] 13.12 Verify after every temporary-compute run that applicable tables respect caps and alarms, temporary roles are no longer active, EC2 is terminated, and no orphan volume or address remains.
@@ -222,11 +222,11 @@ decision as well as the existing qualification evidence.
 - [x] 14.6 Store immutable GitHub identity, AWS account, region, role identifiers, distribution IDs, and non-secret deployment coordinates as GitHub variables rather than secrets.
 - [x] 14.7 Assert GitHub contains no AWS access-key, Telegram bot-token, or cross-repository dispatch secret.
 - [ ] 14.8 As soon as any active ordinary target is deployment-eligible, build one workflow triggered only by pushes to eacl-demo:demos that verifies the pinned EACL SHA is reachable and fans out explicit unprivileged build plus credentialed deploy pairs for every independently eligible target among static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Ineligible active targets remain visible but unqueued and non-gating. Registered parked Jank/memory remains unavailable, unqueued, and non-gating until explicitly unparked.
-- [ ] 14.9 Give each deploy job only a digest-verified same-target artifact dependency; add no sibling/global barrier, and for any matrix set fail-fast false and omit max-parallel; add no GitHub concurrency group, cancel-in-progress setting, latest-head guard, or cross-run ordering dependency.
-- [ ] 14.10 Build and package without OIDC, upload a content-addressed artifact through pinned actions, download and verify it in a separate exact-environment OIDC job without installing/building, deploy a candidate, run only the minimal merge smoke, promote that run's healthy profile alias, and roll back only that profile on failure.
+- [x] 14.9 Give each deploy job only a digest-verified same-target artifact dependency; add no sibling/global barrier, and for any matrix set fail-fast false and omit max-parallel; add no GitHub concurrency group, cancel-in-progress setting, latest-head guard, or cross-run ordering dependency.
+- [x] 14.10 Build and package without OIDC, upload a content-addressed artifact through pinned actions, download and verify it in a separate exact-environment OIDC job without installing/building, deploy a candidate, run only the minimal merge smoke, promote that run's healthy profile alias, and roll back only that profile on failure.
 - [x] 14.11 Allow mixed and out-of-order profile generations and publish the exact deployed demo SHA, locked EACL SHA, artifact identity, and last outcome without claiming latest-source convergence.
 - [x] 14.12 Prove one profile failure neither cancels nor rolls back successful sibling jobs.
-- [ ] 14.13 Prove ordinary merge deployment cannot create tables, seed data, start EC2, migrate data, retire resources, or run the full qualification suites.
+- [x] 14.13 Prove ordinary merge deployment cannot create tables, seed data, start EC2, migrate data, retire resources, or run the full qualification suites.
 
 ## 15. Initial deployment, independent updates, and rollback
 

@@ -1,9 +1,9 @@
-name: Deploy demos
+name: Deploy EACL demos
 
 on:
   push:
-    branches: [demos]
-  workflow_dispatch:
+    branches:
+      - demos
 
 permissions:
   contents: read
@@ -16,12 +16,14 @@ env:
   EACL_DEMO_SHA: ${{ github.sha }}
 
 jobs:
-  static-and-datascript:
+  build-static:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      artifact_name: ${{ steps.handoff.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.handoff.outputs.artifact_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -40,19 +42,74 @@ jobs:
           cli: 1.12.5.1664
       - run: npm ci
       - run: npm run build:static-site
+      - id: handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum dist/static-site/site-manifest.json | cut -d ' ' -f 1)"
+          echo "artifact_name=eacl-demo-static-${digest}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=${digest}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.handoff.outputs.artifact_name }}
+          path: dist/static-site
+          if-no-files-found: error
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy-static:
+    needs: build-static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: demo-production-static
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs['build-static'].outputs.artifact_name }}
+          path: dist/static-site
+      - name: Verify the static handoff digest
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs['build-static'].outputs.artifact_sha256 }}
+        run: echo "${EXPECTED_SHA256}  dist/static-site/site-manifest.json" | sha256sum --check --strict
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: deploy-static
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-deploy-static-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
-          role-session-name: eacl-static-${{ github.run_id }}
+          role-to-assume: ${{ vars.AWS_STATIC_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-static-${{ github.run_id }}-${{ github.run_attempt }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: node scripts/deploy-live-demo.mjs static
+      - name: Deploy, merge-smoke, and promote only this target
+        run: node scripts/deploy-live-demo.mjs static
 
-  datahike-s3:
+  build-datahike-s3:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      artifact_name: ${{ steps.handoff.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.handoff.outputs.artifact_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -71,19 +128,73 @@ jobs:
           cli: 1.12.5.1664
       - run: npm ci --ignore-scripts
       - run: npm run build:datahike-s3-lambda
+      - id: handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum dist/datahike-s3/function.jar | cut -d ' ' -f 1)"
+          echo "artifact_name=eacl-demo-datahike-s3-${digest}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=${digest}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.handoff.outputs.artifact_name }}
+          path: dist/datahike-s3/function.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-datahike-s3:
+    needs: build-datahike-s3
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-production-datahike-s3
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs['build-datahike-s3'].outputs.artifact_name }}
+          path: dist/datahike-s3
+      - name: Verify the Datahike handoff digest
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs['build-datahike-s3'].outputs.artifact_sha256 }}
+        run: echo "${EXPECTED_SHA256}  dist/datahike-s3/function.jar" | sha256sum --check --strict
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: deploy-datahike-s3
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-deploy-datahike-s3-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
-          role-session-name: eacl-datahike-${{ github.run_id }}
+          role-to-assume: ${{ vars.AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datahike-${{ github.run_id }}-${{ github.run_attempt }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: node scripts/deploy-live-demo.mjs datahike-s3
+      - name: Deploy, merge-smoke, and promote only this target
+        run: node scripts/deploy-live-demo.mjs datahike-s3
 
-  datomic-dynamodb:
+  build-datomic-dynamodb:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      artifact_name: ${{ steps.handoff.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.handoff.outputs.artifact_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -102,19 +213,73 @@ jobs:
           cli: 1.12.5.1664
       - run: npm ci --ignore-scripts
       - run: npm run build:datomic-lambda
+      - id: handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum dist/datomic-dynamodb/function.jar | cut -d ' ' -f 1)"
+          echo "artifact_name=eacl-demo-datomic-dynamodb-${digest}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=${digest}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.handoff.outputs.artifact_name }}
+          path: dist/datomic-dynamodb/function.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-datomic-dynamodb:
+    needs: build-datomic-dynamodb
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-production-datomic-dynamodb
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs['build-datomic-dynamodb'].outputs.artifact_name }}
+          path: dist/datomic-dynamodb
+      - name: Verify the Datomic handoff digest
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs['build-datomic-dynamodb'].outputs.artifact_sha256 }}
+        run: echo "${EXPECTED_SHA256}  dist/datomic-dynamodb/function.jar" | sha256sum --check --strict
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: deploy-datomic-dynamodb
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-deploy-datomic-dynamodb-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
-          role-session-name: eacl-datomic-${{ github.run_id }}
+          role-to-assume: ${{ vars.AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datomic-${{ github.run_id }}-${{ github.run_attempt }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: node scripts/deploy-live-demo.mjs datomic-dynamodb
+      - name: Deploy, merge-smoke, and promote only this target
+        run: node scripts/deploy-live-demo.mjs datomic-dynamodb
 
-  datalevin-memory:
+  build-datalevin-memory:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      artifact_name: ${{ steps.handoff.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.handoff.outputs.artifact_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -148,9 +313,61 @@ jobs:
           cli: 1.12.5.1664
       - run: npm ci --ignore-scripts
       - run: npm run build:datalevin-memory-lambda
+      - id: handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum dist/datalevin-memory/function.jar | cut -d ' ' -f 1)"
+          echo "artifact_name=eacl-demo-datalevin-memory-${digest}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=${digest}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.handoff.outputs.artifact_name }}
+          path: dist/datalevin-memory/function.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-datalevin-memory:
+    needs: build-datalevin-memory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-production-datalevin-memory
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs['build-datalevin-memory'].outputs.artifact_name }}
+          path: dist/datalevin-memory
+      - name: Verify the Datalevin handoff digest
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs['build-datalevin-memory'].outputs.artifact_sha256 }}
+        run: echo "${EXPECTED_SHA256}  dist/datalevin-memory/function.jar" | sha256sum --check --strict
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: deploy-datalevin-memory
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-deploy-datalevin-memory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: ${{ vars.DEMO_DEPLOY_ROLE_ARN }}
-          role-session-name: eacl-datalevin-${{ github.run_id }}
+          role-to-assume: ${{ vars.AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datalevin-${{ github.run_id }}-${{ github.run_attempt }}
           aws-region: ${{ env.AWS_REGION }}
-      - run: node scripts/deploy-live-demo.mjs datalevin-memory
+      - name: Deploy, merge-smoke, and promote only this target
+        run: node scripts/deploy-live-demo.mjs datalevin-memory

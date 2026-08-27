@@ -56,6 +56,11 @@ test("ordinary demos deployment permits parallel build/deploy/smoke only", () =>
   for (const source of forbidden) assert.throws(() => assertOrdinaryDemoWorkflowPolicy(source));
 });
 
+test("committed demos deployment satisfies the ordinary isolation policy", () => {
+  const committed = readFileSync(path.join(root, ".github/workflows/deploy-demos.yml"), "utf8");
+  assert.equal(assertOrdinaryDemoWorkflowPolicy(committed), true);
+});
+
 test("ordinary deployment cannot use a broad deleting static sync", () => {
   for (const command of ["aws s3 sync dist/static-site s3://bucket --delete", "aws s3 sync dist/static-site s3://bucket"]) {
     assert.throws(() => assertOrdinaryDemoWorkflowPolicy(ordinary.replace("npm run build:static-site", command)), /static synchronization|deletion/u);

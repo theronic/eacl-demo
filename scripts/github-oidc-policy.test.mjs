@@ -24,6 +24,12 @@ const privilegedActionPins = new Map([
   ["actions/upload-artifact", "ea165f8d65b6e75b540449e92b4886f43607fa02"],
   ["aws-actions/configure-aws-credentials", "7474bc4690e29a8392af63c5b98e7449536d5c3a"]
 ]);
+const publishedOrdinaryAuthorityIds = new Set([
+  "deploy-static",
+  "deploy-datahike-s3",
+  "deploy-datomic-dynamodb",
+  "deploy-datalevin-memory"
+]);
 
 const claimsFor = (authority) => ({
   aud: manifest.audience,
@@ -149,6 +155,7 @@ test("every published id-token job is represented by one exact authority at job 
   }
   const expected = manifest.authorities
     .filter(({ workflowFile }) => workflowSources.has(workflowFile.split("/").at(-1)))
+    .filter((authority) => authority.authorityClass !== "ordinary-deployment" || publishedOrdinaryAuthorityIds.has(authority.id))
     .map(({ workflowFile, workflowName, eventName, runnerEnvironment, environment, roleVariable }) => ({ workflowFile, workflowName, eventName, runnerEnvironment, environment, roleVariable }))
     .sort((a, b) => `${a.workflowFile}:${a.environment}`.localeCompare(`${b.workflowFile}:${b.environment}`));
   assert.deepEqual(observed.sort((a, b) => `${a.workflowFile}:${a.environment}`.localeCompare(`${b.workflowFile}:${b.environment}`)), expected);
@@ -200,7 +207,8 @@ test("top-level workflow identities cannot silently become reusable-workflow ide
 });
 
 test("every published OIDC job captures claims before AWS and executes no dependency install or package script", () => {
-  for (const authority of manifest.authorities.filter(({ workflowFile }) => workflowSources.has(workflowFile.split("/").at(-1)))) {
+  for (const authority of manifest.authorities.filter(({ workflowFile }) => workflowSources.has(workflowFile.split("/").at(-1)))
+    .filter((authority) => authority.authorityClass !== "ordinary-deployment" || publishedOrdinaryAuthorityIds.has(authority.id))) {
     const source = workflowSources.get(authority.workflowFile.split("/").at(-1));
     const matches = workflowJobs(source).filter(({ source: block }) => /id-token:\s*write/u.test(block) && block.match(/^\s{4}environment:\s*(\S+)$/mu)?.[1] === authority.environment);
     assert.equal(matches.length, 1, `${authority.id} must map to exactly one OIDC job`);

@@ -21,7 +21,7 @@ function qualification() {
     result: "fail",
     startedAt: "2026-08-25T00:00:00.000Z",
     completedAt: "2026-08-25T00:01:00.000Z",
-    target: { kind: "local", baseUrl: "http://127.0.0.1:3000" },
+    target: { kind: "local", origin: "http://127.0.0.1:3000", path: "/api/v1/datascript-browser", profileId: "datascript-browser" },
     identity,
     descriptorIdentity: identity,
     releaseOutcome: "released",
@@ -29,7 +29,7 @@ function qualification() {
     cases: [
       { id: "health", category: "contract", status: "passed", durationMs: 1, reason: null, details: {} },
       { id: "history", category: "consistency", status: "unsupported", durationMs: 0, reason: "exact history is not advertised", details: {} },
-      { id: "authorization", category: "authorization", status: "failed", durationMs: 2, reason: "secret=do-not-serialize /Users/name/file", details: { token: "also-secret" } }
+      { id: "authorization", category: "authorization", status: "failed", durationMs: 2, reason: "secret=do-not-serialize /Users/name/file", details: { token: "also-secret", note: "https://user:password@example.invalid/private" } }
     ]
   };
 }
@@ -53,6 +53,8 @@ test("machine and human reports keep unsupported separate from failed and redact
   assert.equal(reports.machine.qualification.cases[1].status, "unsupported");
   assert.equal(reports.machine.qualification.cases[2].status, "failed");
   assert.equal(reports.machine.qualification.cases[2].details.token, "[redacted]");
+  assert.equal(reports.machine.qualification.cases[2].details.note, "[redacted]");
+  assert.equal(reports.machine.qualification.target.origin, "http://127.0.0.1:3000");
   assert.doesNotMatch(reports.json, /do-not-serialize|also-secret|\/Users\/name/u);
   assert.match(reports.markdown, /Unsupported means the profile did not advertise the capability/);
   assert.match(reports.markdown, /\| unsupported \| consistency \| history \|/);

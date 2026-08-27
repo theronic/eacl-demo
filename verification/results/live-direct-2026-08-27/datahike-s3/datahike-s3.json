@@ -1,0 +1,213 @@
+{
+  "qualification": {
+    "cases": [
+      {
+        "category": "identity",
+        "details": {
+          "contractRevision": 2,
+          "fixtureId": "legacy-datahike-s3-20260824-basis-6a7df54b"
+        },
+        "durationMs": 9937.881,
+        "id": "bootstrap-identity",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "contract",
+        "details": {
+          "basisId": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73",
+          "status": "ready"
+        },
+        "durationMs": 767.547,
+        "id": "health-ready",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 957.957,
+        "id": "authorization-direct-owner-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 295.759,
+        "id": "authorization-direct-owner-deny",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 590.006,
+        "id": "authorization-platform-arrow-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 284.529,
+        "id": "authorization-team-arrow-permission-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 282.432,
+        "id": "authorization-vpc-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 533.917,
+        "id": "authorization-recursive-parent-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 331.147,
+        "id": "authorization-recursive-parent-deny",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 2
+        },
+        "durationMs": 345.395,
+        "id": "relationship-filter-and-shape",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 2
+        },
+        "durationMs": 422.107,
+        "id": "reverse-relationship-discovery",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "pagination-cursor",
+        "details": {
+          "firstItems": 1,
+          "secondItems": 1,
+          "tamperRejected": true
+        },
+        "durationMs": 873.121,
+        "id": "pagination-cursor-scope",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cache",
+        "details": {
+          "behavior": "environment-local",
+          "stableDecision": true
+        },
+        "durationMs": 844.757,
+        "id": "cache-semantic-equivalence",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency",
+        "details": {
+          "modes": "current"
+        },
+        "durationMs": 289.435,
+        "id": "advertised-consistency-modes",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency-failure",
+        "details": {
+          "rejectedMode": "minimize"
+        },
+        "durationMs": 243.822,
+        "id": "unsupported-consistency-rejection",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "failure-redaction",
+        "details": {
+          "code": "validation-error",
+          "reflectedInput": false
+        },
+        "durationMs": 259.344,
+        "id": "validation-failure-redaction",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cleanup",
+        "details": {},
+        "durationMs": 0,
+        "id": "cancellation-cleanup",
+        "reason": "This transport does not expose an initial-qualification cleanup probe.",
+        "status": "unsupported"
+      }
+    ],
+    "completedAt": "2026-08-27T09:40:56.521Z",
+    "counts": {
+      "failed": 0,
+      "passed": 16,
+      "unsupported": 1
+    },
+    "descriptorIdentity": {
+      "artifactSha256": "ae85e3262b31ed8377603bd9fcee88e1d2084265aa0f2dd627b6fd2321e34656",
+      "dataManifestSha256": "a97c5b2ecac32012bdd37963348d840c5d405ad2858c0136eb17006ba97167b8",
+      "demoSha": "c31dd870ba056c3edf89104ff444c80bfc76496c",
+      "deploymentId": "demos:c31dd870ba056c3edf89104ff444c80bfc76496c:datahike-s3",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datahike-s3"
+    },
+    "identity": {
+      "artifactSha256": "ae85e3262b31ed8377603bd9fcee88e1d2084265aa0f2dd627b6fd2321e34656",
+      "dataManifestSha256": "a97c5b2ecac32012bdd37963348d840c5d405ad2858c0136eb17006ba97167b8",
+      "demoSha": "c31dd870ba056c3edf89104ff444c80bfc76496c",
+      "deploymentId": "demos:c31dd870ba056c3edf89104ff444c80bfc76496c:datahike-s3",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datahike-s3"
+    },
+    "releaseOutcome": "released",
+    "result": "pass",
+    "schema": "eacl-demo.qualification-report.v1",
+    "startedAt": "2026-08-27T09:40:39.256Z",
+    "target": {
+      "kind": "direct-function-url",
+      "origin": "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws",
+      "path": "/api/v1/datahike-s3",
+      "profileId": "datahike-s3"
+    }
+  },
+  "workload": null
+}

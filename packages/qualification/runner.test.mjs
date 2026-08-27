@@ -4,31 +4,37 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { runQualification } from "./src/runner.mjs";
-import { assertTrustedCloudFrontOrigin, createHttpQualificationTransport, qualificationTarget, reportableTarget, SERVER_PROFILE_IDS } from "./src/targets.mjs";
+import { assertTrustedCloudFrontOrigin, assertTrustedFunctionUrlOrigin, createHttpQualificationTransport, qualificationTarget, reportableTarget, SERVER_PROFILE_IDS } from "./src/targets.mjs";
 
 const identity = { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deploy-1", dataManifestSha256: "d".repeat(64) };
-const descriptor = { identity, contract: { revision: 1 }, capabilities: { operations: ["authorize"] } };
+const descriptor = { identity, contract: { revision: 1 }, dataset: { fixtureId: "fixture-a", manifestSha256: identity.dataManifestSha256 }, capabilities: { operations: ["authorize"] } };
 
 test("HTTP qualification's closed server profiles stay synchronized with the canonical registry", async () => {
   const registry = JSON.parse(await readFile(new URL("../contracts/profiles.v1.json", import.meta.url), "utf8"));
   assert.deepEqual(SERVER_PROFILE_IDS, registry.profiles.filter(({ storage }) => storage !== "browser-memory").map(({ id }) => id));
 });
 
-test("targets distinguish loopback, authorized origin, staged, and production CloudFront without retaining credentials", async () => {
+test("targets distinguish loopback, direct Function URL, authorized origin, and legacy CloudFront without retaining credentials", async () => {
   const local = qualificationTarget({ kind: "local", baseUrl: "http://127.0.0.1:8080/api/v1/datahike-s3", profileId: "datahike-s3" });
+  const direct = qualificationTarget({ kind: "direct-function-url", baseUrl: "https://abc.lambda-url.af-south-1.on.aws/api/v1/datahike-s3", profileId: "datahike-s3" });
   const origin = qualificationTarget({ kind: "staged-origin", baseUrl: "https://abc.lambda-url.af-south-1.on.aws/api/v1/datahike-s3", profileId: "datahike-s3", authorize: async () => ({ authorization: "sensitive" }) });
   const cloudfront = qualificationTarget({ kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/datahike-s3", profileId: "datahike-s3" });
   const production = qualificationTarget({ kind: "production-cloudfront", baseUrl: "https://demo.eacl.dev/api/v1/datahike-s3", profileId: "datahike-s3" });
-  assert.deepEqual([local.kind, origin.kind, cloudfront.kind, production.kind], ["local", "staged-origin", "staged-cloudfront", "production-cloudfront"]);
+  assert.deepEqual([local.kind, direct.kind, origin.kind, cloudfront.kind, production.kind], ["local", "direct-function-url", "staged-origin", "staged-cloudfront", "production-cloudfront"]);
+  assert.deepEqual(reportableTarget(direct), { kind: "direct-function-url", origin: "https://abc.lambda-url.af-south-1.on.aws", path: "/api/v1/datahike-s3", profileId: "datahike-s3" });
   assert.deepEqual(reportableTarget(origin), { kind: "staged-origin", origin: "https://abc.lambda-url.af-south-1.on.aws", path: "/api/v1/datahike-s3", profileId: "datahike-s3" });
   assert.equal(JSON.stringify(reportableTarget(origin)).includes("sensitive"), false);
   assert.throws(() => qualificationTarget({ kind: "local", baseUrl: "https://example.com", profileId: "datahike-s3" }), /loopback/u);
+  assert.throws(() => qualificationTarget({ kind: "direct-function-url", baseUrl: "https://example.com/api/v1/datahike-s3", profileId: "datahike-s3" }), /Lambda Function URL/u);
   assert.throws(() => qualificationTarget({ kind: "staged-origin", baseUrl: "http://example.com", profileId: "datahike-s3", authorize: async () => ({}) }), /HTTPS/u);
   assert.throws(() => qualificationTarget({ kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/datomic-dynamodb", profileId: "datahike-s3" }), /exact profile route/u);
   assert.throws(() => qualificationTarget({ kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/unregistered", profileId: "unregistered" }), /registered server profile/u);
   assert.equal(assertTrustedCloudFrontOrigin(cloudfront, "https://staging.demo.eacl.dev"), true);
   assert.throws(() => assertTrustedCloudFrontOrigin(cloudfront, "https://demo.eacl.dev"), /trusted CloudFront/u);
   assert.throws(() => assertTrustedCloudFrontOrigin(cloudfront, "https://staging.demo.eacl.dev/path"), /invalid/u);
+  assert.equal(assertTrustedFunctionUrlOrigin(direct, "https://abc.lambda-url.af-south-1.on.aws"), true);
+  assert.throws(() => assertTrustedFunctionUrlOrigin(direct, "https://def.lambda-url.af-south-1.on.aws"), /trusted Function URL/u);
+  assert.throws(() => assertTrustedFunctionUrlOrigin(direct, "https://example.com"), /invalid/u);
 });
 
 test("HTTP transport applies staged authorization but never exposes it", async () => {
@@ -60,9 +66,9 @@ test("HTTP transport applies staged authorization but never exposes it", async (
   await guarded.release();
 });
 
-test("HTTP transport fault probes are closed, bounded, hashed, correlated, and cancellable", async () => {
+test("direct Function URL fault probes are closed, bounded, unsigned, correlated, and cancellable", async () => {
   const calls = [];
-  const target = qualificationTarget({ kind: "staged-cloudfront", baseUrl: "https://staging.example/api/v1/datahike-s3", profileId: "datahike-s3" });
+  const target = qualificationTarget({ kind: "direct-function-url", baseUrl: "https://abc.lambda-url.us-east-1.on.aws/api/v1/datahike-s3", profileId: "datahike-s3" });
   const transport = createHttpQualificationTransport(target, { requestIdPrefix: "manual-7-1", fetchImpl: async (url, init) => {
     calls.push({ url, init });
     if (url.endsWith("/health")) {
@@ -82,7 +88,7 @@ test("HTTP transport fault probes are closed, bounded, hashed, correlated, and c
     assert.equal(result.kind, kind);
   }
   for (const { init } of calls.filter(({ init }) => typeof init.body === "string")) {
-    assert.equal(init.headers["x-amz-content-sha256"], createHash("sha256").update(init.body).digest("hex"));
+    assert.equal(init.headers["x-amz-content-sha256"], undefined);
   }
   assert.ok(calls.find(({ init }) => init.body?.length > 65536));
   assert.equal(calls.at(-1).init.signal.aborted, true);
@@ -113,6 +119,26 @@ test("runner binds exact identity, distinguishes unsupported from failed, and re
   assert.equal(report.cases.find(({ id }) => id === "broken").reason.includes("secret.example"), false);
   assert.equal(report.releaseOutcome, "released");
   assert.equal(releases, 1);
+});
+
+test("runner selects qualification cases from the bootstrapped fixture identity", async () => {
+  let selectedFixtureId = null;
+  const report = await runQualification({
+    target: qualificationTarget({ kind: "local", baseUrl: "http://localhost:8080/api/v1/datahike-s3", profileId: "datahike-s3" }),
+    expectedIdentity: identity,
+    createTransport: async () => ({
+      async request(operation) { return { meta: { revision: "basis-1", requestId: `request-${operation}` }, data: descriptor }; },
+      async release() { return true; }
+    }),
+    cases: (bootstrapped) => {
+      selectedFixtureId = bootstrapped.dataset.fixtureId;
+      return [{ id: "fixture-bound", category: "contract", run: async () => ({ fixtureId: selectedFixtureId }) }];
+    }
+  });
+  assert.equal(report.result, "pass");
+  assert.equal(selectedFixtureId, "fixture-a");
+  assert.equal(report.cases[0].details.fixtureId, "fixture-a");
+  assert.equal(report.cases[1].details.fixtureId, "fixture-a");
 });
 
 test("identity mismatch fails before ordinary qualification cases", async () => {

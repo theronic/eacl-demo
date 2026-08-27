@@ -72,7 +72,7 @@ function paginationAndCursorCase() {
     const firstKeys = new Set(first.items.map(({ type, id }) => `${type}:${id}`));
     if (second.items.some(({ type, id }) => firstKeys.has(`${type}:${id}`))) throw new Error("cursor pagination returned a duplicate across pages");
     const tampered = mutateCursor(first.pageInfo.endCursor);
-    await expectFailure(() => transport.request("list-subjects", { type: "user", pageSize: 1, cursor: tampered }), "invalid-cursor");
+    await expectFailure(() => transport.request("list-subjects", { type: "user", pageSize: 1, cursor: tampered }), "cursor-invalid");
     return { firstItems: first.items.length, secondItems: second.items.length, tamperRejected: true };
   });
 }
