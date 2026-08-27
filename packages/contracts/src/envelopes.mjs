@@ -26,7 +26,7 @@ export function httpStatusForError(code) {
 function createMeta(context) {
   exactKeys(context, ["requestId", "operation", "identity", "basis"], "response context");
   if (typeof context.requestId !== "string" || context.requestId.length < 1 || context.requestId.length > 128) throw new Error("request ID is invalid");
-  if (!new Set(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]).has(context.operation)) throw new Error("response operation is invalid");
+  if (!new Set(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]).has(context.operation)) throw new Error("response operation is invalid");
   const identity = validateIdentity(context.identity);
   const revision = context.basis?.id ?? identity.deploymentId;
   if (typeof revision !== "string" || revision.length < 1 || revision.length > 256) throw new Error("response revision is invalid");

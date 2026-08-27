@@ -310,7 +310,7 @@ for (const key of [
 
 const exactOperations = [
   "health", "bootstrap", "list-subjects", "get-object",
-  "list-relationships", "reverse-relationships", "authorize", "get-schema",
+  "list-relationships", "reverse-relationships", "check-permission", "get-schema",
   "get-cache-info", "count-objects"
 ];
 for (const operation of exactOperations) assert.match(dispatcherSource, new RegExp(`"${operation}"`, "u"));

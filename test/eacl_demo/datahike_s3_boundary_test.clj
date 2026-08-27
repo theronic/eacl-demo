@@ -15,7 +15,7 @@
   (boundary/descriptor
    {:identity identity
     :runtime {:execution "lambda" :name "java25" :architecture "arm64"
-              :snapStart "disabled"}
+              :snapStart "enabled"}
     :dataset {:fixtureId "legacy-datahike-s3-unattested"
               :logicalResourceCount 1001584
               :serverCount 1000000
@@ -23,8 +23,8 @@
     :basis {:behavior "request-snapshot" :id "basis-1"
             :capturedAt "2026-08-25T12:00:00Z"
             :fixedForEnvironment false}
-    :capabilities {:operations ["health" "bootstrap" "authorize"]
-                   :consistencyModes ["current"]
+    :capabilities {:operations ["health" "bootstrap" "check-permission"]
+                   :consistencyModes ["minimize"]
                    :snapshotBehavior "request-snapshot"
                    :cacheBehavior "environment-local"
                    :mutationLocality "none"
@@ -35,12 +35,12 @@
   ([operation method]
    (request operation method {}))
   ([operation method extra]
-   (merge {:path (str boundary/profile-prefix "/" operation)
+   (merge {:path (str "/" operation)
            :method method
            :request-id (str "request-" operation)
            :deadline-ms Long/MAX_VALUE
            :cancelled? (constantly false)
-           :input (if (= operation "authorize")
+           :input (if (= operation "check-permission")
                     {:subjectType "user" :subjectId "user-1"
                      :resourceType "account" :resourceId "account-0"
                      :permission "admin"}
@@ -56,7 +56,7 @@
                                            (check-active!)
                                            {:operation operation})]))
                        ["health" "bootstrap" "list-subjects" "get-object"
-                        "list-relationships" "reverse-relationships" "authorize"
+                        "list-relationships" "reverse-relationships" "check-permission"
                         "lookup-resources" "lookup-subjects" "count-resources"
                         "get-schema" "get-cache-info" "count-objects"])]
     {:release-count release-count
@@ -73,7 +73,7 @@
 
 (deftest closed-prefix-envelope-and-snapshot-test
   (let [{:keys [boundary release-count]} (configured-boundary {})
-        result (boundary/invoke! boundary (request "authorize" :post))]
+        result (boundary/invoke! boundary (request "check-permission" :post))]
     (is (contains? result :data))
     (is (not (contains? result :error)))
     (is (= #{:revision :requestId :elapsedMs}
@@ -85,20 +85,20 @@
     (is (= "route-not-found"
            (get-in (boundary/invoke!
                     boundary (assoc (request "seed" :post)
-                                    :path "/api/v1/datahike-s3/seed"))
+                                    :path "/seed"))
                    [:error :code])))
     (is (= "route-not-found"
            (get-in (boundary/invoke!
-                    boundary (assoc (request "authorize" :post)
-                                    :path "/api/v1/datahike-s3/authorize/"))
+                    boundary (assoc (request "check-permission" :post)
+                                    :path "/check-permission/"))
                    [:error :code])))
     (is (= "method-not-allowed"
-           (get-in (boundary/invoke! boundary (request "authorize" :get))
+           (get-in (boundary/invoke! boundary (request "check-permission" :get))
                    [:error :code])))))
 
 (deftest timing-and-cache-metadata-reach-the-wire-envelope-test
   (let [operations ["health" "bootstrap" "list-subjects" "get-object"
-                    "list-relationships" "reverse-relationships" "authorize"
+                    "list-relationships" "reverse-relationships" "check-permission"
                     "lookup-resources" "lookup-subjects" "count-resources"
                     "get-schema" "get-cache-info" "count-objects"]
         handlers (into {}
@@ -111,19 +111,18 @@
                                   true))]))
                        operations)
         {service :boundary} (configured-boundary {:handlers handlers})
-        result (boundary/invoke! service (request "authorize" :post))]
+        result (boundary/invoke! service (request "check-permission" :post))]
     (is (= "hit" (get-in result [:meta :cacheStatus])))
     (is (number? (get-in result [:meta :elapsedMs])))
-    (is (= {:operation "authorize"} (:data result)))))
+    (is (= {:operation "check-permission"} (:data result)))))
 
 (deftest unsupported-consistency-fails-before-snapshot-test
   (let [{:keys [boundary release-count]} (configured-boundary {})]
-    (doseq [mode ["minimize" "authoritative" "at-least" "exact"
-                  "historical-date" "future-mode"]]
+    (doseq [mode ["authoritative" "historical-date" "future-mode"]]
       (is (= "unsupported-consistency"
              (get-in (boundary/invoke!
                       boundary
-                      (request "authorize" :post
+                      (request "check-permission" :post
                                {:input {:subjectType "user" :subjectId "user-1"
                                         :resourceType "account"
                                         :resourceId "account-0"
@@ -140,10 +139,10 @@
     (doseq [input [(dissoc base :permission)
                    (assoc base :seed true)
                    (assoc base :subjectId (apply str (repeat 257 "a")))
-                   (assoc base "consistency" "current")]]
+                   (assoc base "consistency" "minimize")]]
       (is (= "validation-error"
              (get-in (boundary/invoke!
-                      boundary (request "authorize" :post {:input input}))
+                      boundary (request "check-permission" :post {:input input}))
                      [:error :code]))))
     (is (zero? @release-count))))
 
@@ -154,22 +153,22 @@
           (fn [] {:value :snapshot :basis {:id "basis"}
                   :release! #(throw (ex-info "release failed" {}))})})]
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
-                          (boundary/invoke! service (request "authorize" :post))))
+                          (boundary/invoke! service (request "check-permission" :post))))
     (is (zero? (boundary/active-count service)))
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
-                          (boundary/invoke! service (request "authorize" :post))))))
+                          (boundary/invoke! service (request "check-permission" :post))))))
 
 (deftest cancellation-deadline-and-cleanup-test
   (let [cancelled (atom true)
         first (configured-boundary {})
         cancelled-result
         (boundary/invoke! (:boundary first)
-                          (request "authorize" :post
+                          (request "check-permission" :post
                                    {:cancelled? #(deref cancelled)}))
         deadline (configured-boundary {:clock (constantly 100)})
         deadline-result
         (boundary/invoke! (:boundary deadline)
-                          (request "authorize" :post {:deadline-ms 100}))]
+                          (request "check-permission" :post {:deadline-ms 100}))]
     (is (= "cancelled" (get-in cancelled-result [:error :code])))
     (is (zero? @(:release-count first))
         "cancellation before capture has no snapshot to release")
@@ -187,7 +186,7 @@
           (into {}
                 (map (fn [operation]
                        [operation
-                        (if (= operation "authorize")
+                        (if (= operation "check-permission")
                           (fn [{:keys [check-active!]}]
                             (deliver entered true)
                             @continue
@@ -195,10 +194,10 @@
                             {:allowed true})
                           (fn [_] {:operation operation}))]))
                 ["health" "bootstrap" "list-subjects" "get-object"
-                 "list-relationships" "reverse-relationships" "authorize"
+                 "list-relationships" "reverse-relationships" "check-permission"
                  "lookup-resources" "lookup-subjects" "count-resources"
                  "get-schema" "get-cache-info" "count-objects"])})
-        first (future (boundary/invoke! boundary (request "authorize" :post)))]
+        first (future (boundary/invoke! boundary (request "check-permission" :post)))]
     @entered
     (let [overloaded (boundary/invoke! boundary (request "health" :get))]
       (is (= "overloaded" (get-in overloaded [:error :code])))

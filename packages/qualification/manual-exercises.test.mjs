@@ -4,7 +4,7 @@ import test from "node:test";
 import { manualRuntimeExerciseEvidenceId, runHttpRuntimeExercise, runLambdaMemoryExercise, validateManualRuntimeExercise } from "./src/manual-exercises.mjs";
 
 const identity = { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deployment-7", dataManifestSha256: "d".repeat(64) };
-const target = { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/api/v1/datahike-s3", profileId: "datahike-s3" };
+const target = { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/", profileId: "datahike-s3" };
 const memoryTarget = { kind: "lambda-version", functionArn: "arn:aws:lambda:af-south-1:123456789012:function:eacl-demo-datahike-s3", qualifier: "7", profileId: "datahike-s3" };
 const allowedDemand = { subject: { type: "user", id: "user-1" }, resource: { type: "account", id: "account-0" }, permission: "admin" };
 const deniedDemand = { subject: { type: "user", id: "user-2" }, resource: { type: "account", id: "account-0" }, permission: "admin" };
@@ -116,7 +116,7 @@ test("rehashed reports still reject omitted cases, outcome-label drift, and cros
   assert.throws(() => validateManualRuntimeExercise(omitted, { requirePassing: false }), /closed ordered set/u);
 
   const crossProfile = structuredClone(load);
-  crossProfile.target.path = "/api/v1/datomic-dynamodb";
+  crossProfile.target.path = "/";
   crossProfile.evidenceId = manualRuntimeExerciseEvidenceId(crossProfile);
   assert.throws(() => validateManualRuntimeExercise(crossProfile, { requirePassing: false }), /target is invalid/u);
 });

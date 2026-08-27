@@ -21,7 +21,7 @@ function input() {
   return {
     schema: "eacl-demo.observability-readiness.v1",
     identity,
-    route: "/api/v1/datahike-s3",
+    route: "/",
     completedAt: "2026-08-25T12:02:00Z",
     logs: { structured: true, redactionAudit: "passed", retentionDays: 14 },
     signals: ["requests", "errors", "duration", "initialization", "restore", "throttles", "timeouts", "oom", "storage"]
@@ -34,7 +34,7 @@ function input() {
     dashboard: { status: "ready", identifier: "eacl-demo-datahike-s3" },
     synthetics: ["bootstrap", "exemplar", "health"].map((name) => ({
       name, status: "passed",
-      target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/datahike-s3" },
+      target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/" },
       checkedAt: "2026-08-25T12:01:30Z", observedIdentity: identity
     })),
     runbook: { status: "ready", identifier: "docs/operator-runbook.md#profile-incidents" }

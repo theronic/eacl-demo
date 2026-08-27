@@ -44,8 +44,8 @@
         "cacheLanesDigest": {"$ref": "#/$defs/digest"},
         "operationWeights": {
           "type": "object", "additionalProperties": false,
-          "required": ["authorize", "bootstrap", "countObjects", "getObject", "getSchema", "listRelationships", "listSubjects", "reverseRelationships"],
-          "properties": {"authorize": {"const": 40}, "bootstrap": {"const": 5}, "countObjects": {"const": 10}, "getObject": {"const": 10}, "getSchema": {"const": 5}, "listRelationships": {"const": 15}, "listSubjects": {"const": 5}, "reverseRelationships": {"const": 10}}
+          "required": ["checkPermission", "bootstrap", "countObjects", "getObject", "getSchema", "listRelationships", "listSubjects", "reverseRelationships"],
+          "properties": {"checkPermission": {"const": 40}, "bootstrap": {"const": 5}, "countObjects": {"const": 10}, "getObject": {"const": 10}, "getSchema": {"const": 5}, "listRelationships": {"const": 15}, "listSubjects": {"const": 5}, "reverseRelationships": {"const": 10}}
         }
       }
     },

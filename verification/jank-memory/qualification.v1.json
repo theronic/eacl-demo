@@ -30,7 +30,7 @@
     "get-object",
     "list-relationships",
     "reverse-relationships",
-    "authorize",
+    "check-permission",
     "get-schema",
     "get-cache-info",
     "count-objects"

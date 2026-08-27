@@ -34,7 +34,7 @@ for (const name of names) {
 const boundary = await readFile(path.join(sourceDirectory, "boundary.clj"), "utf8");
 assert.doesNotMatch(boundary, /:profileId profile-id/u, "response metadata has a non-contract field");
 assert.match(boundary, /http\/normalize-input/u, "closed input validation is not called before serving");
-assert.match(boundary, /#\{"current"\}/u, "the public boundary does not pass its closed consistency set to validation");
+assert.match(boundary, /#\{"minimize" "at-least" "exact"\}/u, "the public boundary does not pass its closed consistency set to validation");
 for (const route of ["seed", "setup", "benchmark", "transact", "cache-evict", "delete-store", "admin"]) {
   assert.doesNotMatch(boundary, new RegExp(`"${route}"`, "u"));
 }
@@ -63,7 +63,6 @@ assert.doesNotMatch(konserve,
   /s3\/(?:connect-store|put-object|put-object-conditional|create-bucket|delete|copy|list-objects)/u,
   "custom backing reaches an upstream mutator or enumerator");
 const profile = await readFile(path.join(sourceDirectory, "profile.clj"), "utf8");
-assert.match(profile, /:snapStart "disabled"/u, "unqualified S3 reader lifecycle must not claim SnapStart");
-assert.match(profile, /"no-snapstart"/u);
-assert.doesNotMatch(profile, /:snapStart "enabled"/u);
+assert.match(profile, /:snapStart "enabled"/u, "qualified S3 reader must report published-version SnapStart");
+assert.doesNotMatch(profile, /"no-snapstart"/u);
 process.stdout.write(`${JSON.stringify({ schema: "eacl-demo.datahike-s3-serving-audit.v1", records }, null, 2)}\n`);

@@ -127,11 +127,11 @@ test("fixture initialization and authorization stay in the direct browser runtim
         resourceType: "account", resourceId: "account-0", subjectType: "user",
         permission: "admin", pageSize: 20, cache: true, populateCache: true
       }),
-      authorization: await request("authorize", {
+      authorization: await request("check-permission", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
         resourceId: "account-0", permission: "admin"
       }),
-      unsupportedConsistency: await request("authorize", {
+      unsupportedConsistency: await request("check-permission", {
         subjectType: "user", subjectId: "user-1", resourceType: "account",
         resourceId: "account-0", permission: "admin", consistency: "exact"
       }),

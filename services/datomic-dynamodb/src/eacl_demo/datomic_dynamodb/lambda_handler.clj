@@ -26,6 +26,13 @@
        (observability/runtime-context "datomic-dynamodb" environment)
        #(initialize environment)))))
 
+(defn initialize-runtime!
+  "Realize the fixed read-only Peer and captured database value during Lambda
+  initialization so published-version SnapStart captures a ready runtime."
+  []
+  @runtime
+  nil)
+
 (defn initialize
   "Builds one reader and boundary. Injectable for local tests; production uses
   the process environment and realizes this function exactly once."

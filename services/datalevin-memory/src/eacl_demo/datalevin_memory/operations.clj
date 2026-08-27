@@ -215,7 +215,7 @@
            page
            (not= false (:cache input))))))
 
-     "authorize"
+     "check-permission"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
         (let [[subject-known? resource-known?]

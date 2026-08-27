@@ -18,7 +18,7 @@ export function qualificationTarget({ kind, baseUrl, profileId, authorize = null
   if (kind === "direct-function-url" && (!FUNCTION_URL_HOST.test(url.hostname) || url.port)) throw new Error("direct qualification requires an exact Lambda Function URL host");
   if (kind === "staged-origin" && typeof authorize !== "function") throw new Error("a staged origin requires a request authorization provider");
   if (kind !== "staged-origin" && authorize !== null) throw new Error("authorization providers are restricted to staged origins");
-  if (url.pathname.replace(/\/$/u, "") !== `/api/v1/${profileId}`) throw new Error("qualification URL path does not match the exact profile route");
+  if (url.pathname !== "/") throw new Error("qualification URL must be the exact profile Function URL origin");
   return Object.freeze({ kind, baseUrl: url.href.replace(/\/$/u, ""), profileId, authorize });
 }
 
@@ -89,13 +89,13 @@ function faultProbe(kind, baseUrl, requestId) {
   const common = { "x-eacl-request-id": requestId };
   switch (kind) {
     case "invalid-json":
-      return { kind, requestId, method: "POST", url: `${baseUrl}/authorize`, headers: { ...common, "content-type": "application/json; charset=utf-8" }, body: "{" };
+      return { kind, requestId, method: "POST", url: `${baseUrl}/check-permission`, headers: { ...common, "content-type": "application/json; charset=utf-8" }, body: "{" };
     case "oversized-body":
-      return { kind, requestId, method: "POST", url: `${baseUrl}/authorize`, headers: { ...common, "content-type": "application/json; charset=utf-8" }, body: `{"padding":"${"a".repeat(65536)}"}` };
+      return { kind, requestId, method: "POST", url: `${baseUrl}/check-permission`, headers: { ...common, "content-type": "application/json; charset=utf-8" }, body: `{"padding":"${"a".repeat(65536)}"}` };
     case "unsupported-media-type":
-      return { kind, requestId, method: "POST", url: `${baseUrl}/authorize`, headers: { ...common, "content-type": "text/plain" }, body: "{}" };
+      return { kind, requestId, method: "POST", url: `${baseUrl}/check-permission`, headers: { ...common, "content-type": "text/plain" }, body: "{}" };
     case "wrong-method":
-      return { kind, requestId, method: "GET", url: `${baseUrl}/authorize`, headers: common, body: null };
+      return { kind, requestId, method: "GET", url: `${baseUrl}/check-permission`, headers: common, body: null };
     case "mutation-route":
       return { kind, requestId, method: "POST", url: `${baseUrl}/seed`, headers: { ...common, "content-type": "application/json; charset=utf-8" }, body: "{}" };
     case "client-cancel":

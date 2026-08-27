@@ -6,7 +6,7 @@
 
 (def closed-operations
   #{"health" "bootstrap" "list-subjects" "get-object"
-    "list-relationships" "reverse-relationships" "authorize" "get-schema"
+    "list-relationships" "reverse-relationships" "check-permission" "get-schema"
     "lookup-resources" "lookup-subjects" "count-resources"
     "get-cache-info" "count-objects"})
 
@@ -27,7 +27,7 @@
     :basis basis
     :capabilities
     {:operations (vec (sort closed-operations))
-     :consistencyModes ["current"]
+     :consistencyModes ["minimize"]
      :snapshotBehavior "request-snapshot"
      :cacheBehavior "environment-local"
      :mutationLocality "none"

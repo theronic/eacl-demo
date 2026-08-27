@@ -95,7 +95,9 @@ Resources:
                   - lambda:GetAlias
                   - lambda:GetFunction
                   - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionConcurrency
                   - lambda:InvokeFunction
+                  - lambda:DeleteFunctionConcurrency
                   - lambda:PublishVersion
                   - lambda:UpdateAlias
                   - lambda:UpdateFunctionCode

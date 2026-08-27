@@ -90,7 +90,7 @@
       "architecture" "x86_64" "snapStart" "disabled"}
      "capabilities"
      {"operations" (vec (sort dispatcher/operations))
-      "consistencyModes" ["current" "minimize"]
+      "consistencyModes" ["minimize"]
       "snapshotBehavior" "rebuild-lifecycle"
       "cacheBehavior" "environment-local"
       "mutationLocality" "initialization-before-ready"

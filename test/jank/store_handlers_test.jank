@@ -58,7 +58,7 @@
         (main/handle-event
          runtime
          {"version" "2.0" "routeKey" "$default"
-          "rawPath" (str "/api/v1/jank-memory/" operation)
+          "rawPath" (str "/" operation)
           "rawQueryString" ""
           "headers" {"content-type" "application/json"}
           "requestContext" {"requestId" "request-error-test"
@@ -112,13 +112,13 @@
                             "relation" "owner"})
                    ["items" 0 "id"])))
 (assert (= true
-           (get (invoke "authorize"
+           (get (invoke "check-permission"
                         {"subjectType" "user" "subjectId" "user-1"
                          "resourceType" "account" "resourceId" "account-0"
                          "permission" "admin"})
                 "allowed")))
 (assert (= "subject-not-found"
-           (get (invoke "authorize"
+           (get (invoke "check-permission"
                         {"subjectType" "user" "subjectId" "missing"
                          "resourceType" "account" "resourceId" "account-0"
                          "permission" "admin"})
@@ -135,7 +135,7 @@
  (= "unsupported-consistency"
     (get-in
      (http-invoke
-      "authorize"
+      "check-permission"
       {"subjectType" "user" "subjectId" "user-1"
        "resourceType" "account" "resourceId" "account-0"
        "permission" "admin" "consistency" "exact"})
@@ -143,7 +143,7 @@
 
 (let [event
       {"version" "2.0" "routeKey" "$default"
-       "rawPath" "/api/v1/jank-memory/authorize"
+       "rawPath" "/check-permission"
        "rawQueryString" ""
        "headers" {"content-type" "application/json"}
        "requestContext" {"requestId" "request-main-test"

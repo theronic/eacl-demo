@@ -5,7 +5,8 @@ export type Theme = "light" | "dark";
 export type ConsistencyMode =
   | "minimize-latency"
   | "at-least-as-fresh"
-  | "at-exact-snapshot";
+  | "at-exact-snapshot"
+  | "fully-consistent";
 
 export interface ConsistencyRequest {
   mode: ConsistencyMode;

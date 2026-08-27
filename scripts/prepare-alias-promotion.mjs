@@ -11,7 +11,7 @@ if (!request || request.schema !== "eacl-demo.prepare-alias-promotion.v1") throw
 const definitions = JSON.parse(await readFile(path.join(root, "packages/contracts/profiles.v1.json"), "utf8"));
 const definition = definitions.profiles.find(({ id }) => id === request.profileId);
 if (!definition) throw new Error("alias promotion profile is unknown");
-const profile = { id: definition.id, route: `/api/v1/${definition.id}` };
+const profile = { id: definition.id, route: "/" };
 const plan = createServerAliasPromotionPlan({ profile, deployment: request.deployment, smoke: request.smoke, currentAlias: request.currentAlias });
 const output = path.join(root, "dist", "profile-promotions", request.profileId);
 await mkdir(output, { recursive: true });

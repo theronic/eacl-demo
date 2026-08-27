@@ -5,7 +5,7 @@ import { runProductionRecheck, validateProductionRecheck } from "./src/productio
 
 const profileId = "datahike-s3";
 const identity = { profileId, demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deploy-1", dataManifestSha256: "d".repeat(64) };
-const target = { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: "/api/v1/datahike-s3", profileId };
+const target = { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: "/", profileId };
 const deployment = { demoSha: identity.demoSha, eaclSha: identity.eaclSha, artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "7" }, deploymentId: identity.deploymentId, dataManifestSha256: identity.dataManifestSha256, deployedAt: "2026-08-25T12:00:00Z" };
 
 test("post-promotion recheck is exactly production health and bootstrap identity", async () => {
@@ -40,7 +40,7 @@ test("wrong route kind, identity drift, failed readiness, and tampering fail clo
   assert.throws(() => validateProductionRecheck(report, { profile: { id: profileId, route: target.path }, deployment }), /did not pass/u);
   for (const mutate of [
     (candidate) => { candidate.target.kind = "staged-cloudfront"; },
-    (candidate) => { candidate.target.path = "/api/v1/datomic-dynamodb"; },
+    (candidate) => { candidate.target.path = "/"; },
     (candidate) => { candidate.identity.demoSha = "f".repeat(40); }
   ]) {
     const candidate = structuredClone(report);

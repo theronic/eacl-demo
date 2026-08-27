@@ -23,7 +23,7 @@
        "body"
        (response/json-encode
         {"ok" true
-         "meta" {"operation" "authorize" "requestId" "request-1"}
+         "meta" {"operation" "check-permission" "requestId" "request-1"}
          "data" {"secret" "must-never-appear"}})}
       records
       (capture
@@ -37,7 +37,7 @@
              (get-in record ["_aws" "CloudWatchMetrics" 0 "Namespace"])))
   (assert (= [["ProfileId" "FunctionName"]]
              (get-in record ["_aws" "CloudWatchMetrics" 0 "Dimensions"])))
-  (assert (= "authorize" (get record "operation")))
+  (assert (= "check-permission" (get record "operation")))
   (assert (= 500 (get record "Duration")))
   (assert (= 0 (get record "Errors")))
   (assert (not (str/includes? (response/json-encode records)
@@ -106,7 +106,7 @@
       (ex-info "token=must-never-appear"
                {:type :std/bad-alloc :secret "must-never-appear"})
       event
-      {"rawPath" "/api/v1/jank-memory/health"
+      {"rawPath" "/health"
        "requestContext" {"requestId" "request-3"}
        "body" "must-never-appear"}
       records

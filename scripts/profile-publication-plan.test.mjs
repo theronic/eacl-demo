@@ -4,7 +4,7 @@ import test from "node:test";
 import { runMergeSmoke } from "../packages/qualification/src/merge-smoke.mjs";
 import { createServerAliasPromotionPlan, createServerProfilePublicationPlan } from "./lib/profile-publication-plan.mjs";
 
-const profile = { id: "datahike-s3", route: "/api/v1/datahike-s3" };
+const profile = { id: "datahike-s3", route: "/" };
 const identity = { profileId: profile.id, demoSha: "c".repeat(40), eaclSha: "d".repeat(40), artifactSha256: "e".repeat(64), deploymentId: "deploy-8", dataManifestSha256: "f".repeat(64) };
 const deployment = { demoSha: identity.demoSha, eaclSha: identity.eaclSha, artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "8" }, deploymentId: identity.deploymentId, dataManifestSha256: identity.dataManifestSha256, deployedAt: "2026-08-25T12:00:00Z" };
 const publication = {
@@ -78,7 +78,7 @@ async function passingSmoke() {
     const meta = { revision: "basis-1", requestId: `request-${operation}` };
     if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
     if (operation === "bootstrap") return { meta, data: { identity } };
-    if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+    if (operation === "check-permission") return { meta, data: { allowed: input.subjectId === "user-1" } };
     return { meta, error: { code: "route-not-found", message: "The route is not available." } };
   } };
   const times = ["2026-08-25T12:00:01Z", "2026-08-25T12:00:02Z"];

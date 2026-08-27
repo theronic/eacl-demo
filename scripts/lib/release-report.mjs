@@ -23,40 +23,40 @@ const PROFILE_INPUT = Object.freeze({
   "datahike-s3": {
     backend: "datahike",
     storage: "s3",
-    route: "/api/v1/datahike-s3",
+    route: "/",
     buildUnits: ["datahike-s3"],
     fixtureResources: 1000000,
     runtimeDefinition: "infra/profiles/datahike-s3-runtime.yaml",
     runtime: "java25",
     architecture: "arm64",
-    snapStart: "disabled"
+    snapStart: "enabled"
   },
   "datahike-dynamodb": {
     backend: "datahike",
     storage: "dynamodb",
-    route: "/api/v1/datahike-dynamodb",
+    route: "/",
     buildUnits: ["datahike-dynamodb"],
     fixtureResources: 1000000,
     runtimeDefinition: "infra/profiles/datahike-dynamodb-runtime.yaml",
     runtime: "java25",
     architecture: "arm64",
-    snapStart: "disabled"
+    snapStart: "enabled"
   },
   "datomic-dynamodb": {
     backend: "datomic",
     storage: "dynamodb",
-    route: "/api/v1/datomic-dynamodb",
+    route: "/",
     buildUnits: ["datomic-dynamodb"],
     fixtureResources: 1000000,
     runtimeDefinition: "infra/profiles/datomic-dynamodb-runtime.yaml",
     runtime: "java25",
     architecture: "x86_64",
-    snapStart: "disabled"
+    snapStart: "enabled"
   },
   "datalevin-memory": {
     backend: "datalevin",
     storage: "memory",
-    route: "/api/v1/datalevin-memory",
+    route: "/",
     buildUnits: ["datalevin-memory"],
     fixtureResources: 10000,
     runtimeDefinition: "infra/profiles/datalevin-memory-runtime.yaml",
@@ -67,7 +67,7 @@ const PROFILE_INPUT = Object.freeze({
   "jank-memory": {
     backend: "jank",
     storage: "memory",
-    route: "/api/v1/jank-memory",
+    route: "/",
     buildUnits: ["jank-memory"],
     fixtureResources: 10000,
     runtimeDefinition: "infra/profiles/jank-memory-runtime.yaml",

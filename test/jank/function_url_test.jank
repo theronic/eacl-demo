@@ -18,14 +18,14 @@
 
 (let [health
       (adapter/normalize-event
-       (event "/api/v1/jank-memory/health" "GET" {} nil false))]
+       (event "/health" "GET" {} nil false))]
   (assert (:ok health))
   (assert (= "health" (:operation health)))
   (assert (= {} (:input health))))
 
 (let [correlated
       (adapter/normalize-event
-       (event "/api/v1/jank-memory/health" "GET"
+       (event "/health" "GET"
               {"X-EACL-Request-ID" "browser-9-3"} nil false))]
   (assert (:ok correlated))
   (assert (= "browser-9-3" (:request-id correlated))))
@@ -33,7 +33,7 @@
 (let [authorization
       (adapter/normalize-event
        (event
-        "/api/v1/jank-memory/authorize"
+        "/check-permission"
         "POST"
         {"Content-Type" "application/json"}
         "{\"subjectType\":\"user\",\"subjectId\":\"user-1\",\"resourceType\":\"account\",\"resourceId\":\"account-0\",\"permission\":\"admin\"}"
@@ -44,7 +44,7 @@
 (let [encoded
       (adapter/normalize-event
        (event
-        "/api/v1/jank-memory/get-cache-info"
+        "/get-cache-info"
         "POST"
         {"content-type" "application/json"}
         "e30="
@@ -56,25 +56,25 @@
  (= "validation-error"
     (:code
      (adapter/normalize-event
-      (assoc (event "/api/v1/jank-memory/health" "GET" {} nil false)
+      (assoc (event "/health" "GET" {} nil false)
              "unexpected" true)))))
 (assert
  (= "route-not-found"
     (:code
      (adapter/normalize-event
-      (event "/api/v1/jank-memory/seed" "POST"
+      (event "/seed" "POST"
              {"content-type" "application/json"} "{}" false)))))
 (assert
  (= "method-not-allowed"
     (:code
      (adapter/normalize-event
-      (event "/api/v1/jank-memory/health" "POST"
+      (event "/health" "POST"
              {"content-type" "application/json"} "{}" false)))))
 (assert
  (= "validation-error"
     (:code
      (adapter/normalize-event
-      (assoc (event "/api/v1/jank-memory/health" "GET" {} nil false)
+      (assoc (event "/health" "GET" {} nil false)
              "rawQueryString" "debug=true")))))
 
 (let [first-controls

@@ -26,7 +26,7 @@ test("unknown states, outcomes, artifact kinds, and non-canonical routes fail cl
   for (const mutate of [
     (candidate) => { candidate.profiles[0].state = "healthy"; },
     (candidate) => { candidate.profiles[0].lastOutcome.outcome = "skipped"; },
-    (candidate) => { candidate.profiles[0].route = "/api/v1/datahike-dynamodb"; },
+    (candidate) => { candidate.profiles[0].route = "/extra"; },
     (candidate) => { candidate.profiles[0].deployment = { demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifact: { kind: "container", sha256: "c".repeat(64), version: "42" }, deploymentId: "deploy-1", dataManifestSha256: "d".repeat(64), deployedAt: "2026-08-25T12:00:00Z" }; }
   ]) {
     const invalid = structuredClone(registry);

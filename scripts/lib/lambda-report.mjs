@@ -41,7 +41,7 @@ export async function invokeLambdaWithReport({ functionName, qualifier, profileI
   const method = new Set(["health", "bootstrap"]).has(operation) ? "GET" : "POST";
   const body = method === "POST" ? JSON.stringify(input) : null;
   const event = {
-    version: "2.0", routeKey: "$default", rawPath: `/api/v1/${profileId}/${operation}`, rawQueryString: "",
+    version: "2.0", routeKey: "$default", rawPath: `/${operation}`, rawQueryString: "",
     headers: method === "POST" ? { "content-type": "application/json; charset=utf-8", "x-amz-content-sha256": createHash("sha256").update(body).digest("hex") } : {},
     requestContext: { requestId, http: { method } }, isBase64Encoded: false, body
   };

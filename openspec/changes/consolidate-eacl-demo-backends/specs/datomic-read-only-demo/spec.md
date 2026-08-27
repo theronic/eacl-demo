@@ -43,16 +43,20 @@ The Lambda SHALL use Datomic Pro supporting read-only connections and a `datomic
 - **WHEN** a new Lambda environment initializes after provisioning teardown
 - **THEN** health/bootstrap/representative reads SHALL succeed directly from DynamoDB at the recorded immutable basis
 
-### Requirement: Historical and synchronized consistency are unavailable
-The profile SHALL serve its fixed deployment snapshot through the minimize-latency path and SHALL reject the meaningless `current` alias because both names would select the identical retained value. It MUST also reject at-exact-snapshot, at-least-as-fresh, fully-consistent, historical-date, and live-refresh operations before invoking the generic Datomic source paths, and serving execution MUST NOT call `d/sync` or transact.
+### Requirement: All EACL consistency modes are available over the immutable deployed value
+The profile SHALL support minimize-latency, fully-consistent, at-least-as-fresh, and at-exact-snapshot over its one captured `d/db` value. Minimize-latency and fully-consistent SHALL return that value because it is the immutable authoritative value for this read-only deployment. At-least-as-fresh SHALL return it only when its basis satisfies the authenticated requested floor. At-exact-snapshot SHALL accept the authenticated locator for the captured value and MAY select an earlier retained Datomic basis only when the fixed value can reconstruct and verify it without synchronization. A request beyond the captured value SHALL fail closed. Serving execution MUST NOT call `d/sync` or transact and MUST NOT imply a live transactor head.
 
 #### Scenario: Permission decision is returned
 - **WHEN** Datomic authorization completes
 - **THEN** its public data SHALL contain only `allowed`, and metadata SHALL contain only revision, request ID, and optional elapsed/cache fields
 
 #### Scenario: Exact snapshot is requested
-- **WHEN** a client submits an exact token or historical locator
-- **THEN** the profile SHALL return typed unsupported-consistency without selecting another basis or calling `d/sync`
+- **WHEN** a client submits the current captured exact token
+- **THEN** the profile SHALL return exactly that basis without calling `d/sync`
+
+#### Scenario: Future freshness is requested
+- **WHEN** a client submits an at-least floor newer than the captured deployment value
+- **THEN** the profile SHALL return typed freshness-unavailable without calling `d/sync` or silently advancing
 
 ### Requirement: Serving IAM uses documented read actions
 The role SHALL grant only documented DynamoDB reads required by the read-only Peer on the dedicated table/indexes plus narrow configuration/log/metric actions. It MUST deny writes, table administration, seed/transactor actions, and other demo storage.
@@ -82,9 +86,9 @@ The selected memory SHALL be the lowest tested configuration passing cold initia
 - **WHEN** latency/error/GC/headroom fails
 - **THEN** the next larger candidate SHALL be evaluated
 
-### Requirement: SnapStart is optional and non-blocking
-The first deployment MAY omit SnapStart. It SHALL be enabled only after a non-SnapStart baseline and repeated restore tests prove uniqueness, AWS/Datomic reconnection, cache/fixed-basis identity, concurrency, and error behavior.
+### Requirement: SnapStart is required and qualified
+The production function SHALL enable SnapStart on a published Java version after forcing the read-only reader and immutable `d/db` value during initialization. Publication SHALL wait for AWS `OptimizationStatus=On`, and repeated restore tests SHALL prove reader validity, fixed-basis identity, cache isolation, concurrency, and error behavior before alias promotion.
 
 #### Scenario: Restored client is stale
 - **WHEN** a restored environment cannot re-establish safe read-only state
-- **THEN** SnapStart SHALL be disabled while the qualified baseline remains deployed
+- **THEN** the candidate SHALL fail and the prior qualified alias SHALL remain deployed

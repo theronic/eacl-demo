@@ -138,7 +138,7 @@ function validateProfileRoute(baseUrl, expectedRoute, label) {
 
 function validateRoute(route, profileId, label) {
   invariant(typeof route === "string" && (
-    normalizeRoute(route) === `/api/v1/${profileId}`
+    (profileId !== "datascript-browser-memory" && route === "/")
       || (profileId === "datascript-browser-memory" && normalizeRoute(route) === "/datascript")
   ), `${label} is invalid`);
 }

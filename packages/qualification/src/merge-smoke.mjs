@@ -23,15 +23,15 @@ export async function runMergeSmoke({ transport, expectedIdentity, target, allow
   });
   await smokeCase(cases, "allowed-authorization", async () => {
     const input = demandInput(allowedDemand);
-    const response = assertEnvelope(await transport.request("authorize", input), "authorize");
-    const decision = successfulData(response, "authorize");
+    const response = assertEnvelope(await transport.request("check-permission", input), "check-permission");
+    const decision = successfulData(response, "check-permission");
     assertDecisionScope(decision, input);
     if (decision.allowed !== true) throw new Error("allowed exemplar was denied");
   });
   await smokeCase(cases, "denied-authorization", async () => {
     const input = demandInput(deniedDemand);
-    const response = assertEnvelope(await transport.request("authorize", input), "authorize");
-    const decision = successfulData(response, "authorize");
+    const response = assertEnvelope(await transport.request("check-permission", input), "check-permission");
+    const decision = successfulData(response, "check-permission");
     assertDecisionScope(decision, input);
     if (decision.allowed !== false) throw new Error("denied exemplar was allowed");
   });
@@ -120,7 +120,7 @@ function validateTarget(target, profileId) {
   if (target.kind !== "staged-cloudfront" || target.profileId !== profileId) throw new Error("merge smoke must target the exact candidate staging CloudFront profile");
   const origin = new URL(target.origin);
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash) throw new Error("merge smoke origin must be an HTTPS origin without credentials or state");
-  if (typeof target.path !== "string" || target.path.replace(/\/$/u, "") !== `/api/v1/${profileId}`) throw new Error("merge smoke profile path is invalid");
+  if (target.path !== "/") throw new Error("merge smoke profile path is invalid");
 }
 
 function normalizePath(value) { return value.replace(/\/$/u, "") || "/"; }

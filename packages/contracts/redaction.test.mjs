@@ -4,7 +4,7 @@ import { createReadOnlyDispatcher } from "./src/read-only-dispatcher.mjs";
 import { redactRecord, createSafeFailure } from "./src/redaction.mjs";
 import { logicalOperations } from "./src/routes.mjs";
 
-const context = { requestId: "r", operation: "authorize", identity: { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "d", dataManifestSha256: "e".repeat(64) }, basis: null };
+const context = { requestId: "r", operation: "check-permission", identity: { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "d", dataManifestSha256: "e".repeat(64) }, basis: null };
 
 test("structured logs redact secret-bearing keys recursively and omit exception stacks", () => {
   const record = redactRecord({ requestId: "r", headers: { authorization: "sensitive", cookie: "sensitive" }, config: { connectionString: "sensitive", region: "us-east-1" }, error: Object.assign(new Error("backend leaked sensitive"), { stack: "sensitive stack" }) });

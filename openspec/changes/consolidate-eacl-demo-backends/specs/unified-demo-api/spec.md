@@ -4,12 +4,16 @@ Define a stable bounded read-only explorer contract that remains compatible whil
 
 ## ADDED Requirements
 
-### Requirement: Versioned logical contract and mixed-generation compatibility
-All profiles SHALL implement `explorer.v1` logical operations and normalized data/error shapes. Server profiles SHALL expose them below `/api/v1/{profile-id}` and the direct DataScript page runtime SHALL implement the same logical operations without a second protocol. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; incompatible behavior SHALL use a new versioned route.
+### Requirement: Simple profile-owned logical contract and mixed-generation compatibility
+All profiles SHALL implement the same normalized logical operations and data/error shapes. Each server profile SHALL own one Lambda Function URL and expose operations directly at root paths such as `/health`, `/bootstrap`, `/lookup-resources`, and `/check-permission`; paths MUST NOT contain an `/api` prefix, route version, backend name, storage name, or composite profile ID. The permission operation SHALL be named `check-permission`, not `authorize`. The direct DataScript page runtime SHALL implement the same logical operations without a second protocol. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; an incompatible contract change SHALL update the descriptor handshake rather than add transport noise to every operation path.
 
 #### Scenario: Shell deploys before one backend
 - **WHEN** the current shell contacts a healthy N-1 profile during a non-atomic rollout
 - **THEN** it SHALL use the compatible descriptor/operations without inventing unsupported fields or requiring fleet coordination
+
+#### Scenario: Browser checks a permission
+- **WHEN** the active server profile checks whether a subject has a permission
+- **THEN** the browser SHALL POST directly to that profile's `<function-url>/check-permission` path with no `/api`, version, backend, storage, or profile path segment
 
 ### Requirement: Bootstrap identifies exact sources and ordinary responses stay compact
 Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA, deployment/artifact identity, dataset identity, and basis before ordinary operations. Every backend SHALL then use the same prior consumer-facing envelope: success is `{data, meta}`, failure is `{error, meta}`, and metadata is revision, request ID, and elapsed/cache fields when meaningful. Ordinary responses MUST NOT repeat an `ok` flag, deployment identity, contract version, operation, structured basis, retryability, authorization reason, or explanation path. Every failure SHALL return only a stable code, safe message, and compact request metadata when available; clients infer retry behavior from the stable code.
@@ -55,10 +59,14 @@ A profile SHALL advertise only modes executable through its production topology.
 
 #### Scenario: Datomic fixed snapshot is served
 - **WHEN** the Datomic Lambda uses a read-only connection's fixed `d/db` value
-- **THEN** it SHALL expose no meaningless `current` choice or alias, use the fixed lowest-latency snapshot internally, and reject `current`, exact-history, at-least, fully-consistent, and live-refresh requests without calling Datomic synchronization
+- **THEN** minimize-latency, fully-consistent, at-least-as-fresh, and at-exact-snapshot SHALL select or validate against that immutable deployed value without calling Datomic synchronization or implying a live head
+
+#### Scenario: Datahike exact selection names an older basis
+- **WHEN** a Datahike caller requests at-exact-snapshot with a token other than the environment's current captured basis
+- **THEN** the profile SHALL return a typed exact-snapshot-unavailable error rather than reconstruct, silently advance, or return a different basis
 
 ### Requirement: Cancellation deadlines and overload are typed
-Server operations SHALL have bounded deadlines, cancellation, and concurrency admission. Disconnect/cancellation, deadline, storage throttle, and busy admission SHALL remain distinct safe errors where the runtime can distinguish them.
+Server operations SHALL have bounded deadlines, cancellation, and per-environment resource admission. Production Lambda functions MUST NOT reserve or cap account concurrency, so a cost guard SHALL NOT create `ReservedFunctionConcurrentInvocationLimitExceeded`. Disconnect/cancellation, deadline, storage throttle, and busy admission SHALL remain distinct safe errors where the runtime can distinguish them.
 
 #### Scenario: DynamoDB throttles a read
 - **WHEN** a recognized throttle exhausts bounded deadline-aware retry

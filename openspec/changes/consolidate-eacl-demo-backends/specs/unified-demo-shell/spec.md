@@ -30,8 +30,12 @@ For a backend with multiple enabled storage profiles, the registry SHALL select 
 The explorer SHALL render controls and explanations from the active descriptor's declared capabilities and limits. Shared components MUST NOT infer behavior from backend-name conditionals. Unsupported mutation, consistency, snapshot, cache, pagination, or diagnostic controls SHALL be hidden or disabled with an accurate explanation.
 
 #### Scenario: Fixed Datomic snapshot loads
-- **WHEN** the Datomic descriptor advertises only its fixed deployment snapshot
-- **THEN** the explorer SHALL omit the meaningless `current` choice together with exact-history, at-least, fully-consistent, and live-refresh controls; the existing minimize-latency label MAY represent the only executable read path
+- **WHEN** the Datomic descriptor advertises its fixed deployment snapshot
+- **THEN** the explorer SHALL offer minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent while explaining that each is bounded by the immutable deployed database value and no request observes a later live head
+
+#### Scenario: Read-only Datahike profile loads
+- **WHEN** a Datahike descriptor cannot establish an authoritative writer barrier
+- **THEN** the explorer SHALL show `fully-consistent*` disabled and display a note immediately below the options explaining that the read-only Lambda can validate its captured basis but cannot coordinate with a writer to establish a newer authoritative head
 
 ### Requirement: Selection switching isolates profile-owned state
 Changing either selector SHALL abort or logically invalidate prior in-flight work, clear basis-, cursor-, page-, cache-view-, seed-, and error-state owned by the old profile, and preserve only portable semantic selection and presentation preferences. A response from an earlier profile or client epoch MUST NOT update the new view.
@@ -39,6 +43,10 @@ Changing either selector SHALL abort or logically invalidate prior in-flight wor
 #### Scenario: Slow response arrives after storage switch
 - **WHEN** a Datahike/S3 request completes after the user switches storage to Datahike/DynamoDB
 - **THEN** the explorer SHALL discard the late response and SHALL not display its data, metadata, error, cursor, or loading transition
+
+#### Scenario: Newly selected profile is starting
+- **WHEN** the user switches to a valid registered backend/storage profile whose bootstrap is still pending
+- **THEN** the explorer SHALL immediately show `Waiting for <backend> Lambda to start...` with elapsed time and MUST NOT transiently show `The selected demo is not available.`
 
 #### Scenario: Selected object is absent from a smaller profile
 - **WHEN** a user changes from a million-resource profile with `server-900000` selected to a ten-thousand-resource profile
@@ -75,6 +83,10 @@ Every profile SHALL expose advertised common components for subject selection, r
 #### Scenario: Resource detail opens
 - **WHEN** a resource type has multiple permissions
 - **THEN** each advertised permission SHALL run as an independent bounded operation and one failure SHALL not fabricate or overwrite another decision
+
+#### Scenario: Resource page size changes
+- **WHEN** the user changes the Resources page size to any supported value
+- **THEN** resource requests SHALL use that value while the Subjects panel continues to request exactly 25 subjects per page
 
 ### Requirement: Separate DataScript entry and payload
 `https://demo.eacl.dev/datascript/` SHALL be a distinct static entry that reuses the exact shared explorer source while loading EACL v8, the DataScript adapter, DataScript, and its direct browser runtime only from DataScript-specific artifacts. The main entry's initial/server dependency graphs MUST NOT contain those browser database artifacts.

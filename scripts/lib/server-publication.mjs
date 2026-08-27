@@ -30,7 +30,7 @@ export function createServerPublicationPlan({ target, artifactDirectory, artifac
   return Object.freeze({
     schema: "eacl-demo.server-publication-plan.v1",
     profileId: target,
-    route: `/api/v1/${target}`,
+    route: "/",
     source: Object.freeze({ demoSha: artifactManifest.demoSha, eaclSha: artifactManifest.eaclSha }),
     handoffArtifactSha256: artifactManifest.artifactSha256,
     runtimeArtifact: Object.freeze({
@@ -210,7 +210,7 @@ function assertMovedAlias(actual, previous, toVersion, label) {
 
 function validatePlan(plan) {
   exactKeys(plan, ["schema", "profileId", "route", "source", "handoffArtifactSha256", "runtimeArtifact", "deploymentId", "deployedAt"], "server publication plan");
-  if (plan.schema !== "eacl-demo.server-publication-plan.v1" || !SERVER_TARGETS.has(plan.profileId) || plan.route !== `/api/v1/${plan.profileId}`) throw new Error("server publication plan identity is invalid");
+  if (plan.schema !== "eacl-demo.server-publication-plan.v1" || !SERVER_TARGETS.has(plan.profileId) || plan.route !== "/") throw new Error("server publication plan identity is invalid");
   exactKeys(plan.source, ["demoSha", "eaclSha"], "server publication source");
   exactKeys(plan.runtimeArtifact, ["source", "bytes", "sha256", "key"], "server runtime artifact");
   const expectedKey = `artifacts/${plan.profileId}/${plan.source.demoSha}/${plan.runtimeArtifact.sha256}.jar`;

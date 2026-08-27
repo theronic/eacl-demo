@@ -31,7 +31,7 @@ test("CloudFront serves only the two static Explorer entries", () => {
 test("static route rewrites preserve the two canonical entries only", () => {
   for (const uri of ["/datahike", "/datahike/"]) assert.equal(context.handler(request(uri)).uri, "/index.html");
   for (const uri of ["/datascript", "/datascript/"]) assert.equal(context.handler(request(uri)).uri, "/datascript/index.html");
-  const api = request("/api/v1/datahike-s3/health");
+  const api = request("/health");
   assert.deepEqual(context.handler(api), api.request);
 });
 

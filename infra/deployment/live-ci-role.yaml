@@ -50,7 +50,9 @@ Resources:
                 Action:
                   - lambda:GetFunction
                   - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionConcurrency
                   - lambda:InvokeFunction
+                  - lambda:DeleteFunctionConcurrency
                   - lambda:UpdateFunctionConfiguration
                   - lambda:UpdateFunctionCode
                   - lambda:PublishVersion

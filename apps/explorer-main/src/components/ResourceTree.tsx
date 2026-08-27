@@ -120,7 +120,7 @@ function RelationshipGroup(props: {
       : false;
   const [relationships, { refetch }] = createResource(source, async (input) => ({
     scope: relationshipScopeFromInput(input),
-    envelope: await app.runQuery<RelationshipPage>(request, "/api/eacl/read-relationships", {
+    envelope: await app.runQuery<RelationshipPage>(request, "/list-relationships", {
       method: "POST",
       body: JSON.stringify({
         subject: { type: input[0], id: input[1] },
@@ -400,7 +400,7 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
   const [page, { refetch: refetchPage }] = createResource(pageSource, async (input) => {
     const envelope = await app.runQuery<ObjectPage>(
       pageRequest,
-      "/api/eacl/lookup-resources",
+      "/lookup-resources",
       {
         method: "POST",
         body: JSON.stringify({
@@ -425,7 +425,7 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
     countSource,
     async (input) => ({
       scope: resourceScopeFromInput(input),
-      envelope: await app.runQuery<ResourceCount>(countRequest, "/api/eacl/count-resources", {
+      envelope: await app.runQuery<ResourceCount>(countRequest, "/count-resources", {
         method: "POST",
         body: JSON.stringify({
           subject: { type: "user", id: input[0] },

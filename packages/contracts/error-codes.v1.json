@@ -11,6 +11,7 @@
     {"code": "cursor-expired", "httpStatus": 410, "retryable": false, "message": "The cursor has expired; restart from the first page."},
     {"code": "cursor-scope-mismatch", "httpStatus": 409, "retryable": false, "message": "The cursor belongs to a different request or profile."},
     {"code": "unsupported-consistency", "httpStatus": 422, "retryable": false, "message": "The requested consistency mode is not supported by this profile."},
+    {"code": "freshness-unavailable", "httpStatus": 409, "retryable": false, "message": "The selected profile cannot satisfy the requested freshness floor."},
     {"code": "cancelled", "httpStatus": 499, "retryable": true, "message": "The request was cancelled."},
     {"code": "deadline-exceeded", "httpStatus": 504, "retryable": true, "message": "The request deadline was exceeded."},
     {"code": "overloaded", "httpStatus": 503, "retryable": true, "message": "The profile has reached its admission limit."},

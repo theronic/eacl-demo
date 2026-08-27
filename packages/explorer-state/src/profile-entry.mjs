@@ -30,7 +30,7 @@ export function validateProfileEntry(profile, definition) {
 
 export function canonicalProfileRoute(profileId) {
   if (profileId === "datascript-browser-memory") return "/datascript/";
-  if (["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory"].includes(profileId)) return `/api/v1/${profileId}`;
+  if (["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory"].includes(profileId)) return "/";
   throw new Error(`unknown profile route: ${profileId}`);
 }
 

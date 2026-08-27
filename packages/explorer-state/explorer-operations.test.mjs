@@ -50,9 +50,9 @@ test("resource, reverse, schema, cache, and independent permission details use c
   await operations.reverseRelationships({ subjectType: "user", subjectId: "user-1", relation: "owner" });
   await operations.getSchema();
   await operations.getCacheInfo();
-  await operations.authorize({ subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "view" });
-  await operations.authorize({ subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "admin" });
-  assert.deepEqual(environment.calls.find(({ operation }) => operation === "get-object").input, { type: "server", id: "server-1", consistency: "current" });
+  await operations.checkPermission({ subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "view" });
+  await operations.checkPermission({ subjectType: "user", subjectId: "user-1", resourceType: "server", resourceId: "server-1", permission: "admin" });
+  assert.deepEqual(environment.calls.find(({ operation }) => operation === "get-object").input, { type: "server", id: "server-1", consistency: "minimize" });
   assert.equal(Object.keys(controller.getState().panels).filter((id) => id.startsWith("authorization-")).length, 2);
   await assert.rejects(operations.getObject({ type: "server", id: "bad id" }), /invalid resource ID/u);
   await controller.close();

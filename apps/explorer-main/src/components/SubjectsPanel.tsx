@@ -4,7 +4,6 @@ import {
   createResource,
   createSignal,
   For,
-  on,
   onCleanup,
   Show,
   type JSX,
@@ -22,6 +21,8 @@ import {
   identifierLabel,
 } from "./Common";
 
+const SUBJECT_PAGE_SIZE = 25;
+
 export function SubjectsPanel(): JSX.Element {
   const app = useAppState();
   const request = new LatestRequest();
@@ -29,23 +30,22 @@ export function SubjectsPanel(): JSX.Element {
   const source = () =>
     [
       offset(),
-      app.pageSize(),
       app.activeQueryBasis(),
       app.basisGeneration(),
       app.queryGeneration(),
     ] as const;
   const [subjects, { refetch }] = createResource(
     source,
-    ([currentOffset, pageSize]) =>
+    ([currentOffset]) =>
       app.runQuery<KnownSubjectPage>(
         request,
-        `/api/subjects?offset=${currentOffset}&limit=${pageSize}`,
+        `/list-subjects?offset=${currentOffset}&limit=${SUBJECT_PAGE_SIZE}`,
       ),
   );
   const [displayedSubjects, setDisplayedSubjects] =
     createSignal<ApiSuccess<KnownSubjectPage>>();
   const [displayedOffset, setDisplayedOffset] = createSignal(0);
-  const [displayedPageSize, setDisplayedPageSize] = createSignal(app.pageSize());
+  const [displayedPageSize] = createSignal(SUBJECT_PAGE_SIZE);
   const [pendingAction, setPendingAction] =
     createSignal<"first" | "previous" | "next">();
 
@@ -55,24 +55,16 @@ export function SubjectsPanel(): JSX.Element {
     if (!envelope) return;
     setDisplayedSubjects(envelope);
     setDisplayedOffset(offset());
-    setDisplayedPageSize(app.pageSize());
   });
   createEffect(() => {
     if (!subjects.loading) setPendingAction(undefined);
   });
 
-  createEffect(
-    on(
-      () => app.pageSize(),
-      () => setOffset(0),
-      { defer: true },
-    ),
-  );
   onCleanup(() => request.abort());
 
   const settledSubjects = displayedSubjects;
 
-  const targetPage = () => Math.floor(offset() / app.pageSize()) + 1;
+  const targetPage = () => Math.floor(offset() / SUBJECT_PAGE_SIZE) + 1;
   const displayedPage = () =>
     Math.floor(displayedOffset() / displayedPageSize()) + 1;
   const navigationAction = () => {

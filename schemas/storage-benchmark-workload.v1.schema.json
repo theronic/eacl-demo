@@ -28,7 +28,7 @@
             "required": ["id", "operation", "weightPer100", "method", "input"],
             "properties": {
               "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
-              "operation": {"enum": ["bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "count-objects"]},
+              "operation": {"enum": ["bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "get-schema", "count-objects"]},
               "weightPer100": {"type": "integer", "minimum": 1, "maximum": 100},
               "method": {"enum": ["GET", "POST"]},
               "input": {"type": "object"}

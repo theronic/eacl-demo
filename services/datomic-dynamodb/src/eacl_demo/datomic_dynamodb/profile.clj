@@ -7,7 +7,7 @@
 
 (def closed-operations
   #{"health" "bootstrap" "list-subjects" "get-object"
-    "list-relationships" "reverse-relationships" "authorize" "get-schema"
+    "list-relationships" "reverse-relationships" "check-permission" "get-schema"
     "lookup-resources" "lookup-subjects" "count-resources"
     "get-cache-info" "count-objects"})
 
@@ -25,7 +25,7 @@
   (boundary/descriptor
    {:identity identity
     :runtime {:execution "lambda" :name "java25" :architecture "x86_64"
-              :snapStart "disabled"}
+              :snapStart "enabled"}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 1000000
               :serverCount 998417
@@ -33,15 +33,12 @@
     :basis basis
     :capabilities
     {:operations (vec (sort closed-operations))
-     ;; A read-only Peer captures one fixed database value. "current" and
-     ;; "minimize" would therefore be two labels for the same operation, so
-     ;; advertise only the original Explorer's lowest-latency semantic.
-     :consistencyModes ["minimize"]
+     :consistencyModes ["minimize" "authoritative" "at-least" "exact"]
      :snapshotBehavior "fixed-environment"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only" "fixed-current-snapshot" "no-synchronization"
-                   "no-history-api" "unsupported-consistency"]}
+     :limitations ["read-only" "fixed-current-snapshot" "no-history-api"
+                   "no-synchronization"]}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value admission-concurrency}
              {:name "responseBodyBytes" :value 1048576}

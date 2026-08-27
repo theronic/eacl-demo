@@ -12,9 +12,13 @@ public final class LambdaHandler implements RequestStreamHandler {
   private static final IFn REQUIRE = Clojure.var("clojure.core", "require");
   private static final IFn READ = Clojure.var("clojure.core", "read-string");
   private static final IFn HANDLE;
+  private static final IFn INITIALIZE;
 
   static {
     REQUIRE.invoke(READ.invoke("eacl-demo.datahike-s3.lambda-handler"));
+    INITIALIZE = Clojure.var(
+        "eacl-demo.datahike-s3.lambda-handler", "initialize-runtime!");
+    INITIALIZE.invoke();
     HANDLE = Clojure.var(
         "eacl-demo.datahike-s3.lambda-handler", "handle-request-stream");
   }

@@ -18,12 +18,16 @@ The S3 profile SHALL expose no public data/schema/seed/shared-cache mutation, re
 - **WHEN** a caller attempts schema or seed mutation
 - **THEN** the reader SHALL reject it before Datahike transaction, S3 write, cache persistence, or administration
 
-### Requirement: S3 consistency limitations are truthful
-The S3 profile SHALL advertise only consistency/exact-basis behavior qualified across retained snapshots, Lambda environments, token scope, and graph/history configuration.
+### Requirement: Datahike consistency limitations are truthful
+Both Datahike profiles SHALL expose minimize-latency, at-least-as-fresh, and at-exact-snapshot. At-least-as-fresh SHALL return the current captured basis when it satisfies the requested floor and fail when the requested floor is newer. At-exact-snapshot SHALL succeed only for the current captured basis and reject any older, newer, foreign, or expired token. Fully-consistent SHALL remain unavailable in the read-only Lambda topology and the descriptor SHALL explain that no authoritative writer barrier can establish a newer head.
 
 #### Scenario: Cross-environment exact reconstruction is incomplete
 - **WHEN** another Lambda environment cannot reconstruct the exact basis
-- **THEN** the descriptor SHALL disable that claim while retaining qualified modes
+- **THEN** it SHALL accept only that environment's authenticated current-basis token and reject the foreign token without returning a different basis
+
+#### Scenario: Fully consistent is requested
+- **WHEN** a caller requests fully-consistent from the read-only Datahike Lambda
+- **THEN** the service SHALL return typed unsupported-consistency before traversal or cache work and the UI SHALL display the `fully-consistent*` explanation
 
 ### Requirement: DynamoDB adapter hard gate
 `datahike-dynamodb` MUST remain unavailable until the pinned adapter preserves typed failures, distinguishes absence from throttle/auth/timeout/transport failures, handles all `UnprocessedKeys`, uses strong publication reads or proven equivalent, propagates cancellation/deadlines through bounded jittered retry, and excludes destructive serving deletion.
@@ -81,10 +85,20 @@ failures, and at least 20% peak-memory headroom. One storage profile's minimum
 MUST NOT be copied as qualification evidence for the other. While a comparable
 speed claim is active, both profiles SHALL run the smallest common memory that
 passes both independent gates (the larger of the two minima) and the same
-qualified SnapStart state. The initial comparison SHALL use SnapStart disabled;
-switching both profiles to qualified SnapStart is a material change that expires
-and reruns the evidence.
+qualified SnapStart state. Both production profiles SHALL force their immutable
+reader before a published-version checkpoint, wait for AWS optimization, and
+qualify restored storage reads. Switching lifecycle mode is a material change
+that expires and reruns any comparison evidence.
+
+Both production Datahike profiles SHALL use 1024 MB. A candidate that cannot
+meet the gate at 1024 MB MUST be optimized to remove unnecessary initialization,
+whole-store warming, or repeated remote reads rather than promoted at a larger
+memory size.
 
 #### Scenario: Smaller memory boots but violates latency
 - **WHEN** a candidate starts but fails representative latency/error/headroom limits
 - **THEN** it SHALL not be selected
+
+#### Scenario: DynamoDB cold initialization exceeds the gate at 1024 MB
+- **WHEN** memory headroom passes but avoidable initialization or DynamoDB reads cause the timeout
+- **THEN** the initialization path SHALL be profiled and reduced until the 1024 MB production candidate passes the full gate

@@ -26,7 +26,7 @@ test("the Jank store label and exclusions are explicit", () => {
   for (const id of ["no-durability", "no-datalog-api", "no-distribution", "not-production-database"]) assert.ok(byId[id]);
 });
 
-test("fixed-current capabilities omit exact and at-least controls without inspecting backend name", () => {
+test("fixed-snapshot consistency controls derive from capabilities without inspecting backend name", () => {
   const fixed = structuredClone(mockCapabilityScenarios.find(({ profile }) => profile.id === "datomic-dynamodb").descriptor);
   const original = projectDescriptorPresentation(fixed);
   fixed.profileId = "made-up-profile";
@@ -36,7 +36,8 @@ test("fixed-current capabilities omit exact and at-least controls without inspec
   assert.deepEqual(renamed.consistency, original.consistency);
   assert.deepEqual(renamed.snapshot, original.snapshot);
   assert.deepEqual(renamed.limitations, original.limitations);
-  assert.equal(original.consistency.modes.some(({ id }) => id === "exact" || id === "at-least"), false);
+  assert.deepEqual(original.consistency.modes.map(({ id }) => id),
+    ["minimize", "authoritative", "at-least", "exact"]);
 });
 
 test("unknown capability terms fail closed instead of rendering invented prose", () => {

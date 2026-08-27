@@ -68,7 +68,7 @@ behavior, and price/performance before the runtime template can change.
 The custom runtime uses Lambda's Runtime API directly through the bounded
 native adapter in `native/runtime_api.hpp`; it does not start an HTTP server.
 Function URL payload-v2 events pass the shared five-case contract fixture and
-then a production wrapper accepts only `/api/v1/jank-memory/*`. The dispatcher
+then a production wrapper accepts only `/*`. The dispatcher
 contains exactly the ten explorer read operations. Seed, setup, transaction,
 cache-eviction, benchmark, debug, and LAN-server names are absent from its
 handler table.

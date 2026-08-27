@@ -115,7 +115,6 @@ Resources:
       Timeout: 30
       EphemeralStorage:
         Size: 512
-      ReservedConcurrentExecutions: 2
       Environment:
         Variables:
           EACL_DEMO_SHA: !Ref DemoSha

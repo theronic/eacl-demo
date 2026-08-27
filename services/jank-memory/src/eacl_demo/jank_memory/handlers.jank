@@ -19,7 +19,7 @@
 (defn- consistency!
   [input]
   (let [value (get input "consistency")]
-    (when-not (contains? #{nil "current" "minimize"} value)
+    (when-not (contains? #{nil "minimize"} value)
       (fail! "unsupported-consistency"))
     :minimize-latency))
 
@@ -176,7 +176,7 @@
       (:data page))
      "pageInfo" (eacl-page-info page)}))
 
-(defn- authorize
+(defn- check-permission
   [value input controls]
   (let [consistency (consistency! input)
         subject-type (get input "subjectType")
@@ -303,10 +303,10 @@
           {:value (reverse-relationships value input controls) :error nil}
           (catch cpp/jank.runtime.object_ref error
             {:value nil :error error})))
-      "authorize"
+      "check-permission"
       (fn [input controls]
         (try
-          {:value (authorize value input controls) :error nil}
+          {:value (check-permission value input controls) :error nil}
           (catch cpp/jank.runtime.object_ref error
             {:value nil :error error})))
       "get-schema"

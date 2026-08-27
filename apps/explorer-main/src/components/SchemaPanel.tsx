@@ -34,7 +34,7 @@ export function SchemaPanel(): JSX.Element {
       app.basisGeneration(),
       app.queryGeneration(),
     ] as const,
-    () => app.runQuery<SchemaInfo>(request, "/api/schema"),
+    () => app.runQuery<SchemaInfo>(request, "/get-schema"),
   );
   const [displayedSchema, setDisplayedSchema] = createSignal<
     ReturnType<typeof schema>
@@ -69,7 +69,7 @@ export function SchemaPanel(): JSX.Element {
     setWriting(true);
     setWriteError(undefined);
     try {
-      const result = await writeRequest.run<SchemaInfo>("/api/schema", {
+      const result = await writeRequest.run<SchemaInfo>("/get-schema", {
         method: "PUT",
         body: JSON.stringify({ source: draft() }),
       });

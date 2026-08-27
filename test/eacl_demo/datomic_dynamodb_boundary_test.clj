@@ -28,7 +28,7 @@
 
 (defn request
   [consistency]
-  {:path "/api/v1/datomic-dynamodb/authorize"
+  {:path "/check-permission"
    :method :post
    :request-id "request-1"
    :deadline-ms 2000
@@ -37,7 +37,7 @@
                    :permission "admin"}
             (some? consistency) (assoc :consistency consistency))})
 
-(deftest only-minimize-consistency-reaches-snapshot-and-handler-test
+(deftest supported-consistency-reaches-the-same-fixed-snapshot-test
   (let [captures (atom 0)
         releases (atom 0)
         profile
@@ -51,7 +51,7 @@
                                :basis (:basis descriptor)
                                :release! #(swap! releases inc)})
           :handlers handlers})]
-    (doseq [consistency [nil "minimize"]]
+    (doseq [consistency [nil "minimize" "authoritative" "at-least" "exact"]]
       (let [response (boundary/invoke! profile (request consistency))]
         (is (contains? response :data))
         (is (not (contains? response :error)))
@@ -61,8 +61,8 @@
         (is (= :fixed-snapshot (get-in response [:data :snapshot])))
         (is (= "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
                (get-in response [:meta :revision])))))
-    (is (= 2 @captures))
-    (is (= 2 @releases))))
+    (is (= 5 @captures))
+    (is (= 5 @releases))))
 
 (deftest synchronized-historical-and-future-modes-fail-before-snapshot-test
   (let [captures (atom 0)
@@ -80,8 +80,7 @@
                                :basis (:basis descriptor)
                                :release! (fn [])})
           :handlers rejecting-handlers})]
-    (doseq [consistency ["current" "authoritative" "at-least" "exact"
-                         "historical-date" "fully-consistent" "live-refresh"
+    (doseq [consistency ["historical-date" "fully-consistent" "live-refresh"
                          "future-sync-mode"]]
       (let [response (boundary/invoke! profile (request consistency))]
         (is (contains? response :error))
@@ -113,7 +112,7 @@
     (doseq [input [(dissoc base :permission)
                    (assoc base :seed true)
                    (assoc base :resourceId "contains spaces")
-                   (assoc base "consistency" "current")]]
+                   (assoc base "consistency" "minimize")]]
       (is (= "validation-error"
              (get-in (boundary/invoke!
                       profile (assoc (request nil) :input input))

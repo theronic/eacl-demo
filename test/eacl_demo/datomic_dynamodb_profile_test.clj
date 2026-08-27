@@ -20,13 +20,13 @@
   (let [descriptor (profile/descriptor
                     {:identity profile-identity
                      :basis basis
-                     :memory-mib 2048
-                     :admission-concurrency 2})]
+                     :memory-mib 1024
+                     :admission-concurrency 1})]
     (is (= {:backend "datomic" :storage "dynamodb"} (:profile descriptor)))
     (is (= {:execution "lambda" :name "java25" :architecture "x86_64"
-            :snapStart "disabled"}
+            :snapStart "enabled"}
            (:runtime descriptor)))
-    (is (= ["minimize"]
+    (is (= ["minimize" "authoritative" "at-least" "exact"]
            (get-in descriptor [:capabilities :consistencyModes])))
     (is (= "fixed-environment"
            (get-in descriptor [:capabilities :snapshotBehavior])))
@@ -47,12 +47,12 @@
                (profile/descriptor
                 {:identity profile-identity
                  :basis (assoc basis :behavior "request-snapshot")
-                 :memory-mib 2048
-                 :admission-concurrency 2})))
+                 :memory-mib 1024
+                 :admission-concurrency 1})))
   (is (thrown? clojure.lang.ExceptionInfo
                (profile/descriptor
                 {:identity (assoc profile-identity :dataManifestSha256
                                   (apply str (repeat 64 "f")))
                  :basis basis
-                 :memory-mib 2048
-                 :admission-concurrency 2}))))
+                 :memory-mib 1024
+                 :admission-concurrency 1}))))

@@ -5,8 +5,6 @@
   (:import [java.util.concurrent Semaphore]))
 
 (def profile-id "datahike-s3")
-(def profile-prefix "/api/v1/datahike-s3")
-
 (def ^:private method-by-operation
   {"health" :get
    "bootstrap" :get
@@ -14,7 +12,7 @@
    "get-object" :post
    "list-relationships" :post
    "reverse-relationships" :post
-   "authorize" :post
+   "check-permission" :post
    "lookup-resources" :post
    "lookup-subjects" :post
    "count-resources" :post
@@ -25,9 +23,9 @@
 (defn parse-route
   [{:keys [path method]}]
   (let [path (or path "")
-        prefix (str profile-prefix "/")
-        operation (when (.startsWith ^String path prefix)
-                    (subs path (count prefix)))
+        operation (when (and (.startsWith ^String path "/")
+                             (< 1 (count path)))
+                    (subs path 1))
         expected (get method-by-operation operation)]
     (cond
       (or (nil? operation) (.contains ^String operation "/")
@@ -70,7 +68,7 @@
         identity (:identity descriptor)
         input-result (when ok?
                        (http/normalize-input operation (or input {})
-                                             #{"current"}))
+                                             #{"minimize" "at-least" "exact"}))
         input (:input input-result)]
     (cond
       (not (http/valid-request-id? request-id))
@@ -115,7 +113,9 @@
                                 {:code "internal-error"})))
               (check-active!)
               (let [data ((get handlers operation)
-                          {:input input
+                          {:input (assoc input
+                                         :eacl-demo/snapshot (:value snapshot)
+                                         :eacl-demo/public-basis (:basis snapshot))
                            :snapshot (:value snapshot)
                            :basis (:basis snapshot)
                            :check-active! check-active!})]

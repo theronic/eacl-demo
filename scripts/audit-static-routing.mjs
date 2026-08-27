@@ -26,7 +26,8 @@ for (const apiOrigin of enabledOrigins) {
   assert.ok(template.includes(apiOrigin), `${apiOrigin} is absent from connect-src`);
   assert.ok(preview.includes(apiOrigin), `${apiOrigin} is absent from the local preview connect-src`);
 }
-assert.match(transport, /new URL\(`\$\{route\}\/\$\{operation\}`, apiOrigin\)/u);
+assert.match(transport, /const path = `\/\$\{operation\}`;[\s\S]*new URL\(path, apiOrigin\)/u);
+assert.doesNotMatch(transport, /api\/v1|\$\{profile\.id\}|\$\{profile\.backend\}/u);
 assert.match(transport, /requires a direct HTTPS Lambda Function URL/u);
 assert.doesNotMatch(transport, /x-amz-content-sha256|jsonPayloadSha256/u);
 assert.match(functionUrl, /maximum-request-body-bytes 65536/u);

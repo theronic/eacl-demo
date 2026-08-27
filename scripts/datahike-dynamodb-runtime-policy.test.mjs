@@ -11,14 +11,15 @@ const table = await readFile(
   "utf8",
 );
 
-test("Datahike DynamoDB candidate matches its truthful managed runtime", () => {
+test("Datahike DynamoDB candidate is a preinitialized 1024 MB SnapStart runtime", () => {
   assert.match(template, /Runtime: java25/u);
   assert.match(template, /Architectures:\s*\n\s*- arm64/u);
-  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: None/u);
-  assert.match(template, /ReservedConcurrentExecutions: 1/u);
+  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
+  assert.match(template, /MemorySize:\s*\n\s*Type: Number\s*\n\s*Default: 1024\s*\n\s*AllowedValues: \[1024\]/u);
+  assert.doesNotMatch(template, /ReservedConcurrentExecutions/u);
   assert.match(template, /EACL_MAXIMUM_CONCURRENCY: "1"/u);
   assert.doesNotMatch(template,
-    /ProvisionedConcurrency|java17(?:\s|$)|provided\.|SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
+    /ProvisionedConcurrency|java17(?:\s|$)|provided\.|6144/u);
 });
 
 test("candidate bytes, store, source, and bounded retry are immutable inputs", () => {

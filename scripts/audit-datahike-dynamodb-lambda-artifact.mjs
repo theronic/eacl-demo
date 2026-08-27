@@ -117,9 +117,9 @@ assert.match(sources.retry, /full-jitter-delay-ms/u);
 assert.match(sources.retry, /\(<= 1 \(:max-attempts value\) 8\)/u);
 assert.match(sources.operations,
   /"bootstrap" \(fn \[\{:keys \[basis\]\}\] \(assoc descriptor :basis basis\)\)/u);
-assert.match(sources.profile, /:snapStart "disabled"/u);
-assert.match(sources.profile, /"no-snapstart"/u);
-assert.doesNotMatch(sources.profile, /:snapStart "enabled"/u);
+assert.match(sources.profile, /:snapStart "enabled"/u);
+assert.doesNotMatch(sources.profile, /"no-snapstart"/u);
+assert.match(sources.lambda_handler, /defn initialize-runtime!/u);
 assert.doesNotMatch(servingSources,
   /\bd\/transact\b|eacl\/(?:write-schema!|write-relationships!|delete-object!)|datahike-eacl\/(?:expire-cache!|prepare-cache-coherence!)|PutItemRequest|DeleteItemRequest|CreateTableRequest|UpdateTableRequest|TransactWriteItemsRequest|BatchWriteItemRequest/u,
   "a write or administration call is reachable from the packaged service source");
@@ -155,7 +155,7 @@ assert.ok(uncompressedBytes < 250 * 1024 * 1024,
   "uncompressed JAR exceeds Lambda's package limit");
 
 const loadSmoke = output("java", ["-cp", archive, "clojure.main", "-e",
-  "(try (Class/forName \"eacl_demo.datahike_dynamodb.LambdaHandler\") (Class/forName \"EaclKernel.__default\") (println :loaded) (catch Throwable t (.printStackTrace t) (System/exit 1)))"]);
+  "(try (Class/forName \"eacl_demo.datahike_dynamodb.LambdaHandler\" false (.getContextClassLoader (Thread/currentThread))) (Class/forName \"EaclKernel.__default\") (println :loaded) (catch Throwable t (.printStackTrace t) (System/exit 1)))"]);
 assert.equal(loadSmoke, ":loaded");
 
 const aotLoaderSmoke = output("java", ["-cp", archive, "clojure.main", "-e",
@@ -206,7 +206,7 @@ const closedRuntimeSmoke = output("java", [
                      "EACL_CORE_SHA" "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
-                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "2048"}
+                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}
         next-snapshot
         (fn []
           (let [revision (swap! captures inc)
@@ -225,7 +225,7 @@ const closedRuntimeSmoke = output("java", [
         event (fn [operation method body]
                 {:version "2.0"
                  :routeKey "$default"
-                 :rawPath (str "/api/v1/datahike-dynamodb/" operation)
+                 :rawPath (str "/" operation)
                  :rawQueryString ""
                  :headers (if body {"content-type" "application/json"} {})
                  :requestContext {:requestId "artifact-smoke"
@@ -250,7 +250,7 @@ const closedRuntimeSmoke = output("java", [
                (get-in bootstrap-body [:meta :revision])))
     (assert (= "datahike-dynamodb:artifact:2"
                (get-in bootstrap-body [:data :basis :id])))
-    (assert (= "disabled"
+    (assert (= "enabled"
                (get-in bootstrap-body [:data :runtime :snapStart])))
     (assert (= 200 (:statusCode health)))
     (assert (= "datahike-dynamodb:artifact:3"

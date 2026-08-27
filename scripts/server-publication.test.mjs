@@ -13,7 +13,7 @@ const catalogProfile = {
   ...definition,
   state: "qualifying",
   reason: "Initial public qualification is still required.",
-  route: `/api/v1/${profileId}`,
+  route: "/",
   deployment: null,
   lastOutcome: { outcome: "never-deployed", attemptedDemoSha: null, attemptedEaclSha: null, artifactSha256: null, at: null, message: "No deployment exists." }
 };
@@ -221,7 +221,7 @@ async function enabledPublication() {
     ...definition,
     state: "enabled",
     reason: null,
-    route: `/api/v1/${profileId}`,
+    route: "/",
     deployment: baseDeployment,
     lastOutcome: { outcome: "succeeded", attemptedDemoSha: baseDeployment.demoSha, attemptedEaclSha: baseDeployment.eaclSha, artifactSha256: baseDeployment.artifact.sha256, at: baseDeployment.deployedAt, message: "Initial deployment succeeded." }
   };
@@ -253,14 +253,14 @@ async function passingSmoke(candidate) {
   return runMergeSmoke({
     transport,
     expectedIdentity: identity(candidate),
-    target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: `/api/v1/${profileId}`, profileId },
+    target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/", profileId },
     allowedDemand: demand("user-1"), deniedDemand: demand("user-2"), clock: times
   });
 }
 
 async function passingProductionRecheck(candidate) {
   const times = timestamps(["2026-08-25T12:05:03Z", "2026-08-25T12:05:04Z"]);
-  return runProductionRecheck({ transport: transportFor(candidate), expectedIdentity: identity(candidate), target: { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: `/api/v1/${profileId}`, profileId }, clock: times });
+  return runProductionRecheck({ transport: transportFor(candidate), expectedIdentity: identity(candidate), target: { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: "/", profileId }, clock: times });
 }
 
 function transportFor(candidate) {
@@ -269,7 +269,7 @@ function transportFor(candidate) {
     const meta = { revision: "basis-1", requestId: `request-${operation}` };
     if (operation === "health") return { meta, data: { ready: true, status: "ready", identity: expected } };
     if (operation === "bootstrap") return { meta, data: { identity: expected } };
-    if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+    if (operation === "check-permission") return { meta, data: { allowed: input.subjectId === "user-1" } };
     return { meta, error: { code: "route-not-found", message: "The route is not available." } };
   } };
 }

@@ -21,7 +21,7 @@ function qualification() {
     result: "fail",
     startedAt: "2026-08-25T00:00:00.000Z",
     completedAt: "2026-08-25T00:01:00.000Z",
-    target: { kind: "local", origin: "http://127.0.0.1:3000", path: "/api/v1/datascript-browser", profileId: "datascript-browser" },
+    target: { kind: "local", origin: "http://127.0.0.1:3000", path: "/", profileId: "datascript-browser" },
     identity,
     descriptorIdentity: identity,
     releaseOutcome: "released",

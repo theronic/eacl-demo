@@ -15,29 +15,29 @@
   {"health" {:required #{} :optional #{}}
    "bootstrap" {:required #{} :optional #{}}
    "list-subjects" {:required #{} :optional #{:type :pageSize :cursor}}
-   "get-object" {:required #{:type :id} :optional #{:consistency}}
+   "get-object" {:required #{:type :id} :optional #{:consistency :atLeastAsFreshAs}}
    "list-relationships"
    {:required #{:resourceType :resourceId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency}}
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs}}
    "reverse-relationships"
    {:required #{:subjectType :subjectId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency}}
-   "authorize"
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs}}
+   "check-permission"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
-    :optional #{:cache :populateCache :consistency}}
+    :optional #{:cache :populateCache :consistency :atLeastAsFreshAs}}
    "lookup-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency}}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs}}
    "lookup-subjects"
    {:required #{:resourceType :resourceId :subjectType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency}}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs}}
    "count-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:ceiling :cache :populateCache :consistency}}
-   "get-schema" {:required #{} :optional #{:consistency}}
+    :optional #{:ceiling :cache :populateCache :consistency :atLeastAsFreshAs}}
+   "get-schema" {:required #{} :optional #{:consistency :atLeastAsFreshAs}}
    "get-cache-info" {:required #{} :optional #{}}
    "count-objects"
-   {:required #{:kind} :optional #{:type :ceiling :consistency}}})
+   {:required #{:kind} :optional #{:type :ceiling :consistency :atLeastAsFreshAs}}})
 
 (defn valid-request-id?
   [value]
@@ -65,6 +65,7 @@
                       "route-not-found" "The route is not available."
                       "method-not-allowed" "The HTTP method is not allowed."
                       "unsupported-consistency" "The consistency mode is not supported."
+                      "freshness-unavailable" "The requested freshness floor is unavailable."
                       "cancelled" "The request was cancelled."
                       "deadline-exceeded" "The request deadline was exceeded."
                       "overloaded" "The profile has reached its admission limit."
@@ -115,7 +116,10 @@
               {:ok? false :code "validation-error"}
 
               :else
-              (if-let [code (value-error normalized supported-consistency)]
+              (if-let [code (or (when (and (contains? normalized :atLeastAsFreshAs)
+                                           (not= "at-least" (:consistency normalized)))
+                                  "validation-error")
+                                (value-error normalized supported-consistency))]
                 {:ok? false :code code}
                 {:ok? true :input normalized}))))))))
 
@@ -148,6 +152,15 @@
          (not (string? value)) "validation-error"
          (not (contains? supported-consistency value)) "unsupported-consistency"
          :else nil)
+
+       (= key :atLeastAsFreshAs)
+       (when-not (and (string? value)
+                      (<= (alength (.getBytes ^String value StandardCharsets/UTF_8)) 64)
+                      (try
+                        (java.time.Instant/parse value)
+                        true
+                        (catch Exception _ false)))
+         "validation-error")
 
        :else
        (when-not (and (string? value)

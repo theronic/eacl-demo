@@ -37,7 +37,7 @@ if (boundarySource.includes(":profileId profile-id")) {
 if (!boundarySource.includes("http/normalize-input")) {
   throw new Error("closed input validation is not called before serving");
 }
-if (!boundarySource.includes('#{"current"}')) {
+if (!boundarySource.includes('#{"minimize" "at-least" "exact"}')) {
   throw new Error("the public boundary does not pass its closed consistency set to validation");
 }
 const sdkMembraneSource = await readFile(

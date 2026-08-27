@@ -15,7 +15,7 @@
 (def ^:private default-count-ceiling 1000)
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
-    "list-relationships" "reverse-relationships" "authorize"
+    "list-relationships" "reverse-relationships" "check-permission"
     "lookup-resources" "lookup-subjects" "count-resources"
     "get-schema" "get-cache-info" "count-objects"})
 (def ^:private unsupported-consistency
@@ -64,10 +64,10 @@
    :runtime {:execution "browser" :name "clojurescript" :architecture "javascript" :snapStart "not-applicable"}
    :capabilities
    {:operations ["health" "bootstrap" "list-subjects" "get-object"
-                 "list-relationships" "reverse-relationships" "authorize"
+                 "list-relationships" "reverse-relationships" "check-permission"
                  "lookup-resources" "lookup-subjects" "count-resources"
                  "get-schema" "get-cache-info" "count-objects"]
-    :consistencyModes ["current" "minimize"]
+    :consistencyModes ["minimize"]
     :snapshotBehavior "page-lifecycle"
     :cacheBehavior "browser-page-local"
     :mutationLocality "browser-initialization"
@@ -326,7 +326,7 @@
                      (failure request runtime "storage-missing" "The requested fixture object does not exist."))
       "list-relationships" (success request runtime (relationships-data runtime (:input request)))
       "reverse-relationships" (success request runtime (reverse-data runtime (:input request)))
-      "authorize" (let [{:keys [data cache-status]}
+      "check-permission" (let [{:keys [data cache-status]}
                         (authorization-data runtime (:input request))]
                     (success request runtime data cache-status))
       "lookup-resources" (let [{:keys [data cache-status]}
@@ -432,7 +432,7 @@
        (boolean (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]*" value))))
 
 (defn- consistency? [value]
-  (contains? #{nil "current" "minimize"} value))
+  (contains? #{nil "minimize"} value))
 
 (defn- page-size? [value]
   (and (integer? value) (<= 1 value 1000)))
@@ -484,7 +484,7 @@
            (or (nil? (:populateCache input)) (boolean? (:populateCache input)))
            (or (nil? (:pageSize input)) (page-size? (:pageSize input)))
            (or (nil? (:cursor input)) (cursor? (:cursor input))))
-      "authorize"
+      "check-permission"
       (and (set/subset? #{:subjectType :subjectId :resourceType :resourceId :permission} keys)
            (set/subset? keys #{:subjectType :subjectId :resourceType :resourceId
                                :permission :consistency :cache :populateCache})
@@ -550,11 +550,11 @@
         paged? (contains? #{"list-subjects" "list-relationships" "reverse-relationships"
                             "lookup-resources" "lookup-subjects"} operation)
         consistent? (contains? #{"get-object" "list-relationships" "reverse-relationships"
-                                 "authorize" "lookup-resources" "lookup-subjects"
+                                 "check-permission" "lookup-resources" "lookup-subjects"
                                  "count-resources" "get-schema" "count-objects"} operation)]
     (cond-> input
       (and paged? (nil? (:pageSize input))) (assoc :pageSize default-page-size)
-      (and consistent? (nil? (:consistency input))) (assoc :consistency "current")
+      (and consistent? (nil? (:consistency input))) (assoc :consistency "minimize")
       (and (= "count-resources" operation) (nil? (:ceiling input)))
       (assoc :ceiling default-count-ceiling)
       (and (= "count-objects" operation) (nil? (:ceiling input))) (assoc :ceiling default-count-ceiling))))

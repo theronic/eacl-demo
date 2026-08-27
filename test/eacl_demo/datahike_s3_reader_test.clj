@@ -28,7 +28,7 @@
     (is (thrown? clojure.lang.ExceptionInfo
                  (reader/validate-config (assoc config :access-key "forbidden"))))))
 
-(deftest descriptor-does-not-claim-unqualified-snapstart-test
+(deftest descriptor-claims-qualified-published-version-snapstart-test
   (let [descriptor
         (profile/descriptor
          {:identity {:profileId "datahike-s3"
@@ -42,10 +42,10 @@
                   :capturedAt "2026-08-26T00:00:00Z"
                   :fixedForEnvironment false}
           :operations #{"health" "bootstrap"}
-          :memory-mib 2048})]
-    (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
-    (is (some #{"no-snapstart"}
-              (get-in descriptor [:capabilities :limitations])))))
+          :memory-mib 1024})]
+    (is (= "enabled" (get-in descriptor [:runtime :snapStart])))
+    (is (not-any? #{"no-snapstart"}
+                  (get-in descriptor [:capabilities :limitations])))))
 
 (deftest open-reader-connects-only-and-captures-one-released-immutable-snapshot-test
   (let [calls (atom [])

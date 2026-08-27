@@ -28,7 +28,7 @@
    "get-object" "POST"
    "list-relationships" "POST"
    "reverse-relationships" "POST"
-   "authorize" "POST"
+   "check-permission" "POST"
    "get-schema" "POST"
    "get-cache-info" "POST"
    "count-objects" "POST"})
@@ -44,7 +44,7 @@
    "reverse-relationships"
    {:required #{"subjectType" "subjectId"}
     :optional #{"relation" "pageSize" "cursor" "consistency"}}
-   "authorize"
+   "check-permission"
    {:required #{"subjectType" "subjectId" "resourceType" "resourceId"
                 "permission"}
     :optional #{"consistency"}}
@@ -56,7 +56,7 @@
    {:required #{"kind"} :optional #{"type" "ceiling" "consistency"}}})
 
 (def consistency-values
-  #{"current" "minimize" "authoritative" "at-least" "exact"
+  #{"minimize" "authoritative" "at-least" "exact"
     "historical-date"})
 
 (defn- rejected
@@ -112,9 +112,9 @@
                (not (str/includes? request-path "//"))
                (not (str/ends-with? request-path "/")))
     (rejected "route-not-found")
-    (let [prefix (str "/api/v1/" expected-profile-id "/")
-          operation (when (str/starts-with? request-path prefix)
-                      (subs request-path (count prefix)))
+    (let [operation (when (and (str/starts-with? request-path "/")
+                               (< 1 (count request-path)))
+                      (subs request-path 1))
           expected (get operation-methods operation)]
       (cond
         (or (nil? expected) (str/includes? operation "/"))
@@ -127,7 +127,6 @@
         {:ok true
          :contract-version "explorer.v1"
          :transport "http"
-         :profile-id expected-profile-id
          :operation operation}))))
 
 (defn- parse-body
