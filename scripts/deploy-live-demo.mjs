@@ -247,31 +247,38 @@ async function invokeProfile({ profileId, functionName, temporary, qualifier,
 
 async function smokeFunctionUrl(profileId, origin, expectedIdentity) {
   const url = new URL("/health", origin);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-  let response;
-  try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: { accept: "application/json", origin: "https://demo.eacl.dev",
-        "x-eacl-request-id": `ci-function-url-${demoSha().slice(0, 12)}` },
-      redirect: "manual",
-      signal: controller.signal
-    });
-  } finally {
-    clearTimeout(timeout);
+  let observed = null;
+  for (let attempt = 1; attempt <= 15; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { accept: "application/json", origin: "https://demo.eacl.dev",
+          "x-eacl-request-id": `ci-function-url-${demoSha().slice(0, 12)}-${attempt}` },
+        redirect: "manual",
+        signal: controller.signal
+      });
+      const text = await response.text();
+      const envelope = validateDemoSmokeEnvelope(JSON.parse(text));
+      observed = { status: response.status, identity: envelope.data?.identity ?? null };
+      if (response.status === 200 && response.headers.get("access-control-allow-origin") ===
+          "https://demo.eacl.dev" && response.headers.get("content-type")?.startsWith("application/json") &&
+          envelope.data?.ready === true && envelope.data?.identity?.profileId === profileId &&
+          envelope.data?.identity?.demoSha === expectedIdentity.demoSha &&
+          envelope.data?.identity?.eaclSha === expectedIdentity.eaclSha &&
+          envelope.data?.identity?.artifactSha256 === expectedIdentity.artifactSha256 &&
+          envelope.data?.identity?.deploymentId === expectedIdentity.deploymentId) {
+        return;
+      }
+    } catch (error) {
+      observed = { error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (attempt < 15) await new Promise((resolve) => setTimeout(resolve, 2_000));
   }
-  const text = await response.text();
-  const envelope = validateDemoSmokeEnvelope(JSON.parse(text));
-  if (response.status !== 200 || response.headers.get("access-control-allow-origin") !==
-      "https://demo.eacl.dev" || !response.headers.get("content-type")?.startsWith("application/json") ||
-      envelope.data?.ready !== true || envelope.data?.identity?.profileId !== profileId ||
-      envelope.data?.identity?.demoSha !== expectedIdentity.demoSha ||
-      envelope.data?.identity?.eaclSha !== expectedIdentity.eaclSha ||
-      envelope.data?.identity?.artifactSha256 !== expectedIdentity.artifactSha256 ||
-      envelope.data?.identity?.deploymentId !== expectedIdentity.deploymentId) {
-    throw new Error(`${profileId} direct Function URL smoke failed`);
-  }
+  throw new Error(`${profileId} direct Function URL smoke failed after alias propagation: ${JSON.stringify(observed)}`);
 }
 
 function rollbackAlias(functionName, promoted, prior) {

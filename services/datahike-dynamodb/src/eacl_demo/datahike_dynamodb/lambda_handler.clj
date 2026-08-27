@@ -21,7 +21,29 @@
 (def ^:private table-pattern #"[A-Za-z0-9_.-]{3,255}")
 
 (declare handle-event initialize parse-bounded-int parse-environment parse-nonnegative-int
-         parse-positive-int)
+         parse-positive-int prime-runtime!)
+
+(def ^:private snapstart-prime-event
+  {:version "2.0"
+   :routeKey "$default"
+   :rawPath "/lookup-resources"
+   :rawQueryString ""
+   :headers {"content-type" "application/json"}
+   :requestContext
+   {:requestId "snapstart-prime-lookup-resources"
+    :http {:method "POST"}}
+   :isBase64Encoded false
+   :body (json/write-str
+          {:subjectType "user"
+           :subjectId "user-1"
+           :resourceType "server"
+           :permission "admin"
+           :pageSize 10
+           :cache true
+           :populateCache true
+           :consistency "minimize"})
+   :cookies nil})
+(def ^:private snapstart-prime-repetitions 256)
 
 (defonce ^:private runtime
   (delay
@@ -34,7 +56,7 @@
   "Realizes the immutable reader during published-version initialization so
   SnapStart captures a ready Datahike database and EACL runtime at 1024 MB."
   []
-  @runtime
+  (prime-runtime! @runtime)
   nil)
 
 (defn initialize
@@ -93,6 +115,26 @@
                              :deadline-ms deadline
                              :cancelled? (constantly false)))]
         (function-url/create-response envelope)))))
+
+(defn prime-runtime!
+  "Populates and compiles the exact first server explorer page before SnapStart.
+
+  This keeps the restored function's first warm read on the completed-cache
+  path and moves Clojure/JVM route, pagination, and JSON warm-up into version
+  publication."
+  [running]
+  (dotimes [_ snapstart-prime-repetitions]
+    (let [response (handle-event running snapstart-prime-event 30000)
+          envelope (json/read-str (:body response) :key-fn keyword)]
+      (when-not (and (= 200 (:statusCode response))
+                     (= 10 (count (get-in envelope [:data :items])))
+                     (= "hit" (get-in envelope [:meta :cacheStatus])))
+        (throw (ex-info "Datahike/DynamoDB SnapStart lookup priming failed."
+                        {:type :eacl-demo/snapstart-prime-failed
+                         :status (:statusCode response)
+                         :cache-status (get-in envelope [:meta :cacheStatus])
+                         :error-code (get-in envelope [:error :code])})))))
+  running)
 
 (defn handle-request-stream
   [^InputStream input ^OutputStream output ^Context context]
