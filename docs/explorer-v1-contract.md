@@ -20,11 +20,14 @@ Before normal use, the client performs an identity handshake among the requested
 
 The HTTP boundary accepts exact normalized paths, the route's one allowed method, no query parameters, no body/content type for GET, and JSON only for POST. Each operation has a closed body-key and value allowlist with the central bounds. Percent-encoded paths, duplicate separators, trailing slashes, seed/transaction/eviction/admin fields, malformed JSON, and oversized values are rejected before dispatch.
 
-The same-origin browser transport sends one bounded `x-eacl-request-id` on
-every request and the exact lowercase SHA-256 payload hash on every POST.
-CloudFront forwards only those headers plus content type to the IAM-protected
-Function URL. JVM and Jank adapters prefer a valid client request ID and fall
-back to the AWS request-context ID for callers that omit it. The browser
+The browser transport sends one bounded `x-eacl-request-id` on every request
+directly to the selected profile's exact alias-qualified Lambda Function URL.
+It sends JSON content type only for POST, uses no cookies or AWS signing
+headers, and rejects same-origin or non-Lambda production API origins. Each
+Function URL has `AuthType: NONE` with exact `https://demo.eacl.dev` CORS;
+CloudFront is not on the API path. JVM and Jank adapters prefer a valid client
+request ID and fall back to the AWS request-context ID for callers that omit
+it. The browser
 accepts an envelope only when schema, HTTP success/failure status, operation,
 request ID, profile, demo/Core SHAs, artifact digest, deployment ID, and data
 manifest all match the active registry entry.

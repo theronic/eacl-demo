@@ -28,6 +28,7 @@ export interface ExplorerProfile {
   state: "enabled";
   reason: null;
   route: string;
+  apiOrigin: string | null;
   deployment: {
     demoSha: string;
     eaclSha: string;
@@ -117,7 +118,6 @@ export function createProfileApi(
 } {
   const transport = options.transport ?? createServerProfileTransport({
     profile,
-    baseUrl: window.location.href,
     validateRequest,
     validateResponse,
   });

@@ -60,46 +60,17 @@ Clojure source tests use the persistent nREPL procedure in
 
 Full qualification is manual and independent of ordinary merge deployment.
 
-- `.github/workflows/qualify-explorer.yml` runs the principal browser and
-  accessibility suite against a local build or the trusted staged CloudFront
-  origin, then exercises the direct DataScript runtime and proves the main entry makes
-  no DataScript network request.
-- `.github/workflows/qualify-profile.yml` runs the full HTTP profile suite only
-  when supplied the exact profile, source pair, artifact, deployment, data
-  manifest, and staged CloudFront route.
-  The route origin must equal the trusted `STAGED_CLOUDFRONT_ORIGIN` GitHub
-  variable; a dispatch input cannot designate itself as staging.
-- `.github/workflows/exercise-profile-runtime.yml` runs one explicitly confirmed
-  `load`, `memory`, or `fault` campaign. Load is capped at 500 requests and eight
-  workers, defaults to 100 requests at concurrency two, and accepts zero
-  request failures. It stops scheduling new requests after the first failure;
-  at most the selected concurrency can remain in flight. Fault uses only the
-  six closed protocol/cancellation probes, starts the cancellation request
-  before aborting it, applies a ten-second per-request deadline, and proves
-  health/bootstrap recovery.
-  Memory invokes only an exact immutable numeric Lambda version, verifies its
-  code digest, and derives headroom from each invocation's bounded Lambda
-  `REPORT` tail. Its evidence target is the direct Lambda version ARN rather
-  than a staged-CloudFront target; the runtime and architecture must match the
-  closed profile platform. It stops after the first failed sample and does not
-  enable provisioned concurrency.
-- `.github/workflows/exercise-profile-transition.yml` rehearses `migration` or
-  `rollback` only on the dedicated `exercise` Lambda alias. It verifies the
-  starting identity through staged CloudFront, moves the alias with its exact
-  revision precondition, requires a higher numeric target for migration or a
-  lower numeric target for rollback, runs the five-case smoke against the target identity,
-  and restores only the observed alias revision in `always()` cleanup before
-  rechecking the original identity. It can never name the `live` alias.
-- `.github/workflows/stateful-datahike-dynamodb.yml`,
-  `.github/workflows/stateful-datomic-dynamodb.yml`, and
-  `.github/workflows/stateful-datomic-seed.yml` retain separately confirmed
-  generation, publication, seed, and cleanup paths. Their existence is not
-  seed authorization and does not mean an open profile-specific seed task has
-  passed.
-- Jank's repetitions, latency limits, memory headroom, and cleanup controls are
-  closed in `verification/jank-memory/qualification.v1.json`.
-- Load, memory, fault, migration, initial topology, and rollback exercises must
-  remain manual dispatches. Their evidence is not a `demos` merge gate.
+Run browser qualification against a local static build or `demo.eacl.dev` and
+record every API request. Server requests must use the exact selected
+`*.lambda-url.us-east-1.on.aws` origin; a request to
+`demo.eacl.dev/api/v1/*` is a failure. Verify exact-origin CORS, the
+health/bootstrap identity handshake, allow, deny, mutation-route rejection,
+and DataScript's zero-Worker page-local execution.
+
+Full profile, load, memory, fault, migration, initial-topology, and rollback
+exercises remain manual. They are not `demos` merge gates. Stateful generation,
+seed, publication, and temporary-compute workflows remain separately confirmed;
+their existence is not authorization to run them.
 
 Store reports under `verification/results/` or the profile's evidence
 directory. Evidence must distinguish not-run, unsupported, failed, and passed;
@@ -113,57 +84,19 @@ resolve Core solely from the committed lock, and fan out static plus one job per
 server profile. Jobs may finish out of order and one failure must not stop a
 sibling. See `docs/demos-branch-delivery.md` for the closed CI contract.
 
-Each profile uses an unprivileged build job and a separate deploy job. The
-build uploads a content-addressed artifact without OIDC; only its matching
-deploy job may download and digest-check it, request OIDC, deploy an immutable
-candidate, run the bounded health/bootstrap/identity/allow/deny/mutation-denial
-smoke, and promote that profile's coherent alias/descriptor. The credentialed
-job must not install dependencies or rebuild. On failure it retains or restores
-that profile's prior alias. It must not create data, seed, migrate, start EC2,
-run load or memory sweeps, or retire anything.
+The workflow contains four independent jobs: static plus DataScript,
+Datahike/S3, Datomic/DynamoDB, and Datalevin/memory. Each server job builds one
+content-addressed artifact, publishes one immutable Lambda version, moves only
+its `candidate` alias, runs the bounded direct-invoke smoke, and publishes only
+its registry document. A sibling failure does not block or roll back it.
 
-The merge-smoke report must name `staged-cloudfront`, the exact candidate
-staging origin and canonical profile path, the candidate's
-demo/Core/artifact/deployment/data identity, start/completion timestamps, and
-the content-addressed five-case result. A local, direct-origin, production-live,
-stale, tampered, partial, or identity-drifted pre-promotion report cannot
-authorize promotion. After moving only that profile's live alias, recheck
-health/bootstrap through the production CloudFront path and require the same
-identity before publishing status. If that recheck fails, restore only the
-recorded prior alias revision.
+After merge, confirm the registry identity and direct Function URL health for
+each completed job. Then use a real browser network trace to prove the explorer
+uses the same direct origin. CloudFront must receive no `/api/v1/*` request.
 
-Promotion and publication are two ordered per-profile phases. Before moving the
-alias, record its exact version and `RevisionId`, then prepare the alias-only
-plan with `npm run prepare:alias-promotion -- <request.json>`. That plan accepts
-only a sealed candidate staging smoke, uses the recorded alias revision as an
-optimistic precondition, and names the prior version as rollback. Capture the
-new `RevisionId` returned by promotion.
-
-After the production health/bootstrap recheck passes, generate the gated
-`eacl-demo.profile-publication.v1` record. Record the current versioned S3
-status object's ETag, version ID, and publication ID, then prepare the
-status-only plan with
-`npm run prepare:profile-publication -- <request.json>`. Its `activeAlias` must
-be the candidate version with the captured post-promotion revision; its
-`rollbackAlias` is the pre-promotion record. The plan may write only
-`registry/profiles/<same-profile>.json` and carries executable rollback
-coordinates for both services. Use S3 `If-Match`/`If-None-Match`; never restore
-an alias that no longer has the candidate version or overwrite a status object
-whose condition changed. The status object is JSON with `Cache-Control:
-no-cache, max-age=0, must-revalidate` and `Content-Type: application/json`.
-
-Lambda alias and S3 status updates are not one atomic transaction. After both
-writes, re-read the alias/status and run the production descriptor handshake.
-During or after a partial update, source/artifact/data mismatch must leave the
-profile unavailable; do not weaken the identity check to make it selectable.
-If reconciliation cannot restore a coherent pair using the recorded exact
-coordinates, stop that profile and alert rather than touching siblings.
-
-At present, do not operate an automatic deployment workflow until its AWS OIDC
-trusts, GitHub environments and variables, per-profile stacks, candidate
-promotion, and rollback paths have all passed their still-open OpenSpec tasks.
-This statement prevents a workflow scaffold from being mistaken for production
-readiness.
+The merge path must not create data, seed, migrate, start EC2, run load or
+memory sweeps, modify cost controls, send Telegram tests, or retire anything.
+See `docs/demos-branch-delivery.md` for the complete current contract.
 
 ## Release report gate
 

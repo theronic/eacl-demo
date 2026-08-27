@@ -156,10 +156,31 @@ Resources:
     Type: AWS::Lambda::Url
     DependsOn: CandidateAlias
     Properties:
-      AuthType: AWS_IAM
+      AuthType: NONE
+      Cors:
+        AllowHeaders: [accept, content-type, x-eacl-request-id]
+        AllowMethods: [GET, POST]
+        AllowOrigins: [https://demo.eacl.dev]
+        MaxAge: 86400
       InvokeMode: BUFFERED
       Qualifier: !Ref CandidateAliasName
       TargetFunctionArn: !GetAtt Function.Arn
+
+  CandidateFunctionUrlInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref CandidateAlias
+      FunctionUrlAuthType: NONE
+      Principal: "*"
+
+  CandidateFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CandidateAlias
+      InvokedViaFunctionUrl: true
+      Principal: "*"
 
 Outputs:
   FunctionArn:

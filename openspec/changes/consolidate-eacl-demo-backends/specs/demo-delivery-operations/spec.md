@@ -11,19 +11,19 @@ Define secure AWS delivery, GitHub/OIDC continuous deployment, independent profi
 - **WHEN** an asset is fetched through the canonical domain
 - **THEN** CloudFront SHALL return compressed immutable content while anonymous S3 access remains denied
 
-### Requirement: Path-isolated non-cached profile origins
-Each enabled server profile SHALL have a distinct API behavior and Lambda alias origin. API caching SHALL be disabled and behavior/path/identity routing automatically smoke-tested.
+### Requirement: Server profiles use direct Lambda Function URLs
+Each enabled server profile SHALL bind one exact alias-qualified Lambda Function URL origin in the closed client catalog. The browser SHALL send the profile's logical API path directly to that origin. CloudFront MUST NOT contain Lambda origins, API behaviors, API cache/request policies, Lambda origin access control, or Lambda invoke permissions.
 
 #### Scenario: Same suffix targets two profiles
 - **WHEN** Datahike/S3 and Datomic/DynamoDB bootstrap paths are requested
-- **THEN** CloudFront SHALL route to distinct aliases and each response SHALL identity-check
+- **THEN** the browser SHALL call two distinct Lambda Function URL origins and each response SHALL identity-check
 
-### Requirement: Lambda origins are not directly public
-Where supported, CloudFront SHALL sign IAM-protected Function URL origins. Direct unauthenticated origin invocation SHALL fail.
+### Requirement: Direct Function URLs are CORS-scoped and read-only
+Server Function URLs SHALL use `NONE` authorization so a browser can invoke them directly. Their alias policies SHALL allow public invocation only through the Function URL. Function URL CORS SHALL allow only `GET` and `POST`, the closed request-header set, and exactly `https://demo.eacl.dev`; wildcard origins and credentials MUST NOT be enabled. Because CORS does not authenticate non-browser clients, the public dispatcher and serving IAM SHALL remain bounded and read-only.
 
-#### Scenario: Caller bypasses CloudFront
-- **WHEN** the Function URL is invoked without AWS authorization
-- **THEN** Lambda SHALL deny it before the handler
+#### Scenario: Another browser origin attempts a request
+- **WHEN** a browser from another origin sends a preflight
+- **THEN** the Function URL SHALL omit permission for that origin while direct requests from `https://demo.eacl.dev` receive the exact CORS grant
 
 ### Requirement: Infrastructure and data lifecycles are independent
 Foundation, each stateless runtime, and each stateful dataset SHALL be separate infrastructure units. A profile deployment MUST NOT replace another profile, database, or the canonical foundation.

@@ -99,7 +99,7 @@
 
 ## 7. Qualification harness and fast merge smoke
 
-- [x] 7.1 Implement a qualification runner for local transports, authorized staged origins, and the staged CloudFront domain while retaining exact source, artifact, data, and profile identities.
+- [ ] 7.1 Update the qualification runner for local transports and exact direct alias-qualified Function URLs while retaining exact source, artifact, data, and profile identities.
 - [x] 7.2 Implement common contract, authorization, relationship, pagination, cursor, cache, consistency, failure, cleanup, redaction, and identity cases.
 - [x] 7.3 Implement representative cold, restore, and warm workloads with explicit dataset, cache, concurrency, latency, error, and memory-headroom criteria.
 - [x] 7.4 Produce machine-readable and human-readable reports that distinguish unsupported features from failed behavior.
@@ -187,9 +187,9 @@ decision as well as the existing qualification evidence.
 
 - [ ] 12.1 Implement independently deployable foundation, static, per-profile runtime, per-profile data, seed compute, observability, and legacy compatibility stacks.
 - [x] 12.2 Configure a private versioned static S3 bucket with public-access block, AWS-owned encryption, lifecycle policy, and CloudFront origin access control.
-- [x] 12.3 Configure demo.eacl.dev CloudFront behaviors for main static assets, DataScript assets, and ordered non-cached profile API paths.
-- [ ] 12.4 Configure IAM-protected Lambda Function URL origins and prove direct unauthenticated origin access fails.
-- [x] 12.5 Add infrastructure checks for behavior order, normalized paths, methods, bodies, query and header forwarding, API cache disablement, HTTPS, and descriptor identity.
+- [ ] 12.3 Configure demo.eacl.dev CloudFront with only the private static S3 origin and static main/DataScript entries; remove every Lambda/API origin, behavior, request/cache policy, OAC, and invoke permission.
+- [ ] 12.4 Configure each enabled alias Function URL for direct public read-only invocation with exact demo.eacl.dev CORS and prove preflight, direct identity, allow, deny, and mutation rejection live.
+- [x] 12.5 Add infrastructure and client checks for exact direct Function URL catalog binding, CSP allowlisting, no same-origin API requests, no CloudFront signing hash, no wildcard CORS, HTTPS, and descriptor identity.
 - [x] 12.6 Create per-profile least-privilege serving roles and separate stateful maintenance roles with automated wildcard and cross-profile denial checks.
 - [x] 12.7 Use AWS-owned DynamoDB encryption and avoid customer-managed KMS keys unless a later explicit requirement justifies their cost.
 - [x] 12.8 Define structured redacted logs, bounded retention, request/error/latency/cold/restore/throttle/OOM metrics, dashboards, and canonical synthetic checks.

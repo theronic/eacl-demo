@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: EACL demo static delivery and isolated, non-cached Lambda Function URL routes.
+Description: EACL demo private static delivery; server APIs use direct Lambda Function URLs.
 
 Parameters:
   StaticBucketName:
@@ -20,128 +20,9 @@ Parameters:
   CertificateArn:
     Type: String
     AllowedPattern: "^arn:[a-z0-9-]+:acm:us-east-1:[0-9]{12}:certificate/[0-9a-f-]+$"
-  DatahikeS3Enabled:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-  DatahikeS3FunctionUrlDomain:
-    Type: String
-    Default: disabled.lambda-url.us-east-1.on.aws
-    AllowedPattern: "^[a-z0-9-]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"
-  DatahikeS3FunctionName:
-    Type: String
-    Default: disabled
-    AllowedPattern: "^(?:disabled|[A-Za-z0-9_-]{1,64}:(?![0-9]+$)[A-Za-z0-9_-]{1,128})$"
-  DatahikeDynamodbEnabled:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-  DatahikeDynamodbFunctionUrlDomain:
-    Type: String
-    Default: disabled.lambda-url.us-east-1.on.aws
-    AllowedPattern: "^[a-z0-9-]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"
-  DatahikeDynamodbFunctionName:
-    Type: String
-    Default: disabled
-    AllowedPattern: "^(?:disabled|[A-Za-z0-9_-]{1,64}:(?![0-9]+$)[A-Za-z0-9_-]{1,128})$"
-  DatomicDynamodbEnabled:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-  DatomicDynamodbFunctionUrlDomain:
-    Type: String
-    Default: disabled.lambda-url.us-east-1.on.aws
-    AllowedPattern: "^[a-z0-9-]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"
-  DatomicDynamodbFunctionName:
-    Type: String
-    Default: disabled
-    AllowedPattern: "^(?:disabled|[A-Za-z0-9_-]{1,64}:(?![0-9]+$)[A-Za-z0-9_-]{1,128})$"
-  DatalevinMemoryEnabled:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-  DatalevinMemoryFunctionUrlDomain:
-    Type: String
-    Default: disabled.lambda-url.us-east-1.on.aws
-    AllowedPattern: "^[a-z0-9-]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"
-  DatalevinMemoryFunctionName:
-    Type: String
-    Default: disabled
-    AllowedPattern: "^(?:disabled|[A-Za-z0-9_-]{1,64}:(?![0-9]+$)[A-Za-z0-9_-]{1,128})$"
-  JankMemoryEnabled:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-  JankMemoryFunctionUrlDomain:
-    Type: String
-    Default: disabled.lambda-url.us-east-1.on.aws
-    AllowedPattern: "^[a-z0-9-]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"
-  JankMemoryFunctionName:
-    Type: String
-    Default: disabled
-    AllowedPattern: "^(?:disabled|[A-Za-z0-9_-]{1,64}:(?![0-9]+$)[A-Za-z0-9_-]{1,128})$"
-
-Rules:
-  DatahikeS3OriginIsComplete:
-    Assertions:
-      - Assert: !Or
-          - !Equals [!Ref DatahikeS3Enabled, "false"]
-          - !And
-            - !Not [!Equals [!Ref DatahikeS3FunctionUrlDomain, disabled.lambda-url.us-east-1.on.aws]]
-            - !Not [!Equals [!Ref DatahikeS3FunctionName, disabled]]
-        AssertDescription: An enabled Datahike S3 origin requires explicit domain and function parameters.
-  DatahikeDynamodbOriginIsComplete:
-    Assertions:
-      - Assert: !Or
-          - !Equals [!Ref DatahikeDynamodbEnabled, "false"]
-          - !And
-            - !Not [!Equals [!Ref DatahikeDynamodbFunctionUrlDomain, disabled.lambda-url.us-east-1.on.aws]]
-            - !Not [!Equals [!Ref DatahikeDynamodbFunctionName, disabled]]
-        AssertDescription: An enabled Datahike DynamoDB origin requires explicit domain and function parameters.
-  DatomicDynamodbOriginIsComplete:
-    Assertions:
-      - Assert: !Or
-          - !Equals [!Ref DatomicDynamodbEnabled, "false"]
-          - !And
-            - !Not [!Equals [!Ref DatomicDynamodbFunctionUrlDomain, disabled.lambda-url.us-east-1.on.aws]]
-            - !Not [!Equals [!Ref DatomicDynamodbFunctionName, disabled]]
-        AssertDescription: An enabled Datomic DynamoDB origin requires explicit domain and function parameters.
-  DatalevinMemoryOriginIsComplete:
-    Assertions:
-      - Assert: !Or
-          - !Equals [!Ref DatalevinMemoryEnabled, "false"]
-          - !And
-            - !Not [!Equals [!Ref DatalevinMemoryFunctionUrlDomain, disabled.lambda-url.us-east-1.on.aws]]
-            - !Not [!Equals [!Ref DatalevinMemoryFunctionName, disabled]]
-        AssertDescription: An enabled Datalevin origin requires explicit domain and function parameters.
-  JankMemoryOriginIsComplete:
-    Assertions:
-      - Assert: !Or
-          - !Equals [!Ref JankMemoryEnabled, "false"]
-          - !And
-            - !Not [!Equals [!Ref JankMemoryFunctionUrlDomain, disabled.lambda-url.us-east-1.on.aws]]
-            - !Not [!Equals [!Ref JankMemoryFunctionName, disabled]]
-        AssertDescription: An enabled Jank origin requires explicit domain and function parameters.
-
-Conditions:
-  HasDatahikeS3: !Equals [!Ref DatahikeS3Enabled, "true"]
-  HasDatahikeDynamodb: !Equals [!Ref DatahikeDynamodbEnabled, "true"]
-  HasDatomicDynamodb: !Equals [!Ref DatomicDynamodbEnabled, "true"]
-  HasDatalevinMemory: !Equals [!Ref DatalevinMemoryEnabled, "true"]
-  HasJankMemory: !Equals [!Ref JankMemoryEnabled, "true"]
 
 Resources:
-  LambdaOriginAccessControl:
-    Type: AWS::CloudFront::OriginAccessControl
-    Properties:
-      OriginAccessControlConfig:
-        Description: SigV4-only access to EACL demo Lambda Function URLs
-        Name: !Sub "${AWS::StackName}-lambda"
-        OriginAccessControlOriginType: lambda
-        SigningBehavior: always
-        SigningProtocol: sigv4
-
-  ApiViewerRequestGate:
+  StaticViewerRequestRewrite:
     Type: AWS::CloudFront::Function
     Properties:
       AutoPublish: true
@@ -154,34 +35,12 @@ Resources:
           if (request.uri === '/datahike' || request.uri === '/datahike/') {
             request.uri = '/index.html';
           }
-          if (request.method === 'POST') {
-            var hash = request.headers['x-amz-content-sha256'];
-            if (!hash || !/^[a-f0-9]{64}$/.test(hash.value)) {
-              return rejectMissingHash();
-            }
-          }
           return request;
         }
-        function rejectMissingHash() {
-          return {
-            statusCode: 400,
-            headers: {
-              'cache-control': { value: 'no-store' },
-              'content-type': { value: 'application/json; charset=utf-8' }
-            },
-            body: JSON.stringify({
-              ok: false,
-              transportError: {
-                code: 'payload-hash-required',
-                message: 'A lowercase SHA-256 payload hash is required before the request can be signed.'
-              }
-            })
-          };
-        }
       FunctionConfig:
-        Comment: Enforce only the signed-origin POST payload-hash prerequisite; application validation remains origin-owned.
+        Comment: Rewrite only the two static Explorer entry routes.
         Runtime: cloudfront-js-2.0
-      Name: !Sub "${AWS::StackName}-api-viewer-gate"
+      Name: !Sub "${AWS::StackName}-static-rewrite"
 
   StaticCachePolicy:
     Type: AWS::CloudFront::CachePolicy
@@ -202,50 +61,15 @@ Resources:
           QueryStringsConfig:
             QueryStringBehavior: none
 
-  ApiCachePolicy:
-    Type: AWS::CloudFront::CachePolicy
-    Properties:
-      CachePolicyConfig:
-        Comment: EACL API responses are never cached.
-        DefaultTTL: 0
-        MaxTTL: 0
-        MinTTL: 0
-        Name: !Sub "${AWS::StackName}-api-disabled"
-        ParametersInCacheKeyAndForwardedToOrigin:
-          CookiesConfig:
-            CookieBehavior: none
-          EnableAcceptEncodingBrotli: false
-          EnableAcceptEncodingGzip: false
-          HeadersConfig:
-            HeaderBehavior: none
-          QueryStringsConfig:
-            QueryStringBehavior: none
-
-  ApiOriginRequestPolicy:
-    Type: AWS::CloudFront::OriginRequestPolicy
-    Properties:
-      OriginRequestPolicyConfig:
-        Comment: Forward transport inputs needed by the closed Lambda request contract and signed origin.
-        CookiesConfig:
-          CookieBehavior: none
-        HeadersConfig:
-          HeaderBehavior: whitelist
-          Headers:
-            - content-type
-            - x-eacl-request-id
-        Name: !Sub "${AWS::StackName}-api"
-        QueryStringsConfig:
-          QueryStringBehavior: all
-
   SecurityHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
       ResponseHeadersPolicyConfig:
-        Comment: Security headers for static and API responses.
+        Comment: Security headers for the two static Explorer entries.
         Name: !Sub "${AWS::StackName}-security"
         SecurityHeadersConfig:
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws; worker-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
             Override: true
           ContentTypeOptions:
             Override: true
@@ -279,84 +103,9 @@ Resources:
             Compress: true
             FunctionAssociations:
               - EventType: viewer-request
-                FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
+                FunctionARN: !GetAtt StaticViewerRequestRewrite.FunctionARN
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             ViewerProtocolPolicy: redirect-to-https
-          - !If
-            - HasDatahikeS3
-            - PathPattern: api/v1/datahike-s3/*
-              TargetOriginId: datahike-s3
-              AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
-              CachedMethods: [GET, HEAD]
-              CachePolicyId: !Ref ApiCachePolicy
-              Compress: false
-              FunctionAssociations:
-                - EventType: viewer-request
-                  FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
-              OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-              ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-              ViewerProtocolPolicy: redirect-to-https
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatahikeDynamodb
-            - PathPattern: api/v1/datahike-dynamodb/*
-              TargetOriginId: datahike-dynamodb
-              AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
-              CachedMethods: [GET, HEAD]
-              CachePolicyId: !Ref ApiCachePolicy
-              Compress: false
-              FunctionAssociations:
-                - EventType: viewer-request
-                  FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
-              OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-              ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-              ViewerProtocolPolicy: redirect-to-https
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatomicDynamodb
-            - PathPattern: api/v1/datomic-dynamodb/*
-              TargetOriginId: datomic-dynamodb
-              AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
-              CachedMethods: [GET, HEAD]
-              CachePolicyId: !Ref ApiCachePolicy
-              Compress: false
-              FunctionAssociations:
-                - EventType: viewer-request
-                  FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
-              OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-              ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-              ViewerProtocolPolicy: redirect-to-https
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatalevinMemory
-            - PathPattern: api/v1/datalevin-memory/*
-              TargetOriginId: datalevin-memory
-              AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
-              CachedMethods: [GET, HEAD]
-              CachePolicyId: !Ref ApiCachePolicy
-              Compress: false
-              FunctionAssociations:
-                - EventType: viewer-request
-                  FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
-              OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-              ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-              ViewerProtocolPolicy: redirect-to-https
-            - !Ref AWS::NoValue
-          - !If
-            - HasJankMemory
-            - PathPattern: api/v1/jank-memory/*
-              TargetOriginId: jank-memory
-              AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
-              CachedMethods: [GET, HEAD]
-              CachePolicyId: !Ref ApiCachePolicy
-              Compress: false
-              FunctionAssociations:
-                - EventType: viewer-request
-                  FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
-              OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-              ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-              ViewerProtocolPolicy: redirect-to-https
-            - !Ref AWS::NoValue
         DefaultCacheBehavior:
           AllowedMethods: [GET, HEAD]
           CachedMethods: [GET, HEAD]
@@ -364,7 +113,7 @@ Resources:
           Compress: true
           FunctionAssociations:
             - EventType: viewer-request
-              FunctionARN: !GetAtt ApiViewerRequestGate.FunctionARN
+              FunctionARN: !GetAtt StaticViewerRequestRewrite.FunctionARN
           ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
           TargetOriginId: static
           ViewerProtocolPolicy: redirect-to-https
@@ -378,51 +127,6 @@ Resources:
             OriginAccessControlId: !Ref StaticOriginAccessControlId
             S3OriginConfig:
               OriginAccessIdentity: ""
-          - !If
-            - HasDatahikeS3
-            - DomainName: !Ref DatahikeS3FunctionUrlDomain
-              Id: datahike-s3
-              OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-              CustomOriginConfig:
-                OriginProtocolPolicy: https-only
-                OriginReadTimeout: 60
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatahikeDynamodb
-            - DomainName: !Ref DatahikeDynamodbFunctionUrlDomain
-              Id: datahike-dynamodb
-              OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-              CustomOriginConfig:
-                OriginProtocolPolicy: https-only
-                OriginReadTimeout: 60
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatomicDynamodb
-            - DomainName: !Ref DatomicDynamodbFunctionUrlDomain
-              Id: datomic-dynamodb
-              OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-              CustomOriginConfig:
-                OriginProtocolPolicy: https-only
-                OriginReadTimeout: 60
-            - !Ref AWS::NoValue
-          - !If
-            - HasDatalevinMemory
-            - DomainName: !Ref DatalevinMemoryFunctionUrlDomain
-              Id: datalevin-memory
-              OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-              CustomOriginConfig:
-                OriginProtocolPolicy: https-only
-                OriginReadTimeout: 60
-            - !Ref AWS::NoValue
-          - !If
-            - HasJankMemory
-            - DomainName: !Ref JankMemoryFunctionUrlDomain
-              Id: jank-memory
-              OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-              CustomOriginConfig:
-                OriginProtocolPolicy: https-only
-                OriginReadTimeout: 60
-            - !Ref AWS::NoValue
         PriceClass: PriceClass_100
         ViewerCertificate:
           AcmCertificateArn: !Ref CertificateArn
@@ -451,109 +155,10 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
-  DatahikeS3InvokeUrlPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatahikeS3
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref DatahikeS3FunctionName
-      FunctionUrlAuthType: AWS_IAM
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatahikeS3InvokeFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatahikeS3
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref DatahikeS3FunctionName
-      InvokedViaFunctionUrl: true
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatahikeDynamodbInvokeUrlPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatahikeDynamodb
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref DatahikeDynamodbFunctionName
-      FunctionUrlAuthType: AWS_IAM
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatahikeDynamodbInvokeFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatahikeDynamodb
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref DatahikeDynamodbFunctionName
-      InvokedViaFunctionUrl: true
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatomicDynamodbInvokeUrlPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatomicDynamodb
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref DatomicDynamodbFunctionName
-      FunctionUrlAuthType: AWS_IAM
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatomicDynamodbInvokeFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatomicDynamodb
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref DatomicDynamodbFunctionName
-      InvokedViaFunctionUrl: true
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatalevinMemoryInvokeUrlPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatalevinMemory
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref DatalevinMemoryFunctionName
-      FunctionUrlAuthType: AWS_IAM
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  DatalevinMemoryInvokeFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasDatalevinMemory
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref DatalevinMemoryFunctionName
-      InvokedViaFunctionUrl: true
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  JankMemoryInvokeUrlPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasJankMemory
-    Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref JankMemoryFunctionName
-      FunctionUrlAuthType: AWS_IAM
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-  JankMemoryInvokeFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Condition: HasJankMemory
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref JankMemoryFunctionName
-      InvokedViaFunctionUrl: true
-      Principal: cloudfront.amazonaws.com
-      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
-
 Outputs:
-  ApiCachePolicyId:
-    Value: !Ref ApiCachePolicy
-  ApiOriginRequestPolicyId:
-    Value: !Ref ApiOriginRequestPolicy
-  ApiViewerRequestFunctionArn:
-    Value: !GetAtt ApiViewerRequestGate.FunctionARN
   DistributionId:
     Value: !Ref Distribution
   DistributionDomainName:
     Value: !GetAtt Distribution.DomainName
-  LambdaOriginAccessControlId:
-    Value: !GetAtt LambdaOriginAccessControl.Id
   SecurityHeadersPolicyId:
     Value: !Ref SecurityHeadersPolicy

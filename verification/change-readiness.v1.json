@@ -4,29 +4,20 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 125,
-    "open": 66,
-    "total": 191
+    "completed": 146,
+    "open": 59,
+    "total": 205
   },
   "freeze": {
-    "active": true,
-    "reason": "The user reported unexpected Telegram alarms and directed the work to stop spending money unnecessarily. External mutation and reauthentication stay frozen until the user explicitly lifts that restriction.",
-    "prohibitedActions": [
-      "aws-mutation",
-      "aws-reauthentication",
-      "chrome-mutation",
-      "deployment",
-      "durable-seeding",
-      "ec2-launch",
-      "github-mutation",
-      "telegram-test"
-    ]
+    "active": false,
+    "reason": "The user subsequently directed the work to continue, requested AWS reauthentication, and authorized demo changes and merges for this development session. Individual task gates and scope boundaries still apply.",
+    "prohibitedActions": []
   },
   "gateGroups": [
     {
       "id": "live-profile-qualification",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.7", "10.8", "11.10", "11.11", "11.12", "12.4", "15.5"],
+      "taskIds": ["7.1", "8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.8", "11.10", "11.11", "11.12", "12.4", "15.5"],
       "condition": "These tasks require production-path storage, Lambda, CloudFront, memory, restore, benchmark, origin-denial, or promotion evidence that local definitions cannot supply.",
       "requiredEvidence": [
         "Content-addressed reports from the exact staged or production topology",
@@ -61,7 +52,7 @@
     {
       "id": "datalevin-release-and-integration",
       "disposition": "blocked-by-external-prerequisite",
-      "taskIds": ["10.1", "10.2", "10.3", "10.4", "10.5"],
+      "taskIds": ["10.1", "10.2", "10.5"],
       "condition": "A pinned AL2023 arm64 native candidate passes exact ABI, runtime-path, Java 25 load, and true MDB_INMEMORY round-trip checks locally. A dependency-independent local boundary now binds lifecycle state to exact deployment/code/artifact identities, rejects restore/rebuild/rollback identity drift and regression, owns one platform-thread snapshot with bounded transport realization and exact-once release, and reports closed lifecycle/native/process-memory telemetry under adversarial fake-operation tests. The maintained Datalevin fork, native candidate, and EACL adapter are still unpublished; no clean remote consumer, assembled Lambda service, real Datalevin ownership run, SnapStart lifecycle run, or memory sweep exists.",
       "requiredEvidence": [
         "Immutable maintained-fork release and clean remote-consumer resolution",
@@ -86,7 +77,7 @@
     {
       "id": "stack-and-rollback-coordinates",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["12.1", "12.10", "15.7", "15.8", "16.7"],
+      "taskIds": ["12.1", "12.3", "12.10", "15.7", "15.8", "16.7"],
       "condition": "The local stack boundaries exist, but legacy compatibility, live reversibility, and retirement reporting require exact healthy targets, certificates, hosted-zone records, deployed coordinates, and recovery evidence.",
       "requiredEvidence": [
         "Exact healthy legacy fallback target and certificate coverage",
@@ -110,7 +101,7 @@
     {
       "id": "ordinary-ci-after-eligibility",
       "disposition": "blocked-by-external-prerequisite",
-      "taskIds": ["13.9", "14.8", "14.9", "14.10", "14.11", "14.12", "14.13", "15.12"],
+      "taskIds": ["13.9", "14.8", "14.9", "14.10", "14.13"],
       "condition": "The automatic demos workflow is intentionally absent while no active ordinary deployment target is eligible. Its deterministic renderer, content-addressed handoff, static transaction, and local Datahike/Datomic server candidate-smoke-alias-status transactions are implemented, but Datalevin has no deployable artifact and all live execution evidence remains open. Once one target qualifies, the single generated workflow must include every independently eligible target and exclude ineligible or parked targets; enabling a placeholder before then would deploy unqualified artifacts.",
       "requiredEvidence": [
         "Each active ordinary target marked eligible only after every build unit in its target-local closure passes runtime-specific artifact and production-path gates",
@@ -122,7 +113,7 @@
     {
       "id": "github-settings-and-oidc",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["14.1", "14.2", "14.3", "14.4", "14.5", "14.6", "14.7"],
+      "taskIds": ["14.1", "14.2", "14.3", "14.4"],
       "condition": "Local manifests and trust policies are definitions only; completion requires authenticated GitHub settings, live allowlisted claim capture, AWS role migration, variables, and a redacted secrets/settings audit.",
       "requiredEvidence": [
         "Reverified immutable owner/repository IDs and live OIDC claim captures for every authority",

@@ -63,6 +63,7 @@ interface DeploymentOutcome {
 interface ProfileChoice {
   id: string;
   storage: StorageId;
+  apiOrigin: string | null;
   label: string;
   state: ProfileState;
   reason: string | null;
@@ -127,8 +128,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
     choicesForBackend(catalog, profileData, registry(), selection().backend) as ProfileChoice[],
   );
   const selectedProfile = createMemo(() =>
-    registry().profiles.find((candidate: { backend: string; storage: string }) =>
-      candidate.backend === selection().backend && candidate.storage === selection().storage),
+    profileChoices().find((candidate) => candidate.storage === selection().storage),
   );
   const storageLabel = createMemo(() =>
     catalog.storages.find(({ id }) => id === selection().storage)?.label ?? selection().storage,

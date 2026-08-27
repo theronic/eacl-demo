@@ -12,3 +12,10 @@ Deployment source is always an immutable pair:
 Dirty checkouts, local-root dependencies, and branch names are not release identities. Merges to the `demos` branch deploy static and profile jobs independently, without a fleet-wide barrier or GitHub concurrency management.
 
 The active implementation plan is the OpenSpec change `consolidate-eacl-demo-backends`.
+
+## Delivery topology
+
+CloudFront serves only the private static explorer and the separate DataScript
+entry. The shared explorer calls the selected server profile's public,
+alias-qualified Lambda Function URL directly. See `docs/architecture.md` for
+the exact profile, runtime, storage, and request paths.

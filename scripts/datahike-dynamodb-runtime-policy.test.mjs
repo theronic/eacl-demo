@@ -66,11 +66,14 @@ test("runtime role exposes only exact-table reads and exact-log writes", () => {
 });
 
 test("candidate transport and cost surface are bounded without custom KMS", () => {
-  assert.match(template, /Type: AWS::Lambda::Url[\s\S]*?AuthType: AWS_IAM/u);
+  assert.match(template, /Type: AWS::Lambda::Url[\s\S]*?AuthType: NONE/u);
+  assert.match(template, /AllowOrigins: \[https:\/\/demo\.eacl\.dev\]/u);
+  assert.match(template, /FunctionUrlAuthType: NONE/u);
+  assert.match(template, /InvokedViaFunctionUrl: true/u);
   assert.match(template, /Qualifier: !Ref CandidateAliasName/u);
   assert.match(template, /EphemeralStorage:\s*\n\s*Size: 512/u);
   assert.match(template, /RetentionInDays: 14/u);
   assert.match(template, /DeletionPolicy: Delete/u);
   assert.match(template, /TracingConfig:\s*\n\s*Mode: PassThrough/u);
-  assert.doesNotMatch(template, /AWS::KMS|kms:|KmsKeyArn|AuthType: NONE/iu);
+  assert.doesNotMatch(template, /AWS::KMS|kms:|KmsKeyArn|AuthType: AWS_IAM/iu);
 });
