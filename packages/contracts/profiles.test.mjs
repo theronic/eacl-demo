@@ -26,11 +26,11 @@ test("IDs are explicit and not assumed to equal backend plus storage", () => {
 
 test("deployed server profiles use direct Lambda Function URL origins", () => {
   const byId = new Map(registry.profiles.map((profile) => [profile.id, profile]));
-  for (const id of ["datahike-s3", "datomic-dynamodb", "datalevin-memory"]) {
+  for (const id of ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory"]) {
     assert.match(byId.get(id).apiOrigin, /^https:\/\/[a-z0-9]+\.lambda-url\.us-east-1\.on\.aws$/u);
     assert.equal(new URL(byId.get(id).apiOrigin).hostname, new URL(byId.get(id).apiOrigin).host);
   }
-  for (const id of ["datahike-dynamodb", "jank-memory", "datascript-browser-memory"]) {
+  for (const id of ["jank-memory", "datascript-browser-memory"]) {
     assert.equal(byId.get(id).apiOrigin, null);
   }
 });

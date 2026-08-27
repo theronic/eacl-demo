@@ -243,15 +243,20 @@ const closedRuntimeSmoke = output("java", [
         health (handler/handle-event runtime (event "health" "GET" nil) 10000)
         health-body (json/read-str (:body health) :key-fn keyword)]
     (assert (= 200 (:statusCode bootstrap)))
-    (assert (= (get-in bootstrap-body [:meta :basis])
-               (get-in bootstrap-body [:data :basis])))
+    (assert (= #{:data :meta} (set (keys bootstrap-body))))
+    (assert (= #{:revision :requestId :elapsedMs}
+               (set (keys (:meta bootstrap-body)))))
+    (assert (= "datahike-dynamodb:artifact:2"
+               (get-in bootstrap-body [:meta :revision])))
     (assert (= "datahike-dynamodb:artifact:2"
                (get-in bootstrap-body [:data :basis :id])))
     (assert (= "disabled"
                (get-in bootstrap-body [:data :runtime :snapStart])))
     (assert (= 200 (:statusCode health)))
     (assert (= "datahike-dynamodb:artifact:3"
-               (get-in health-body [:meta :basis :id])))
+               (get-in health-body [:meta :revision])))
+    (assert (= #{:revision :requestId :elapsedMs}
+               (set (keys (:meta health-body)))))
     (assert (= 3 @captures))
     (assert (= 3 @releases))
     (println :datahike-dynamodb-packaged-runtime-pass)))`,

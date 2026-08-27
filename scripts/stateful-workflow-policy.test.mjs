@@ -30,6 +30,10 @@ const buildUnits = JSON.parse(await readFile(
   new URL("../build-units.json", import.meta.url),
   "utf8"
 ));
+const profileDefinitions = JSON.parse(await readFile(
+  new URL("../packages/contracts/profiles.v1.json", import.meta.url),
+  "utf8"
+));
 const workflowDirectory = new URL("../.github/workflows/", import.meta.url);
 const workflowFiles = (await readdir(workflowDirectory)).filter((name) => name.endsWith(".yml")).sort();
 const statefulWorkflowFiles = new Set([
@@ -151,7 +155,7 @@ test("every ordinary workflow is structurally unable to invoke stateful data or 
     /authorize:datomic-seed|preview:datomic-seed|verify:post-compute/u,
     /stateful-(?:datahike|datomic)|authorized-initial-stateful-operations/u,
     /datahike-dynamodb-table\.yaml|datomic-dynamodb-table\.yaml|dynamodb-cost-controls\.yaml/u,
-    /datomic-dynamodb-seed-role\.yaml|temp-compute-watchdog\.yaml/u,
+    /(?:datahike|datomic)-dynamodb-seed-(?:role|network)\.yaml|temp-compute-watchdog\.yaml/u,
     /aws\s+(?:ec2\s+(?:run-instances|terminate-instances)|dynamodb\s+(?:create-table|update-table|delete-table|create-backup|restore-table|import-table|export-table))/u,
     /secrets\./u
   ];
@@ -160,32 +164,26 @@ test("every ordinary workflow is structurally unable to invoke stateful data or 
   }
 });
 
-test("the automatic workflow admits each independently eligible active target", () => {
+test("the automatic workflow deploys every public direct profile independently", () => {
   const automatic = ordinaryWorkflows.filter(({ source }) => /^\s{2}push:/mu.test(source));
   const parked = Object.entries(buildUnits.units)
     .filter(([, unit]) => unit.deploymentTrack === "parked")
     .map(([name]) => name)
     .sort();
   assert.deepEqual(parked, ["jank-memory"]);
-  const { eligible: eligibleTargets, ineligible: ineligibleTargets } =
-    targetEligibility(buildUnits.units);
-  if (eligibleTargets.length === 0) {
-    assert.equal(automatic.length, 0, "automatic deployment exists before any ordinary target is eligible");
-  } else {
-    assert.equal(automatic.length, 1, "one automatic workflow is required once an ordinary target is eligible");
-  }
+  const publicTargets = ["static", ...profileDefinitions.profiles
+    .filter(({ apiOrigin }) => typeof apiOrigin === "string" && apiOrigin.length > 0)
+    .map(({ id }) => id)].sort();
+  assert.equal(automatic.length, 1, "one automatic workflow must deploy the public demo catalog");
   for (const { name, source } of automatic) {
     assert.match(source, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- demos\s*$/mu, `${name} has a non-exact demos trigger`);
     assert.doesNotMatch(source, /^\s{2}(?:pull_request|workflow_call|workflow_dispatch|workflow_run|schedule):/mu);
     assert.doesNotMatch(source, /\bconcurrency:|cancel-in-progress|max-parallel|latest[-_ ]head/iu);
     if (/\bmatrix:/u.test(source)) assert.match(source, /fail-fast:\s*false/u);
     assert.match(source, /^permissions:\s*\n\s{2}contents: read\s*$/mu);
-    for (const target of eligibleTargets) {
+    for (const target of publicTargets) {
       assert.match(source, new RegExp(`build-${target}`, "u"), `${name} omits eligible build target ${target}`);
       assert.match(source, new RegExp(`deploy-${target}`, "u"), `${name} omits eligible deploy target ${target}`);
-    }
-    for (const target of ineligibleTargets) {
-      assert.doesNotMatch(source, new RegExp(`(?:build|deploy)-${target}`, "u"), `${name} queues ineligible target ${target}`);
     }
     for (const profile of parked) {
       assert.doesNotMatch(source, new RegExp(`(?:build|deploy)-${profile}`, "u"), `${name} queues parked profile ${profile}`);

@@ -35,6 +35,7 @@
     "build:datahike-s3-lambda": "clojure -T:build datahike-s3-lambda",
     "build:datahike-dynamodb": "node scripts/build-unit.mjs datahike-dynamodb",
     "build:datahike-dynamodb-lambda": "clojure -T:build datahike-dynamodb-lambda",
+    "build:datahike-dynamodb-seed": "clojure -T:build datahike-dynamodb-seed",
     "build:datomic-dynamodb": "node scripts/build-unit.mjs datomic-dynamodb",
     "build:datomic-lambda": "clojure -T:build datomic-lambda",
     "build:datomic-seed": "clojure -T:build datomic-seed",

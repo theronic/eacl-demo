@@ -125,7 +125,7 @@ test("an enabled publication opens the schema-validated server explorer over the
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
     dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
   };
-  const apiRequests: Array<{ operation: string; requestId: string | null; payloadHash: string | null }> = [];
+  const apiRequests: Array<{ operation: string; requestId: string | null; origin: string; payloadHash: string | null }> = [];
 
   await page.route("**/registry/profiles/*.json", async (route) => {
     const url = new URL(route.request().url());
@@ -140,7 +140,7 @@ test("an enabled publication opens the schema-validated server explorer over the
     const operation = new URL(request.url()).pathname.split("/").at(-1)!;
     const requestId = request.headers()["x-eacl-request-id"] ?? null;
     const payloadHash = request.headers()["x-amz-content-sha256"] ?? null;
-    apiRequests.push({ operation, requestId, payloadHash });
+    apiRequests.push({ operation, requestId, origin: new URL(request.url()).origin, payloadHash });
     const input = request.method() === "POST" ? request.postDataJSON() : {};
     const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
     const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? "server-1", displayName: "Server one", attributes: [] };
@@ -219,5 +219,6 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".cache-timing__status", { hasText: "hit" }).first()).toBeVisible();
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "authorize", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
-  expect(apiRequests.filter(({ operation }) => !["health", "bootstrap"].includes(operation)).every(({ payloadHash }) => /^[0-9a-f]{64}$/u.test(payloadHash ?? ""))).toBe(true);
+  expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);
+  expect(apiRequests.every(({ payloadHash }) => payloadHash === null)).toBe(true);
 });

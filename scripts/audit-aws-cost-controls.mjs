@@ -11,6 +11,8 @@ const controls = read("infra/data/dynamodb-cost-controls.yaml");
 const table = read("infra/data/datahike-dynamodb-table.yaml");
 const datomicTable = read("infra/data/datomic-dynamodb-table.yaml");
 const datomicSeedRole = read("infra/compute/datomic-dynamodb-seed-role.yaml");
+const datahikeSeedRole = read("infra/compute/datahike-dynamodb-seed-role.yaml");
+const datahikeSeedNetwork = read("infra/compute/datahike-dynamodb-seed-network.yaml");
 const qualification = read("infra/data/datahike-dynamodb-qualification.yaml");
 const datahikeRuntime = read("infra/profiles/datahike-dynamodb-runtime.yaml");
 const datahikeS3Runtime = read("infra/profiles/datahike-s3-runtime.yaml");
@@ -22,7 +24,7 @@ const watchdogCode = read("infra/compute/temp-compute-watchdog/index.py");
 const policy = JSON.parse(read("infra/data/dynamodb-cap-policy.v1.json"));
 const statefulAuthorization = JSON.parse(read("infra/data/authorized-initial-stateful-operations.v1.json"));
 
-for (const text of [foundation, observability, controls, table, datomicTable, datomicSeedRole, qualification, datahikeRuntime, datahikeS3Runtime, datalevinRuntime, jankRuntime, datomicServingRole, watchdog]) {
+for (const text of [foundation, observability, controls, table, datomicTable, datomicSeedRole, datahikeSeedRole, datahikeSeedNetwork, qualification, datahikeRuntime, datahikeS3Runtime, datalevinRuntime, jankRuntime, datomicServingRole, watchdog]) {
   assert.doesNotMatch(text, /AWS::KMS::Key|KMSMasterKeyID|SSEAlgorithm:\s*aws:kms/u);
 }
 
@@ -132,6 +134,24 @@ assert.match(datomicSeedRole, /Sid: ExactImmutableSeedArtifact[\s\S]*Action: s3:
 assert.match(datomicSeedRole, /Sid: ExactImmutableFixtureStream[\s\S]*Action: s3:GetObjectVersion[\s\S]*s3:VersionId: !Ref FixtureStreamObjectVersion/u);
 assert.doesNotMatch(datomicSeedRole, /dynamodb:\*|Resource:\s*["']?\*/u);
 assert.doesNotMatch(datomicSeedRole, /dynamodb:(CreateTable|DeleteTable|UpdateTable|Restore|Import|Export)/u);
+assert.match(datahikeSeedRole, /TemporaryWriterRole:[\s\S]*TemporaryWriterInstanceProfile:/u);
+assert.match(datahikeSeedRole, /Sid: ExactImmutableSeedArtifact[\s\S]*Action: s3:GetObjectVersion[\s\S]*s3:VersionId: !Ref SeedArtifactObjectVersion/u);
+assert.match(datahikeSeedRole, /Sid: ExactImmutableFixtureStream[\s\S]*Action: s3:GetObjectVersion[\s\S]*s3:VersionId: !Ref FixtureStreamObjectVersion/u);
+assert.match(datahikeSeedRole, /Sid: ExactImmutableJdkArtifact[\s\S]*Action: s3:GetObjectVersion[\s\S]*s3:VersionId: !Ref JdkArtifactObjectVersion/u);
+assert.match(datahikeSeedRole, /StringNotEquals:[\s\S]*s3:x-amz-server-side-encryption: AES256/u);
+assert.match(datahikeSeedRole, /Sid: ExactArtifactBucketAbsenceChecks[\s\S]*Action: s3:ListBucket[\s\S]*arn:\$\{AWS::Partition\}:s3:::\$\{ArtifactBucketName\}/u);
+assert.doesNotMatch(datahikeSeedRole, /dynamodb:\*|Resource:\s*["']?\*/u);
+assert.doesNotMatch(datahikeSeedRole, /dynamodb:(CreateTable|DeleteTable|UpdateTable|Restore|Import|Export)/u);
+assert.match(datahikeSeedNetwork, /VpcEndpointType: Gateway/u);
+assert.match(datahikeSeedNetwork, /com\.amazonaws\.\$\{AWS::Region\}\.dynamodb/u);
+assert.match(datahikeSeedNetwork, /com\.amazonaws\.\$\{AWS::Region\}\.s3/u);
+assert.match(datahikeSeedNetwork, /MapPublicIpOnLaunch: false/u);
+assert.doesNotMatch(datahikeSeedNetwork, /AWS::EC2::NatGateway|AWS::EC2::EIP|SecurityGroupIngress/u);
+const datahikeDynamoEndpoint = datahikeSeedNetwork.match(/DynamoDbGatewayEndpoint:[\s\S]*?(?=\n  S3GatewayEndpoint:)/u)?.[0] ?? "";
+const datahikeS3Endpoint = datahikeSeedNetwork.match(/S3GatewayEndpoint:[\s\S]*?(?=\nOutputs:)/u)?.[0] ?? "";
+assert.doesNotMatch(datahikeDynamoEndpoint, /s3:/u);
+assert.doesNotMatch(datahikeS3Endpoint, /dynamodb:/u);
+assert.match(datahikeS3Endpoint, /Action: s3:ListBucket[\s\S]*Resource: !Sub arn:\$\{AWS::Partition\}:s3:::\$\{ArtifactBucketName\}/u);
 assert.match(qualification, /Key: Lifecycle\s*\n\s+Value: disposable-qualification/u);
 assert.match(qualification, /Key: ExpiresAfter/u);
 assert.match(qualification, /DeletionProtectionEnabled: false/u);
@@ -143,7 +163,7 @@ assert.deepEqual(
   ["dynamodb:BatchGetItem", "dynamodb:DescribeTable", "dynamodb:GetItem"]
 );
 assert.doesNotMatch(datahikeRuntime, /dynamodb:(?:Put|Update|Delete|Create|Restore|Export|Import|Transact|BatchWrite)/u);
-assert.match(datahikeRuntime, /Resource: !Ref TableArn/u);
+assert.match(datahikeRuntime, /Resource: !Sub "arn:\$\{AWS::Partition\}:dynamodb:\$\{AWS::Region\}:\$\{AWS::AccountId\}:table\/\$\{TableName\}"/u);
 assert.deepEqual(
   [...datahikeS3Runtime.matchAll(/- (s3:[A-Za-z]+)/gu)].map((match) => match[1]).sort(),
   ["s3:GetObject"]

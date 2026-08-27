@@ -1,0 +1,72 @@
+[{:db/ident :eacl.demo/type
+  :db/doc "Exact fixture object type used by bounded demo enumeration."
+  :db/valueType :db.type/keyword
+  :db/cardinality :db.cardinality/one
+  :db/index true}
+ {:db/ident :eacl.demo/roles
+  :db/doc "Fixture roles (:subject and/or :resource) used by bounded demo enumeration."
+  :db/valueType :db.type/keyword
+  :db/cardinality :db.cardinality/many
+  :db/index true}
+ {:db/ident :eacl.demo/type+id
+  :db/doc "Stable fixture type and EACL object-id tuple."
+  :db/valueType :db.type/tuple
+  :db/tupleAttrs [:eacl.demo/type :eacl/id]
+  :db/cardinality :db.cardinality/one
+  :db/unique :db.unique/identity}
+ {:db/ident :eacl.demo/seed-id
+  :db/doc "Stable fixture seed lifecycle identity."
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/unique :db.unique/identity}
+ {:db/ident :eacl.demo/manifest-digest
+  :db/doc "Exact accepted fixture manifest digest."
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/next-resource-ordinal
+  :db/doc "Next deterministic resource-bundle boundary to seed."
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/record-count
+  :db/doc "Committed canonical fixture record count."
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/seed-status
+  :db/doc "Seed lifecycle status."
+  :db/valueType :db.type/keyword
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/last-batch-digest
+  :db/doc "Digest of the most recently checkpointed batch."
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/batch-id
+  :db/doc "Stable idempotency identity for one committed fixture batch."
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/unique :db.unique/identity}
+ {:db/ident :eacl.demo/batch-first-resource
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/batch-last-resource
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/batch-record-count
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/batch-digest
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/content-basis-t
+  :db/doc "Datahike transaction basis containing the accepted fixture content."
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/verified-at
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/compaction-status
+  :db/doc "Durable marker preventing a completed compact store from being swept again after restart."
+  :db/valueType :db.type/keyword
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :eacl.demo/compacted-at
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/one}]

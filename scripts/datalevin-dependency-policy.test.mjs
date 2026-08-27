@@ -85,7 +85,7 @@ test("the local AL2023 candidate closes ABI and in-memory smoke without claiming
   assert.equal(decision.al2023NativeCandidate.cleanRemoteConsumerInstallPassed, false);
 });
 
-test("the incomplete Datalevin profile remains source-only and non-deployable", () => {
+test("the managed-Java demo does not relabel unpublished Datalevin dependencies as releases", () => {
   assert.equal(decision.status, "blocked-unpublished-and-unintegrated");
   assert.equal(decision.deploymentEligible, false);
   assert.ok(decision.promotionBlockers.some((blocker) =>
@@ -104,10 +104,20 @@ test("the incomplete Datalevin profile remains source-only and non-deployable", 
   assert.match(lifecycleSource, /runtimeStateObjectVersion/u);
   assert.deepEqual(serviceFiles.sort(), [
     "README.md",
+    "java",
+    "java/eacl_demo",
+    "java/eacl_demo/datalevin_memory",
+    "java/eacl_demo/datalevin_memory/LambdaHandler.java",
     "src",
     "src/eacl_demo",
     "src/eacl_demo/datalevin_memory",
+    "src/eacl_demo/datalevin_memory/boundary.clj",
+    "src/eacl_demo/datalevin_memory/lambda_handler.clj",
     "src/eacl_demo/datalevin_memory/lifecycle.clj",
-    "src/eacl_demo/datalevin_memory/runtime.clj"
+    "src/eacl_demo/datalevin_memory/operations.clj",
+    "src/eacl_demo/datalevin_memory/profile.clj",
+    "src/eacl_demo/datalevin_memory/reader.clj",
+    "src/eacl_demo/datalevin_memory/runtime.clj",
+    "src/eacl_demo/datalevin_memory/smoke.clj"
   ]);
 });

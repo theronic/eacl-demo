@@ -27,6 +27,7 @@ const privilegedActionPins = new Map([
 const publishedOrdinaryAuthorityIds = new Set([
   "deploy-static",
   "deploy-datahike-s3",
+  "deploy-datahike-dynamodb",
   "deploy-datomic-dynamodb",
   "deploy-datalevin-memory"
 ]);

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Inactive-until-eligible ordinary deployment role for one exact EACL demo server profile.
+Description: Exact demos-branch deployment role for one already-provisioned EACL server profile.
 
 Parameters:
   Activation:
@@ -15,27 +15,15 @@ Parameters:
   FunctionName:
     Type: String
     AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
-  FunctionArn:
-    Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:lambda:[a-z0-9-]+:843761893873:function:[A-Za-z0-9_-]{1,64}$"
   ArtifactBucketName:
     Type: String
     AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-  ArtifactBucketArn:
-    Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
   StaticBucketName:
     Type: String
     AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-  StaticBucketArn:
+  DistributionId:
     Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-  StagedDistributionArn:
-    Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:cloudfront::843761893873:distribution/[A-Z0-9]{8,32}$"
-  ProductionDistributionArn:
-    Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:cloudfront::843761893873:distribution/[A-Z0-9]{8,32}$"
+    AllowedPattern: "^[A-Z0-9]{8,32}$"
 
 Mappings:
   Profiles:
@@ -55,26 +43,6 @@ Mappings:
       Environment: demo-production-datalevin-memory
       RoleVariable: AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN
       Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted
-
-Rules:
-  FunctionNameMatchesArn:
-    Assertions:
-      - Assert: !Equals
-          - !Select [1, !Split ["function:", !Ref FunctionArn]]
-          - !Ref FunctionName
-        AssertDescription: FunctionArn must identify exactly FunctionName.
-  ArtifactBucketNameMatchesArn:
-    Assertions:
-      - Assert: !Equals
-          - !Select [1, !Split ["s3:::", !Ref ArtifactBucketArn]]
-          - !Ref ArtifactBucketName
-        AssertDescription: ArtifactBucketArn must identify exactly ArtifactBucketName.
-  StaticBucketNameMatchesArn:
-    Assertions:
-      - Assert: !Equals
-          - !Select [1, !Split ["s3:::", !Ref StaticBucketArn]]
-          - !Ref StaticBucketName
-        AssertDescription: StaticBucketArn must identify exactly StaticBucketName.
 
 Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
@@ -105,68 +73,39 @@ Resources:
                 token.actions.githubusercontent.com:sub: !FindInMap [Profiles, !Ref ProfileId, Subject]
                 token.actions.githubusercontent.com:workflow: Deploy EACL demos
       Policies:
-        - PolicyName: exact-deployment-bucket-configuration-read
+        - PolicyName: exact-demo-delivery
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - Sid: ExactArtifactAndStaticBucketConfigurationRead
-                Effect: Allow
-                Action:
-                  - s3:GetEncryptionConfiguration
-                  - s3:GetBucketOwnershipControls
-                  - s3:GetBucketPublicAccessBlock
-                  - s3:GetBucketTagging
-                  - s3:GetBucketVersioning
-                Resource:
-                  - !Ref ArtifactBucketArn
-                  - !Ref StaticBucketArn
-        - PolicyName: exact-profile-artifact-and-status
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: ExactContentAddressedProfileArtifacts
+              - Sid: PublishExactRuntimeArtifact
                 Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:GetObjectVersion
                   - s3:PutObject
-                Resource: !Sub "${ArtifactBucketArn}/artifacts/${ProfileId}/*"
-              - Sid: ExactVersionedProfileStatus
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/artifacts/${ProfileId}/*"
+              - Sid: PublishExactProfileRegistry
                 Effect: Allow
                 Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
                   - s3:PutObject
-                Resource: !Sub "${StaticBucketArn}/registry/profiles/${ProfileId}.json"
-        - PolicyName: exact-profile-lambda-version-and-alias
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: ExactFunctionAndQualifiedVersions
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${StaticBucketName}/registry/profiles/${ProfileId}.json"
+              - Sid: DeployExactLambda
                 Effect: Allow
                 Action:
                   - lambda:GetAlias
+                  - lambda:GetFunction
                   - lambda:GetFunctionConfiguration
-                  - lambda:GetFunctionUrlConfig
-                  - lambda:ListTags
+                  - lambda:InvokeFunction
                   - lambda:PublishVersion
                   - lambda:UpdateAlias
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
-                Resource:
-                  - !Ref FunctionArn
-                  - !Sub "${FunctionArn}:*"
-        - PolicyName: exact-profile-distribution-observation
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: ExactStagedAndProductionDistributions
+                Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}*"
+              - Sid: InvalidateExactProfileRegistry
                 Effect: Allow
                 Action:
-                  - cloudfront:GetDistribution
-                Resource:
-                  - !Ref StagedDistributionArn
-                  - !Ref ProductionDistributionArn
+                  - cloudfront:CreateInvalidation
+                Resource: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DistributionId}"
       Tags:
         - Key: Project
           Value: eacl-demo
@@ -174,8 +113,8 @@ Resources:
           Value: ordinary-server-deployment
         - Key: Profile
           Value: !Ref ProfileId
-        - Key: Activation
-          Value: !Ref Activation
+        - Key: Environment
+          Value: !FindInMap [Profiles, !Ref ProfileId, Environment]
 
 Outputs:
   ServerDeployRoleArn:

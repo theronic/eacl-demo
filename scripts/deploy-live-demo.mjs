@@ -17,6 +17,11 @@ const profiles = {
     functionName: "eacl-demo-datahike-s3-live",
     snapStart: false
   },
+  "datahike-dynamodb": {
+    artifact: "dist/datahike-dynamodb/function.jar",
+    functionName: "eacl-demo-datahike-dynamodb-live",
+    snapStart: false
+  },
   "datomic-dynamodb": {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-live",

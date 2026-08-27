@@ -187,6 +187,91 @@ jobs:
       - name: Deploy, merge-smoke, and promote only this target
         run: node scripts/deploy-live-demo.mjs datahike-s3
 
+  build-datahike-dynamodb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.handoff.outputs.artifact_name }}
+      artifact_sha256: ${{ steps.handoff.outputs.artifact_sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 25.0.4+101.0.LTS
+      - uses: DeLaGuardo/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08
+        with:
+          cli: 1.12.5.1664
+      - run: npm ci --ignore-scripts
+      - run: npm run build:datahike-dynamodb-lambda
+      - id: handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum dist/datahike-dynamodb/function.jar | cut -d ' ' -f 1)"
+          echo "artifact_name=eacl-demo-datahike-dynamodb-${digest}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=${digest}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ steps.handoff.outputs.artifact_name }}
+          path: dist/datahike-dynamodb/function.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-datahike-dynamodb:
+    needs: build-datahike-dynamodb
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: demo-production-datahike-dynamodb
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs['build-datahike-dynamodb'].outputs.artifact_name }}
+          path: dist/datahike-dynamodb
+      - name: Verify the Datahike/DynamoDB handoff digest
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs['build-datahike-dynamodb'].outputs.artifact_sha256 }}
+        run: echo "${EXPECTED_SHA256}  dist/datahike-dynamodb/function.jar" | sha256sum --check --strict
+      - name: Capture signature-verified allowlisted OIDC claims without retaining the token
+        env:
+          EACL_OIDC_AUTHORITY_ID: deploy-datahike-dynamodb
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oidc-claims-deploy-datahike-dynamodb-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          if-no-files-found: error
+          retention-days: 1
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: ${{ vars.AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN }}
+          role-session-name: eacl-datahike-dynamodb-${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy, merge-smoke, and promote only this target
+        run: node scripts/deploy-live-demo.mjs datahike-dynamodb
+
   build-datomic-dynamodb:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

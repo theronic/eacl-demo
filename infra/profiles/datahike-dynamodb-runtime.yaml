@@ -40,9 +40,6 @@ Parameters:
   TableName:
     Type: String
     AllowedPattern: "^eacl-demo-datahike-[a-z0-9-]{3,80}$"
-  TableArn:
-    Type: String
-    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datahike-[a-z0-9-]{3,80}$"
   StoreId:
     Type: String
     AllowedPattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
@@ -71,14 +68,6 @@ Parameters:
     Type: String
     Default: candidate
     AllowedPattern: "^(?![0-9]+$)[A-Za-z0-9_-]{1,128}$"
-
-Rules:
-  TableNameMatchesArn:
-    Assertions:
-      - Assert: !Equals
-          - !Select [1, !Split ["table/", !Ref TableArn]]
-          - !Ref TableName
-        AssertDescription: TableArn must identify exactly TableName.
 
 Resources:
   LogGroup:
@@ -115,7 +104,7 @@ Resources:
                   - dynamodb:BatchGetItem
                   - dynamodb:DescribeTable
                   - dynamodb:GetItem
-                Resource: !Ref TableArn
+                Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
         - PolicyName: exact-function-log-delivery
           PolicyDocument:
             Version: "2012-10-17"

@@ -11,6 +11,7 @@ const [
   datalevin,
   jank,
   datahikeTable,
+  datahikeSeed,
   datomicSeed
 ] = await Promise.all([
   read("infra/profiles/datahike-s3-runtime.yaml"),
@@ -20,6 +21,7 @@ const [
   read("infra/profiles/datalevin-memory-runtime.yaml"),
   read("infra/profiles/jank-memory-runtime.yaml"),
   read("infra/data/datahike-dynamodb-table.yaml"),
+  read("infra/compute/datahike-dynamodb-seed-role.yaml"),
   read("infra/compute/datomic-dynamodb-seed-role.yaml")
 ]);
 
@@ -49,7 +51,8 @@ test("serving permissions are confined to each profile's declared storage and lo
   assert.match(datahikeS3, /Resource: !Sub "\$\{DataBucketArn\}\/\$\{StoreId\}_\*"/u);
   assert.doesNotMatch(datahikeS3, /dynamodb:/u);
 
-  assert.match(datahikeDynamodb, /Resource: !Ref TableArn/u);
+  assert.match(datahikeDynamodb,
+    /Resource: !Sub "arn:\$\{AWS::Partition\}:dynamodb:\$\{AWS::Region\}:\$\{AWS::AccountId\}:table\/\$\{TableName\}"/u);
   assert.doesNotMatch(datahikeDynamodb, /s3:GetObject|datomic/u);
 
   assert.match(datomicRole, /Resource: !Ref TableArn/u);
@@ -78,7 +81,8 @@ test("bound serving policies deny the other profile's table and storage identity
   const decision = (policy, action, resource) =>
     policy.actions.includes(action) && policy.resource === resource ? "allowed" : "implicitDeny";
 
-  assert.match(datahikeDynamodb, /table\/eacl-demo-datahike-/u);
+  assert.match(datahikeDynamodb,
+    /AllowedPattern: "\^eacl-demo-datahike-\[a-z0-9-\]\{3,80\}\$"/u);
   assert.match(datomicRole, /table\/eacl-demo-datomic-/u);
   for (const [profileId, policy] of Object.entries(ddbPolicies)) {
     const otherResource = profileId === "datahike-dynamodb" ? datomicTableArn : datahikeTableArn;
@@ -115,6 +119,18 @@ test("stateful maintenance roles remain separate and exact-resource scoped", () 
   assert.doesNotMatch(datahikeTable, /Resource:\s*["']?\*|dynamodb:\*/u);
   assert.doesNotMatch(datahikeS3, /BatchWriteItem|PutItem|UpdateItem/u);
   assert.doesNotMatch(datahikeDynamodb, /BatchWriteItem|PutItem|UpdateItem/u);
+
+  assert.match(datahikeSeed, /TemporaryWriterRole:[\s\S]*TemporaryWriterInstanceProfile:/u);
+  assert.match(datahikeSeed, /Resource: !Ref TableArn/u);
+  assert.deepEqual(actions(datahikeSeed, "dynamodb"), [
+    "dynamodb:BatchGetItem",
+    "dynamodb:BatchWriteItem",
+    "dynamodb:DescribeTable",
+    "dynamodb:GetItem",
+    "dynamodb:Scan"
+  ]);
+  assert.doesNotMatch(datahikeSeed, /Resource:\s*["']?\*|dynamodb:\*/u);
+  assert.doesNotMatch(datahikeSeed, /ManagedPolicyArns:|AmazonSSMManagedInstanceCore/u);
 
   assert.match(datomicSeed, /TemporaryWriterRole:[\s\S]*TemporaryWriterInstanceProfile:/u);
   assert.match(datomicSeed, /Resource: !Ref TableArn/u);

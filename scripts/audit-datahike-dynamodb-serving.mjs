@@ -34,11 +34,11 @@ const boundarySource = await readFile(
 if (boundarySource.includes(":profileId profile-id")) {
   throw new Error("response metadata contains a non-contract profileId field");
 }
-if (!boundarySource.includes("unsupported-consistency")) {
-  throw new Error("unsupported consistency is not rejected at the public boundary");
-}
 if (!boundarySource.includes("http/normalize-input")) {
   throw new Error("closed input validation is not called before serving");
+}
+if (!boundarySource.includes('#{"current"}')) {
+  throw new Error("the public boundary does not pass its closed consistency set to validation");
 }
 const sdkMembraneSource = await readFile(
   path.join(sourceRoot, "eacl_demo/datahike_dynamodb/client.clj"), "utf8"

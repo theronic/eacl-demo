@@ -32,6 +32,12 @@
   ["services/datahike-dynamodb/src"])
 (def datahike-dynamodb-java-dirs
   ["services/datahike-dynamodb/java"])
+(def datahike-seed-class-dir "target/datahike-dynamodb-seed/classes")
+(def datahike-seed-uber-file "dist/datahike-dynamodb-seed/seed.jar")
+(def datahike-seed-source-dirs
+  ["maintenance/datahike-dynamodb/src"
+   "services/datahike-dynamodb/src"
+   "packages/contracts/src"])
 (def datalevin-memory-class-dir
   "target/datalevin-memory-lambda/classes")
 (def datalevin-memory-work-dir
@@ -148,6 +154,47 @@
                 "Deterministic Datahike/DynamoDB JAR normalization failed."
                 {:exit exit}))))
     (println datahike-dynamodb-uber-file)))
+
+(defn datahike-dynamodb-seed
+  [_]
+  (let [{:keys [exit]}
+        (b/process {:command-args ["node" "scripts/prepare-eacl-core.mjs"]})]
+    (when-not (zero? exit)
+      (throw (ex-info "Pinned EACL Core preparation failed."
+                      {:exit exit}))))
+  (let [basis (b/create-basis
+               {:project "deps.edn"
+                :aliases [:datahike-dynamodb-maintenance]})]
+    (b/delete {:path datahike-seed-class-dir})
+    (b/delete {:path datahike-seed-uber-file})
+    (b/copy-dir {:src-dirs (conj datahike-seed-source-dirs
+                                  datomic-generated-classes-dir)
+                 :target-dir datahike-seed-class-dir})
+    (doseq [[src target]
+            [["fixtures/schema.v1.zed" "schema.v1.zed"]
+             ["fixtures/manifests/fixture-10000.v1.json"
+              "manifests/fixture-10000.v1.json"]
+             ["fixtures/manifests/fixture-1000000.v1.json"
+              "manifests/fixture-1000000.v1.json"]
+             ["infra/data/datahike-demo-metadata-schema.edn"
+              "datahike-demo-metadata-schema.edn"]
+             ["maintenance/datahike-dynamodb/run-seed-on-ec2.sh"
+              "seed-runner.sh"]]]
+      (b/copy-file {:src src
+                    :target (str datahike-seed-class-dir "/" target)}))
+    (b/uber
+     {:class-dir datahike-seed-class-dir
+      :uber-file datahike-seed-uber-file
+      :basis basis
+      :exclude datahike-jvm-exclusions})
+    (let [{:keys [exit]}
+          (b/process {:command-args ["python3" "scripts/normalize-zip.py"
+                                     datahike-seed-uber-file]})]
+      (when-not (zero? exit)
+        (throw (ex-info
+                "Deterministic Datahike/DynamoDB seed JAR normalization failed."
+                {:exit exit}))))
+    (println datahike-seed-uber-file)))
 
 (defn datomic-lambda
   [_]

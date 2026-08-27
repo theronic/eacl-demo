@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:51e2abdcf82131bf8def7be3b5366af64f1c5849761b77a161ce987dac1f06ce",
+  "reportId": "sha256:01d862c5e699f85812d273c183ff4021902e61e46ea1a9e399fdcd7a5526bc2c",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -191,7 +191,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "8fc4a1c03572c001a27bfc0d53d0a5423501832c8eddb6dbb966b708348df102"
+          "sha256": "a5057db3921edf97cc6cf5a90106001b70d7a4fb54b8fd0df3a9b20acc3b6d2d"
         }
       },
       "alarms": {

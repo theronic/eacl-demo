@@ -13,6 +13,7 @@ vm.runInNewContext(source, context, { filename: "static-viewer-request-rewrite.j
 const request = (uri, method = "GET") => ({ request: { uri, method, headers: {}, querystring: {} } });
 const directOrigins = [
   "nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws",
+  "cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws",
   "kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws",
   "n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws",
 ];

@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 165,
-    "open": 40,
+    "completed": 167,
+    "open": 38,
     "total": 205
   },
   "freeze": {
@@ -29,14 +29,14 @@
     {
       "id": "durable-aws-state",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["8.12", "8.13", "13.13", "15.3", "15.4"],
-      "condition": "The Datomic table, temporary writer, history proof, and cleanup are complete. The remaining tasks require durable Datahike/DynamoDB creation/seed plus complete historical evidence for the pre-seed cost-control and seed-to-serving transition ordering.",
+      "taskIds": ["8.13", "13.13", "15.4"],
+      "condition": "The Datomic stateful run and Datahike/DynamoDB table plus pre-seed cost controls are complete. The remaining tasks require the in-progress immutable Datahike seed, exact verification and backup, seed-to-serving transition, and temporary-compute cleanup evidence.",
       "requiredEvidence": [
         "Pre-action exact-resource preview and live cost-control readiness",
         "Immutable seed, normal-Peer history, backup, cap-transition, and publication evidence",
         "Exact post-run proof that compute, roles, volumes, addresses, and unintended writers are absent"
       ],
-      "safeActionNow": "Do not reauthenticate, create tables, seed data, launch EC2, transition caps, or send Telegram tests while the freeze is active."
+      "safeActionNow": "Let the exact authorized Datahike seed finish under its active caps and alarms; publish only after exact verification and backup, then terminate and remove only its temporary compute resources."
     },
     {
       "id": "canonical-s3-separate-authorization",

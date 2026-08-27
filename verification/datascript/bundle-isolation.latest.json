@@ -2,18 +2,18 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-Ccn7_eQT.js",
+    "entry": "assets/index-DpjBoPyO.js",
     "files": [
       ".vite/manifest.json",
-      "assets/SchemaGraph-ByBSbwxy.js",
-      "assets/SchemaGraph-ByBSbwxy.js.map",
+      "assets/SchemaGraph-DauIH6ZU.js",
+      "assets/SchemaGraph-DauIH6ZU.js.map",
       "assets/index-BnSs3WBb.css",
-      "assets/index-Ccn7_eQT.js",
-      "assets/index-Ccn7_eQT.js.map",
+      "assets/index-DpjBoPyO.js",
+      "assets/index-DpjBoPyO.js.map",
       "index.html"
     ],
-    "scriptBytes": 551788,
-    "scriptSha256": "f3c710dd437a97322753d8631f4c00ddff7b9a0c817d0f07ceef7fe04c116a0a",
+    "scriptBytes": 551854,
+    "scriptSha256": "2bf9aa7b48b6b0e5ed308623c13a25248d8d77e3083643bed02e95746fc7f3d8",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/Explorer.tsx",

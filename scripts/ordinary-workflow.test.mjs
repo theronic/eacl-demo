@@ -9,7 +9,7 @@ const profiles = JSON.parse(await readFile(new URL("../packages/contracts/profil
 const committedWorkflow = await readFile(new URL("../.github/workflows/deploy-demos.yml", import.meta.url), "utf8");
 
 test("committed live workflow pairs match only static and direct Function URL profiles", () => {
-  assert.deepEqual(assertLiveOrdinaryTargetPairs(committedWorkflow, profiles), ["datahike-s3", "datalevin-memory", "datomic-dynamodb", "static"]);
+  assert.deepEqual(assertLiveOrdinaryTargetPairs(committedWorkflow, profiles), ["datahike-dynamodb", "datahike-s3", "datalevin-memory", "datomic-dynamodb", "static"]);
   assert.throws(() => assertLiveOrdinaryTargetPairs(committedWorkflow.replace(/^  build-datahike-s3:[\s\S]*?(?=^  deploy-datahike-s3:)/mu, ""), profiles), /differ/u);
   assert.throws(() => assertLiveOrdinaryTargetPairs(`${committedWorkflow}\n  build-jank-memory:\n`, profiles), /differ/u);
 });

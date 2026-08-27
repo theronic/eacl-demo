@@ -58,6 +58,33 @@
   {:extra-paths ["services/datahike-dynamodb/upstream-test"]
    :extra-deps
    {org.replikativ/konserve-dynamodb {:mvn/version "0.1.33"}}}
+  :datahike-dynamodb-maintenance
+  {:extra-paths ["maintenance/datahike-dynamodb/src"
+                 "services/datahike-dynamodb/src"
+                 "infra/data"
+                 "fixtures"
+                 "target/eacl-core-source/8dc3b16498788dd822b68e1c4fe25b37a8e8879f/target/formal/java/classes"]
+   :extra-deps
+   {org.clojure/data.json {:mvn/version "2.5.2"}
+    dev.eacl/eacl-datahike
+    {:git/url "https://github.com/theronic/eacl.git"
+     :git/sha "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+     :deps/root "modules/eacl-datahike"}
+    org.replikativ/datahike
+    {:mvn/version "0.8.1801"
+     :exclusions [org.clojure/clojurescript]}
+    org.replikativ/konserve
+    {:mvn/version "0.9.378"
+     :exclusions [org.clojure/clojurescript]}
+    software.amazon.awssdk/dynamodb
+    {:mvn/version "2.29.3"
+     :exclusions [software.amazon.awssdk/netty-nio-client
+                  software.amazon.awssdk/apache-client]}
+    software.amazon.awssdk/s3
+    {:mvn/version "2.29.3"
+     :exclusions [software.amazon.awssdk/netty-nio-client
+                  software.amazon.awssdk/apache-client]}
+    software.amazon.awssdk/url-connection-client {:mvn/version "2.29.3"}}}
   :datomic-dynamodb
   {:extra-paths
    ["services/datomic-dynamodb/src"

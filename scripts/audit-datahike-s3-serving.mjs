@@ -33,8 +33,8 @@ for (const name of names) {
 
 const boundary = await readFile(path.join(sourceDirectory, "boundary.clj"), "utf8");
 assert.doesNotMatch(boundary, /:profileId profile-id/u, "response metadata has a non-contract field");
-assert.match(boundary, /unsupported-consistency/u);
 assert.match(boundary, /http\/normalize-input/u, "closed input validation is not called before serving");
+assert.match(boundary, /#\{"current"\}/u, "the public boundary does not pass its closed consistency set to validation");
 for (const route of ["seed", "setup", "benchmark", "transact", "cache-evict", "delete-store", "admin"]) {
   assert.doesNotMatch(boundary, new RegExp(`"${route}"`, "u"));
 }

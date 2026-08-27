@@ -123,7 +123,7 @@
 - [x] 8.9 Fully handle unprocessed batch keys within bounds or remove the affected batch path from qualified serving operations.
 - [x] 8.10 Exclude destructive store deletion and all write or administration paths from the serving artifact.
 - [x] 8.11 Qualify the repaired adapter first with DynamoDB Local and then with a disposable real AWS table covering publication, consistency, throttling, IAM denial, partial batches, missing or corrupt nodes, cancellation, and concurrency.
-- [ ] 8.12 Provision a dedicated blue-green production Datahike DynamoDB table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and seed roles.
+- [x] 8.12 Provision a dedicated blue-green production Datahike DynamoDB table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and seed roles.
 - [ ] 8.13 Seed and verify the immutable one-million-resource Datahike fixture through the explicit stateful workflow after alarms and request caps are active.
 - [ ] 8.14 Obtain separate explicit authorization, then provision, seed, verify, and publish a distinct canonical one-million-resource Datahike/S3 blue-green generation without mutating or relabeling the adopted store.
 - [ ] 8.15 Sweep Datahike S3 and DynamoDB Lambda memory independently, then use the larger independently passing minimum as the shared comparison/production memory while a speed claim is active; start with SnapStart disabled on both.
@@ -232,7 +232,7 @@ decision as well as the existing qualification evidence.
 
 - [x] 15.1 Reauthenticate the petrus-prod AWS profile and verify exact account and region before making AWS changes.
 - [x] 15.2 Deploy non-stateful foundation and observability first, then verify static delivery, origin restriction, security headers, route isolation, and synthetic checks.
-- [ ] 15.3 Create cost controls and verify Telegram notification before provisioning or seeding Datahike or Datomic DynamoDB.
+- [x] 15.3 Create cost controls and verify Telegram notification before provisioning or seeding Datahike or Datomic DynamoDB.
 - [ ] 15.4 Execute the approved stateful workflows to create, seed, verify, back up, and publish immutable Datahike and Datomic data generations.
 - [x] 15.5 Qualify and deploy each profile independently; leave any failing profile disabled without blocking healthy profiles.
 - [ ] 15.6 Publish the main explorer, DataScript entry, and current profile registry to staging and verify two-step selection, mixed-generation handling, and bundle isolation.

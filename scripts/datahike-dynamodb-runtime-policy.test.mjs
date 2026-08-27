@@ -25,7 +25,8 @@ test("candidate bytes, store, source, and bounded retry are immutable inputs", (
   assert.match(template, /S3ObjectVersion: !Ref ArtifactVersion/u);
   assert.match(template,
     /AllowedPattern: "\^artifacts\/datahike-dynamodb\/\[0-9a-f\]\{40\}/u);
-  assert.match(template, /TableNameMatchesArn:/u);
+  assert.match(template,
+    /Resource: !Sub "arn:\$\{AWS::Partition\}:dynamodb:\$\{AWS::Region\}:\$\{AWS::AccountId\}:table\/\$\{TableName\}"/u);
   assert.match(template, /EACL_DATAHIKE_STORE_ID: !Ref StoreId/u);
   assert.match(template, /EACL_DATAHIKE_TABLE: !Ref TableName/u);
   for (const [name, value] of [
@@ -51,7 +52,8 @@ test("runtime role exposes only exact-table reads and exact-log writes", () => {
       .map((match) => match[1]).sort(),
     ["dynamodb:BatchGetItem", "dynamodb:DescribeTable", "dynamodb:GetItem"],
   );
-  assert.match(template, /Resource: !Ref TableArn/u);
+  assert.match(template,
+    /Resource: !Sub "arn:\$\{AWS::Partition\}:dynamodb:\$\{AWS::Region\}:\$\{AWS::AccountId\}:table\/\$\{TableName\}"/u);
   assert.deepEqual(
     [...template.matchAll(/- (logs:[A-Za-z]+)/gu)]
       .map((match) => match[1]).sort(),

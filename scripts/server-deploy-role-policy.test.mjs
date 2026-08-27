@@ -17,19 +17,18 @@ test("server deployment role is inactive by default and binds every exact ordina
   assert.doesNotMatch(source, /StringLike|[?]/u);
 });
 
-test("server deployment role can mutate only one artifact prefix, status key, function, aliases, and observe two distributions", () => {
+test("server deployment role can mutate only one artifact prefix, status key, function, aliases, and invalidation", () => {
   for (const action of [
-    "s3:GetEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:GetBucketPublicAccessBlock", "s3:GetBucketTagging", "s3:GetBucketVersioning",
     "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject",
-    "lambda:GetAlias", "lambda:GetFunctionConfiguration", "lambda:GetFunctionUrlConfig", "lambda:ListTags",
+    "lambda:GetAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:InvokeFunction",
     "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
-    "cloudfront:GetDistribution"
+    "cloudfront:CreateInvalidation"
   ]) assert.ok(source.includes(`- ${action}`));
-  assert.equal(source.includes("s3:GetBucketEncryption"), false);
   for (const resource of [
-    "${ArtifactBucketArn}/artifacts/${ProfileId}/*",
-    "${StaticBucketArn}/registry/profiles/${ProfileId}.json",
-    "${FunctionArn}:*"
+    "${ArtifactBucketName}/artifacts/${ProfileId}/*",
+    "${StaticBucketName}/registry/profiles/${ProfileId}.json",
+    "function:${FunctionName}*",
+    "distribution/${DistributionId}"
   ]) assert.ok(source.includes(resource));
-  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:Delete|lambda:AddPermission|cloudfront:CreateInvalidation|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
+  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:Delete|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
 });

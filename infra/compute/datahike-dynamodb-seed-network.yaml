@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Temporary no-ingress network path for one private Datahike seed instance.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetCidr:
+    Type: String
+    AllowedValues:
+      - 10.80.2.0/24
+  TableArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datahike-[a-z0-9-]{3,80}$"
+  SeedRoleArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:iam::[0-9]{12}:role/eacl-demo-datahike-seed-fixture-v1-green$"
+  AuthorizationId:
+    Type: String
+    AllowedPattern: "^sha256:[a-f0-9]{64}$"
+  ArtifactBucketName:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+
+Resources:
+  SeedSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref SubnetCidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Lifecycle
+          Value: temporary
+        - Key: AuthorizationId
+          Value: !Ref AuthorizationId
+      VpcId: !Ref VpcId
+
+  SeedRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Lifecycle
+          Value: temporary
+        - Key: AuthorizationId
+          Value: !Ref AuthorizationId
+      VpcId: !Ref VpcId
+
+  SeedRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SeedRouteTable
+      SubnetId: !Ref SeedSubnet
+
+  SeedSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: No-ingress temporary Datahike seed egress
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: S3 and DynamoDB gateway endpoint access
+      Tags:
+        - Key: Project
+          Value: eacl-demo
+        - Key: Profile
+          Value: datahike-dynamodb
+        - Key: Lifecycle
+          Value: temporary
+        - Key: AuthorizationId
+          Value: !Ref AuthorizationId
+      VpcId: !Ref VpcId
+
+  DynamoDbGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:DescribeTable
+              - dynamodb:GetItem
+              - dynamodb:Scan
+            Resource: !Ref TableArn
+            Condition:
+              ArnEquals:
+                aws:PrincipalArn: !Ref SeedRoleArn
+      RouteTableIds:
+        - !Ref SeedRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      VpcEndpointType: Gateway
+      VpcId: !Ref VpcId
+
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:ListBucket
+            Resource: !Sub arn:${AWS::Partition}:s3:::${ArtifactBucketName}
+            Condition:
+              ArnEquals:
+                aws:PrincipalArn: !Ref SeedRoleArn
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::${ArtifactBucketName}/*
+            Condition:
+              ArnEquals:
+                aws:PrincipalArn: !Ref SeedRoleArn
+      RouteTableIds:
+        - !Ref SeedRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref VpcId
+
+Outputs:
+  SubnetId:
+    Value: !Ref SeedSubnet
+  SecurityGroupId:
+    Value: !GetAtt SeedSecurityGroup.GroupId
+  DynamoDbEndpointId:
+    Value: !Ref DynamoDbGatewayEndpoint
+  S3EndpointId:
+    Value: !Ref S3GatewayEndpoint

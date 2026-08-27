@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [template, profiles, transport, functionUrl, identity] = await Promise.all([
+const [template, preview, profiles, transport, functionUrl, identity] = await Promise.all([
   readFile(new URL("../infra/static/template.yaml", import.meta.url), "utf8"),
+  readFile(new URL("./serve-static-site.mjs", import.meta.url), "utf8"),
   readFile(new URL("../packages/contracts/profiles.v1.json", import.meta.url), "utf8").then(JSON.parse),
   readFile(new URL("../packages/explorer-state/src/http-transport.mjs", import.meta.url), "utf8"),
   readFile(new URL("../packages/contracts/src/eacl_demo/contracts/function_url.clj", import.meta.url), "utf8"),
@@ -19,10 +20,11 @@ assert.match(template, /Action: s3:GetObject/u);
 assert.match(template, /AWS:SourceArn:/u);
 
 const enabledOrigins = profiles.profiles.map(({ apiOrigin }) => apiOrigin).filter(Boolean);
-assert.equal(enabledOrigins.length, 3);
+assert.equal(enabledOrigins.length, 4);
 for (const apiOrigin of enabledOrigins) {
   assert.match(apiOrigin, /^https:\/\/[a-z0-9]+\.lambda-url\.us-east-1\.on\.aws$/u);
   assert.ok(template.includes(apiOrigin), `${apiOrigin} is absent from connect-src`);
+  assert.ok(preview.includes(apiOrigin), `${apiOrigin} is absent from the local preview connect-src`);
 }
 assert.match(transport, /new URL\(`\$\{route\}\/\$\{operation\}`, apiOrigin\)/u);
 assert.match(transport, /requires a direct HTTPS Lambda Function URL/u);
