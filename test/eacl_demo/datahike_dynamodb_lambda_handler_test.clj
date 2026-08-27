@@ -119,7 +119,9 @@
                      :body (json/write-str
                             {:data {:items (mapv (fn [index] {:id (str index)})
                                                 (range 10))}
-                             :meta {:cacheStatus "hit"}})})]
+                             :meta {:cacheStatus (if (= 1 (count @captured))
+                                                   "miss"
+                                                   "hit")}})})]
       (is (= running (handler/prime-runtime! running))))
     (is (= 256 (count @captured)))
     (is (every? #(= running (:runtime %)) @captured))
@@ -139,3 +141,16 @@
             :consistency "minimize"}
            (json/read-str (get-in (first @captured) [:event :body])
                           :key-fn keyword)))))
+
+(deftest snapstart-prime-requires-the-cache-to-converge-test
+  (with-redefs [handler/handle-event
+                (fn [_ _ _]
+                  {:statusCode 200
+                   :body (json/write-str
+                          {:data {:items (mapv (fn [index] {:id (str index)})
+                                              (range 10))}
+                           :meta {:cacheStatus "miss"}})})]
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"cache did not converge"
+         (handler/prime-runtime! {:runtime :datahike-dynamodb})))))
