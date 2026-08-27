@@ -9,7 +9,7 @@ import { qualificationTarget } from "./src/targets.mjs";
 const exemplars = JSON.parse(await readFile(new URL("../../fixtures/exemplars.v1.json", import.meta.url), "utf8"));
 const identity = { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deploy-1", dataManifestSha256: "d".repeat(64) };
 const basis = { behavior: "request-snapshot", id: "basis-1", capturedAt: "2026-08-25T12:00:00Z", fixedForEnvironment: false };
-const descriptor = { identity, basis, contract: { revision: 1 }, capabilities: { operations: ["health", "bootstrap", "list-subjects", "list-relationships", "reverse-relationships", "authorize", "get-cache-info"], consistencyModes: ["current"], cacheBehavior: "environment-local" } };
+const descriptor = { identity, basis, contract: { revision: 1 }, capabilities: { operations: ["health", "bootstrap", "list-subjects", "list-relationships", "reverse-relationships", "authorize", "get-cache-info"], consistencyModes: ["minimize"], cacheBehavior: "environment-local" } };
 
 test("common cases cover every qualification category and keep unsupported cleanup distinct", async () => {
   const transport = fixtureTransport();
@@ -35,7 +35,7 @@ function fixtureTransport() {
       if (operation === "health") return { meta, data: { ready: true, status: "ready", identity, basis } };
       if (operation === "authorize") {
         if (!input.resourceType || !input.permission) return failure(meta, "validation-error");
-        if (input.consistency !== "current") return failure(meta, "unsupported-consistency");
+        if (input.consistency !== "minimize") return failure(meta, "unsupported-consistency");
         return { meta, data: { allowed: input.subjectId !== "user-2" } };
       }
       if (operation === "list-relationships") return { meta, data: { items: [{ resourceType: "account", resourceId: "account-0", relation: "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo: { hasNextPage: false, endCursor: null, pageSize: 1 } } };

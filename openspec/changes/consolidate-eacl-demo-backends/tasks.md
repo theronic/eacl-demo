@@ -139,7 +139,7 @@
 - [x] 9.5 Launch any required temporary EC2 transactor or seed machine without inbound SSH, with a scoped role, IMDSv2, expiry tags, watchdog, and exact instance identity.
 - [x] 9.6 Terminate the exact temporary instance in success and failure cleanup and verify that no instance, volume, or address remains.
 - [x] 9.7 Configure the serving connection with datomic:ddb and read-only=true, capture d/db once during initialization, and serve that fixed value for the full Lambda environment lifetime.
-- [x] 9.8 Route supported current or minimize requests directly through the captured database value without calling d/sync.
+- [x] 9.8 Route the sole supported minimize request directly through the captured database value without calling d/sync, and reject the meaningless current alias.
 - [x] 9.9 Reject authoritative, at-least, exact, historical date, and other synchronization requests before generic EACL source traversal or cache work.
 - [x] 9.10 Test that the public artifact contains no serving transactor dependency, cannot write, never invokes d/sync, and keeps one fixed current basis until environment replacement.
 - [x] 9.11 Verify the serving role contains only documented Datomic read actions and denies writes, administration, and cross-profile table access.
