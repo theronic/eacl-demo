@@ -2,7 +2,8 @@
   "Read-only Datomic/DynamoDB reader fixed to one initialization DB value."
   (:require [datomic.api :as d]
             [eacl.core :as eacl]
-            [eacl.datomic.core :as datomic-eacl])
+            [eacl.datomic.core :as datomic-eacl]
+            [eacl.spicedb.consistency :as consistency])
   (:import [java.nio.charset StandardCharsets]
            [java.security MessageDigest]
            [java.time Instant]))
@@ -53,7 +54,8 @@
 
 (defn open-reader!
   "Connects without a transactor, retains exactly one current DB value, and
-  creates request-scoped EACL snapshots directly over that same value."
+  creates request-scoped EACL snapshots selected by its authenticated exact
+  basis token."
   ([config]
    (open-reader!
     config
@@ -61,25 +63,33 @@
      :current-db d/db
      :basis-t d/basis-t
      :make-client datomic-eacl/make-client
-     :direct-snapshot datomic-eacl/snapshot
+     :select-current-snapshot eacl/snapshot
+     :select-exact-snapshot
+     (fn [client token]
+       (eacl/snapshot client (consistency/at-exact-snapshot token)))
+     :snapshot-db datomic-eacl/db
+     :snapshot-token eacl/basis-token
      :release-snapshot eacl/release!
      :release-connection d/release
      :read-schema-source (fn [database]
                            (:eacl/schema-string
                             (d/entity database [:eacl/id "schema-string"])))
      :clock #(Instant/now)}))
-  ([config {:keys [connect current-db basis-t make-client direct-snapshot
-                   release-snapshot release-connection read-schema-source
-                   clock]}]
-   (when-not (every? fn? [connect current-db basis-t make-client direct-snapshot
-                          release-snapshot release-connection read-schema-source
-                          clock])
+  ([config {:keys [connect current-db basis-t make-client
+                   select-current-snapshot select-exact-snapshot snapshot-db
+                   snapshot-token release-snapshot release-connection
+                   read-schema-source clock]}]
+   (when-not (every? fn? [connect current-db basis-t make-client
+                          select-current-snapshot select-exact-snapshot
+                          snapshot-db snapshot-token release-snapshot
+                          release-connection read-schema-source clock])
      (throw (ex-info "Invalid Datomic/DynamoDB reader operations."
                      {:type :eacl-demo/invalid-reader-operations})))
    (let [config (validate-config config)
          connection (connect (connection-uri config))]
      (try
        (let [fixed-db (current-db connection)
+             fixed-revision (basis-t fixed-db)
              schema-source (read-schema-source fixed-db)
              _ (when-not (and (string? schema-source)
                               (= fixture-schema-sha256
@@ -97,10 +107,22 @@
                 :database (:database config)}
                :read-only? true
                :security-key (:security-key config)})
-             ;; Read-only Datomic connections return the same DB for every
-             ;; d/db call. Retain one value explicitly so serving never asks
-             ;; the generic EACL source to acquire, synchronize, or select it.
-             fixed-basis (public-basis config (basis-t fixed-db) (clock))]
+             initial-snapshot (select-current-snapshot client)
+             fixed-token
+             (try
+               (let [selected-revision
+                     (basis-t (snapshot-db initial-snapshot))]
+                 (when-not (= fixed-revision selected-revision)
+                   (throw
+                    (ex-info
+                     "Datomic reader advanced while fixing its serving basis."
+                     {:type :eacl-demo/initialization-basis-drift
+                      :expected fixed-revision
+                      :actual selected-revision})))
+                 (snapshot-token initial-snapshot))
+               (finally
+                 (release-snapshot initial-snapshot)))
+             fixed-basis (public-basis config fixed-revision (clock))]
          {:config config
           :connection connection
           :client client
@@ -109,7 +131,7 @@
           :release-connection release-connection
           :capture-snapshot
           (fn []
-            (let [snapshot (direct-snapshot client fixed-db)]
+            (let [snapshot (select-exact-snapshot client fixed-token)]
               {:value snapshot
                :basis fixed-basis
                :release! #(release-snapshot snapshot)}))})

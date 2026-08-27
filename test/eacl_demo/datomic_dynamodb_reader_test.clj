@@ -25,7 +25,7 @@
   (is (thrown? clojure.lang.ExceptionInfo
                (reader/validate-config (assoc config :table "bad/table")))))
 
-(deftest reader-retains-one-db-and-builds-direct-request-snapshots-test
+(deftest reader-retains-one-db-and-builds-exact-request-snapshots-test
   (let [calls (atom [])
         releases (atom [])
         fixed-db (Object.)
@@ -48,9 +48,22 @@
           :read-schema-source (fn [db]
                                 (swap! calls conj [:read-schema-source db])
                                 fixture-schema-source)
-          :direct-snapshot (fn [client db]
-                             (swap! calls conj [:direct-snapshot client db])
-                             (Object.))
+          :select-current-snapshot
+          (fn [client]
+            (swap! calls conj [:select-current-snapshot client])
+            :initial-snapshot)
+          :select-exact-snapshot
+          (fn [client token]
+            (swap! calls conj [:select-exact-snapshot client token])
+            (Object.))
+          :snapshot-db
+          (fn [snapshot]
+            (swap! calls conj [:snapshot-db snapshot])
+            fixed-db)
+          :snapshot-token
+          (fn [snapshot]
+            (swap! calls conj [:snapshot-token snapshot])
+            "fixed-authenticated-token")
           :release-snapshot #(swap! releases conj [:snapshot %])
           :release-connection #(swap! releases conj [:connection %])
           :clock (constantly captured-at)})
@@ -58,9 +71,14 @@
         second-snapshot ((:capture-snapshot opened))]
     (is (identical? fixed-db (:fixed-db opened)))
     (is (= 1 (count (filter #(= :current-db (first %)) @calls))))
-    (is (= 2 (count (filter #(= :direct-snapshot (first %)) @calls))))
-    (is (every? #(identical? fixed-db (nth % 2))
-                (filter #(= :direct-snapshot (first %)) @calls)))
+    (is (= [[:select-current-snapshot :read-only-client]]
+           (filterv #(= :select-current-snapshot (first %)) @calls)))
+    (is (= [[:snapshot-db :initial-snapshot]
+            [:snapshot-token :initial-snapshot]]
+           (filterv #(#{:snapshot-db :snapshot-token} (first %)) @calls)))
+    (is (= 2 (count (filter #(= :select-exact-snapshot (first %)) @calls))))
+    (is (every? #(= "fixed-authenticated-token" (nth % 2))
+                (filter #(= :select-exact-snapshot (first %)) @calls)))
     (is (= (:basis first-snapshot) (:basis second-snapshot)))
     (is (= {:behavior "fixed-environment"
             :id "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
@@ -73,7 +91,7 @@
     ((:release! first-snapshot))
     ((:release! second-snapshot))
     (reader/close-reader! opened)
-    (is (= 2 (count (filter #(= :snapshot (first %)) @releases))))
+    (is (= 3 (count (filter #(= :snapshot (first %)) @releases))))
     (is (= [[:connection :read-only-connection]]
            (filterv #(= :connection (first %)) @releases)))))
 
@@ -88,8 +106,33 @@
            :basis-t (constantly 1)
            :make-client (fn [& _] (throw (ex-info "incompatible" {})))
            :read-schema-source (constantly fixture-schema-source)
-           :direct-snapshot (fn [& _] :never)
+           :select-current-snapshot (fn [& _] :never)
+           :select-exact-snapshot (fn [& _] :never)
+           :snapshot-db (fn [& _] :never)
+           :snapshot-token (fn [& _] :never)
            :release-snapshot (fn [_])
            :release-connection #(swap! released conj %)
            :clock #(Instant/now)})))
     (is (= [:connection] @released))))
+
+(deftest initialization-basis-drift-fails-closed-and-releases-resources-test
+  (let [released (atom [])]
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo #"advanced while fixing"
+         (reader/open-reader!
+          config
+          {:connect (constantly :connection)
+           :current-db (constantly :fixed-db)
+           :basis-t (fn [db] (if (= :fixed-db db) 41 42))
+           :make-client (constantly :client)
+           :read-schema-source (constantly fixture-schema-source)
+           :select-current-snapshot (constantly :initial-snapshot)
+           :select-exact-snapshot (fn [& _] :never)
+           :snapshot-db (constantly :advanced-db)
+           :snapshot-token (fn [& _] :never)
+           :release-snapshot #(swap! released conj [:snapshot %])
+           :release-connection #(swap! released conj [:connection %])
+           :clock #(Instant/now)})))
+    (is (= [[:snapshot :initial-snapshot]
+            [:connection :connection]]
+           @released))))

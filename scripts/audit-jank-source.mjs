@@ -46,15 +46,19 @@ assert.equal(inputs.reduce((total, input) => total + input.bytes.length, 0), por
 assert.equal(aggregate, portLock.source.contentSha256);
 assert.equal(portLock.port.requiredReleaseCoreSha, coreLock.sha);
 assert.notEqual(portLock.port.runtimeCoreBaselineSha, coreLock.sha);
+assert.notEqual(portLock.port.assuranceModelCoreSha, coreLock.sha);
 assert.equal(portLock.port.runtimeMatchesRequiredReleaseCore, false);
 assert.equal(portLock.port.assuranceIdentityIsNotRuntimeIdentity, true);
 assert.equal(portLock.semanticRebase.status, "in-progress");
-assert.equal(portLock.semanticRebase.targetCoreSha, coreLock.sha);
+assert.equal(
+  portLock.semanticRebase.targetCoreSha,
+  portLock.port.assuranceModelCoreSha
+);
 assert.equal(portLock.semanticRebase.remainingCoreDeltaQualified, false);
 const coverage = await json(portLock.semanticRebase.coverage);
 assert.equal(coverage.status, "incomplete");
 assert.equal(coverage.baselineCoreSha, portLock.port.runtimeCoreBaselineSha);
-assert.equal(coverage.targetCoreSha, coreLock.sha);
+assert.equal(coverage.targetCoreSha, portLock.port.assuranceModelCoreSha);
 assert.equal(coverage.entries.length, coverage.sourceDelta.changedPathCount);
 assert.equal(coverage.entries.length, 33);
 const coveragePaths = coverage.entries.map(({ corePath }) => corePath);
@@ -298,7 +302,11 @@ assert.equal(buildUnits.units["jank-memory"].deploymentEligible, false);
 const profile = registry.profiles.find(({ id }) => id === "jank-memory");
 assert.equal(profile.state, "unavailable");
 assert.match(profile.reason, /Core|Linux|artifact/u);
-assert.deepEqual(portLock.promotionBlockers.length, 4);
+assert.deepEqual(portLock.promotionBlockers.length, 5);
+assert.ok(portLock.promotionBlockers.some((blocker) =>
+  blocker.includes("semantic-rebase coverage")
+  && blocker.includes(portLock.port.assuranceModelCoreSha)
+));
 for (const key of [
   "requireVendoredTreeDigestMatch",
   "requireRuntimeCoreBaselineEqualsLockedCore",

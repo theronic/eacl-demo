@@ -11,7 +11,7 @@
            [java.io InputStream OutputStream]))
 
 (def ^:private pinned-eacl-sha
-  "8dc3b16498788dd822b68e1c4fe25b37a8e8879f")
+  "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85")
 
 (declare initialize)
 

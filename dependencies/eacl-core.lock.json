@@ -1,7 +1,7 @@
 {
   "schema": "eacl-demo.eacl-core-lock.v1",
   "repository": "https://github.com/theronic/eacl.git",
-  "sha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+  "sha": "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
   "modules": [
     "modules/eacl",
     "modules/eacl-datahike",
@@ -10,9 +10,9 @@
     "modules/eacl-datomic"
   ],
   "reachability": {
-    "verifiedAt": "2026-08-25T10:11:55Z",
-    "remoteRef": "refs/heads/agent/cache-expiring-cursor-tokens",
-    "observedTip": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "verifiedAt": "2026-08-27T21:01:24Z",
+    "remoteRef": "refs/heads/main",
+    "observedTip": "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
     "method": "git ls-remote exact ref plus exact-SHA checkout during CI"
   },
   "identityRule": "Only sha is a release identity. remoteRef is a dated reachability observation and is never resolved to select deployment source."

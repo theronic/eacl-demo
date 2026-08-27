@@ -77,8 +77,8 @@ execFileSync("clojure", [
 
 const snapshot = await readFile(snapshotOutput);
 const parsedSnapshot = JSON.parse(snapshot.toString("utf8"));
-if (!parsedSnapshot || parsedSnapshot.count !== 87_550 ||
-    parsedSnapshot.eavt?.length !== 87_550 || parsedSnapshot["max-eid"] !== 10_115) {
+if (!parsedSnapshot || parsedSnapshot.count !== 87_435 ||
+    parsedSnapshot.eavt?.length !== 87_435 || parsedSnapshot["max-eid"] !== 10_104) {
   throw new Error("generated DataScript snapshot does not contain the exact fixture database");
 }
 const compiled = await readFile(output);

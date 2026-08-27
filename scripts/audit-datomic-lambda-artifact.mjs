@@ -123,9 +123,22 @@ const fixedReaderSmoke = output("java", [
           :make-client (fn [connection options]
                          (swap! calls conj [:make-client connection options])
                          :read-only-client)
-          :direct-snapshot (fn [client database]
-                             (swap! calls conj [:direct-snapshot client database])
-                             (Object.))
+          :select-current-snapshot
+          (fn [client]
+            (swap! calls conj [:select-current-snapshot client])
+            :initial-snapshot)
+          :select-exact-snapshot
+          (fn [client token]
+            (swap! calls conj [:select-exact-snapshot client token])
+            (Object.))
+          :snapshot-db
+          (fn [snapshot]
+            (swap! calls conj [:snapshot-db snapshot])
+            fixed-db)
+          :snapshot-token
+          (fn [snapshot]
+            (swap! calls conj [:snapshot-token snapshot])
+            "fixed-authenticated-token")
           :release-snapshot (fn [snapshot]
                               (swap! releases conj [:snapshot snapshot]))
           :release-connection (fn [connection]
@@ -135,11 +148,13 @@ const fixedReaderSmoke = output("java", [
                                 (slurp "fixtures/schema.v1.zed"))
           :clock (constantly (java.time.Instant/parse "2026-08-25T12:00:00Z"))})
         snapshots (mapv (fn [_] ((:capture-snapshot opened))) (range 3))
-        direct-calls (filterv #(= :direct-snapshot (first %)) @calls)
+        exact-calls (filterv #(= :select-exact-snapshot (first %)) @calls)
         client-options (nth (first (filter #(= :make-client (first %)) @calls)) 2)]
     (assert (= 1 (count (filter #(= :current-db (first %)) @calls))))
-    (assert (= 3 (count direct-calls)))
-    (assert (every? #(identical? fixed-db (nth % 2)) direct-calls))
+    (assert (= [[:select-current-snapshot :read-only-client]]
+               (filterv #(= :select-current-snapshot (first %)) @calls)))
+    (assert (= 3 (count exact-calls)))
+    (assert (every? #(= "fixed-authenticated-token" (nth % 2)) exact-calls))
     (assert (every? #(= (:basis opened) (:basis %)) snapshots))
     (assert (= {:behavior "fixed-environment"
                 :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:424242"
@@ -149,7 +164,7 @@ const fixedReaderSmoke = output("java", [
     (assert (= true (:read-only? client-options)))
     (doseq [snapshot snapshots] ((:release! snapshot)))
     (reader/close-reader! opened)
-    (assert (= 3 (count (filter #(= :snapshot (first %)) @releases))))
+    (assert (= 4 (count (filter #(= :snapshot (first %)) @releases))))
     (assert (= [[:connection :read-only-connection]]
                (filterv #(= :connection (first %)) @releases)))
     (println :datomic-packaged-fixed-reader-pass)))`
@@ -167,7 +182,7 @@ const closedRouteSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "2"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
+                     "EACL_CORE_SHA" "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

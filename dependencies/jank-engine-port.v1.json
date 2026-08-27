@@ -19,7 +19,7 @@
     "runtimeCoreBaselinePullRequest": 145,
     "runtimeCoreBaseSha": "0bb0845139af1acd4dc36fa5676e3cd68c6d7356",
     "assuranceModelCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
-    "requiredReleaseCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "requiredReleaseCoreSha": "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
     "runtimeMatchesRequiredReleaseCore": false,
     "assuranceIdentityIsNotRuntimeIdentity": true
   },
@@ -252,6 +252,7 @@
   },
   "promotionBlockers": [
     "The runtime port baseline is not the EACL Core SHA locked by this repository.",
+    "The semantic-rebase coverage stops at assurance model SHA 8dc3b16498788dd822b68e1c4fe25b37a8e8879f and does not cover the current required release Core SHA.",
     "The vendored source has not compiled with the candidate Linux compiler revision.",
     "The pinned AL2023 builder has no qualified immutable image digest.",
     "No exact ZIP has passed clean AL2023 and Lambda transport qualification."

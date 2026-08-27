@@ -4,10 +4,12 @@ Linux x86_64 Amazon Linux 2023 custom-runtime ZIP with executable root
 `bootstrap` and the bundled immutable in-memory Datomic-like conformance store.
 SnapStart is unsupported and must remain absent from Lambda configuration.
 The profile is deliberately unavailable: its vendored Jank-compatible EACL
-port is content-bound but still based on Core `1cbf80c7`, while this repository
-locks Core `8dc3b164`. Formal-model evidence at the newer SHA is not runtime
-source identity. Promotion therefore fails until the port is updated to the
-locked Core semantics and all Linux gates pass.
+port is content-bound but still based on Core `1cbf80c7`. Its semantic-rebase
+assurance evidence stops at Core `8dc3b164`, which is also older than the
+repository's current required release Core. Neither assurance identity is
+runtime source identity. Promotion therefore fails until the port and its
+complete coverage evidence are updated to the required Core semantics and all
+Linux gates pass.
 
 The rebase is tracked as explicit semantic deltas rather than a premature SHA
 rewrite. The locked-Core split between cache lookup (`:cache?`) and cache
@@ -24,11 +26,12 @@ covered by process-isolated rejection fixtures, so compiler unwinding cannot
 silently turn a typed failure into passing evidence.
 
 Completeness is fail-closed in
-`dependencies/jank-core-rebase-coverage.v1.json`: all 33 changed target-Core
-runtime paths are present under a digest captured from the exact baseline-to-
-target diff, and every path is classified as verified, partial, unqualified,
-or not applicable with a rationale. Any partial or unqualified entry keeps the
-overall rebase incomplete.
+`dependencies/jank-core-rebase-coverage.v1.json`: all 33 runtime paths changed
+between the runtime baseline and the audited `8dc3b164` assurance target are
+present under a digest captured from that exact diff, and every path is
+classified as verified, partial, unqualified, or not applicable with a
+rationale. Any partial or unqualified entry keeps that rebase incomplete, and
+the later delta from `8dc3b164` to the required release Core remains uncovered.
 
 The compiler builder is source-pinned in
 `dependencies/jank-linux-x86_64-builder.v1.json` and runs inside the exact
@@ -162,8 +165,9 @@ the full interpreted store/handler suite pass. That compiler is commit
 `434f0e7`, not the candidate Linux compiler commit `489760d`; the workaround
 therefore neither qualifies nor disqualifies the candidate. The release remains
 blocked until the candidate image compiles the port, clean-AL2023 artifact and
-transport smoke pass, and the runtime port is updated from Core `1cbf80c7` to
-the repository's locked Core `8dc3b164` semantics.
+transport smoke pass, and both the runtime port and semantic-rebase coverage
+are updated from their older Core identities to the repository's required
+release Core semantics.
 
 `npm run test:jank-runtime-api` is the fast merge-safe native boundary suite.
 `npm run test:jank-runtime-api:store` additionally runs the slow interpreted

@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:b72ee369076dc910abf8aa77520bc7c071002d0055dea01904c19d34cbddf481",
+  "reportId": "sha256:e3843c3d8b12d804a5fc153699fd4132611480275da0bb13de9b428310d728bb",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -14,12 +14,12 @@
     },
     "eacl": {
       "repository": "https://github.com/theronic/eacl.git",
-      "sha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "sha": "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
       "status": "locked",
       "reason": null,
       "lock": {
         "path": "dependencies/eacl-core.lock.json",
-        "sha256": "aa7a397292639202a45c23efa72914282255fa1d907258e05a1ac422e0f70afe"
+        "sha256": "ff779d1a3a4c399ff6b3ee000493fa49899ce7961cba8a1dd061b0b113aaf589"
       }
     }
   },
@@ -132,7 +132,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "7f21241bc13df231ddadecbc16d596e73fd397d4de53631939f952dd4c5ec82e"
+          "sha256": "777256456fce964847a69b841c5852fa9c82004d9dcdecc70bd559de23a3b16d"
         }
       },
       "alarms": {
@@ -191,7 +191,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "ce7e3551065fe7b51b4be15c23ed25737f183f407ef0db523c364ae12ec51438"
+          "sha256": "aea5b8b7a92107d2619a9644e001ca84418d50a5796cceddb0775ea6b59633df"
         }
       },
       "alarms": {
@@ -250,7 +250,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "8bef82f33aec69b3b0231125ee3096ff4a3a2e5c300a60e9a86e744cb709303d"
+          "sha256": "46765feedcb294e1955a7abd3d91336bdb109832074bb8187018d3492aec494a"
         }
       },
       "alarms": {
@@ -309,7 +309,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "81a77cbe97451142f2c4f50332b0e71d079791fca2288b3954e94b420f62e113"
+          "sha256": "d9fee0a218f61725c2a693fe0d98cd00d96dc000cd418e2183c164605582bd8f"
         }
       },
       "alarms": {

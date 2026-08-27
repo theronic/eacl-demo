@@ -12,7 +12,7 @@
            [java.io InputStream OutputStream]))
 
 (def ^:private pinned-eacl-sha
-  "8dc3b16498788dd822b68e1c4fe25b37a8e8879f")
+  "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85")
 (def ^:private sha1-pattern #"[0-9a-f]{40}")
 (def ^:private sha256-pattern #"[0-9a-f]{64}")
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
