@@ -237,6 +237,7 @@ test("credential-bearing checked-in entrypoints have no transitive third-party m
     "scripts/run-transition-smoke.mjs",
     "scripts/exercise-profile-runtime.mjs",
     "scripts/datomic-seed-authorization.mjs",
+    "scripts/deploy-live-demo.mjs",
     "scripts/deploy-ordinary-target.mjs"
   ].map((name) => new URL(name, root));
   const visited = new Set();
