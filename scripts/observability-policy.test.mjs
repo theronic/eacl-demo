@@ -86,7 +86,10 @@ test("central cost notifications are project-scoped and exclude unrelated accoun
   assert.doesNotMatch(central, /alarm:\*"/u);
   assert.match(central, /MonthlyProjectBudget:[\s\S]*user:Project\$eacl-demo/u);
   assert.match(central, /SeedBudget:[\s\S]*user:Workload\$eacl-demo-seed/u);
-  assert.match(central, /ProjectCostAnomalyMonitor:[\s\S]*"Key":"Project"[\s\S]*"eacl-demo"[\s\S]*MonitorType: CUSTOM/u);
+  assert.match(central, /ExistingProjectCostAnomalyMonitorArn:[\s\S]*anomalymonitor/u);
+  assert.match(central, /CreateProjectCostAnomalyMonitor: !Equals \[!Ref ExistingProjectCostAnomalyMonitorArn, ""\]/u);
+  assert.match(central, /ProjectCostAnomalyMonitor:[\s\S]*Condition: CreateProjectCostAnomalyMonitor[\s\S]*"Key":"user:Project"[\s\S]*"eacl-demo"[\s\S]*MonitorType: CUSTOM/u);
+  assert.match(central, /MonitorArnList:[\s\S]*CreateProjectCostAnomalyMonitor[\s\S]*!Ref ProjectCostAnomalyMonitor[\s\S]*!Ref ExistingProjectCostAnomalyMonitorArn/u);
   assert.match(central, /CostAnomalyThresholdUsd:[\s\S]*Default: 5/u);
   assert.doesNotMatch(central, /MonitorDimension: SERVICE|OKActions:/u);
 });

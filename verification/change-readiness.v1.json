@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 176,
-    "open": 29,
+    "completed": 177,
+    "open": 28,
     "total": 205
   },
   "freeze": {
@@ -73,18 +73,6 @@
         "Independent rehearsal and legacy dependency, backup, cost, impact, and recovery report"
       ],
       "safeActionNow": "Preserve the healthy fallback and adopted S3 store, perform no retirement without per-batch approval, and rehearse only reversible stack/static/alias/data rollback paths."
-    },
-    {
-      "id": "telegram-live-routing",
-      "disposition": "blocked-by-live-evidence",
-      "taskIds": ["13.6"],
-      "condition": "Templates define alarm, budget, anomaly, deployment-failure, and watchdog routing, but a local template cannot prove live Telegram delivery or quiet recovery behavior.",
-      "requiredEvidence": [
-        "Exact deployed SNS, notifier, EventBridge, Budget, anomaly, alarm, and dead-letter identities",
-        "Nonce-bound successful Telegram delivery and failure-queue readiness",
-        "Proof that initial INSUFFICIENT_DATA-to-OK transitions do not notify"
-      ],
-      "safeActionNow": "Do not send another synthetic notification or alter live alarm actions while the freeze is active."
     },
     {
       "id": "github-settings-and-oidc",

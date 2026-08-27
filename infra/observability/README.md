@@ -24,7 +24,10 @@ fatal-OOM capture or the deployed Linux artifact.
 
 `template.yaml` creates the canonical unencrypted SNS alarm topic, a generalized
 SNS-to-Telegram Lambda, two project-scoped budgets, and immediate project-tagged
-Cost Anomaly Detection. The topic accepts CloudWatch alarm publications only
+Cost Anomaly Detection. A fresh deployment creates the custom
+`user:Project=eacl-demo` monitor; an existing deployment may supply its exact
+monitor ARN so the stack adopts its notifications without creating a duplicate.
+The topic accepts CloudWatch alarm publications only
 from same-account, same-Region alarm names beginning `eacl-demo-`. The topic
 intentionally has no KMS key: AWS Budgets can use an encrypted topic only with
 extra KMS policy and cost, while no alarm payload may contain credentials.

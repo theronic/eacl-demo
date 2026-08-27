@@ -34,6 +34,14 @@ Parameters:
     Default: 5
     MinValue: 1
     MaxValue: 1000
+  ExistingProjectCostAnomalyMonitorArn:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^arn:[a-z0-9-]+:ce::[0-9]{12}:anomalymonitor/[0-9a-f-]+$"
+    Description: Optional exact ARN of an adopted user:Project=eacl-demo custom anomaly monitor.
+
+Conditions:
+  CreateProjectCostAnomalyMonitor: !Equals [!Ref ExistingProjectCostAnomalyMonitorArn, ""]
 
 Resources:
   AlarmTopic:
@@ -389,9 +397,10 @@ Resources:
 
   ProjectCostAnomalyMonitor:
     Type: AWS::CE::AnomalyMonitor
+    Condition: CreateProjectCostAnomalyMonitor
     Properties:
       MonitorName: !Sub "${AWS::StackName}-project"
-      MonitorSpecification: '{"Tags":{"Key":"Project","Values":["eacl-demo"]}}'
+      MonitorSpecification: '{"Tags":{"Key":"user:Project","Values":["eacl-demo"]}}'
       MonitorType: CUSTOM
       ResourceTags:
         - Key: Project
@@ -403,7 +412,10 @@ Resources:
     Properties:
       Frequency: IMMEDIATE
       MonitorArnList:
-        - !Ref ProjectCostAnomalyMonitor
+        - !If
+          - CreateProjectCostAnomalyMonitor
+          - !Ref ProjectCostAnomalyMonitor
+          - !Ref ExistingProjectCostAnomalyMonitorArn
       ResourceTags:
         - Key: Project
           Value: eacl-demo
@@ -571,7 +583,10 @@ Outputs:
   SeedBudgetName:
     Value: !Ref SeedBudget
   ProjectCostAnomalyMonitorArn:
-    Value: !Ref ProjectCostAnomalyMonitor
+    Value: !If
+      - CreateProjectCostAnomalyMonitor
+      - !Ref ProjectCostAnomalyMonitor
+      - !Ref ExistingProjectCostAnomalyMonitorArn
   DeploymentFailureRuleArn:
     Value: !GetAtt DeploymentFailureEvents.Arn
   AlarmRecoveryRuleArn:
