@@ -136,7 +136,7 @@ export function ConsistencyPanel(): JSX.Element {
             </div>
 
             <Show when={!supportedModes().has("fully-consistent")}>
-              <p class="basis-info__note">
+              <p class="basis-info__note basis-info__note--consistency">
                 * {consistency()?.fullyConsistentReason}
               </p>
             </Show>
