@@ -37,7 +37,7 @@ export function fastestEvidence(overrides = {}) {
 function candidate(profileId, storage, artifactPrefix) {
   return {
     profileId, storage,
-    demoSha: "a".repeat(40), eaclSha: "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
+    demoSha: "a".repeat(40), eaclSha: "e06e429d1cf6ed686fc294924241312379b3bb3e",
     artifactDigest: `sha256:${artifactPrefix.repeat(64)}`, deploymentId: `${profileId}-deployment`, serviceCodeDigest: `sha256:${"f".repeat(64)}`,
     dataLifecycleId: `${profileId}-fixture-v1`, dataManifestDigest: "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
     qualificationEvidenceId: `sha256:${"9".repeat(64)}`, qualificationExpiresAt: "2026-10-24T12:00:00Z", qualificationPassing: true,

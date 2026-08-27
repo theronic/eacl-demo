@@ -202,12 +202,12 @@
   },
   "dedicatedRuntime": {
     "path": "dist/datascript-runtime/datascript-runtime.js",
-    "bytes": 6060127,
-    "sha256": "9514413baa47fdff21fb85ba67a4d0a6710efaf0b1fc4d9eaa90a0457424d6ea",
+    "bytes": 6061225,
+    "sha256": "75d8076d75b44aaa18783dd3ff361a6551334b7e7c1daab33b7e922afb49b524",
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",
-      "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85"
+      "e06e429d1cf6ed686fc294924241312379b3bb3e"
     ]
   }
 }
