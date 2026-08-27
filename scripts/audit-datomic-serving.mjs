@@ -38,8 +38,11 @@ assert.match(source, /handle-request-stream/u);
 assert.doesNotMatch(source, /RequestHandler|System\.getProperty|Runtime\.getRuntime|ProcessBuilder/u);
 
 const reader = files.find((entry) => entry.relative.endsWith("reader.clj")).text;
+const boundary = files.find((entry) => entry.relative.endsWith("boundary.clj")).text;
 assert.equal((reader.match(/\bcurrent-db connection\b/gu) ?? []).length, 1);
 assert.equal((reader.match(/\bdirect-snapshot client fixed-db\b/gu) ?? []).length, 1);
+assert.match(boundary, /supported-consistency\s+#\{"minimize"\}/u);
+assert.doesNotMatch(boundary, /supported-consistency\s+#\{[^}]*"current"/u);
 console.log(`Datomic fixed-current serving source audit passed (${files.length} files)`);
 
 async function enumerate(directory, prefix = "") {

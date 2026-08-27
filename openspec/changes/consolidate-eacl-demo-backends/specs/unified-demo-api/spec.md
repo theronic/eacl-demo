@@ -55,7 +55,7 @@ A profile SHALL advertise only modes executable through its production topology.
 
 #### Scenario: Datomic fixed snapshot is served
 - **WHEN** the Datomic Lambda uses a read-only connection's fixed `d/db` value
-- **THEN** it SHALL expose no meaningless `current` choice, use the fixed lowest-latency snapshot internally, and reject exact-history, at-least, fully-consistent, and live-refresh requests without calling Datomic synchronization
+- **THEN** it SHALL expose no meaningless `current` choice or alias, use the fixed lowest-latency snapshot internally, and reject `current`, exact-history, at-least, fully-consistent, and live-refresh requests without calling Datomic synchronization
 
 ### Requirement: Cancellation deadlines and overload are typed
 Server operations SHALL have bounded deadlines, cancellation, and concurrency admission. Disconnect/cancellation, deadline, storage throttle, and busy admission SHALL remain distinct safe errors where the runtime can distinguish them.

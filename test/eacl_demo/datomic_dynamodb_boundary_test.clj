@@ -37,7 +37,7 @@
                    :permission "admin"}
             (some? consistency) (assoc :consistency consistency))})
 
-(deftest only-fixed-current-consistency-reaches-snapshot-and-handler-test
+(deftest only-minimize-consistency-reaches-snapshot-and-handler-test
   (let [captures (atom 0)
         releases (atom 0)
         profile
@@ -51,7 +51,7 @@
                                :basis (:basis descriptor)
                                :release! #(swap! releases inc)})
           :handlers handlers})]
-    (doseq [consistency [nil "current" "minimize"]]
+    (doseq [consistency [nil "minimize"]]
       (let [response (boundary/invoke! profile (request consistency))]
         (is (contains? response :data))
         (is (not (contains? response :error)))
@@ -61,8 +61,8 @@
         (is (= :fixed-snapshot (get-in response [:data :snapshot])))
         (is (= "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
                (get-in response [:meta :revision])))))
-    (is (= 3 @captures))
-    (is (= 3 @releases))))
+    (is (= 2 @captures))
+    (is (= 2 @releases))))
 
 (deftest synchronized-historical-and-future-modes-fail-before-snapshot-test
   (let [captures (atom 0)
@@ -80,7 +80,7 @@
                                :basis (:basis descriptor)
                                :release! (fn [])})
           :handlers rejecting-handlers})]
-    (doseq [consistency ["authoritative" "at-least" "exact"
+    (doseq [consistency ["current" "authoritative" "at-least" "exact"
                          "historical-date" "fully-consistent" "live-refresh"
                          "future-sync-mode"]]
       (let [response (boundary/invoke! profile (request consistency))]
@@ -134,9 +134,9 @@
                      :release! #(throw (ex-info "release failed" {}))})
                   :handlers handlers})]
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
-                          (boundary/invoke! profile (request "current"))))
+                          (boundary/invoke! profile (request "minimize"))))
     (is (zero? (boundary/active-count profile)))
     ;; A released semaphore permits another call instead of reporting overload.
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
-                          (boundary/invoke! profile (request "current"))))
+                          (boundary/invoke! profile (request "minimize"))))
     (is (= 2 @captures))))

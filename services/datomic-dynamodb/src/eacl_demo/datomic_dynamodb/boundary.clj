@@ -23,7 +23,7 @@
    "count-objects" :post})
 
 (def ^:private supported-consistency
-  #{"current" "minimize"})
+  #{"minimize"})
 
 (defn parse-route
   [{:keys [path method]}]
