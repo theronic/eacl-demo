@@ -15,7 +15,7 @@ One versioned manifest SHALL define EACL v8 schema, stable IDs, generation seed/
 Before first public enablement or after a material storage/topology change, each profile SHALL run its advertised operations through production transport, normalization, EACL client, immutable snapshot, adapter, and real runtime/storage. This qualification is not repeated by ordinary `demos` merges and formal verification MUST NOT be a demo enablement or deployment requirement.
 
 #### Scenario: Unit tests pass but route is wrong
-- **WHEN** adapter tests pass but staged CloudFront behavior diverges
+- **WHEN** adapter tests pass but the deployed direct Function URL, CORS, or profile binding diverges
 - **THEN** initial qualification SHALL fail and the profile SHALL remain unavailable
 
 ### Requirement: Common authorization semantics
@@ -68,7 +68,7 @@ Every `demos` merge SHALL build/package each independently eligible active-track
 - **THEN** that profile SHALL retain/restore its previous alias, report lag, notify operators, and SHALL NOT cancel unrelated profile deployments
 
 ### Requirement: Initial browser and bundle qualification remains available
-Before initial cutover and after material shell/contract changes, the staged domain SHALL prove principal desktop/mobile accessibility, history/share links, stale-response switching, identity/routing, cache headers, API no-cache, and DataScript bundle exclusion. Ordinary merges require only build and bounded public smoke.
+Before initial cutover and after material shell/contract changes, the staged static domain plus exact direct Function URLs SHALL prove principal desktop/mobile accessibility, history/share links, stale-response switching, identity/routing, exact CORS, no intermediary API cache, and DataScript bundle exclusion. Ordinary merges require only build and bounded public smoke.
 
 #### Scenario: Main bundle imports DataScript
 - **WHEN** bundle analysis finds browser database code reachable from `/`

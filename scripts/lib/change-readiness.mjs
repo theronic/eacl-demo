@@ -49,22 +49,27 @@ export function validateChangeReadiness(ledger, tasks) {
   );
 
   exactKeys(ledger.freeze, ["active", "reason", "prohibitedActions"], "freeze");
-  assert.equal(ledger.freeze.active, true, "external mutation freeze must remain active");
+  assert.equal(typeof ledger.freeze.active, "boolean", "external mutation freeze state must be explicit");
   assertNonempty(ledger.freeze.reason, "freeze reason");
-  assert.deepEqual(
-    [...ledger.freeze.prohibitedActions].sort(),
-    [
-      "aws-mutation",
-      "aws-reauthentication",
-      "chrome-mutation",
-      "deployment",
-      "durable-seeding",
-      "ec2-launch",
-      "github-mutation",
-      "telegram-test"
-    ].sort(),
-    "freeze action set drifted"
-  );
+  assert.ok(Array.isArray(ledger.freeze.prohibitedActions), "freeze action set must be an array");
+  if (ledger.freeze.active) {
+    assert.deepEqual(
+      [...ledger.freeze.prohibitedActions].sort(),
+      [
+        "aws-mutation",
+        "aws-reauthentication",
+        "chrome-mutation",
+        "deployment",
+        "durable-seeding",
+        "ec2-launch",
+        "github-mutation",
+        "telegram-test"
+      ].sort(),
+      "active freeze action set drifted"
+    );
+  } else {
+    assert.deepEqual(ledger.freeze.prohibitedActions, [], "inactive freeze cannot prohibit actions");
+  }
 
   assert.ok(Array.isArray(ledger.gateGroups) && ledger.gateGroups.length > 0, "gate groups are empty");
   const groupIds = [];

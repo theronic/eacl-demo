@@ -2,11 +2,11 @@
   "$schema": "../../schemas/profiles.v1.schema.json",
   "schema": "eacl-demo.profiles.v1",
   "profiles": [
-    {"id": "datahike-s3", "backend": "datahike", "storage": "s3"},
-    {"id": "datahike-dynamodb", "backend": "datahike", "storage": "dynamodb"},
-    {"id": "datomic-dynamodb", "backend": "datomic", "storage": "dynamodb"},
-    {"id": "datalevin-memory", "backend": "datalevin", "storage": "memory"},
-    {"id": "jank-memory", "backend": "jank", "storage": "memory"},
-    {"id": "datascript-browser-memory", "backend": "datascript", "storage": "browser-memory"}
+    {"id": "datahike-s3", "backend": "datahike", "storage": "s3", "apiOrigin": "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws"},
+    {"id": "datahike-dynamodb", "backend": "datahike", "storage": "dynamodb", "apiOrigin": null},
+    {"id": "datomic-dynamodb", "backend": "datomic", "storage": "dynamodb", "apiOrigin": "https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws"},
+    {"id": "datalevin-memory", "backend": "datalevin", "storage": "memory", "apiOrigin": "https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws"},
+    {"id": "jank-memory", "backend": "jank", "storage": "memory", "apiOrigin": null},
+    {"id": "datascript-browser-memory", "backend": "datascript", "storage": "browser-memory", "apiOrigin": null}
   ]
 }

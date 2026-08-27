@@ -25,8 +25,8 @@ Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA,
 ### Requirement: Identity-checked bootstrap descriptor
 Each descriptor SHALL contain stable profile, backend, storage, runtime, dataset manifest/counts, EACL Core/demo source SHAs, artifact/deployment digest, capability set, consistency semantics, limits, mutability, known limitations, and current/target deployment status. Its identity MUST agree with the statically selected route.
 
-#### Scenario: CloudFront origin is misrouted
-- **WHEN** the `datalevin-memory` route returns a descriptor identifying `datahike-s3`
+#### Scenario: Direct profile origin is misbound
+- **WHEN** the `datalevin-memory` Function URL returns a descriptor identifying `datahike-s3`
 - **THEN** client and deployment smoke checks SHALL reject it before explorer operations
 
 ### Requirement: Public route allowlist is read-only

@@ -11,9 +11,9 @@ const tasks = parseTaskChecklist(taskSource);
 
 test("completion ledger covers every and only open OpenSpec task", () => {
   assert.deepEqual(validateChangeReadiness(ledger, tasks), {
-    completed: 125,
-    open: 66,
-    total: 191,
+    completed: 146,
+    open: 59,
+    total: 205,
     gateGroups: 11
   });
 });
@@ -32,7 +32,7 @@ test("checkbox and freeze drift require an explicit ledger update", () => {
   const changedTasks = tasks.map((task) => task.id === "8.4" ? { ...task, completed: true } : task);
   assert.throws(() => validateChangeReadiness(ledger, changedTasks), /completed task count drifted/u);
 
-  const unfrozen = structuredClone(ledger);
-  unfrozen.freeze.active = false;
-  assert.throws(() => validateChangeReadiness(unfrozen, tasks), /must remain active/u);
+  const inconsistentFreeze = structuredClone(ledger);
+  inconsistentFreeze.freeze.prohibitedActions = ["deployment"];
+  assert.throws(() => validateChangeReadiness(inconsistentFreeze, tasks), /inactive freeze cannot prohibit actions/u);
 });

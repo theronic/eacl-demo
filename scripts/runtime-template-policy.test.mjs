@@ -33,13 +33,15 @@ test("every Lambda function-name boundary enforces the 64-character service limi
   }
 });
 
-test("every server runtime exposes an IAM-only alias-qualified immutable candidate", () => {
+test("every server runtime exposes a direct CORS-qualified immutable candidate", () => {
   for (const [profileId] of definitions) {
     const source = templates[profileId];
     assert.match(source, /CandidateVersion:\s*\n\s*Type: AWS::Lambda::Version/u, `${profileId} version is missing`);
     assert.match(source, /CandidateAlias:\s*\n\s*Type: AWS::Lambda::Alias/u, `${profileId} alias is missing`);
     assert.match(source, /FunctionVersion: !GetAtt CandidateVersion\.Version/u, `${profileId} alias is not immutable`);
-    assert.match(source, /CandidateFunctionUrl:\s*\n\s*Type: AWS::Lambda::Url[\s\S]*?AuthType: AWS_IAM[\s\S]*?Qualifier: !Ref CandidateAliasName/u, `${profileId} IAM URL is not alias-qualified`);
+    assert.match(source, /CandidateFunctionUrl:\s*\n\s*Type: AWS::Lambda::Url[\s\S]*?AuthType: NONE[\s\S]*?AllowOrigins: \[https:\/\/demo\.eacl\.dev\][\s\S]*?Qualifier: !Ref CandidateAliasName/u, `${profileId} direct URL is not alias-qualified`);
+    assert.match(source, /CandidateFunctionUrlInvokePermission:[\s\S]*?Action: lambda:InvokeFunctionUrl[\s\S]*?FunctionUrlAuthType: NONE[\s\S]*?Principal: "\*"/u, `${profileId} public URL permission is missing`);
+    assert.match(source, /CandidateFunctionInvokePermission:[\s\S]*?Action: lambda:InvokeFunction[\s\S]*?InvokedViaFunctionUrl: true[\s\S]*?Principal: "\*"/u, `${profileId} URL-only invoke permission is missing`);
     assert.match(source, /CandidateQualifiedName:\s*\n\s*Value: !Sub "\$\{FunctionName\}:\$\{CandidateAliasName\}"/u, `${profileId} qualified origin output is missing`);
   }
 });

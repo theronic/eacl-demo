@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { webcrypto } from "node:crypto";
 import test from "node:test";
 
 import { createServerProfileTransport } from "./src/http-transport.mjs";
@@ -8,6 +7,7 @@ const identity = { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "
 const profile = {
   id: identity.profileId, backend: "datahike", storage: "s3", state: "enabled", reason: null,
   route: "/api/v1/datahike-s3",
+  apiOrigin: "https://direct.lambda-url.us-east-1.on.aws",
   deployment: { demoSha: identity.demoSha, eaclSha: identity.eaclSha, artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "7" }, deploymentId: identity.deploymentId, dataManifestSha256: identity.dataManifestSha256, deployedAt: "2026-08-25T12:00:00Z" }
 };
 const basis = { behavior: "request-snapshot", id: "basis-1", capturedAt: "2026-08-25T12:00:00Z", fixedForEnvironment: false };
@@ -37,7 +37,7 @@ test("server transport starts health and bootstrap sequentially on the reserved-
     return result;
   });
   assert.deepEqual(await transport.bootstrap({ epoch: 4 }), descriptor);
-  assert.deepEqual(calls.map(({ url }) => url), ["https://demo.eacl.dev/api/v1/datahike-s3/health", "https://demo.eacl.dev/api/v1/datahike-s3/bootstrap"]);
+  assert.deepEqual(calls.map(({ url }) => url), ["https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/health", "https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/bootstrap"]);
   assert.equal(maximumInFlight, 1);
   assert.equal(calls.every(({ init }) => init.method === "GET" && !("body" in init) && init.credentials === "omit" && init.redirect === "error"), true);
   assert.deepEqual(calls.map(({ init }) => init.headers["x-eacl-request-id"]).sort(), ["browser-4-1", "browser-4-2"]);
@@ -63,7 +63,7 @@ test("server transport serializes concurrent operations to preserve the runtime 
   assert.equal(maximumInFlight, 1);
 });
 
-test("POST bodies carry the exact payload hash and validated request scope", async () => {
+test("POST bodies go directly to Lambda without CloudFront signing headers", async () => {
   let observed;
   const transport = createTransport(async (url, init) => {
     observed = { url, init };
@@ -73,7 +73,8 @@ test("POST bodies carry the exact payload hash and validated request scope", asy
   assert.equal(envelope.data.allowed, true);
   assert.equal(observed.init.body, '{"subjectId":"alice"}');
   assert.equal(observed.init.headers["x-eacl-request-id"], "9-2");
-  assert.equal(observed.init.headers["x-amz-content-sha256"], "9707c3f229275ea24bb9c5771bc3be55636e7c96d010873b6ebe6a929665beaf");
+  assert.equal(observed.url, "https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/authorize");
+  assert.equal(observed.init.headers["x-amz-content-sha256"], undefined);
   assert.equal(observed.init.cache, "no-store");
 });
 
@@ -84,6 +85,7 @@ test("every backend accepts the same original compact decision metadata", async 
     backend: "datomic",
     storage: "dynamodb",
     route: "/api/v1/datomic-dynamodb",
+    apiOrigin: "https://datomic.lambda-url.us-east-1.on.aws",
     deployment: { ...profile.deployment },
   };
   const transport = createTransport(async () => response({
@@ -119,7 +121,8 @@ test("startup requires ready health and the same exact basis as bootstrap", asyn
 });
 
 test("insecure, noncanonical, released, redirected, and non-JSON transports are rejected", async () => {
-  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { baseUrl: "http://demo.eacl.dev/" }), /HTTPS/u);
+  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: "https://demo.eacl.dev" } }), /Function URL/u);
+  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: null } }), /requires a direct/u);
   assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, route: "/api/v1/datahike-s3/extra" } }), /canonical/u);
   const redirected = createTransport(async (url) => {
     const operation = new URL(url).pathname.split("/").at(-1);
@@ -137,11 +140,9 @@ test("insecure, noncanonical, released, redirected, and non-JSON transports are 
 function createTransport(fetchImpl, overrides = {}) {
   return createServerProfileTransport({
     profile: overrides.profile ?? profile,
-    baseUrl: overrides.baseUrl ?? "https://demo.eacl.dev/?backend=datahike",
     validateRequest: (value) => value,
     validateResponse: (value) => value,
-    fetchImpl,
-    cryptoImpl: webcrypto
+    fetchImpl
   });
 }
 

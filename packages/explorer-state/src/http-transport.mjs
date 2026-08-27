@@ -1,4 +1,4 @@
-import { jsonPayloadSha256, readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
+import { readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
 import { validateDescriptorHandshake } from "../../contracts/src/descriptor-handshake.mjs";
 import { assertDescriptorIdentity } from "./profile-controller.mjs";
 
@@ -9,23 +9,22 @@ const OPERATIONS = new Set([
   "count-resources"
 ]);
 const GET_OPERATIONS = new Set(["health", "bootstrap"]);
-const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const FUNCTION_URL_HOST = /^[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws$/u;
 const PROFILE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
 /**
- * Same-origin browser transport for one immutable, enabled server profile.
+ * Direct Function URL browser transport for one immutable, enabled server profile.
  * Every response is schema checked and correlated to its request. Profile
  * identity is established by the health/bootstrap handshake before ordinary
  * Explorer operations can run.
  */
 export function createServerProfileTransport({
   profile,
-  baseUrl,
   validateRequest,
   validateResponse,
   fetchImpl = globalThis.fetch,
-  cryptoImpl = globalThis.crypto,
   timeoutMs = 35_000,
   maximumResponseBytes = 1_048_576
 }) {
@@ -35,7 +34,7 @@ export function createServerProfileTransport({
   }
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000) throw new RangeError("HTTP profile timeout is invalid");
   if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 1_048_576) throw new RangeError("HTTP response limit is invalid");
-  const base = validateBaseUrl(baseUrl);
+  const apiOrigin = validateApiOrigin(profile.apiOrigin);
   const route = `/api/v1/${profile.id}`;
   if (profile.route !== route) throw new Error("enabled profile route is not canonical");
   const lifecycle = new AbortController();
@@ -59,10 +58,10 @@ export function createServerProfileTransport({
     const method = GET_OPERATIONS.has(operation) ? "GET" : "POST";
     const body = method === "POST" ? JSON.stringify(logicalRequest.input) : null;
     const headers = method === "POST"
-      ? { "content-type": "application/json; charset=utf-8", "x-amz-content-sha256": await jsonPayloadSha256(body, { cryptoImpl }), "x-eacl-request-id": requestId }
+      ? { "content-type": "application/json; charset=utf-8", "x-eacl-request-id": requestId }
       : { "x-eacl-request-id": requestId };
-    const url = new URL(`${route}/${operation}`, base.origin);
-    if (url.origin !== base.origin || url.pathname !== `${route}/${operation}` || url.search || url.hash) throw new Error("HTTP profile request escaped its route");
+    const url = new URL(`${route}/${operation}`, apiOrigin);
+    if (url.origin !== apiOrigin || url.pathname !== `${route}/${operation}` || url.search || url.hash) throw new Error("HTTP profile request escaped its direct Function URL route");
     const bounded = boundedSignal([lifecycle.signal, options.signal], timeoutMs);
     try {
       const response = await fetchImpl(url.href, {
@@ -130,11 +129,15 @@ function validateProfile(profile) {
   if (typeof profile.backend !== "string" || typeof profile.storage !== "string") throw new Error("profile mapping is missing");
 }
 
-function validateBaseUrl(value) {
+function validateApiOrigin(value) {
+  if (typeof value !== "string" || value.length === 0) throw new Error("enabled server profile requires a direct Function URL origin");
   const url = new URL(value);
-  if (url.username || url.password) throw new Error("HTTP profile base URL cannot contain credentials");
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && LOOPBACK.has(url.hostname))) throw new Error("HTTP profile transport requires HTTPS or loopback");
-  return url;
+  if (url.username || url.password || url.pathname !== "/" || url.search || url.hash || url.port) throw new Error("HTTP profile API origin must be an origin without credentials or a path");
+  const loopback = LOOPBACK.has(url.hostname);
+  if (loopback ? !new Set(["http:", "https:"]).has(url.protocol) : url.protocol !== "https:" || !FUNCTION_URL_HOST.test(url.hostname)) {
+    throw new Error("HTTP profile transport requires a direct HTTPS Lambda Function URL or loopback origin");
+  }
+  return url.origin;
 }
 
 function boundedSignal(signals, timeoutMs) {

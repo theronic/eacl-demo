@@ -92,27 +92,33 @@ The evidence records at least warm p95 for the canonical interactive mix and col
 
 Evidence expires after material storage/runtime/fixture/region/workload change. With one qualified option, that option is selected but no comparative speed claim is made. Until DynamoDB qualifies, Datahike/S3 remains the deterministic default.
 
-### 4. One origin-visible domain uses path-isolated profiles
+### 4. CloudFront is static-only and server APIs use direct Function URLs
 
-CloudFront serves the private S3 static origin and separate no-cache API behaviors:
+CloudFront has one private S3 origin and serves only the two static entries:
 
 ```text
 /                                  static main shell
 /assets/*                          immutable main assets
 /datascript/                       separate DataScript entry
 /datascript/assets/*               DataScript-only assets
-/api/v1/datahike-s3/*              Datahike/S3 alias
-/api/v1/datahike-dynamodb/*        Datahike/DynamoDB alias
-/api/v1/datomic-dynamodb/*         Datomic/DynamoDB alias
-/api/v1/datalevin-memory/*         Datalevin alias
-/api/v1/jank-memory/*              Jank alias
 ```
 
-Function URLs use AWS IAM and CloudFront origin access control where supported. Direct anonymous origin invocation is denied. Foundation route additions occur during initial onboarding; ordinary profile merges do not contend on the shared CloudFront stack.
-Every enabled behavior also requires an alias-qualified, nonnumeric Lambda
-function name. The static stack cannot bind a profile route to an unqualified
-function or `$LATEST`; live proof that anonymous direct invocation fails
-remains part of the separate deployed-origin gate.
+The closed profile catalog binds each enabled server profile to one exact,
+alias-qualified Lambda Function URL origin. The browser appends the unchanged
+logical `/api/v1/<profile-id>/<operation>` path and calls that Function URL
+directly. It never sends server API traffic to `demo.eacl.dev`, and CloudFront
+contains no Lambda origins, API behaviors, API cache/request policies, Lambda
+origin access control, or Lambda invoke permissions.
+
+Function URLs use `AuthType: NONE` because ordinary browsers cannot sign IAM
+requests. Each alias resource policy allows public invocation only through the
+Function URL, while Function URL CORS allows `GET` and `POST` from exactly
+`https://demo.eacl.dev` with the closed request-header set and a bounded
+preflight lifetime. CORS is a browser-origin control, not authentication;
+non-browser callers can invoke the URL, so safety comes from the runtime's
+closed, bounded, read-only dispatcher and storage IAM that denies mutation.
+The static CSP names the exact enabled Function URL origins rather than using a
+wildcard.
 
 Every server profile has an independently auditable serving role. Datahike/S3
 is confined to one store prefix, Datahike/DynamoDB and Datomic/DynamoDB to
@@ -303,7 +309,7 @@ Each target pair performs:
 1. an unprivileged clean checkout at exact SHAs, dependency-cache restore, build/package, cheap artifact/configuration/read-only guards, digest creation, and content-addressed artifact upload;
 2. a separate exact-environment deploy job that downloads and verifies only that artifact before requesting/using AWS credentials, with no dependency installation or build tool invocation;
 3. immutable candidate upload/version publication;
-4. bounded health, descriptor identity, one allowed exemplar, one denied exemplar, and mutation-denial smoke through the candidate staging CloudFront route;
+4. bounded CORS preflight, health, descriptor identity, one allowed exemplar, one denied exemplar, and mutation-denial smoke through the candidate's exact direct Function URL;
 5. per-profile live-alias promotion followed by a bounded production health/bootstrap identity recheck, or rollback/failure alert.
 
 The single same-target build-to-deploy edge is an artifact handoff, not GitHub concurrency management or fleet coordination. Neither job awaits formal verification, full semantic conformance, browser/accessibility suites, fault injection, load/memory sweeps, data seeds, migrations, or other profiles. Initial enablement/material topology changes use separate manual qualification workflows. Formal workflows may continue independently but cannot gate demo deployment.
@@ -321,15 +327,15 @@ invocations traversed CloudFront. Report validation recomputes the closed case
 set and measured outcome rather than trusting caller-supplied labels. Migration
 and rollback rehearsal can move only a dedicated
 `exercise` alias with an optimistic revision, prove both identities through
-staged CloudFront, require forward numeric version movement for migration and
+their exact direct Function URLs, require forward numeric version movement for migration and
 backward movement for rollback, and restore the exact original version in
 `always()` cleanup;
 it cannot name `live`. Durable generation and seed workflows stay separate and
 cost-gated. Source/workflow validation proves these paths remain available, not
 that any external qualification, seed, or transition has run.
 All staged qualification/transition URLs must match a separately configured
-trusted CloudFront-origin variable and the exact `/api/v1/<profile>` path; the
-input URL cannot make itself authoritative merely by being labeled staged.
+exact alias-qualified Function URL origin and exact `/api/v1/<profile>` path;
+the input URL cannot make itself authoritative merely by being labeled staged.
 
 ### 14. GitHub settings favor safe speed and AWS OIDC
 
@@ -385,7 +391,7 @@ the shared topic, while one consolidated dashboard prevents per-profile
 dashboard proliferation. Sustained noisy signals use two-of-three one-minute
 windows, missing data is non-breaching, and health, initialization, and OOM are
 immediate. Initial enablement remains fail-closed until health, bootstrap, and
-the frozen allow exemplar pass through the exact staged CloudFront route and a
+the frozen allow exemplar pass through the exact direct Function URL and a
 content-addressed readiness record binds those results, the dashboard, alarms,
 retention/redaction audit, runbook, deployment identity, and data identity.
 Local JVM and Jank source integration and artifact evidence does not satisfy

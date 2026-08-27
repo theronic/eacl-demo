@@ -54,14 +54,17 @@ test("Datalevin candidate has bounded compute and no paid warm-up feature", () =
   assert.doesNotMatch(template, /ProvisionedConcurrency|AWS::KMS|KmsKeyArn|AWS::Events::Rule/u);
 });
 
-test("immutable inputs and IAM-only candidate transport bind the live artifact", () => {
+test("immutable inputs and direct candidate transport bind the live artifact", () => {
   assert.match(template, /S3ObjectVersion: !Ref ArtifactVersion/u);
   assert.match(template, /AllowedPattern: "\^artifacts\/datalevin-memory\//u);
   for (const name of ["EACL_ARTIFACT_SHA256", "EACL_CORE_SHA", "EACL_DEMO_SHA", "EACL_DEPLOYMENT_ID"]) {
     assert.match(template, new RegExp(`^\\s{10}${name}: !Ref `, "mu"));
   }
-  assert.match(template, /Type: AWS::Lambda::Url[\s\S]*?AuthType: AWS_IAM/u);
+  assert.match(template, /Type: AWS::Lambda::Url[\s\S]*?AuthType: NONE/u);
   assert.match(template, /Qualifier: !Ref CandidateAliasName/u);
+  assert.match(template, /AllowOrigins: \[https:\/\/demo\.eacl\.dev\]/u);
+  assert.match(template, /FunctionUrlAuthType: NONE/u);
+  assert.match(template, /InvokedViaFunctionUrl: true/u);
 });
 
 test("lifecycle transition policy distinguishes restore, deployment, and rollback", () => {
