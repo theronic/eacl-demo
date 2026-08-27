@@ -193,7 +193,7 @@ export function createProfileApi(
     const url = new URL(path, window.location.origin);
     const body = parseBody(options.body);
 
-    if (url.pathname === "/api/health") {
+    if (url.pathname === "/health") {
       const active = await loadDescriptor(signal);
       return envelope({ status: "ready", datahike: {
         revision: active.basis.id,
@@ -202,21 +202,28 @@ export function createProfileApi(
       }} as ReaderHealth, "bootstrap-health", active.basis) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/bootstrap" || url.pathname === "/api/snapshot/refresh") {
+    if (url.pathname === "/bootstrap" || url.pathname === "/refresh-snapshot") {
       const active = await loadDescriptor(signal, url.pathname.endsWith("refresh"));
       const activeSchema = await loadSchema(signal);
       return envelope(presentBootstrap(active, activeSchema), "bootstrap", active.basis) as ApiSuccess<T>;
     }
 
     const active = await loadDescriptor(signal);
-    const consistency = preferredConsistency(active, consistencyMode(body.consistency));
+    const selectedConsistency = consistencyMode(body.consistency);
+    const consistency = preferredConsistency(active, selectedConsistency);
+    const consistencyInput = {
+      consistency,
+      ...(selectedConsistency === "at-least-as-fresh"
+        ? atLeastAsFreshAs(body.consistency)
+        : {}),
+    };
 
-    if (url.pathname === "/api/schema") {
+    if (url.pathname === "/get-schema") {
       const activeSchema = await loadSchema(signal);
       return envelope(activeSchema, "schema", active.basis) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/cache") {
+    if (url.pathname === "/get-cache-info") {
       const result = await wire<Record<string, unknown>>("get-cache-info", {}, signal);
       const snapshot: CacheSnapshot = {
         provider: result.data!,
@@ -226,7 +233,7 @@ export function createProfileApi(
       return wireEnvelope(snapshot, result) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/subjects") {
+    if (url.pathname === "/list-subjects") {
       const offset = positiveInteger(url.searchParams.get("offset"), 0);
       const limit = positiveInteger(url.searchParams.get("limit"), 20);
       const cursors = subjectCursors.get(String(limit)) ?? new Map<number, string | null>([[0, null]]);
@@ -255,7 +262,7 @@ export function createProfileApi(
       return wireEnvelope(page, result) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/eacl/lookup-resources") {
+    if (url.pathname === "/lookup-resources") {
       const result = await wire<WirePage<WireObject>>("lookup-resources", {
         subjectType: nestedIdentifier(body, "subject", "type"),
         subjectId: nestedIdentifier(body, "subject", "id"),
@@ -265,12 +272,12 @@ export function createProfileApi(
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
         ...(body.after ? { cursor: identifier(body.after) } : {}),
-        consistency,
+        ...consistencyInput,
       }, signal);
       return wireEnvelope(objectPage(result.data!), result) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/eacl/count-resources") {
+    if (url.pathname === "/count-resources") {
       const result = await wire<{ value: number; exact: boolean; ceiling: number }>("count-resources", {
         subjectType: nestedIdentifier(body, "subject", "type"),
         subjectId: nestedIdentifier(body, "subject", "id"),
@@ -279,7 +286,7 @@ export function createProfileApi(
         ceiling: number(body.countLimit, 1_000),
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
-        consistency,
+        ...consistencyInput,
       }, signal);
       const count: ResourceCount = {
         count: result.data!.value,
@@ -289,7 +296,7 @@ export function createProfileApi(
       return wireEnvelope(count, result) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/eacl/lookup-subjects") {
+    if (url.pathname === "/lookup-subjects") {
       const result = await wire<WirePage<WireObject>>("lookup-subjects", {
         resourceType: nestedIdentifier(body, "resource", "type"),
         resourceId: nestedIdentifier(body, "resource", "id"),
@@ -299,13 +306,13 @@ export function createProfileApi(
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
         ...(body.after ? { cursor: identifier(body.after) } : {}),
-        consistency,
+        ...consistencyInput,
       }, signal);
       return wireEnvelope(objectPage(result.data!), result) as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/eacl/check-permission") {
-      const result = await wire<{ allowed: boolean }>("authorize", {
+    if (url.pathname === "/check-permission") {
+      const result = await wire<{ allowed: boolean }>("check-permission", {
         subjectType: nestedIdentifier(body, "subject", "type"),
         subjectId: nestedIdentifier(body, "subject", "id"),
         resourceType: nestedIdentifier(body, "resource", "type"),
@@ -313,7 +320,7 @@ export function createProfileApi(
         permission: identifier(body.permission),
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
-        consistency,
+        ...consistencyInput,
       }, signal);
       return {
         data: { allowed: result.data!.allowed } as PermissionDecision,
@@ -326,7 +333,7 @@ export function createProfileApi(
       } as ApiSuccess<T>;
     }
 
-    if (url.pathname === "/api/eacl/read-relationships") {
+    if (url.pathname === "/list-relationships") {
       const result = await wire<WirePage<WireObject>>("reverse-relationships", {
         subjectType: nestedIdentifier(body, "subject", "type"),
         subjectId: nestedIdentifier(body, "subject", "id"),
@@ -335,7 +342,7 @@ export function createProfileApi(
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
         ...(body.after ? { cursor: identifier(body.after) } : {}),
-        consistency,
+        ...consistencyInput,
       }, signal);
       const resourceType = identifier(body.resourceType);
       const parent = object(body.subject as WireObject);
@@ -344,7 +351,7 @@ export function createProfileApi(
       for (const item of candidates) {
         let allowed = true;
         if (body.authorizationSubject && body.permission) {
-          const decision = await wire<{ allowed: boolean }>("authorize", {
+          const decision = await wire<{ allowed: boolean }>("check-permission", {
             subjectType: nestedIdentifier(body, "authorizationSubject", "type"),
             subjectId: nestedIdentifier(body, "authorizationSubject", "id"),
             resourceType: item.type,
@@ -352,7 +359,7 @@ export function createProfileApi(
             permission: identifier(body.permission),
             cache: body.cache !== false,
             populateCache: body.populateCache !== false,
-            consistency,
+            ...consistencyInput,
           }, signal);
           allowed = decision.data!.allowed;
         }
@@ -391,6 +398,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
     .map(presentConsistency)
     .filter((mode): mode is ConsistencyMode => mode !== null))];
   const defaultMode = supported[0] ?? "minimize-latency";
+  const fullyConsistent = supported.includes("fully-consistent");
   return {
     status: "ready",
     seed: {
@@ -412,8 +420,10 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
     consistency: {
       default: defaultMode,
       supported,
-      fullyConsistent: false,
-      fullyConsistentReason: "This public Explorer uses the read bases advertised by the selected profile.",
+      fullyConsistent,
+      fullyConsistentReason: fullyConsistent
+        ? "The immutable deployed database value is authoritative for this read-only profile."
+        : "This read-only Lambda cannot coordinate with a writer to establish a newer authoritative head.",
       atExactSnapshotDateSelection: descriptor.capabilities.consistencyModes.includes("historical-date"),
       atExactSnapshotDateSelectionReason: "Historical date selection is not advertised by this profile.",
     },
@@ -495,10 +505,10 @@ function presentMeta(
 }
 
 function presentConsistency(value: string): ConsistencyMode | null {
-  if (value === "current") return "minimize-latency";
   if (value === "minimize") return "minimize-latency";
   if (value === "at-least") return "at-least-as-fresh";
   if (value === "exact") return "at-exact-snapshot";
+  if (value === "authoritative") return "fully-consistent";
   return null;
 }
 
@@ -509,6 +519,14 @@ function consistencyMode(value: unknown): ConsistencyMode {
   return "minimize-latency";
 }
 
+function atLeastAsFreshAs(value: unknown): { atLeastAsFreshAs?: string } {
+  if (!value || typeof value !== "object" || !("atLeastAsFreshAs" in value)) return {};
+  const instant = (value as { atLeastAsFreshAs?: unknown }).atLeastAsFreshAs;
+  return typeof instant === "string" && instant.length > 0
+    ? { atLeastAsFreshAs: instant }
+    : {};
+}
+
 function preferredConsistency(descriptor: ProfileDescriptor, mode: ConsistencyMode): string {
   const requested = mode === "minimize-latency"
     ? "minimize"
@@ -516,12 +534,10 @@ function preferredConsistency(descriptor: ProfileDescriptor, mode: ConsistencyMo
       ? "at-least"
       : mode === "at-exact-snapshot"
         ? "exact"
-        : "current";
+        : "authoritative";
   return descriptor.capabilities.consistencyModes.includes(requested)
     ? requested
-    : descriptor.capabilities.consistencyModes.includes("current")
-      ? "current"
-      : descriptor.capabilities.consistencyModes[0];
+    : descriptor.capabilities.consistencyModes[0];
 }
 
 function object(value: WireObject): EaclObject {

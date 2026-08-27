@@ -35,7 +35,7 @@ export function Header(): JSX.Element {
       label: "Preparing Datahike transactions",
     });
     try {
-      const result = await seedRequest.run<SeedProgress>("/api/seed", {
+      const result = await seedRequest.run<SeedProgress>("/seed", {
         method: "POST",
         body: JSON.stringify({ serverCount: value }),
       });

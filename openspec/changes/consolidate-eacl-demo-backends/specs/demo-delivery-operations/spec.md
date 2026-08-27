@@ -12,7 +12,7 @@ Define secure AWS delivery, GitHub/OIDC continuous deployment, independent profi
 - **THEN** CloudFront SHALL return compressed immutable content while anonymous S3 access remains denied
 
 ### Requirement: Server profiles use direct Lambda Function URLs
-Each enabled server profile SHALL bind one exact alias-qualified Lambda Function URL origin in the closed client catalog. The browser SHALL send the profile's logical API path directly to that origin. CloudFront MUST NOT contain Lambda origins, API behaviors, API cache/request policies, Lambda origin access control, or Lambda invoke permissions.
+Each enabled server profile SHALL bind one exact alias-qualified Lambda Function URL origin in the closed client catalog. The browser SHALL send root paths such as `/lookup-resources` and `/check-permission` directly to that origin. Those paths MUST NOT contain `/api`, a route version, backend, storage, or profile prefix. CloudFront MUST NOT contain Lambda origins, API behaviors, API cache/request policies, Lambda origin access control, or Lambda invoke permissions.
 
 #### Scenario: Same suffix targets two profiles
 - **WHEN** Datahike/S3 and Datomic/DynamoDB bootstrap paths are requested
@@ -24,6 +24,13 @@ Server Function URLs SHALL use `NONE` authorization so a browser can invoke them
 #### Scenario: Another browser origin attempts a request
 - **WHEN** a browser from another origin sends a preflight
 - **THEN** the Function URL SHALL omit permission for that origin while direct requests from `https://demo.eacl.dev` receive the exact CORS grant
+
+### Requirement: Demo functions use unreserved account concurrency
+Production demo functions SHALL have no reserved-concurrency setting. Cost alarms and bounded per-request work SHALL remain in place, but ordinary parallel requests MUST NOT fail with `ReservedFunctionConcurrentInvocationLimitExceeded` because the function's reservation is exhausted.
+
+#### Scenario: Two cold requests overlap
+- **WHEN** concurrent requests require more Lambda environments than a previous reservation allowed
+- **THEN** Lambda SHALL use available unreserved account concurrency and SHALL not reject them due to a function-level reserved limit
 
 ### Requirement: Infrastructure and data lifecycles are independent
 Foundation, each stateless runtime, and each stateful dataset SHALL be separate infrastructure units. A profile deployment MUST NOT replace another profile, database, or the canonical foundation.

@@ -1,6 +1,6 @@
 # EACL demo release report
 
-Report ID: `sha256:b8e95a97da1600bd16502f6ab99e16aa911ffa9698a279c5dd1e50245b974012`
+Report ID: `sha256:b72ee369076dc910abf8aa77520bc7c071002d0055dea01904c19d34cbddf481`
 
 Status: **pre-release**. This is an honest readiness report, not evidence that a production release exists. Local infrastructure definitions are never described as deployed or verified without live evidence.
 
@@ -17,10 +17,10 @@ This source pair identifies the report build, not a fleet generation. Every prof
 
 | Profile | Availability | Artifact SHA-256 | Fixture resources | Memory | Alarms | Rollback |
 | --- | --- | --- | ---: | --- | --- | --- |
-| datahike-s3 | qualifying | — | 1,000,000 | 2048 MiB candidate; unqualified | defined-not-deployed | unavailable |
-| datahike-dynamodb | unavailable | — | 1,000,000 | 2048 MiB candidate; unqualified | defined-not-deployed | unavailable |
-| datomic-dynamodb | disabled | — | 1,000,000 | 2048 MiB candidate; unqualified | defined-not-deployed | unavailable |
-| datalevin-memory | unavailable | — | 10,000 | 3072 MiB candidate; unqualified | defined-not-deployed | unavailable |
+| datahike-s3 | qualifying | — | 1,000,000 | 1024 MiB candidate; unqualified | defined-not-deployed | unavailable |
+| datahike-dynamodb | unavailable | — | 1,000,000 | 1024 MiB candidate; unqualified | defined-not-deployed | unavailable |
+| datomic-dynamodb | disabled | — | 1,000,000 | 1024 MiB candidate; unqualified | defined-not-deployed | unavailable |
+| datalevin-memory | unavailable | — | 10,000 | 1024 MiB candidate; unqualified | defined-not-deployed | unavailable |
 | jank-memory | unavailable | — | 10,000 | 4096 MiB candidate; unqualified | defined-not-deployed | unavailable |
 | datascript-browser-memory | qualifying | — | 10,000 | browser-managed | not-applicable | unavailable |
 

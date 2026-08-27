@@ -54,12 +54,12 @@ test("profile switching clears owned state and suppresses late panel completion"
 test("panel failures and cancellation do not erase settled sibling data", async () => {
   const environment = createMockTransportEnvironment("datahike-dynamodb", {
     delays: { "list-relationships": 30 },
-    failures: { authorize: { meta: { revision: "basis-1", requestId: "request-authorize" }, error: { code: "dependency-unavailable", message: "The profile dependency is unavailable." } } }
+    failures: { "check-permission": { meta: { revision: "basis-1", requestId: "request-check-permission" }, error: { code: "dependency-unavailable", message: "The profile dependency is unavailable." } } }
   });
   const controller = createExplorerController({ transportFactory: environment.transportFactory });
   await controller.switchProfile(environment.profile);
   assert.equal((await controller.runPanel("schema", "get-schema", {})).outcome, "success");
-  assert.equal((await controller.runPanel("decision", "authorize", {})).outcome, "failure");
+  assert.equal((await controller.runPanel("decision", "check-permission", {})).outcome, "failure");
   const pending = controller.runPanel("relationships", "list-relationships", {});
   assert.equal(controller.cancelPanel("relationships"), true);
   assert.equal((await pending).outcome, "canceled");
@@ -71,7 +71,7 @@ test("panel failures and cancellation do not erase settled sibling data", async 
 });
 
 test("preferences are bounded and unsupported consistency normalizes to the profile's sole mode", async () => {
-  const environment = createMockTransportEnvironment("datomic-dynamodb");
+  const environment = createMockTransportEnvironment("datalevin-memory");
   const controller = createExplorerController({ transportFactory: environment.transportFactory, initialPreferences: { consistencyMode: "exact" } });
   assert.equal(explorerDefaults.maximumPageSize, 1000);
   await controller.switchProfile(environment.profile);

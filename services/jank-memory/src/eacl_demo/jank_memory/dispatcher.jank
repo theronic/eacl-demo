@@ -4,7 +4,7 @@
 
 (def operations
   ["health" "bootstrap" "list-subjects" "get-object"
-   "list-relationships" "reverse-relationships" "authorize" "get-schema"
+   "list-relationships" "reverse-relationships" "check-permission" "get-schema"
    "get-cache-info" "count-objects"])
 
 (def operation-set (set operations))

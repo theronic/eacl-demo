@@ -4,7 +4,7 @@ const PANEL_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const PORTABLE_FIELDS = new Set(["subject", "subjectType", "resourceType", "resourceId", "permission", "relation", "view"]);
 const THEMES = new Set(["system", "light", "dark"]);
 const MAX_PAGE_SIZE = 1000;
-const DEFAULT_PREFERENCES = Object.freeze({ theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "current", expanded: [] });
+const DEFAULT_PREFERENCES = Object.freeze({ theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "minimize", expanded: [] });
 let announcementSequence = 0;
 
 /**

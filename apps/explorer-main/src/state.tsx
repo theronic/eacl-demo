@@ -94,7 +94,7 @@ export const AppStateProvider: ParentComponent = (props) => {
       100,
     );
     try {
-      return await healthRequest.run<ReaderHealth>("/api/health");
+      return await healthRequest.run<ReaderHealth>("/health");
     } finally {
       if (healthTimer !== undefined) window.clearInterval(healthTimer);
       healthTimer = undefined;
@@ -112,7 +112,7 @@ export const AppStateProvider: ParentComponent = (props) => {
   });
   const [bootstrap, { refetch: refetchBootstrapResource }] = createResource(
     healthReady,
-    () => bootstrapRequest.run<Bootstrap>("/api/bootstrap"),
+    () => bootstrapRequest.run<Bootstrap>("/bootstrap"),
   );
   const [bootstrapData, setBootstrapData] = createSignal<ApiSuccess<Bootstrap>>();
   const activeQueryBasis = createMemo(() => {
@@ -234,7 +234,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     setSnapshotRefreshing(true);
     try {
       const envelope = await snapshotRefreshRequest.run<Bootstrap>(
-        "/api/snapshot/refresh",
+        "/refresh-snapshot",
         { method: "POST" },
       );
       installBootstrap(envelope, true);
@@ -294,7 +294,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     let timer: number | undefined;
     const poll = async () => {
       try {
-        const result = await seedPollRequest.run<SeedProgress>("/api/seed");
+        const result = await seedPollRequest.run<SeedProgress>("/seed");
         if (!active) return;
         setSeedProgress(result.data);
         if (result.data.status === "seeding") {

@@ -18,16 +18,11 @@ export type FetchImplementation = typeof fetch;
 let fetchImplementation: FetchImplementation = (...args) => fetch(...args);
 let requestTimeoutMs = 35_000;
 
-export function apiPath(
-  path: string,
-  basePath = import.meta.env.BASE_URL,
-  apiBaseUrl = import.meta.env.VITE_EACL_API_BASE_URL ?? "",
-): string {
-  if (!path.startsWith("/api")) return path;
-  const apiBase = apiBaseUrl.replace(/\/$/, "");
-  if (apiBase) return `${apiBase}${path}`;
-  const base = basePath.replace(/\/$/, "");
-  return base ? `${base}${path}` : path;
+export function apiPath(path: string): string {
+  if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?.*)?$/u.test(path)) {
+    throw new TypeError("Explorer operation path is invalid");
+  }
+  return path;
 }
 
 export function setFetchImplementation(implementation?: FetchImplementation): void {

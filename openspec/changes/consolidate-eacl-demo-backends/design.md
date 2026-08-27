@@ -15,7 +15,7 @@ The user has initialized `/Users/petrus/code/eacl/eacl-demo` as a Git repository
 
 Several platform facts determine the design:
 
-1. Datomic Pro read-only connections return one fixed database/log value and support `d/db`, `d/log`, and `d/release`, not live synchronization. The current EACL Datomic source advertises modes whose authoritative/at-least/exact paths call `d/sync`. Therefore the read-only Lambda must serve direct snapshots over one captured `d/db` value and reject those modes before the generic source path. The underlying schema/storage still retains normal Datomic transaction history for the later separately qualified live EC2 demo.
+1. Datomic Pro read-only connections return one fixed database/log value and support `d/db`, `d/log`, and `d/release`, not live synchronization. The Lambda therefore constructs the EACL Datomic adapter directly over one captured `d/db` value without a connection-backed synchronization path. That immutable value is both current and authoritative for the deployed read-only dataset; at-least requests validate their floor against it, and exact requests select only verifiable bases at or before it. No serving request calls `d/sync`. The underlying schema/storage retains normal Datomic transaction history for a later separately qualified live EC2 demo.
 2. The Datahike DynamoDB adapter path still needs repair for typed failures, consistent publication reads, unprocessed keys, deadlines, and real AWS behavior. DynamoDB Local cannot prove those properties.
 3. Datalevin in-memory mode uses native resources and takes about 21 seconds to rebuild its packaged fixture in a fresh Lambda environment. Managed Java 25 supports SnapStart, so the candidate realizes the immutable reader during Lambda initialization, snapshots only a quiescent ready database, and is publishable only when AWS reports `OptimizationStatus=On` and the restored candidate passes the bounded operation smoke.
 4. Jank compiles natively. Lambda requires a Linux binary matching the configured architecture. `provided.al2023` supports x86_64 and arm64 custom runtimes, but AWS SnapStart excludes OS-only runtimes and container images. Upstream Jank currently exercises Linux release builds on GitHub's x64 `ubuntu-24.04` runner, not its arm64 runner, so Linux x86_64/AL2023 is the defensible initial target. Jank should start through AOT and does not need SnapStart.
@@ -44,7 +44,7 @@ Several platform facts determine the design:
 - Cursor or exact-basis portability across profiles, deployments, or browser page lifecycles.
 - Fleet-wide atomic rollout or a requirement that every backend expose the same consistency/history/storage features.
 - A formal-verification gate for demo build or deployment.
-- Historical or at-exact-snapshot support from the Datomic read-only Lambda; a future non-read-only EC2 demo owns that problem.
+- A live advancing Datomic head or transactor-coordinated consistency claim from the read-only Lambda; a future non-read-only EC2 demo owns that topology.
 - SnapStart for Jank, or representing its in-memory store as Datomic Pro/durable production storage.
 - Automatic durable seeding, migration, replacement, or deletion on ordinary source merges.
 - Automatic legacy destruction after cutover.
@@ -70,9 +70,9 @@ The first selector is a stable backend ID. The second is filtered by enabled reg
 
 | Backend | Storage options in this change | Runtime | Dataset |
 | --- | --- | --- | --- |
-| Datahike | S3, DynamoDB | managed Java arm64 Lambda; SnapStart disabled until a storage-specific restore lifecycle qualifies | exactly 1,000,000 for both |
-| Datomic | DynamoDB | managed Java Lambda, read-only Peer | exactly 1,000,000 |
-| Datalevin | in-memory LMDB | managed Java 25 arm64 Lambda; preinitialized published-version SnapStart | exactly 10,000 |
+| Datahike | S3, DynamoDB | managed Java arm64 Lambda; 1024 MB; preinitialized published-version SnapStart | exactly 1,000,000 for both |
+| Datomic | DynamoDB | managed Java Lambda, read-only Peer; published-version SnapStart | exactly 1,000,000 |
+| Datalevin | in-memory LMDB | managed Java 25 arm64 Lambda; 1024 MB; preinitialized published-version SnapStart | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
 | DataScript | browser memory | direct ClojureScript page runtime | exactly 10,000 prebuilt |
 
@@ -104,9 +104,11 @@ CloudFront has one private S3 origin and serves only the two static entries:
 ```
 
 The closed profile catalog binds each enabled server profile to one exact,
-alias-qualified Lambda Function URL origin. The browser appends the unchanged
-logical `/api/v1/<profile-id>/<operation>` path and calls that Function URL
-directly. It never sends server API traffic to `demo.eacl.dev`, and CloudFront
+alias-qualified Lambda Function URL origin. That origin is the complete profile
+namespace, so the browser appends only a root operation such as
+`/lookup-resources` or `/check-permission`. There is no `/api`, route version,
+backend, storage, or composite profile prefix, and the old `authorize` operation
+is removed. The browser never sends server API traffic to `demo.eacl.dev`, and CloudFront
 contains no Lambda origins, API behaviors, API cache/request policies, Lambda
 origin access control, or Lambda invoke permissions.
 
@@ -154,7 +156,7 @@ Durable seed jobs are private, idempotent, resumable, bounded, and observable. T
 
 ### 7. Adopt Datahike/S3 and repair Datahike/DynamoDB before enabling it
 
-The existing S3 dataset/reader are adopted after source/config/store/basis/read-only/common-contract evidence. The store is not reseeded for consolidation. The local replacement artifact is an architecture-neutral JVM uber-JAR with an AWS `RequestStreamHandler`, a custom existing-store-only Konserve facade that preflights the existing marker without invoking upstream `konserve-s3`'s marker-writing connect path, a writer implementation that denies dispatch/create/delete, deny-all blob/store mutation methods, an exact `GetObject`/`HeadObject` SDK membrane, one immutable snapshot per admitted request, a request-basis-bound bootstrap descriptor, a closed explorer operation map, and no ClojureScript/Closure compiler closure. The runtime candidate adds exact-prefix `s3:GetObject` IAM with no list/write/admin permission. Generic dependencies still contain upstream write-capable symbols; the claim is no reachable serving write path, backstopped by the SDK membrane and IAM, not physical absence of every write class. A local MinIO regression proves upstream physical-format compatibility and unchanged object hashes across open/query, but does not qualify the live store. The JAR also passes an exact pinned-AL2023 double-build and Java 25 kernel-load audit. SnapStart remains disabled and explicitly unqualified. These local properties do not qualify the live store or staged Lambda; the profile remains unavailable until task 8.4's external evidence passes.
+The existing S3 dataset/reader are adopted after source/config/store/basis/read-only/common-contract evidence. The store is not reseeded for consolidation. The local replacement artifact is an architecture-neutral JVM uber-JAR with an AWS `RequestStreamHandler`, a custom existing-store-only Konserve facade that preflights the existing marker without invoking upstream `konserve-s3`'s marker-writing connect path, a writer implementation that denies dispatch/create/delete, deny-all blob/store mutation methods, an exact `GetObject`/`HeadObject` SDK membrane, one immutable snapshot per admitted request, a request-basis-bound bootstrap descriptor, a closed explorer operation map, and no ClojureScript/Closure compiler closure. The runtime candidate adds exact-prefix `s3:GetObject` IAM with no list/write/admin permission. Generic dependencies still contain upstream write-capable symbols; the claim is no reachable serving write path, backstopped by the SDK membrane and IAM, not physical absence of every write class. A local MinIO regression proves upstream physical-format compatibility and unchanged object hashes across open/query, but does not qualify the live store. The JAR also passes an exact pinned-AL2023 double-build and Java 25 kernel-load audit. Production realizes the immutable reader before a published-version SnapStart checkpoint and is promoted only after AWS optimization plus restored read qualification. These local properties do not qualify the live store or staged Lambda; the profile remains unavailable until task 8.4's external evidence passes.
 
 That adopted store contains one million server entities plus ancillary data; it
 is not the canonical one-million-resource fixture and cannot enter the
@@ -184,8 +186,9 @@ and no ClojureScript/Closure, rejected upstream adapter, or alternate AWS HTTP
 client closure. The generic Datahike and AWS SDK dependencies still contain
 write-capable library symbols, so the claim is no reachable serving write path,
 backstopped by the exact read-only client and later exact-table IAM role—not
-physical absence of every upstream write class. SnapStart remains disabled and
-unqualified. Current source/package/fake-reader audits, the refreshed DynamoDB
+physical absence of every upstream write class. Production realizes the reader
+before a published-version SnapStart checkpoint and qualifies restored reads.
+Current source/package/fake-reader audits, the refreshed DynamoDB
 Local run, and the exact pinned-AL2023 double-build/Java 25 kernel-load audit
 are local-only; full stored database initialization, actual Lambda execution,
 and current real-AWS behavior remain open.
@@ -195,18 +198,21 @@ timeouts, partial batches, corruption/missing distinction, cancellation, and
 load. Only then is the dedicated table seeded to one million and benchmarked
 against S3.
 
-### 8. Datomic Lambda serves only one captured current value
+### 8. Datomic Lambda serves all consistency selections over one captured value
 
 Provisioning uses a temporary private transactor/EC2 lifecycle to create the database, install history-preserving schema, seed exactly one million resources, verify indexes/manifest/exemplars/final basis, record recovery identity, then stop the transactor and terminate compute. Relevant authorization attributes do not set `:db/noHistory true`; the qualification records multiple seed bases and proves normal-Peer `d/as-of` and history behavior before teardown.
 
-Serving calls `d/connect` with `read-only=true`, captures `fixed-db = d/db(conn)` once per environment, and constructs direct EACL Datomic snapshots over `fixed-db`. The UI and wire expose only the meaningful minimize-latency mode for that one executable path; an explicit `current` request is rejected instead of preserving a second meaningless alias. It also rejects fully-consistent, at-least-as-fresh, at-exact-snapshot, history-date, and live refresh before the generic source operations; instrumentation proves serving never calls `d/sync` or transact.
+Serving calls `d/connect` with `read-only=true`, captures `fixed-db = d/db(conn)` once during Java initialization, and constructs the EACL Datomic adapter over `fixed-db` without passing the connection into request selection. Minimize-latency selects `fixed-db`. Fully-consistent selects the same value because it is the immutable authoritative head of this deployment, not a live transactor head. At-least-as-fresh verifies the authenticated requested revision is no newer than `fixed-db`. At-exact-snapshot accepts the current authenticated locator and may use `d/as-of` only for an authenticated retained revision that `fixed-db` can reconstruct. A future floor, foreign token, or unavailable exact basis fails closed. Instrumentation proves serving never calls `d/sync` or transact.
 
-The table/database is immutable after publication. Data refresh is blue/green per profile: qualify a new data identity and function version, then move only that alias/descriptor. Retaining storage history does not change the Lambda's fixed-current public contract. The future live/history-capable Datomic EC2 serving deployment is outside this change.
+The UI exposes the four EACL labels and describes their immutable-deployment scope. Datahike, by contrast, displays `fully-consistent*` disabled with an adjacent note because its read-only Lambda has no writer barrier. Both Datahike storage profiles expose at-least against the current captured basis and exact only for that current basis.
+
+The table/database is immutable after publication. Data refresh is blue/green per profile: qualify a new data identity and function version, then move only that alias/descriptor. Retaining storage history does not turn the Lambda into a live head. The future live/history-capable Datomic EC2 serving deployment is outside this change.
 
 The separate Datomic serving and seed JARs pass exact pinned-AL2023
-double-builds and Java 25 kernel-load audits. That closes only the artifact
-boundary; provisioning, seeding, history proof, actual Lambda execution,
-memory selection, and staged publication remain open.
+double-builds and Java 25 kernel-load audits. The handler forces the reader and
+captured basis during initialization, enables SnapStart on published versions,
+waits for `OptimizationStatus=On`, and promotes only after repeated restored
+health, consistency, permission, pagination, and mutation-denial qualification.
 
 ### 9. Datalevin is an ephemeral SnapStarted in-memory Lambda
 
@@ -237,9 +243,12 @@ Published version 39 in deployment run `33024147774` was AWS-optimized, reported
 SnapStart enabled through its restored bootstrap descriptor, passed the complete
 bounded smoke, and returned the first restored health response in 2,076 ms.
 The data remains native in-memory LMDB; SnapStart changes startup lifecycle,
-not storage or durability. Broader repeated restore/eviction/load evidence can
-still harden the topology later, but formal verification is not a merge gate
-for this demo.
+not storage or durability. Production memory is exactly 1024 MB. A 1024 MB
+candidate must pass restored semantic/load qualification with at least 20%
+process-memory headroom; failure triggers initialization or data-layout work,
+not a larger deployed memory setting. Broader repeated restore/eviction/load
+evidence can still harden the topology later, but formal verification is not a
+merge gate for this demo.
 
 ### 10. DataScript remains a separate direct static entry
 
@@ -334,7 +343,7 @@ it cannot name `live`. Durable generation and seed workflows stay separate and
 cost-gated. Source/workflow validation proves these paths remain available, not
 that any external qualification, seed, or transition has run.
 All staged qualification/transition URLs must match a separately configured
-exact alias-qualified Function URL origin and exact `/api/v1/<profile>` path;
+exact alias-qualified Function URL origin and exact root operation path;
 the input URL cannot make itself authoritative merely by being labeled staged.
 
 ### 14. GitHub settings favor safe speed and AWS OIDC
@@ -381,9 +390,16 @@ storage identifiers, exception messages/stacks, and credentials are forbidden.
 Records are byte-bounded, telemetry failure cannot change the request or
 initialization result, and log groups use bounded retention. The closed signal
 set is requests, errors, duration, initialization, restore, throttles, timeouts,
-OOM, and storage access. Datahike and Datomic emit initialization rather than
-restore signals. Datalevin publishes only an AWS-optimized SnapStart version
-and measures its first restored health request in deployment smoke.
+OOM, and storage access. Datahike, Datomic, and Datalevin publish only
+AWS-optimized SnapStart versions and measure their first restored health and
+representative storage request in deployment smoke.
+
+Production demo functions use the account's unreserved concurrency pool. The
+runtime retains bounded request work and per-environment bulkheads, while cost
+alarms remain the spend guard. No runtime template sets reserved concurrency,
+so parallel cold requests cannot fail with
+`ReservedFunctionConcurrentInvocationLimitExceeded` because of a function-level
+reservation.
 
 Each enabled server profile requires seven exact-profile/function alarms
 (duration, errors, health, initialization, OOM, throttles, and timeouts) feeding

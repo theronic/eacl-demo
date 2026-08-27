@@ -9,7 +9,7 @@ const schemas = Object.fromEntries(await Promise.all(names.map(async (name) => [
 const validate = createRuntimeValidators(schemas);
 const context = {
   requestId: "request-1",
-  operation: "authorize",
+  operation: "check-permission",
   identity: { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deploy-1", dataManifestSha256: "d".repeat(64) },
   basis: { behavior: "request-snapshot", id: "basis-1", capturedAt: "2026-08-25T12:00:00Z", fixedForEnvironment: false }
 };

@@ -23,8 +23,8 @@ test("mutating, setup, benchmark, eviction, and administration operations cannot
 });
 
 test("a handler table with a missing or extra route is rejected before serving", () => {
-  const missing = { ...handlers }; delete missing.authorize;
+  const missing = { ...handlers }; delete missing["check-permission"];
   assert.throws(() => createReadOnlyDispatcher(missing), /exactly the closed read-only/u);
   assert.throws(() => createReadOnlyDispatcher({ ...handlers, seed: async () => {} }), /exactly the closed read-only/u);
-  assert.throws(() => createReadOnlyDispatcher({ ...handlers, authorize: "not-a-function" }), /invalid public handler/u);
+  assert.throws(() => createReadOnlyDispatcher({ ...handlers, "check-permission": "not-a-function" }), /invalid public handler/u);
 });

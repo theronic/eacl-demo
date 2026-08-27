@@ -29,7 +29,6 @@ assert.match(source, /:behavior "fixed-environment"/u);
 assert.match(source, /fixedForEnvironment true/u);
 assert.ok(wireSchema.$defs.basis.properties.behavior.enum.includes("fixed-environment"));
 assert.equal(wireSchema.$defs.basis.properties.behavior.enum.includes("fixed-current"), false);
-assert.match(source, /unsupported-consistency/u);
 assert.match(source, /http\/normalize-input/u);
 assert.doesNotMatch(source, /:profileId profile-id/u);
 assert.doesNotMatch(source, /\bd\/sync\b|\bd\/transact\b|create-database|delete-database|list-backups/u);
@@ -41,7 +40,8 @@ const reader = files.find((entry) => entry.relative.endsWith("reader.clj")).text
 const boundary = files.find((entry) => entry.relative.endsWith("boundary.clj")).text;
 assert.equal((reader.match(/\bcurrent-db connection\b/gu) ?? []).length, 1);
 assert.equal((reader.match(/\bdirect-snapshot client fixed-db\b/gu) ?? []).length, 1);
-assert.match(boundary, /supported-consistency\s+#\{"minimize"\}/u);
+assert.match(boundary,
+  /supported-consistency\s+#\{"minimize" "authoritative" "at-least" "exact"\}/u);
 assert.doesNotMatch(boundary, /supported-consistency\s+#\{[^}]*"current"/u);
 console.log(`Datomic fixed-current serving source audit passed (${files.length} files)`);
 

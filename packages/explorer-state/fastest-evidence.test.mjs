@@ -26,7 +26,7 @@ test("complete content-addressed comparable evidence validates", () => {
 test("scope, operation weights, production path, deployment binding, decision rule, and lifetime are fixed", () => {
   const mutations = [
     (evidence) => { evidence.methodVersion = "marketing-v2"; },
-    (evidence) => { evidence.workload.operationWeights.authorize = 39; evidence.workload.operationWeights.bootstrap = 6; },
+    (evidence) => { evidence.workload.operationWeights.checkPermission = 39; evidence.workload.operationWeights.bootstrap = 6; },
     (evidence) => { evidence.environment.productionPath = "direct-origin"; },
     (evidence) => { evidence.candidates[0].storage = "dynamodb"; },
     (evidence) => { evidence.candidates[0].deploymentId = ""; },
@@ -61,7 +61,7 @@ test("incomparable fixture, workload, source, runtime, cache, or memory bindings
     (evidence) => { evidence.candidates[1].runtime = "java21"; },
     (evidence) => { evidence.candidates[1].cacheLanesDigest = `sha256:${"3".repeat(64)}`; },
     (evidence) => { evidence.candidates[1].memoryMb = 4096; },
-    (evidence) => { evidence.candidates[1].snapStart = "PublishedVersions"; }
+    (evidence) => { evidence.candidates[1].snapStart = "None"; }
   ];
   for (const mutate of mutations) {
     const evidence = fastestEvidence();

@@ -46,8 +46,9 @@ Parameters:
     AllowedPattern: "^[ -~]{32,256}$"
   MemorySize:
     Type: Number
-    Default: 3072
-    AllowedValues: [2048, 3072, 4096, 5120, 6144]
+    Default: 1024
+    AllowedValues: [1024]
+    Description: Production is fixed at 1024 MB; optimize fixture realization rather than increasing memory.
   CandidateAliasName:
     Type: String
     Default: candidate
@@ -119,7 +120,6 @@ Resources:
       Handler: eacl_demo.datalevin_memory.LambdaHandler::handleRequest
       MemorySize: !Ref MemorySize
       PackageType: Zip
-      ReservedConcurrentExecutions: 1
       Role: !GetAtt ExecutionRole.Arn
       Runtime: java25
       SnapStart:

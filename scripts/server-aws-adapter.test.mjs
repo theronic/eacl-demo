@@ -102,9 +102,10 @@ function foundationRunAws({ driftOriginRequestPolicy = false } = {}) {
       Handler: "eacl_demo.datahike_s3.LambdaHandler::handleRequest",
       PackageType: "Zip",
       Architectures: ["arm64"],
+      MemorySize: 1024,
       State: "Active",
       LastUpdateStatus: "Successful",
-      SnapStart: { ApplyOn: "None" },
+      SnapStart: { ApplyOn: "PublishedVersions" },
       RevisionId: "function-revision-7"
     });
     if (command(args, "lambda", "list-tags")) return ok({ Tags: { Project: "eacl-demo", Profile: profileId } });

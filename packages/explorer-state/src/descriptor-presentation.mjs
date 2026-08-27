@@ -5,14 +5,13 @@ const OPERATION_PRESENTATION = Object.freeze({
   "get-object": notice("get-object", "Objects", "Open one normalized object by canonical type and identifier."),
   "list-relationships": notice("list-relationships", "Relationships", "Expand outbound relationships in bounded cursor pages."),
   "reverse-relationships": notice("reverse-relationships", "Reverse lookup", "Find normalized objects related to a selected subject."),
-  authorize: notice("authorize", "Authorization", "Evaluate one subject, resource, and permission with a bounded explanation path."),
+  "check-permission": notice("check-permission", "Authorization", "Evaluate one subject, resource, and permission."),
   "get-schema": notice("get-schema", "Schema", "Inspect the read-only normalized authorization schema."),
   "get-cache-info": notice("get-cache-info", "Cache", "Inspect the advertised cache scope and request result without mutating it."),
   "count-objects": notice("count-objects", "Bounded counts", "Count only up to an explicit ceiling and distinguish exact from truncated results.")
 });
 
 const CONSISTENCY_PRESENTATION = Object.freeze({
-  current: notice("current", "Current", "Use the profile's current published or lifecycle-owned database value."),
   minimize: notice("minimize", "Minimize latency", "Use the lowest-latency consistency path this profile advertises."),
   authoritative: notice("authoritative", "Authoritative", "Wait for the profile's qualified authoritative read boundary."),
   "at-least": notice("at-least", "At least as fresh", "Require a basis that is no older than the supplied qualified marker."),
@@ -85,7 +84,7 @@ export function projectDescriptorPresentation(descriptor) {
       objects: supported.has("get-object") && supported.has("count-objects"),
       relationships: supported.has("list-relationships"),
       reverseRelationships: supported.has("reverse-relationships"),
-      authorization: supported.has("authorize"),
+      authorization: supported.has("check-permission"),
       schema: supported.has("get-schema"),
       cache: supported.has("get-cache-info"),
       consistency: consistencyModes.length > 1

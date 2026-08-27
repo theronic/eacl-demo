@@ -36,8 +36,8 @@ The profile SHALL bind its deterministic fixture and deployment identity in boot
 - **WHEN** an operator moves the alias back to a prior immutable dataset/artifact
 - **THEN** the old function version SHALL rebuild its own exact packaged fixture and advertise its own deployment/basis; it SHALL not share mutable database state with the newer environment
 
-### Requirement: Cold initialization is bounded and measurable
-The current deployment SHALL leave SnapStart disabled and rebuild its native in-memory database once per cold Lambda environment. Fixture parsing and writes SHALL use bounded batches, and the ordinary candidate smoke SHALL report wall time to first healthy response. A future SnapStart experiment may evaluate pre-checkpoint handles or after-restore rebuild only after native restore safety and AWS hook limits pass independently.
+### Requirement: Cold initialization and restore are bounded and measurable
+The production deployment SHALL initialize its native in-memory database before a published Java SnapStart checkpoint. Fixture parsing and writes SHALL use bounded batches, publication SHALL wait for AWS `OptimizationStatus=On`, and ordinary candidate smoke SHALL report wall time to first restored healthy response. Repeated restore, eviction, lock, and load evidence SHALL remain part of qualification.
 
 #### Scenario: Pre-checkpoint handle passes one smoke test only
 - **WHEN** a snapshotted native handle succeeds once but lacks repeated restore, eviction, lock, and load evidence
@@ -55,14 +55,14 @@ After readiness, the service SHALL expose only shared read routes and SHALL prev
 - **THEN** the route SHALL be rejected before any transaction and the current fixture/basis SHALL remain unchanged
 
 ### Requirement: Managed Lambda configuration
-The profile SHALL use a supported managed Java runtime, published function versions, an alias, and no EFS or durable database attachment. SnapStart MUST remain disabled until separate native-handle restore evidence passes.
+The profile SHALL use a supported managed Java runtime, published function versions, an alias, qualified SnapStart, and no EFS or durable database attachment. The production function SHALL use exactly 1024 MB and no reserved-concurrency cap.
 
 #### Scenario: Infrastructure requests an incompatible feature
-- **WHEN** a plan enables SnapStart without the required native restore evidence
+- **WHEN** a plan configures more than 1024 MB or reserved concurrency for the production function
 - **THEN** validation SHALL fail before deployment
 
 ### Requirement: Smallest fitting Datalevin memory is measured
-The final memory setting SHALL be the lowest candidate that passes initialization/restore, the full 10,000-resource semantic and load suite, native/direct/heap observation, agreed latency/error/GC limits, and at least 20% peak-memory headroom. The report SHALL distinguish heap, native LMDB mapping, direct buffers, code, and process RSS as far as the runtime exposes them.
+The final memory setting SHALL be 1024 MB and SHALL pass initialization/restore, the full 10,000-resource semantic and load suite, native/direct/heap observation, agreed latency/error/GC limits, and at least 20% peak-memory headroom. The report SHALL distinguish heap, native LMDB mapping, direct buffers, code, and process RSS as far as the runtime exposes them. Failure at 1024 MB SHALL require initialization/data-layout optimization and MUST NOT be resolved by increasing production memory.
 
 #### Scenario: Native memory is omitted from the report
 - **WHEN** heap headroom passes but process RSS/native mapping approaches the Lambda limit

@@ -13,7 +13,7 @@
    "EACL_CORE_SHA" "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
-   "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "2048"})
+   "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
 
 (def basis
   {:behavior "fixed-environment"
@@ -57,11 +57,11 @@
   (let [runtime (handler/initialize environment fake-reader)
         health (handler/handle-event
                 runtime
-                (event "/api/v1/datomic-dynamodb/health" "GET" nil)
+                (event "/health" "GET" nil)
                 10000)
         denied (handler/handle-event
                 runtime
-                (event "/api/v1/datomic-dynamodb/seed" "POST" "{}")
+                (event "/seed" "POST" "{}")
                 10000)
         health-body (json/read-str (:body health) :key-fn keyword)
         denied-body (json/read-str (:body denied) :key-fn keyword)]
@@ -78,7 +78,7 @@
   (let [runtime (handler/initialize environment fake-reader)
         response (handler/handle-event
                   runtime
-                  (assoc (event "/api/v1/datomic-dynamodb/health" "GET" nil)
+                  (assoc (event "/health" "GET" nil)
                          :unexpected "secret")
                   10000)
         body (json/read-str (:body response) :key-fn keyword)]

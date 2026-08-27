@@ -72,7 +72,7 @@ export function createExplorerOperations({ controller, onState = () => {} }) {
     return runCursorPage({ key, panelId: `reverse-${stableKey(key)}`, operation: "reverse-relationships", base: withConsistency(base), direction });
   }
 
-  async function authorize({ subjectType, subjectId, resourceType, resourceId, permission }) {
+  async function checkPermission({ subjectType, subjectId, resourceType, resourceId, permission }) {
     synchronizeEpoch();
     const input = withConsistency({
       subjectType: identifier(subjectType, "subject type"),
@@ -82,7 +82,7 @@ export function createExplorerOperations({ controller, onState = () => {} }) {
       permission: identifier(permission, "permission")
     });
     const panelId = `authorization-${stableKey(`${resourceType}:${resourceId}:${permission}`)}`;
-    return controller.runPanel(panelId, "authorize", input, { validate: (value) => validateDecision(value, input) });
+    return controller.runPanel(panelId, "check-permission", input, { validate: (value) => validateDecision(value, input) });
   }
 
   async function getSchema() {
@@ -114,7 +114,7 @@ export function createExplorerOperations({ controller, onState = () => {} }) {
     return controller.cancelPanel(`count-${stableKey(key)}`);
   }
 
-  return { listSubjects, getObject, countObjects, listRelationships, reverseRelationships, authorize, getSchema, getCacheInfo, cancel, cancelCount, reset, getState: () => structuredClone(state) };
+  return { listSubjects, getObject, countObjects, listRelationships, reverseRelationships, checkPermission, getSchema, getCacheInfo, cancel, cancelCount, reset, getState: () => structuredClone(state) };
 
   async function runCursorPage({ key, panelId, operation, base, direction }) {
     synchronizeEpoch();

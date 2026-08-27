@@ -215,10 +215,12 @@
 
 (defn- operation-from-event
   [context event]
-  (let [path (get event "rawPath")
-        prefix (str "/api/v1/" (:profile-id context) "/")]
-    (if (and (string? path) (str/starts-with? path prefix))
-      (safe-value (subs path (count prefix))
+  (let [path (get event "rawPath")]
+    (if (and (string? path)
+             (str/starts-with? path "/")
+             (< 1 (count path))
+             (not (str/includes? (subs path 1) "/")))
+      (safe-value (subs path 1)
                   dispatcher/operation-set "unknown")
       "unknown")))
 

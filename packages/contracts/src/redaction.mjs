@@ -2,7 +2,7 @@ import limits from "../limits.v1.json" with { type: "json" };
 import { createFailure } from "./envelopes.mjs";
 
 const SENSITIVE_KEY = /(?:secret|token|password|passwd|credential|authorization|cookie|signing|private.?key|access.?key|connection.?string|database.?url|datomic.?uri)/iu;
-const STABLE_CODES = new Set(["validation-error", "request-too-large", "method-not-allowed", "route-not-found", "unsupported-media-type", "cursor-invalid", "cursor-expired", "cursor-scope-mismatch", "unsupported-consistency", "cancelled", "deadline-exceeded", "overloaded", "throttled", "dependency-unavailable", "storage-missing", "storage-corrupt", "identity-mismatch", "response-too-large", "internal-error"]);
+const STABLE_CODES = new Set(["validation-error", "request-too-large", "method-not-allowed", "route-not-found", "unsupported-media-type", "cursor-invalid", "cursor-expired", "cursor-scope-mismatch", "unsupported-consistency", "freshness-unavailable", "cancelled", "deadline-exceeded", "overloaded", "throttled", "dependency-unavailable", "storage-missing", "storage-corrupt", "identity-mismatch", "response-too-large", "internal-error"]);
 
 export function redactRecord(value, depth = 0) {
   if (depth > 8) return "[TRUNCATED]";

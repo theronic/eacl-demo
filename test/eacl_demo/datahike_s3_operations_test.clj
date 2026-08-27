@@ -25,7 +25,9 @@
   ((get handlers operation)
    {:snapshot snapshot
     :basis public-basis
-    :input input
+    :input (assoc input
+                  :eacl-demo/snapshot snapshot
+                  :eacl-demo/public-basis public-basis)
     :check-active! (fn [])}))
 
 (deftest immutable-datahike-operations-are-bounded-normalized-and-cursor-authenticated-test
@@ -121,13 +123,13 @@
                                     :relation "owner"})
                            [:items 0 :id])))
             (is (true? (:allowed
-                        (invoke handlers "authorize" snapshot
+                        (invoke handlers "check-permission" snapshot
                                 {:subjectType "user" :subjectId "user-1"
                                  :resourceType "account"
                                  :resourceId "account-0"
                                  :permission "admin"}))))
             (is (= {:allowed false}
-                   (invoke handlers "authorize" snapshot
+                   (invoke handlers "check-permission" snapshot
                            {:subjectType "user" :subjectId "unknown"
                             :resourceType "account"
                             :resourceId "account-0"
@@ -139,6 +141,30 @@
                                   {:subjectType "user" :subjectId "user-1"
                                    :resourceType "account"
                                    :permission "admin" :pageSize 10})))))
+            (doseq [consistency ["at-least" "exact"]]
+              (is (= ["account-0"]
+                     (mapv :id
+                           (:items
+                            (invoke handlers "lookup-resources" snapshot
+                                    (cond-> {:subjectType "user"
+                                             :subjectId "user-1"
+                                             :resourceType "account"
+                                             :permission "admin"
+                                             :pageSize 10
+                                             :consistency consistency}
+                                      (= "at-least" consistency)
+                                      (assoc :atLeastAsFreshAs
+                                             "2026-08-25T23:59:59Z"))))))))
+            (is (= "freshness-unavailable"
+                   (:code
+                    (ex-data
+                     (try
+                       (invoke handlers "lookup-resources" snapshot
+                               {:subjectType "user" :subjectId "user-1"
+                                :resourceType "account" :permission "admin"
+                                :pageSize 10 :consistency "at-least"
+                                :atLeastAsFreshAs "2026-08-26T00:00:01Z"})
+                       (catch clojure.lang.ExceptionInfo error error))))))
             (is (= ["user-1"]
                    (mapv :id
                          (:items

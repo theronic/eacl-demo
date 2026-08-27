@@ -49,7 +49,7 @@ function PermissionDecisionRow(props: {
       app.mutationRevision(),
     ] as const);
   const [decision, { refetch }] = createResource(source, (input) =>
-    app.runQuery<PermissionDecision>(request, "/api/eacl/check-permission", {
+    app.runQuery<PermissionDecision>(request, "/check-permission", {
       method: "POST",
       body: JSON.stringify({
         subject: { type: "user", id: input[0] },
@@ -168,7 +168,7 @@ function PermissionSubjects(props: {
           app.mutationRevision(),
         ] as const);
   const [subjects, { refetch }] = createResource(source, (input) =>
-    app.runQuery<ObjectPage>(request, "/api/eacl/lookup-subjects", {
+    app.runQuery<ObjectPage>(request, "/lookup-subjects", {
       method: "POST",
       body: JSON.stringify({
         resource: { type: input[0], id: input[1] },

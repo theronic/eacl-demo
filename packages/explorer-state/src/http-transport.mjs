@@ -4,7 +4,7 @@ import { assertDescriptorIdentity } from "./profile-controller.mjs";
 
 const OPERATIONS = new Set([
   "health", "bootstrap", "list-subjects", "get-object",
-  "list-relationships", "reverse-relationships", "authorize", "get-schema",
+  "list-relationships", "reverse-relationships", "check-permission", "get-schema",
   "get-cache-info", "count-objects", "lookup-resources", "lookup-subjects",
   "count-resources"
 ]);
@@ -35,17 +35,14 @@ export function createServerProfileTransport({
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000) throw new RangeError("HTTP profile timeout is invalid");
   if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 1_048_576) throw new RangeError("HTTP response limit is invalid");
   const apiOrigin = validateApiOrigin(profile.apiOrigin);
-  const route = `/api/v1/${profile.id}`;
+  const route = "/";
   if (profile.route !== route) throw new Error("enabled profile route is not canonical");
   const lifecycle = new AbortController();
   let released = false;
   let sequence = 0;
-  let requestTail = Promise.resolve();
 
   function request(operation, input = {}, options = {}) {
-    const pending = requestTail.then(() => performRequest(operation, input, options));
-    requestTail = pending.then(() => undefined, () => undefined);
-    return pending;
+    return performRequest(operation, input, options);
   }
 
   async function performRequest(operation, input, options) {
@@ -60,8 +57,9 @@ export function createServerProfileTransport({
     const headers = method === "POST"
       ? { "content-type": "application/json; charset=utf-8", "x-eacl-request-id": requestId }
       : { "x-eacl-request-id": requestId };
-    const url = new URL(`${route}/${operation}`, apiOrigin);
-    if (url.origin !== apiOrigin || url.pathname !== `${route}/${operation}` || url.search || url.hash) throw new Error("HTTP profile request escaped its direct Function URL route");
+    const path = `/${operation}`;
+    const url = new URL(path, apiOrigin);
+    if (url.origin !== apiOrigin || url.pathname !== path || url.search || url.hash) throw new Error("HTTP profile request escaped its direct Function URL route");
     const bounded = boundedSignal([lifecycle.signal, options.signal], timeoutMs);
     try {
       const response = await fetchImpl(url.href, {

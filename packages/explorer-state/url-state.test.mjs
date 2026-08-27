@@ -39,5 +39,5 @@ test("preference-shaped portable fields normalize strictly", () => {
     { code: "invalid-value", field: "consistency" }
   ]);
   assert.equal("pageSize" in parsed.state, false);
-  assert.equal(serializeCanonicalUrl({ ...parsed.state, pageSize: 1000, cacheEnabled: true, consistencyMode: "current" }, catalog), "?backend=datomic&storage=dynamodb&page-size=1000&cache=on&consistency=current");
+  assert.equal(serializeCanonicalUrl({ ...parsed.state, pageSize: 1000, cacheEnabled: true, consistencyMode: "minimize" }, catalog), "?backend=datomic&storage=dynamodb&page-size=1000&cache=on&consistency=minimize");
 });

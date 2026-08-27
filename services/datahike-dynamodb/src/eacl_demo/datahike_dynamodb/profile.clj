@@ -7,7 +7,7 @@
 
 (def closed-operations
   #{"health" "bootstrap" "list-subjects" "get-object"
-    "list-relationships" "reverse-relationships" "authorize" "get-schema"
+    "list-relationships" "reverse-relationships" "check-permission" "get-schema"
     "lookup-resources" "lookup-subjects" "count-resources"
     "get-cache-info" "count-objects"})
 
@@ -24,7 +24,7 @@
   (boundary/descriptor
    {:identity identity
     :runtime {:execution "lambda" :name "java25" :architecture "arm64"
-              :snapStart "disabled"}
+              :snapStart "enabled"}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 1000000
               :serverCount 998417
@@ -32,12 +32,11 @@
     :basis basis
     :capabilities
     {:operations (vec (sort operations))
-     :consistencyModes ["current"]
+     :consistencyModes ["minimize" "at-least" "exact"]
      :snapshotBehavior "request-snapshot"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only" "no-history-api" "unsupported-consistency"
-                   "no-snapstart"]}
+     :limitations ["read-only" "no-history-api" "unsupported-consistency"]}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value 1}
              {:name "responseBodyBytes" :value 1048576}

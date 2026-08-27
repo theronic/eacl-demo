@@ -7,7 +7,7 @@ Metadata:
     Runtime: java25
     Architecture: arm64
     SnapshotBehavior: request-snapshot
-    SnapStartPolicy: disabled-until-restore-qualification
+    SnapStartPolicy: published-version-preinitialized-reader
 
 Parameters:
   FunctionName:
@@ -64,9 +64,9 @@ Parameters:
     MaxValue: 100000
   MemorySize:
     Type: Number
-    Default: 2048
-    AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
-    Description: Candidate only; publish the smallest passing non-SnapStart sweep result.
+    Default: 1024
+    AllowedValues: [1024]
+    Description: Production is fixed at 1024 MB; optimize the reader rather than increasing memory.
   CandidateAliasName:
     Type: String
     Default: candidate
@@ -152,11 +152,10 @@ Resources:
       Handler: eacl_demo.datahike_s3.LambdaHandler::handleRequest
       MemorySize: !Ref MemorySize
       PackageType: Zip
-      ReservedConcurrentExecutions: 1
       Role: !GetAtt ExecutionRole.Arn
       Runtime: java25
       SnapStart:
-        ApplyOn: None
+        ApplyOn: PublishedVersions
       Timeout: 30
       TracingConfig:
         Mode: PassThrough
@@ -236,4 +235,4 @@ Outputs:
   Architecture:
     Value: arm64
   SnapStartEnabled:
-    Value: "false"
+    Value: "true"

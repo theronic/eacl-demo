@@ -43,7 +43,7 @@ test("the unmeasured runtime stays cost-bounded", () => {
   assert.match(template, /^\s{4}Default: 4096$/mu);
   assert.match(template, /^\s{4}MinValue: 128$/mu);
   assert.match(template, /^\s{4}MaxValue: 10240$/mu);
-  assert.match(template, /^\s{6}ReservedConcurrentExecutions: 2$/mu);
+  assert.doesNotMatch(template, /ReservedConcurrentExecutions/u);
   assert.match(template, /^\s{6}EphemeralStorage:\s*\n\s{8}Size: 512$/mu);
   assert.doesNotMatch(template, /ProvisionedConcurrency|AWS::KMS|KmsKeyArn/u);
   assert.match(template, /LogGroup:\s*\n\s*Type: AWS::Logs::LogGroup\s*\n\s*DeletionPolicy: Delete\s*\n\s*UpdateReplacePolicy: Delete/u);

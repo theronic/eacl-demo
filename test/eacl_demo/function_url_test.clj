@@ -17,27 +17,27 @@
 
 (deftest function-url-event-normalization-test
   (is (= {:ok? true
-          :request {:path "/api/v1/datomic-dynamodb/health"
+          :request {:path "/health"
                     :method :get :request-id "request-1" :input {}}}
          (function-url/normalize-event
-          (event "/api/v1/datomic-dynamodb/health" "GET" nil))))
+          (event "/health" "GET" nil))))
   (let [body (json/write-str {:subjectType "user" :subjectId "user-1"
                               :resourceType "account"
                               :resourceId "account-0"
                               :permission "admin"})
         normalized (function-url/normalize-event
-                    (event "/api/v1/datomic-dynamodb/authorize" "POST" body))]
+                    (event "/check-permission" "POST" body))]
     (is (:ok? normalized))
     (is (= "user-1" (get-in normalized [:request :input :subjectId]))))
   (is (= "browser-7-2"
          (get-in (function-url/normalize-event
-                  (assoc-in (event "/api/v1/datomic-dynamodb/health"
+                  (assoc-in (event "/health"
                                    "GET" nil)
                             [:headers "X-EACL-Request-ID"] "browser-7-2"))
                  [:request :request-id])))
   (is (= "request-1"
          (get-in (function-url/normalize-event
-                  (assoc-in (event "/api/v1/datomic-dynamodb/health"
+                  (assoc-in (event "/health"
                                    "GET" nil)
                             [:headers "X-EACL-Request-ID"] ""))
                  [:request :request-id])))
@@ -45,25 +45,25 @@
         encoded (.encodeToString (Base64/getEncoder) (.getBytes body "UTF-8"))]
     (is (= "server-1"
            (get-in (function-url/normalize-event
-                    (assoc (event "/api/v1/datomic-dynamodb/get-object"
+                    (assoc (event "/get-object"
                                   "POST" encoded)
                            :isBase64Encoded true))
                    [:request :input :id])))))
 
 (deftest malformed-transport-fails-before-boundary-test
   (doseq [[expected malformed]
-          [["validation-error" (assoc (event "/api/v1/datomic-dynamodb/health"
+          [["validation-error" (assoc (event "/health"
                                              "GET" nil)
                                       :unexpected true)]
-           ["validation-error" (assoc (event "/api/v1/datomic-dynamodb/health"
+           ["validation-error" (assoc (event "/health"
                                              "GET" nil)
                                       :rawQueryString "debug=true")]
-           ["unsupported-media-type" (event "/api/v1/datomic-dynamodb/authorize"
+           ["unsupported-media-type" (event "/check-permission"
                                              "POST" nil)]
-           ["validation-error" (assoc (event "/api/v1/datomic-dynamodb/authorize"
+           ["validation-error" (assoc (event "/check-permission"
                                              "POST" "***")
                                       :isBase64Encoded true)]
-           ["validation-error" (event "/api/v1/datomic-dynamodb/authorize"
+           ["validation-error" (event "/check-permission"
                                        "POST" "[]")]]]
     (is (= expected (:code (function-url/normalize-event malformed))))))
 
@@ -86,7 +86,7 @@
                    [:error :code])))))
 
 (deftest internal-error-response-retains-the-compact-contract-test
-  (let [request (assoc-in (event "/api/v1/datomic-dynamodb/health" "GET" nil)
+  (let [request (assoc-in (event "/health" "GET" nil)
                           [:headers "X-EACL-Request-ID"] "browser-9-1")
         response (function-url/internal-error-response request "deploy-1")]
     (is (= 500 (:statusCode response)))

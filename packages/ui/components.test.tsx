@@ -48,8 +48,8 @@ describe("shared explorer component states", () => {
     const html = renderToString(() => <PanelBoundary id="consistency" title="Consistency"><ConsistencySelector modes={presentation.consistency.modes} value={presentation.consistency.defaultMode} onChange={() => {}} limitations={presentation.limitations} /></PanelBoundary>);
     expect(html).toContain("Fixed current snapshot");
     expect(html).toContain("No synchronization");
-    expect(html).not.toContain("Exact snapshot");
-    expect(html).not.toContain("At least as fresh");
+    expect(html).toContain("Exact snapshot");
+    expect(html).toContain("At least as fresh");
     expect(html).toContain('id="consistency-heading"');
     expect(html).toContain('tabindex="-1"');
   });

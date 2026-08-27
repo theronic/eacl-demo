@@ -4,7 +4,7 @@ import test from "node:test";
 import { runRepresentativeWorkloads, UnsupportedWorkloadPhaseError } from "./src/workloads.mjs";
 
 const dataset = { fixtureId: "canonical-v1-10000", logicalResourceCount: 10_000, manifestSha256: "a".repeat(64) };
-const operationMix = [{ operation: "authorize", input: { subjectId: "user-1" }, weight: 2, cacheState: "warm" }, { operation: "health", input: {}, weight: 1, cacheState: "bypass" }];
+const operationMix = [{ operation: "check-permission", input: { subjectId: "user-1" }, weight: 2, cacheState: "warm" }, { operation: "health", input: {}, weight: 1, cacheState: "bypass" }];
 const criteria = {
   requiredPhases: ["cold", "warm"], concurrency: 2, maximumErrorRate: 0, minimumMemoryHeadroomPercent: 20,
   repetitions: { cold: 2, restore: 2, warm: 4 }, minimumSamples: { cold: 2, restore: 2, warm: 4 },

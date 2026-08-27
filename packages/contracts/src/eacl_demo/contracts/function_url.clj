@@ -23,6 +23,7 @@
    "cursor-expired" 410
    "cursor-scope-mismatch" 409
    "unsupported-consistency" 422
+   "freshness-unavailable" 409
    "cancelled" 499
    "deadline-exceeded" 504
    "overloaded" 503

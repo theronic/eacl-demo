@@ -11,7 +11,7 @@ const FIELDS = [
   field("view", "view", 32, /^(?:objects|relationships|authorization|schema|cache)$/u),
   field("page-size", "pageSize", 4, /^(?:[1-9]|[1-9][0-9]{1,2}|1000)$/u, Number, String),
   field("cache", "cacheEnabled", 3, /^(?:on|off)$/u, (value) => value === "on", (value) => value ? "on" : "off"),
-  field("consistency", "consistencyMode", 15, /^(?:current|minimize|authoritative|at-least|exact|historical-date)$/u)
+  field("consistency", "consistencyMode", 15, /^(?:minimize|authoritative|at-least|exact|historical-date)$/u)
 ];
 const ALLOWED = new Set(["backend", "storage", ...FIELDS.map(({ parameter }) => parameter)]);
 const FORBIDDEN = /(?:cursor|token|basis|revision|request|secret|password|credential|seed|cache-state|page)/iu;

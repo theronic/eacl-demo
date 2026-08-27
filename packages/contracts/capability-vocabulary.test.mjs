@@ -15,7 +15,7 @@ test("every capability domain is non-empty, closed, and duplicate-free", () => {
 });
 
 test("the vocabulary can state each required semantic distinction", () => {
-  assert.equal(vocabulary.operations.includes("authorize"), true);
+  assert.equal(vocabulary.operations.includes("check-permission"), true);
   assert.equal(vocabulary.consistencyModes.includes("exact"), true);
   assert.equal(vocabulary.snapshotBehaviors.includes("fixed-environment"), true);
   assert.equal(vocabulary.cacheBehaviors.includes("browser-page-local"), true);

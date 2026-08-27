@@ -1,25 +1,25 @@
-const OPERATIONS = Object.freeze(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "get-schema", "get-cache-info", "count-objects"]);
+const OPERATIONS = Object.freeze(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "get-schema", "get-cache-info", "count-objects"]);
 const SHA = Object.freeze({ demo: "a".repeat(40), eacl: "8dc3b16498788dd822b68e1c4fe25b37a8e8879f", artifact: "b".repeat(64), data: "c".repeat(64), schema: "d".repeat(64) });
 
 /** UI qualification fixtures only. They never appear in the public registry. */
 export const mockCapabilityScenarios = Object.freeze([
   scenario("datahike-s3", "datahike", "s3", oneMillion(), lambda("java25", "arm64", "enabled"), {
-    consistencyModes: ["current", "minimize", "at-least", "exact"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only", "eventual-storage-read"]
+    consistencyModes: ["minimize", "at-least", "exact"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only", "eventual-storage-read"]
   }),
   scenario("datahike-dynamodb", "datahike", "dynamodb", oneMillion(), lambda("java25", "arm64", "enabled"), {
-    consistencyModes: ["current", "minimize", "at-least", "exact"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only"]
+    consistencyModes: ["minimize", "at-least", "exact"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only"]
   }),
-  scenario("datomic-dynamodb", "datomic", "dynamodb", oneMillion(), lambda("java25", "arm64", "disabled"), {
-    consistencyModes: ["minimize"], snapshotBehavior: "fixed-environment", cacheBehavior: "environment-local", mutationLocality: "private-seed-workflow", limitations: ["read-only", "fixed-current-snapshot", "no-synchronization", "no-history-api", "unsupported-consistency"]
+  scenario("datomic-dynamodb", "datomic", "dynamodb", oneMillion(), lambda("java25", "x86_64", "enabled"), {
+    consistencyModes: ["minimize", "authoritative", "at-least", "exact"], snapshotBehavior: "fixed-environment", cacheBehavior: "environment-local", mutationLocality: "private-seed-workflow", limitations: ["read-only", "fixed-current-snapshot", "no-synchronization"]
   }),
   scenario("datalevin-memory", "datalevin", "memory", tenThousand(), lambda("java25", "arm64", "enabled"), {
-    consistencyModes: ["current", "minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "lifecycle-rebuild", "unequal-dataset-scale"]
+    consistencyModes: ["minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "lifecycle-rebuild", "unequal-dataset-scale"]
   }),
   scenario("jank-memory", "jank", "memory", tenThousand(), lambda("provided.al2023", "x86_64", "disabled"), {
-    consistencyModes: ["current", "minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "lifecycle-rebuild"]
+    consistencyModes: ["minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "lifecycle-rebuild"]
   }),
   scenario("datascript-browser-memory", "datascript", "browser-memory", tenThousand(), { execution: "browser", name: "clojurescript", architecture: "javascript", snapStart: "not-applicable" }, {
-    consistencyModes: ["current", "minimize"], snapshotBehavior: "page-lifecycle", cacheBehavior: "browser-page-local", mutationLocality: "browser-initialization", limitations: ["browser-local", "ephemeral", "no-durability", "unequal-dataset-scale", "unsupported-consistency"]
+    consistencyModes: ["minimize"], snapshotBehavior: "page-lifecycle", cacheBehavior: "browser-page-local", mutationLocality: "browser-initialization", limitations: ["browser-local", "ephemeral", "no-durability", "unequal-dataset-scale", "unsupported-consistency"]
   })
 ]);
 
@@ -83,7 +83,7 @@ function enabledProfile(selected) {
     ...selected.profile,
     state: "enabled",
     reason: null,
-    route: descriptor.profile.backend === "datascript" ? "/datascript/" : `/api/v1/${selected.profile.id}`,
+    route: descriptor.profile.backend === "datascript" ? "/datascript/" : "/",
     deployment: {
       demoSha: descriptor.identity.demoSha,
       eaclSha: descriptor.identity.eaclSha,
@@ -106,7 +106,7 @@ function responseData(selected, operation, input) {
     "get-object": { object },
     "list-relationships": { items: [{ resourceType: object.type, resourceId: object.id, relation: input.relation ?? "owner", subjectType: subject.type, subjectId: subject.id, subjectRelation: null }], pageInfo },
     "reverse-relationships": { items: [object], pageInfo },
-    authorize: { allowed: true },
+    "check-permission": { allowed: true },
     "get-schema": { sha256: SHA.schema, types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
     "get-cache-info": { behavior: selected.descriptor.capabilities.cacheBehavior, hit: null, scope: selected.profile.id, entries: null, limitations: [...selected.descriptor.capabilities.limitations] },
     "count-objects": { kind: "objects", value: Math.min(input.ceiling ?? selected.descriptor.dataset.logicalResourceCount, selected.descriptor.dataset.logicalResourceCount), exact: (input.ceiling ?? 1_000_000) >= selected.descriptor.dataset.logicalResourceCount, ceiling: input.ceiling ?? 1_000_000 }

@@ -86,7 +86,7 @@ assert.match(manifest, /^Multi-Release: true$/mu);
 
 const smoke = output("java", [
   "-cp", archive, "clojure.main", "-e",
-  "(try (Class/forName \"eacl_demo.datomic_dynamodb.LambdaHandler\") (Class/forName \"EaclKernel.__default\") (println :loaded) (catch Throwable t (.printStackTrace t) (System/exit 1)))"
+  "(try (Class/forName \"eacl_demo.datomic_dynamodb.LambdaHandler\" false (.getContextClassLoader (Thread/currentThread))) (Class/forName \"EaclKernel.__default\") (println :loaded) (catch Throwable t (.printStackTrace t) (System/exit 1)))"
 ]);
 assert.equal(smoke, ":loaded");
 
@@ -170,7 +170,7 @@ const closedRouteSmoke = output("java", [
                      "EACL_CORE_SHA" "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
-                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "2048"}
+                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}
         basis {:behavior "fixed-environment"
                :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:424242"
                :capturedAt "2026-08-25T12:00:00Z"
@@ -188,7 +188,7 @@ const closedRouteSmoke = output("java", [
         (fn [operation]
           {:version "2.0"
            :routeKey "$default"
-           :rawPath (str "/api/v1/datomic-dynamodb/" operation)
+           :rawPath (str "/" operation)
            :rawQueryString ""
            :headers {"content-type" "application/json"}
            :requestContext {:requestId "artifact-smoke"

@@ -11,13 +11,14 @@
 (def ^:private request-id-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}")
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
-    "list-relationships" "reverse-relationships" "authorize"
+    "list-relationships" "reverse-relationships" "check-permission"
     "lookup-resources" "lookup-subjects" "count-resources"
     "get-schema" "get-cache-info" "count-objects"})
 (def ^:private stable-error-codes
   #{"validation-error" "request-too-large" "method-not-allowed"
     "route-not-found" "unsupported-media-type" "cursor-invalid"
     "cursor-expired" "cursor-scope-mismatch" "unsupported-consistency"
+    "freshness-unavailable"
     "cancelled" "deadline-exceeded" "overloaded" "throttled"
     "dependency-unavailable" "storage-missing" "storage-corrupt"
     "identity-mismatch" "response-too-large" "internal-error"})
@@ -207,11 +208,11 @@
        :error-code "internal-error" :status-code 500})))
 
 (defn- operation-from-event
-  [{:keys [profile-id]} event]
-  (let [path (:rawPath event)
-        prefix (str "/api/v1/" profile-id "/")]
-    (if (and (string? path) (.startsWith ^String path prefix))
-      (safe-value (subs path (count prefix)) operations "unknown")
+  [_context event]
+  (let [path (:rawPath event)]
+    (if (and (string? path) (.startsWith ^String path "/")
+             (< 1 (count path)) (not (.contains ^String (subs path 1) "/")))
+      (safe-value (subs path 1) operations "unknown")
       "unknown")))
 
 (defn- metric-envelope

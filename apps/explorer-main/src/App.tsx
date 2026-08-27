@@ -92,6 +92,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
       : fromUrl,
   );
   const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
+  const [registryLoaded, setRegistryLoaded] = createSignal(false);
   let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
   const publicationController = new AbortController();
   let urlController: any;
@@ -211,6 +212,8 @@ export default function App(props: ExplorerAppProps): JSX.Element {
       }
     } catch {
       return;
+    } finally {
+      if (!publicationController.signal.aborted) setRegistryLoaded(true);
     }
   };
 
@@ -227,6 +230,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
+          pending={!registryLoaded()}
         />
       }
     >
@@ -282,6 +286,7 @@ function StandaloneExplorer(props: {
   storageLabel: string;
   selector: JSX.Element;
   datascript?: boolean;
+  pending?: boolean;
 }): JSX.Element {
   const [theme, setTheme] = createSignal(readPreferences().theme);
   const toggleTheme = () => {
@@ -313,13 +318,22 @@ function StandaloneExplorer(props: {
       {props.selector}
       <main class="loading-grid">
         <div class="panel-card">
-          <Show
-            when={props.datascript}
-            fallback={<p class="empty-state">The selected demo is not available.</p>}
-          >
-            <a class="graph-toggle" href="/datascript/">
-              Open DataScript explorer
-            </a>
+          <Show when={props.pending} fallback={
+            <Show
+              when={props.datascript}
+              fallback={<p class="empty-state">The selected demo is not available.</p>}
+            >
+              <a class="graph-toggle" href="/datascript/">
+                Open DataScript explorer
+              </a>
+            </Show>
+          }>
+            <section class="startup-status" role="status" aria-live="polite">
+              <span class="button-spinner" aria-hidden="true" />
+              <div class="startup-status__copy">
+                <strong>Waiting for {props.backendLabel} Lambda to start... 0.0s</strong>
+              </div>
+            </section>
           </Show>
         </div>
       </main>

@@ -83,7 +83,7 @@ function validateTarget(target, profileId) {
   if (target.kind !== "production-cloudfront" || target.profileId !== profileId) throw new Error("production recheck must target the exact live CloudFront profile");
   const origin = new URL(target.origin);
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash) throw new Error("production recheck origin must be an HTTPS origin without credentials or state");
-  if (typeof target.path !== "string" || !/^\/api\/v1\/[a-z0-9-]+\/?$/u.test(target.path)) throw new Error("production recheck profile path is invalid");
+  if (target.path !== "/") throw new Error("production recheck profile path is invalid");
 }
 
 function safeMessage(error) {

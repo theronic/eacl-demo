@@ -2,15 +2,18 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const template = await readFile(
-  new URL("../infra/profiles/datomic-dynamodb-runtime.yaml", import.meta.url),
-  "utf8"
-);
+const [template, handlerSource, javaHandlerSource] = await Promise.all([
+  readFile(new URL("../infra/profiles/datomic-dynamodb-runtime.yaml", import.meta.url), "utf8"),
+  readFile(new URL("../services/datomic-dynamodb/src/eacl_demo/datomic_dynamodb/lambda_handler.clj", import.meta.url), "utf8"),
+  readFile(new URL("../services/datomic-dynamodb/java/eacl_demo/datomic_dynamodb/LambdaHandler.java", import.meta.url), "utf8")
+]);
 
-test("Datomic candidate uses the supported managed AL2023 Java runtime without SnapStart", () => {
+test("Datomic candidate uses managed Java 25 published-version SnapStart", () => {
   assert.match(template, /Runtime: java25/u);
   assert.match(template, /Architectures:\s*\n\s*- x86_64/u);
-  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: None/u);
+  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
+  assert.match(handlerSource, /defn initialize-runtime!/u);
+  assert.match(javaHandlerSource, /INITIALIZE\.invoke\(\)/u);
   assert.doesNotMatch(template, /ProvisionedConcurrency|java17(?:\s|$)|provided\./u);
 });
 
@@ -33,7 +36,7 @@ test("candidate transport and cost surface are bounded", () => {
   assert.match(template, /AllowOrigins: \[https:\/\/demo\.eacl\.dev\]/u);
   assert.match(template, /FunctionUrlAuthType: NONE/u);
   assert.match(template, /InvokedViaFunctionUrl: true/u);
-  assert.match(template, /ReservedConcurrentExecutions: !Ref MaximumConcurrency/u);
+  assert.doesNotMatch(template, /ReservedConcurrentExecutions|^  MaximumConcurrency:/mu);
   assert.match(template, /EphemeralStorage:\s*\n\s*Size: 512/u);
   assert.match(template, /RetentionInDays: 14/u);
   assert.match(template, /TracingConfig:\s*\n\s*Mode: PassThrough/u);

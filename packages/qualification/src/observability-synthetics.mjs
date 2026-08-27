@@ -39,16 +39,16 @@ export async function runObservabilitySynthetics({
   await check("exemplar", async () => {
     const { demand, expected } = EXEMPLAR;
     const envelope = assertEnvelope(
-      await transport.request("authorize", {
+      await transport.request("check-permission", {
         subjectType: demand.subject.type,
         subjectId: demand.subject.id,
         resourceType: demand.resource.type,
         resourceId: demand.resource.id,
         permission: demand.permission
       }),
-      "authorize"
+      "check-permission"
     );
-    const data = successfulData(envelope, "authorize");
+    const data = successfulData(envelope, "check-permission");
     if (data.allowed !== expected.allowed) {
       throw new Error("canonical authorization exemplar disagrees");
     }
@@ -84,7 +84,7 @@ function validateInput({ transport, expectedIdentity, target }) {
       origin.pathname !== "/" || origin.search || origin.hash) {
     throw new TypeError("observability synthetic origin must be clean HTTPS");
   }
-  if (normalizePath(target.path) !== `/api/v1/${expectedIdentity.profileId}`) {
+  if (normalizePath(target.path) !== "/") {
     throw new TypeError("observability synthetic path does not match the profile");
   }
 }

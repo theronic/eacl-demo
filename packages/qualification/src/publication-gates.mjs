@@ -83,7 +83,7 @@ function resolveProfile(baseRegistry, profileDefinitions, profileId) {
 
 function validateAttemptedDeployment(deployment, failedAt) {
   const probe = {
-    id: "datahike-s3", backend: "datahike", storage: "s3", state: "enabled", reason: null, route: "/api/v1/datahike-s3",
+    id: "datahike-s3", backend: "datahike", storage: "s3", state: "enabled", reason: null, route: "/",
     deployment: structuredClone(deployment),
     lastOutcome: { outcome: "succeeded", attemptedDemoSha: deployment?.demoSha, attemptedEaclSha: deployment?.eaclSha, artifactSha256: deployment?.artifact?.sha256, at: failedAt, message: "Candidate identity validation probe." }
   };

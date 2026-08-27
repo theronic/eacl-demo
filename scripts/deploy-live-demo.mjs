@@ -15,21 +15,25 @@ const profiles = {
   "datahike-s3": {
     artifact: "dist/datahike-s3/function.jar",
     functionName: "eacl-demo-datahike-s3-live",
-    snapStart: false
+    memorySize: 1024,
+    snapStart: true
   },
   "datahike-dynamodb": {
     artifact: "dist/datahike-dynamodb/function.jar",
     functionName: "eacl-demo-datahike-dynamodb-live",
-    snapStart: false
+    memorySize: 1024,
+    snapStart: true
   },
   "datomic-dynamodb": {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-live",
-    snapStart: false
+    memorySize: 1024,
+    snapStart: true
   },
   "datalevin-memory": {
     artifact: "dist/datalevin-memory/function.jar",
     functionName: "eacl-demo-datalevin-memory-live",
+    memorySize: 1024,
     snapStart: true
   }
 };
@@ -102,10 +106,13 @@ async function deployProfile(profileId, profile) {
     await writeFile(environmentFile, `${JSON.stringify({ Variables: variables })}\n`, { mode: 0o600 });
     const configuration = ["lambda", "update-function-configuration",
       "--function-name", profile.functionName,
-      "--environment", `file://${environmentFile}`];
-    if (profile.snapStart) configuration.push("--snap-start", "ApplyOn=PublishedVersions");
+      "--environment", `file://${environmentFile}`,
+      "--memory-size", String(profile.memorySize),
+      "--snap-start", `ApplyOn=${profile.snapStart ? "PublishedVersions" : "None"}`];
     aws(configuration);
     aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
+    deleteReservedConcurrency(profile.functionName);
+    assertMutableConfiguration(profile);
     const update = awsJson([
       "lambda", "update-function-code", "--function-name", profile.functionName,
       "--s3-bucket", artifactBucket, "--s3-key", key,
@@ -120,51 +127,71 @@ async function deployProfile(profileId, profile) {
         "--function-name", profile.functionName, "--qualifier", update.Version]);
       if (published.SnapStart?.ApplyOn !== "PublishedVersions" ||
           published.SnapStart?.OptimizationStatus !== "On") {
-        throw new Error("Datalevin SnapStart version is not optimized");
+        throw new Error(`${profileId} SnapStart version is not optimized`);
       }
     }
-    aws(["lambda", "update-alias", "--function-name", profile.functionName,
-         "--name", "candidate", "--function-version", update.Version,
-         "--description", `demos:${demoSha()}:${artifactSha}`]);
+    const publishedConfiguration = awsJson(["lambda", "get-function-configuration",
+      "--function-name", profile.functionName, "--qualifier", update.Version]);
+    if (publishedConfiguration.MemorySize !== profile.memorySize ||
+        publishedConfiguration.SnapStart?.ApplyOn !==
+          (profile.snapStart ? "PublishedVersions" : "None")) {
+      throw new Error(`${profileId} published configuration violates the production runtime policy`);
+    }
+    const priorAlias = awsJson(["lambda", "get-alias", "--function-name",
+      profile.functionName, "--name", "candidate"]);
     const smoke = await smokeProfile(profileId, profile.functionName, temporary, {
       profileId,
       demoSha: demoSha(),
       eaclSha: eaclSha(),
       artifactSha256: artifactSha,
       deploymentId
-    });
-    await publishProfile({
-      profileId,
-      artifactKind: "lambda-version",
-      artifactSha,
-      artifactVersion: update.Version,
-      dataManifestSha: smoke.dataManifestSha,
-      evidence: createHash("sha256").update(smoke.evidence).digest("hex")
-    });
+    }, { qualifier: update.Version, snapStart: profile.snapStart });
+    const promoted = awsJson(["lambda", "update-alias", "--function-name",
+      profile.functionName, "--name", "candidate",
+      "--function-version", update.Version,
+      "--description", `demos:${demoSha()}:${artifactSha}`,
+      "--revision-id", priorAlias.RevisionId]);
+    try {
+      await smokeFunctionUrl(profileId, definitionFor(profileId).apiOrigin,
+        expectedIdentityFor(profileId, artifactSha, deploymentId));
+      await publishProfile({
+        profileId,
+        artifactKind: "lambda-version",
+        artifactSha,
+        artifactVersion: update.Version,
+        dataManifestSha: smoke.dataManifestSha,
+        evidence: createHash("sha256").update(smoke.evidence).digest("hex")
+      });
+    } catch (error) {
+      rollbackAlias(profile.functionName, promoted, priorAlias);
+      throw error;
+    }
     process.stdout.write(`deployed ${profileId} version ${update.Version} sha256:${artifactSha}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
 }
 
-async function smokeProfile(profileId, functionName, temporary, expectedIdentity) {
+async function smokeProfile(profileId, functionName, temporary, expectedIdentity,
+  { qualifier, snapStart }) {
   const health = await invokeProfile({ profileId, functionName, temporary,
-    operation: "health", method: "GET", input: null });
+    qualifier, operation: "health", method: "GET", input: null });
   assertHealthy(profileId, health);
-  process.stdout.write(`${profileId} candidate ${profileId === "datalevin-memory" ? "restore" : "cold"} health ${health.wallMs}ms\n`);
+  process.stdout.write(`${profileId} version ${qualifier} ${snapStart ? "restore" : "cold"} health ${health.wallMs}ms\n`);
   const bootstrap = await invokeProfile({ profileId, functionName, temporary,
-    operation: "bootstrap", method: "GET", input: null });
+    qualifier, operation: "bootstrap", method: "GET", input: null });
   if (bootstrap.statusCode !== 200 || !("data" in bootstrap.envelope) ||
       "error" in bootstrap.envelope ||
       bootstrap.envelope.data?.identity?.profileId !== profileId ||
       bootstrap.envelope.data?.runtime?.snapStart !==
-        (profileId === "datalevin-memory" ? "enabled" : "disabled")) {
+        (snapStart ? "enabled" : "disabled")) {
     throw new Error(`${profileId} bootstrap smoke failed`);
   }
   const decisions = [];
   for (const [subjectId, expected] of [["user-1", true], ["user-2", false]]) {
     const response = await invokeProfile({ profileId, functionName, temporary,
-      operation: "authorize", method: "POST",
+      qualifier,
+      operation: "check-permission", method: "POST",
       input: { subjectType: "user", subjectId, resourceType: "account",
         resourceId: "account-0", permission: "admin" } });
     if (response.statusCode !== 200 || !("data" in response.envelope) ||
@@ -175,6 +202,7 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
     decisions.push(response);
   }
   const mutation = await invokeProfile({ profileId, functionName, temporary,
+    qualifier,
     operation: "seed", method: "POST", input: {} });
   if (mutation.statusCode !== 404 || !("error" in mutation.envelope) ||
       "data" in mutation.envelope ||
@@ -184,26 +212,73 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
   return summarizeDemoSmoke({ profileId, expectedIdentity, health, bootstrap, decisions, mutation });
 }
 
-async function invokeProfile({ profileId, functionName, temporary,
+async function invokeProfile({ profileId, functionName, temporary, qualifier,
   operation, method, input }) {
   const eventFile = path.join(temporary, "health-event.json");
   const outputFile = path.join(temporary, "health-response.json");
   await writeFile(eventFile, JSON.stringify({
     version: "2.0", routeKey: "$default",
-    rawPath: `/api/v1/${profileId}/${operation}`, rawQueryString: "",
+    rawPath: `/${operation}`, rawQueryString: "",
     headers: input === null ? {} : { "content-type": "application/json" },
     requestContext: { requestId: `ci-${operation}-${demoSha().slice(0, 12)}`,
       http: { method } }, isBase64Encoded: false,
     body: input === null ? null : JSON.stringify(input)
   }));
   const started = Date.now();
-  aws(["lambda", "invoke", "--function-name", `${functionName}:candidate`,
+  aws(["lambda", "invoke", "--function-name", `${functionName}:${qualifier}`,
        "--cli-binary-format", "raw-in-base64-out", "--payload", `fileb://${eventFile}`,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
   return { statusCode: response.statusCode,
     envelope: validateDemoSmokeEnvelope(JSON.parse(response.body)),
     wallMs: Date.now() - started };
+}
+
+async function smokeFunctionUrl(profileId, origin, expectedIdentity) {
+  const url = new URL("/health", origin);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: { accept: "application/json", origin: "https://demo.eacl.dev",
+        "x-eacl-request-id": `ci-function-url-${demoSha().slice(0, 12)}` },
+      redirect: "manual",
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  const text = await response.text();
+  const envelope = validateDemoSmokeEnvelope(JSON.parse(text));
+  if (response.status !== 200 || response.headers.get("access-control-allow-origin") !==
+      "https://demo.eacl.dev" || !response.headers.get("content-type")?.startsWith("application/json") ||
+      envelope.data?.ready !== true || envelope.data?.identity?.profileId !== profileId ||
+      envelope.data?.identity?.demoSha !== expectedIdentity.demoSha ||
+      envelope.data?.identity?.eaclSha !== expectedIdentity.eaclSha ||
+      envelope.data?.identity?.artifactSha256 !== expectedIdentity.artifactSha256 ||
+      envelope.data?.identity?.deploymentId !== expectedIdentity.deploymentId) {
+    throw new Error(`${profileId} direct Function URL smoke failed`);
+  }
+}
+
+function rollbackAlias(functionName, promoted, prior) {
+  aws(["lambda", "update-alias", "--function-name", functionName,
+       "--name", "candidate", "--function-version", prior.FunctionVersion,
+       "--description", prior.Description || `restored ${prior.FunctionVersion}`,
+       "--revision-id", promoted.RevisionId]);
+}
+
+function definitionFor(profileId) {
+  const definition = profileDefinitions.profiles.find((candidate) => candidate.id === profileId);
+  if (!definition?.apiOrigin) throw new Error(`${profileId} has no direct Function URL origin`);
+  return definition;
+}
+
+function expectedIdentityFor(profileId, artifactSha256, deploymentId) {
+  return { profileId, demoSha: demoSha(), eaclSha: eaclSha(), artifactSha256,
+    deploymentId };
 }
 
 function assertHealthy(profileId, response) {
@@ -266,6 +341,29 @@ function aws(args) {
 
 function awsJson(args) {
   return JSON.parse(aws([...args, "--output", "json"]));
+}
+
+function deleteReservedConcurrency(functionName) {
+  const current = awsJson(["lambda", "get-function-concurrency",
+    "--function-name", functionName]);
+  if (current.ReservedConcurrentExecutions !== undefined) {
+    aws(["lambda", "delete-function-concurrency", "--function-name", functionName]);
+  }
+  const observed = awsJson(["lambda", "get-function-concurrency",
+    "--function-name", functionName]);
+  if (observed.ReservedConcurrentExecutions !== undefined) {
+    throw new Error(`${functionName} still has reserved concurrency`);
+  }
+}
+
+function assertMutableConfiguration(profile) {
+  const configuration = awsJson(["lambda", "get-function-configuration",
+    "--function-name", profile.functionName]);
+  if (configuration.MemorySize !== profile.memorySize ||
+      configuration.SnapStart?.ApplyOn !==
+        (profile.snapStart ? "PublishedVersions" : "None")) {
+    throw new Error(`${profile.functionName} mutable configuration violates the production runtime policy`);
+  }
 }
 
 function demoSha() {

@@ -130,11 +130,11 @@
           "properties": {
             "operations": {
               "type": "array", "minItems": 1, "maxItems": 13, "uniqueItems": true,
-              "items": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]}
+              "items": {"enum": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"]}
             },
             "consistencyModes": {
               "type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true,
-              "items": {"enum": ["current", "minimize", "authoritative", "at-least", "exact", "historical-date"]}
+              "items": {"enum": ["minimize", "authoritative", "at-least", "exact", "historical-date"]}
             },
             "snapshotBehavior": {"enum": ["fixed-environment", "request-snapshot", "page-lifecycle", "rebuild-lifecycle"]},
             "cacheBehavior": {"enum": ["none", "request-local", "environment-local", "browser-page-local", "shared-read-through"]},

@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:b8e95a97da1600bd16502f6ab99e16aa911ffa9698a279c5dd1e50245b974012",
+  "reportId": "sha256:b72ee369076dc910abf8aa77520bc7c071002d0055dea01904c19d34cbddf481",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -99,7 +99,7 @@
       "id": "datahike-s3",
       "backend": "datahike",
       "storage": "s3",
-      "route": "/api/v1/datahike-s3",
+      "route": "/",
       "availabilityState": "qualifying",
       "availabilityReason": "The adopted store and replacement reader are locally qualified, but the live Lambda route, immutable deployment identity, memory, and staged smoke remain unqualified.",
       "buildUnits": [
@@ -123,16 +123,16 @@
       "runtime": {
         "name": "java25",
         "architecture": "arm64",
-        "snapStart": "disabled"
+        "snapStart": "enabled"
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 2048,
+        "configuredMiB": 1024,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "4335b98b254543f1092f5e6e5b75f0925262e00a3eea0f911ec181d5ff92de03"
+          "sha256": "7f21241bc13df231ddadecbc16d596e73fd397d4de53631939f952dd4c5ec82e"
         }
       },
       "alarms": {
@@ -158,7 +158,7 @@
       "id": "datahike-dynamodb",
       "backend": "datahike",
       "storage": "dynamodb",
-      "route": "/api/v1/datahike-dynamodb",
+      "route": "/",
       "availabilityState": "unavailable",
       "availabilityReason": "The repaired adapter passes local qualification, but disposable real-AWS evidence, the protected production table, live cost controls, the one-million-resource seed, memory, and staged smoke remain open.",
       "buildUnits": [
@@ -182,16 +182,16 @@
       "runtime": {
         "name": "java25",
         "architecture": "arm64",
-        "snapStart": "disabled"
+        "snapStart": "enabled"
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 2048,
+        "configuredMiB": 1024,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "a5057db3921edf97cc6cf5a90106001b70d7a4fb54b8fd0df3a9b20acc3b6d2d"
+          "sha256": "ce7e3551065fe7b51b4be15c23ed25737f183f407ef0db523c364ae12ec51438"
         }
       },
       "alarms": {
@@ -217,7 +217,7 @@
       "id": "datomic-dynamodb",
       "backend": "datomic",
       "storage": "dynamodb",
-      "route": "/api/v1/datomic-dynamodb",
+      "route": "/",
       "availabilityState": "disabled",
       "availabilityReason": "The history-preserving DynamoDB database and fixed-current read-only Lambda have not been provisioned and qualified.",
       "buildUnits": [
@@ -241,16 +241,16 @@
       "runtime": {
         "name": "java25",
         "architecture": "x86_64",
-        "snapStart": "disabled"
+        "snapStart": "enabled"
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 2048,
+        "configuredMiB": 1024,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "e34453b898bb93dfc70acbfd4ca9683dcb3a6d6f2e54b441d3e1ea355be5ff02"
+          "sha256": "8bef82f33aec69b3b0231125ee3096ff4a3a2e5c300a60e9a86e744cb709303d"
         }
       },
       "alarms": {
@@ -276,7 +276,7 @@
       "id": "datalevin-memory",
       "backend": "datalevin",
       "storage": "memory",
-      "route": "/api/v1/datalevin-memory",
+      "route": "/",
       "availabilityState": "unavailable",
       "availabilityReason": "A reproducible AL2023 arm64 native candidate now passes ABI and true in-memory smoke locally, but the maintained fork/native/EACL releases, clean remote-consumer install, Lambda service, and SnapStart lifecycle qualification remain incomplete.",
       "buildUnits": [
@@ -304,12 +304,12 @@
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 3072,
+        "configuredMiB": 1024,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "8c0f292678152a1fc6fb7a69eb83ca91c3ca8bd5b911df43b3879f57849c1235"
+          "sha256": "81a77cbe97451142f2c4f50332b0e71d079791fca2288b3954e94b420f62e113"
         }
       },
       "alarms": {
@@ -335,7 +335,7 @@
       "id": "jank-memory",
       "backend": "jank",
       "storage": "memory",
-      "route": "/api/v1/jank-memory",
+      "route": "/",
       "availabilityState": "unavailable",
       "availabilityReason": "Parked outside the active rollout; the vendored runtime port also predates the locked EACL Core SHA and no qualified Linux x86_64 Amazon Linux 2023 artifact exists.",
       "buildUnits": [
@@ -368,7 +368,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/jank-memory-runtime.yaml",
-          "sha256": "c414af6363f063961ffda5e1a75aa3cfc6575de2494b1d8119fee67d530e097d"
+          "sha256": "6c27c97490cd5e397cf0abee43377b1eaddbf7c2ecd9bb6b8b372a9073e133a5"
         }
       },
       "alarms": {

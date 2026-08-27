@@ -7,7 +7,8 @@
             [eacl.core :as eacl]
             [eacl.datomic.core :as datomic-eacl]
             [eacl.relationships.storage :as relationship-storage]
-            [eacl.secure-format :as secure]))
+            [eacl.secure-format :as secure]
+            [eacl.spicedb.consistency :as consistency]))
 
 (def ^:private default-page-size 20)
 (def ^:private default-count-ceiling 1000000)
@@ -134,7 +135,7 @@
            page
            (not= false (:cache input))))))
 
-     "authorize"
+     "check-permission"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
         (let [decision
@@ -239,7 +240,8 @@
         :hit nil
         :scope "datomic-dynamodb"
         :entries nil
-        :limitations ["fixed-current-snapshot" "no-synchronization"]})
+        :limitations ["fixed-current-snapshot" "no-history-api"
+                      "no-synchronization"]})
 
      "count-objects"
      (guarded
@@ -260,8 +262,24 @@
            :ceiling ceiling})))}))
 
 (defn- eacl-consistency
-  [_input]
-  :minimize-latency)
+  [input]
+  (let [snapshot (:eacl-demo/snapshot input)
+        public-basis (:eacl-demo/public-basis input)
+        token (when snapshot (eacl/basis-token snapshot))
+        requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
+        captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
+    (when-not token (fail! "internal-error"))
+    (when (and requested-at captured-at (.isAfter requested-at captured-at))
+      (fail! "freshness-unavailable"))
+    (case (:consistency input)
+      ;; The read-only Peer exposes one immutable deployment value and cannot
+      ;; synchronize. That value is the authoritative head of this deployment,
+      ;; so this selection deliberately validates it as the retained snapshot
+      ;; instead of asking EACL's live-source path to synchronize.
+      "authoritative" consistency/minimize-latency
+      "at-least" (consistency/at-least-as-fresh token)
+      "exact" (consistency/at-exact-snapshot token)
+      consistency/minimize-latency)))
 
 (defn- relationship-query
   [input anchor]

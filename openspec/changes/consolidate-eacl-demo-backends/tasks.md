@@ -38,12 +38,12 @@
 - [x] 3.13 Implement canonical URL parsing and serialization with allowlisted bounded semantic fields and no cursor, token, basis, request ID, or secret values.
 - [x] 3.14 Test direct links, canonical normalization, malformed and oversized inputs, browser back/forward navigation, and backend/storage replacement semantics.
 
-## 4. Versioned explorer contract and shared service boundary
+## 4. Simple explorer contract and shared service boundary
 
 - [x] 4.1 Define closed explorer.v1 schemas for objects, relationships, page information, counts, authorization decisions, schema, cache information, basis metadata, health, bootstrap, success, and failure.
 - [x] 4.2 Define stable error codes for validation, method and route rejection, cursor failures, unsupported consistency, cancellation, deadline, overload, throttling, unavailable dependencies, corrupt or missing storage, and internal failure.
 - [x] 4.3 Define bounded request and response limits for bodies, strings, arrays, pages, counts, cursors, diagnostics, and total output.
-- [x] 4.4 Implement /api/v1/{profile-id} routing and direct in-page dispatch for the same DataScript logical operations.
+- [ ] 4.4 Replace every server path with a root operation path on its profile-owned Function URL, rename `authorize` to `check-permission` across server and DataScript dispatch, and verify no shipped client, schema, smoke, or qualification case contains `/api`, a route version, backend/storage/profile prefix, or the old operation name.
 - [x] 4.5 Implement runtime boundary validation for client, server, fixture, descriptor, registry, and release-manifest data.
 - [x] 4.6 Implement one common compact success/error envelope carrying only operation data or error plus revision, request ID, and optional elapsed/cache metadata.
 - [x] 4.7 Implement identity-checked health/bootstrap descriptors and reject route, artifact, or registry mismatches before normal use.
@@ -51,7 +51,7 @@
 - [x] 4.9 Implement deadlines, cancellation propagation, admission bounds, response-size limits, and deterministic cleanup.
 - [x] 4.10 Implement the shared read-only logical operations and exclude schema writes, seeds, setup, benchmarks, arbitrary transactions, cache eviction, and administration from public dispatchers.
 - [x] 4.11 Implement scoped, tamper-evident cursors that cannot cross profile, query, lifecycle, or incompatible contract identity.
-- [x] 4.12 Implement N/N-1 contract compatibility and require a new API route version for incompatible changes.
+- [ ] 4.12 Preserve N/N-1 descriptor compatibility without version or profile path prefixes and verify an incompatible descriptor fails during bootstrap rather than adding transport segments.
 - [x] 4.13 Add redaction and route-table tests proving failures cannot expose secrets and unlisted requests cannot reach mutating or expensive handlers.
 - [x] 4.14 Add a reusable Lambda Function URL event and response contract suite for JVM and custom runtimes.
 - [x] 4.15 Remove the consolidation-only `ok`, contract-version, operation, identity, structured-basis, retryability, explanation-path, and reason-code fields from every backend response; retain exact deployment identity in health/bootstrap only.
@@ -90,12 +90,14 @@
 - [x] 6.15 Restore the original Explorer consistency labels and compact Datomic permission response shape, leaving deployment identity in the validated health/bootstrap handshake.
 - [x] 6.16 Remove the DataScript Web Worker, verified Blob loader, worker schemas, worker transport, progress protocol, and worker-specific build unit.
 - [x] 6.17 Navigate between the main and DataScript entries when the user selects a backend owned by the other entry.
-- [x] 6.18 Show only `Waiting for <backend> Lambda to start... <timer>` during server cold start and remove DataScript/fixture progress from backend switching.
+- [ ] 6.18 Show only `Waiting for <backend> Lambda to start... <timer>` from the first render after every valid server-profile switch, remove DataScript/fixture progress, and test that `The selected demo is not available.` never appears during a pending registry/bootstrap transition.
 - [x] 6.19 Rename Read Basis to Consistency Semantics and remove its redundant visible field label.
 - [x] 6.20 Remove the backend/storage eyebrow and restore the exact open-source Explorer footer.
 - [x] 6.21 Remove the visible Spice Schema label, active-subject summary, and Subjects permission selector; rename the panel Subjects and move Permission into Resources.
 - [x] 6.22 Capture cache metrics exactly once on first Cache expansion while retaining explicit manual refresh.
 - [x] 6.23 Qualify the shared UI changes across desktop/mobile browsers and prove the DataScript entry creates zero Workers and makes no authorization API calls.
+- [ ] 6.24 Fix the Subjects panel at exactly 25 items per request independent of Resources page size and verify changing each Resources page-size option leaves subject request limits unchanged.
+- [ ] 6.25 Render `fully-consistent*` plus the descriptor explanation below the consistency options when a profile cannot establish an authoritative writer barrier, and verify Datomic enables all four EACL selections while Datahike enables minimize, at-least, and current-basis exact.
 
 ## 7. Qualification harness and fast merge smoke
 
@@ -126,7 +128,7 @@
 - [x] 8.12 Provision a dedicated blue-green production Datahike DynamoDB table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and seed roles.
 - [x] 8.13 Seed and verify the immutable one-million-resource Datahike fixture through the explicit stateful workflow after alarms and request caps are active.
 - [ ] 8.14 Obtain separate explicit authorization, then provision, seed, verify, and publish a distinct canonical one-million-resource Datahike/S3 blue-green generation without mutating or relabeling the adopted store.
-- [ ] 8.15 Sweep Datahike S3 and DynamoDB Lambda memory independently, then use the larger independently passing minimum as the shared comparison/production memory while a speed claim is active; start with SnapStart disabled on both.
+- [ ] 8.15 Qualify both Datahike S3 and DynamoDB production Lambdas at exactly 1024 MB with their immutable readers captured in AWS-optimized published-version SnapStart snapshots; verify restored storage reads, cold/restore/warm semantics, load, latency, errors, and at least 20% process headroom without paid warmers or a larger memory tier.
 - [ ] 8.16 Run the comparable storage benchmark only after both profiles bind the exact canonical fixture, then make the evidenced fastest qualified Datahike storage the default.
 - [x] 8.17 Publish and enable Datahike/DynamoDB only after adapter, real-AWS, IAM, cost-control, seed, runtime, and staged checks pass; until comparable S3 exists, use the deterministic qualified fallback with no speed claim.
 
@@ -139,12 +141,12 @@
 - [x] 9.5 Launch any required temporary EC2 transactor or seed machine without inbound SSH, with a scoped role, IMDSv2, expiry tags, watchdog, and exact instance identity.
 - [x] 9.6 Terminate the exact temporary instance in success and failure cleanup and verify that no instance, volume, or address remains.
 - [x] 9.7 Configure the serving connection with datomic:ddb and read-only=true, capture d/db once during initialization, and serve that fixed value for the full Lambda environment lifetime.
-- [x] 9.8 Route the sole supported minimize request directly through the captured database value without calling d/sync, and reject the meaningless current alias.
-- [x] 9.9 Reject authoritative, at-least, exact, historical date, and other synchronization requests before generic EACL source traversal or cache work.
-- [x] 9.10 Test that the public artifact contains no serving transactor dependency, cannot write, never invokes d/sync, and keeps one fixed current basis until environment replacement.
+- [ ] 9.8 Route minimize-latency, fully-consistent, at-least-as-fresh, and at-exact-snapshot through the captured database value without calling `d/sync`, and verify future floors and unavailable exact bases fail closed.
+- [ ] 9.9 Authenticate and scope Datomic freshness/exact tokens to the deployment/database lifecycle and verify no consistency selection implies or waits for a live transactor head.
+- [ ] 9.10 Test that the public artifact contains no serving transactor dependency, cannot write, never invokes `d/sync`, keeps one fixed basis until environment replacement, and returns the expected basis for all four consistency selections.
 - [x] 9.11 Verify the serving role contains only documented Datomic read actions and denies writes, administration, and cross-profile table access.
-- [ ] 9.12 Sweep non-SnapStart memory first and treat SnapStart as an optional optimization that cannot block deployment.
-- [x] 9.13 Publish immutable function, fixed-basis data, descriptor, and evidence identities and enable the profile only after staged qualification passes.
+- [ ] 9.12 Force the Datomic reader and fixed database value during Java initialization, enable SnapStart on published versions, wait for `OptimizationStatus=On`, and qualify repeated restore identity, consistency, cache, pagination, permission, error, and concurrency behavior before promotion.
+- [ ] 9.13 Publish immutable SnapStarted function, fixed-basis data, descriptor, and evidence identities and enable the profile only after restored staged qualification passes.
 - [x] 9.14 Prove with the temporary normal Peer that relevant attributes do not use :db/noHistory true and that recorded prior bases support expected d/as-of and history results.
 - [x] 9.15 Document the future non-read-only Datomic EC2 demo as a separate out-of-scope serving deployment that may use the retained history rather than broadening this Lambda profile.
 - [x] 9.16 Measure the live fixed-snapshot cache path, remove redundant Datomic existence reads from authorization, and retain a regression test for the compact decision result.
@@ -158,7 +160,7 @@
 - [ ] 10.5 Instrument snapshot ownership and exact-once release plus heap, direct, native, RSS, handle, and lifecycle state.
 - [ ] 10.6 Qualify both the quiesced pre-checkpoint and after-restore rebuild strategies, including repeated restores, simultaneous environments, eviction, stale handles, cancellation, failures, and load.
 - [x] 10.7 Enable managed-Java SnapStart only after the reader is forced during initialization, the published version reports `OptimizationStatus=On`, and restored health/bootstrap/allow/deny/mutation-denial smoke passes; retain broader repeated restore/eviction/load qualification as later hardening rather than a demo merge gate.
-- [ ] 10.8 Sweep memory and publish the smallest passing managed-Java configuration and immutable descriptor.
+- [ ] 10.8 Configure and qualify Datalevin at exactly 1024 MB with SnapStart, full semantic/load coverage, accepted restored latency/error/GC, and at least 20% process-memory headroom; optimize rather than increase production memory if it fails.
 - [x] 10.9 Reduce cold initialization transactions from roughly one hundred to eleven with bounded 5,000-record batches, replace roughly 77,000 relationship endpoint lookups with one post-object `:eacl/id` index scan, and print the first candidate health wall time in the ordinary deployment smoke.
 - [x] 10.10 Record the first successful live restored-health wall time (2,076 ms for published version 39 in deployment run `33024147774`) and verify the restored descriptor reports SnapStart enabled before publishing the profile.
 
@@ -245,7 +247,7 @@ decision as well as the existing qualification evidence.
 
 ## 16. Documentation, legacy compatibility, and completion audit
 
-- [x] 16.1 Publish user documentation for the backend/storage selector, fastest evidence, unequal dataset scales, consistency and cache differences, current-only Datomic behavior, DataScript privacy, and Jank limitations.
+- [ ] 16.1 Publish user documentation for the backend/storage selector, root Function URL operations, unequal dataset scales, Datahike current-basis exact and `fully-consistent*` limitation, immutable-value Datomic consistency semantics, DataScript privacy, and Jank limitations.
 - [x] 16.2 Publish operator runbooks for build, qualification, deployment, seed, Telegram tests, temporary EC2 cleanup, data publication, rollback, cost review, and incidents.
 - [x] 16.3 Document the single GitHub demos-branch flow, pinned-source manifest, OIDC roles, variables, absence of long-lived AWS secrets, absence of GitHub concurrency management, and deliberately small merge gate.
 - [ ] 16.4 Publish a release report listing enabled and disabled profiles, exact source and artifact identities, storage default evidence, fixture identities, memory settings, alarms, budgets, and rollback coordinates.
@@ -255,3 +257,11 @@ decision as well as the existing qualification evidence.
 - [ ] 16.8 Obtain separate explicit approval for each material legacy stop, delete, or overwrite batch; DNS cutover approval does not authorize retirement.
 - [ ] 16.9 Perform only approved retirement actions, prefer reversible phases, and record what changed and how long recovery remains possible.
 - [ ] 16.10 Close the change only after `npm run verify:change-readiness` has no remaining gates, strict OpenSpec validation, deployed behavior, demos-branch CI execution, stateful cleanup, cost controls, Telegram notifications, documentation, and evidence are complete.
+
+## 17. Corrective production convergence
+
+- [ ] 17.1 Remove `ReservedConcurrentExecutions` and related maximum-concurrency parameters from every active production runtime template, delete each deployed function's reserved-concurrency configuration, and verify `get-function-concurrency` reports no reservation while overlapping direct requests produce no `ReservedFunctionConcurrentInvocationLimitExceeded` failures.
+- [ ] 17.2 Configure Datahike/S3, Datahike/DynamoDB, and Datalevin production memory at exactly 1024 MB, configure Datomic published-version SnapStart, and verify deployed aliases resolve to versions with those exact settings and AWS optimization state.
+- [ ] 17.3 Run the complete direct qualification suite for all four server profiles after the contract, consistency, concurrency, startup, and memory changes; require every advertised case to pass through its exact alias-qualified root paths.
+- [ ] 17.4 Deploy the shared static entries, verify backend switching never flashes unavailable, Subjects always page by 25, consistency controls/notes match descriptors, DataScript remains workerless, and browser console/network audits show no legacy API paths or operations.
+- [ ] 17.5 Merge the corrective release to `demos`, verify every eligible build/deploy job reports the exact merged demo/EACL identities, and observe errors, throttles, restore/init duration, memory, cost alarms, queues, and Telegram state without reintroducing a concurrency cap.

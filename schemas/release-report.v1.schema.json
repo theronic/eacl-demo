@@ -166,7 +166,7 @@
         "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
         "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
         "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
-        "route": {"type": "string", "pattern": "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},
+        "route": {"type": "string", "pattern": "^/(?:datascript/)?$"},
         "availabilityState": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
         "availabilityReason": {"type": ["string", "null"], "minLength": 1, "maxLength": 320},
         "buildUnits": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}},

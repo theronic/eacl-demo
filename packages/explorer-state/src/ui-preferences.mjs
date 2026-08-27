@@ -1,7 +1,7 @@
 const STORAGE_KEY = "eacl-demo.preferences.v1";
 const THEMES = new Set(["system", "light", "dark"]);
-const CONSISTENCY = new Set(["current", "minimize", "authoritative", "at-least", "exact", "historical-date"]);
-export const defaultUiPreferences = Object.freeze({ version: 1, theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "current", expanded: [] });
+const CONSISTENCY = new Set(["minimize", "authoritative", "at-least", "exact", "historical-date"]);
+export const defaultUiPreferences = Object.freeze({ version: 1, theme: "system", pageSize: 20, cacheEnabled: true, consistencyMode: "minimize", expanded: [] });
 
 export function readUiPreferences(storage = globalThis.localStorage) {
   try {

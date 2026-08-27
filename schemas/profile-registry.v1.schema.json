@@ -58,7 +58,7 @@
         "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
         "state": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
         "reason": {"type": ["string", "null"]},
-        "route": {"type": "string", "pattern": "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},
+        "route": {"type": "string", "pattern": "^/(?:datascript/)?$"},
         "deployment": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/deployment"}]},
         "lastOutcome": {"$ref": "#/$defs/outcome"}
       }

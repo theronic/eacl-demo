@@ -9,14 +9,14 @@ const deployment = { demoSha: identity.demoSha, eaclSha: identity.eaclSha, artif
 const categories = ["identity", "contract", "authorization", "relationship", "pagination-cursor", "cache", "consistency", "consistency-failure", "failure-redaction", "cleanup"];
 
 function profile() {
-  return { id: identity.profileId, backend: "datahike", storage: "s3", state: "qualifying", reason: "Initial qualification remains incomplete.", route: "/api/v1/datahike-s3", deployment: null, lastOutcome: {} };
+  return { id: identity.profileId, backend: "datahike", storage: "s3", state: "qualifying", reason: "Initial qualification remains incomplete.", route: "/", deployment: null, lastOutcome: {} };
 }
 
 function qualification() {
   return {
     schema: "eacl-demo.qualification-report.v1", result: "pass",
     startedAt: "2026-08-25T12:00:01Z", completedAt: "2026-08-25T12:01:00Z",
-    target: { kind: "direct-function-url", origin: "https://abc.lambda-url.us-east-1.on.aws", path: "/api/v1/datahike-s3", profileId: identity.profileId },
+    target: { kind: "direct-function-url", origin: "https://abc.lambda-url.us-east-1.on.aws", path: "/", profileId: identity.profileId },
     identity, descriptorIdentity: identity, releaseOutcome: "released",
     counts: { passed: categories.length, failed: 0, unsupported: 0 },
     cases: categories.map((category) => ({ id: `${category}-case`, category, status: "passed", durationMs: 1, reason: null, details: {} }))
@@ -51,7 +51,7 @@ function observability() {
   return createObservabilityReadiness({
     schema: "eacl-demo.observability-readiness.v1",
     identity,
-    route: "/api/v1/datahike-s3",
+    route: "/",
     completedAt: "2026-08-25T12:02:00Z",
     logs: { structured: true, redactionAudit: "passed", retentionDays: 14 },
     signals: named(["requests", "errors", "duration", "initialization", "restore", "throttles", "timeouts", "oom", "storage"]),
@@ -62,7 +62,7 @@ function observability() {
     dashboard: { status: "ready", identifier: "eacl-demo-datahike-s3" },
     synthetics: ["bootstrap", "exemplar", "health"].map((name) => ({
       name, status: "passed",
-      target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/datahike-s3" },
+      target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/" },
       checkedAt: "2026-08-25T12:01:30Z",
       observedIdentity: identity
     })),
@@ -138,7 +138,7 @@ test("inconsistent counts, duplicate cases, unsupported mandatory cases, and tar
       return report;
     })(),
     (() => { const report = qualification(); report.target.profileId = "datomic-dynamodb"; return report; })(),
-    (() => { const report = qualification(); report.target.path = "/api/v1/datomic-dynamodb"; return report; })()
+    (() => { const report = qualification(); report.target.path = "/"; return report; })()
   ];
   for (const report of variants) {
     const gate = evaluateInitialEnablement({
@@ -172,7 +172,7 @@ test("a boolean, stale identity, disabled alarm, missing synthetic, or unbounded
 test("synthetics must traverse the staged profile route after deployment and observe its exact identity", () => {
   const variants = [
     (() => { const value = structuredClone(observability()); value.synthetics[0].target.kind = "direct-origin"; return value; })(),
-    (() => { const value = structuredClone(observability()); value.synthetics[0].target.baseUrl = "https://staging.demo.eacl.dev/api/v1/datomic-dynamodb"; return value; })(),
+    (() => { const value = structuredClone(observability()); value.synthetics[0].target.baseUrl = "https://staging.demo.eacl.dev/"; return value; })(),
     (() => { const value = structuredClone(observability()); value.synthetics[0].checkedAt = "2026-08-25T11:59:59Z"; return value; })(),
     (() => { const value = structuredClone(observability()); value.synthetics[0].observedIdentity = { ...identity, deploymentId: "deploy-2" }; return value; })()
   ];

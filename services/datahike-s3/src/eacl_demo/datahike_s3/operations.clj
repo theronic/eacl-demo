@@ -7,7 +7,8 @@
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
             [eacl.relationships.storage :as relationship-storage]
-            [eacl.secure-format :as secure]))
+            [eacl.secure-format :as secure]
+            [eacl.spicedb.consistency :as consistency]))
 
 (def ^:private default-page-size 20)
 (def ^:private default-count-ceiling 1000000)
@@ -194,7 +195,7 @@
            page
            (not= false (:cache input))))))
 
-     "authorize"
+     "check-permission"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
         (let [database (datahike-eacl/db snapshot)
@@ -333,9 +334,19 @@
            :ceiling ceiling})))}))
 
 (defn- eacl-consistency
-  [_input]
-  ;; The boundary has already pinned the operation to an immutable snapshot.
-  :minimize-latency)
+  [input]
+  (let [snapshot (:eacl-demo/snapshot input)
+        public-basis (:eacl-demo/public-basis input)
+        token (when snapshot (eacl/basis-token snapshot))
+        requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
+        captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
+    (when-not token (fail! "internal-error"))
+    (when (and requested-at captured-at (.isAfter requested-at captured-at))
+      (fail! "freshness-unavailable"))
+    (case (:consistency input)
+      "at-least" (consistency/at-least-as-fresh token)
+      "exact" (consistency/at-exact-snapshot token)
+      consistency/minimize-latency)))
 
 (defn- relationship-query
   [input anchor]

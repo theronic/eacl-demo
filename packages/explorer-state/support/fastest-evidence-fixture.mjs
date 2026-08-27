@@ -15,12 +15,12 @@ export function fastestEvidence(overrides = {}) {
     },
     workload: {
       id: "datahike-storage-million-v1",
-      digest: "sha256:d046b2469875189f662548971337bf806e71e74a6eca5c129661bee305342b29",
+      digest: "sha256:dc620652915a005b59af3a92151a4b4813696ee0d41cf9f1b0eec992bfa096fc",
       requestsPerWave: 100,
-      operationWeights: { authorize: 40, bootstrap: 5, countObjects: 10, getObject: 10, getSchema: 5, listRelationships: 15, listSubjects: 5, reverseRelationships: 10 },
+      operationWeights: { checkPermission: 40, bootstrap: 5, countObjects: 10, getObject: 10, getSchema: 5, listRelationships: 15, listSubjects: 5, reverseRelationships: 10 },
       cacheLanesDigest: `sha256:${"c".repeat(64)}`
     },
-    environment: { region: "us-east-1", runtime: "java25", architecture: "arm64", memoryMb: 2048, snapStart: "None", timeoutSeconds: 30, ephemeralStorageMiB: 512, productionPath: "function-url-v2" },
+    environment: { region: "us-east-1", runtime: "java25", architecture: "arm64", memoryMb: 1024, snapStart: "PublishedVersions", timeoutSeconds: 30, ephemeralStorageMiB: 512, productionPath: "function-url-v2" },
     repetitions: { coldOrRestore: 30, warmWavesPerLane: 30, concurrency: [1, 8], bootstrapResamples: 10_000 },
     measuredAt: "2026-08-25T12:00:00Z",
     expiresAt: "2026-09-24T12:00:00Z",
@@ -41,9 +41,9 @@ function candidate(profileId, storage, artifactPrefix) {
     artifactDigest: `sha256:${artifactPrefix.repeat(64)}`, deploymentId: `${profileId}-deployment`, serviceCodeDigest: `sha256:${"f".repeat(64)}`,
     dataLifecycleId: `${profileId}-fixture-v1`, dataManifestDigest: "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
     qualificationEvidenceId: `sha256:${"9".repeat(64)}`, qualificationExpiresAt: "2026-10-24T12:00:00Z", qualificationPassing: true,
-    contractVersion: "explorer.v1", region: "us-east-1", runtime: "java25", architecture: "arm64", memoryMb: 2048,
-    snapStart: "None", timeoutSeconds: 30, ephemeralStorageMiB: 512,
-    workloadDigest: "sha256:d046b2469875189f662548971337bf806e71e74a6eca5c129661bee305342b29",
+    contractVersion: "explorer.v1", region: "us-east-1", runtime: "java25", architecture: "arm64", memoryMb: 1024,
+    snapStart: "PublishedVersions", timeoutSeconds: 30, ephemeralStorageMiB: 512,
+    workloadDigest: "sha256:dc620652915a005b59af3a92151a4b4813696ee0d41cf9f1b0eec992bfa096fc",
     cacheLanesDigest: `sha256:${"c".repeat(64)}`
   };
 }

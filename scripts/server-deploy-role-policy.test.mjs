@@ -20,8 +20,8 @@ test("server deployment role is inactive by default and binds every exact ordina
 test("server deployment role can mutate only one artifact prefix, status key, function, aliases, and invalidation", () => {
   for (const action of [
     "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject",
-    "lambda:GetAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:InvokeFunction",
-    "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
+    "lambda:GetAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:GetFunctionConcurrency", "lambda:InvokeFunction",
+    "lambda:DeleteFunctionConcurrency", "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
     "cloudfront:CreateInvalidation"
   ]) assert.ok(source.includes(`- ${action}`));
   for (const resource of [
@@ -30,5 +30,5 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
     "function:${FunctionName}*",
     "distribution/${DistributionId}"
   ]) assert.ok(source.includes(resource));
-  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:Delete|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
+  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:DeleteFunction(?:\s|$)|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
 });

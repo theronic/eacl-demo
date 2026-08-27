@@ -5,8 +5,6 @@
   (:import [java.util.concurrent Semaphore]))
 
 (def profile-id "datomic-dynamodb")
-(def profile-prefix "/api/v1/datomic-dynamodb")
-
 (def method-by-operation
   {"health" :get
    "bootstrap" :get
@@ -14,7 +12,7 @@
    "get-object" :post
    "list-relationships" :post
    "reverse-relationships" :post
-   "authorize" :post
+   "check-permission" :post
    "lookup-resources" :post
    "lookup-subjects" :post
    "count-resources" :post
@@ -23,14 +21,14 @@
    "count-objects" :post})
 
 (def ^:private supported-consistency
-  #{"minimize"})
+  #{"minimize" "authoritative" "at-least" "exact"})
 
 (defn parse-route
   [{:keys [path method]}]
   (let [path (or path "")
-        prefix (str profile-prefix "/")
-        operation (when (.startsWith ^String path prefix)
-                    (subs path (count prefix)))
+        operation (when (and (.startsWith ^String path "/")
+                             (< 1 (count path)))
+                    (subs path 1))
         expected (get method-by-operation operation)]
     (cond
       (or (nil? operation) (.contains ^String operation "/")
@@ -118,7 +116,9 @@
               (let [data (if (= operation "bootstrap")
                            descriptor
                            ((get handlers operation)
-                            {:input input
+                            {:input (assoc input
+                                           :eacl-demo/snapshot (:value snapshot)
+                                           :eacl-demo/public-basis (:basis snapshot))
                              :snapshot (:value snapshot)
                              :basis (:basis snapshot)
                              :check-active! check-active!}))]

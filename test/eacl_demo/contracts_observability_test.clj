@@ -39,7 +39,7 @@
                           :data {:secret "must-never-appear"}})}
         [record] (capture #(observability/observe-response!
                            context
-                           {:rawPath "/api/v1/datahike-dynamodb/authorize"}
+                           {:rawPath "/check-permission"}
                            response 2000000000))]
     (is (= "eacl-demo.runtime-telemetry.v1" (:schema record)))
     (is (= "EaclDemo/Runtime"
@@ -47,7 +47,7 @@
     (is (= [["ProfileId" "FunctionName"]]
            (get-in record [:_aws :CloudWatchMetrics 0 :Dimensions])))
     (is (= "success" (:outcome record)))
-    (is (= "authorize" (:operation record)))
+    (is (= "check-permission" (:operation record)))
     (is (= "request-1" (:requestId record)))
     (is (= 500.0 (:Duration record)))
     (is (= 0 (:Errors record)))
@@ -63,9 +63,9 @@
                           :data {:allowed true}})}
         [record] (capture #(observability/observe-response!
                            context
-                           {:rawPath "/api/v1/datahike-dynamodb/authorize"}
+                           {:rawPath "/check-permission"}
                            response 2000000000))]
-    (is (= "authorize" (:operation record)))
+    (is (= "check-permission" (:operation record)))
     (is (= "request-compact" (:requestId record)))
     (is (= "success" (:outcome record)))))
 
@@ -78,7 +78,7 @@
                                   :message "credential=must-never-appear"}})}
         [request alarm] (capture #(observability/observe-response!
                                   context
-                                  {:rawPath "/api/v1/datahike-dynamodb/health"}
+                                  {:rawPath "/health"}
                                   response 2000000000))]
     (is (= 1 (:Errors request)))
     (is (= 1 (:Timeouts request)))
@@ -116,7 +116,7 @@
   (testing "OOM and raw event data become only closed metrics"
     (let [[record] (capture #(observability/observe-exception!
                              context
-                             {:rawPath "/api/v1/datahike-dynamodb/health"
+                             {:rawPath "/health"
                               :requestContext {:requestId "request-3"}
                               :body "must-never-appear"}
                              2000000000
@@ -134,7 +134,7 @@
             context (constantly :ready))))
     (is (nil? (observability/observe-response!
                context
-               {:rawPath "/api/v1/datahike-dynamodb/health"}
+               {:rawPath "/health"}
                {:statusCode 200
                 :body (json/write-str
                        {:data {:ready true}

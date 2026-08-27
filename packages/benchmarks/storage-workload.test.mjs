@@ -20,7 +20,7 @@ test("benchmark workload validates and binds the canonical million-resource fixt
   assert.equal(workload.comparison.fixtureDigest, largeManifest.digests.fixture);
   assert.equal(workload.runtime.lambdaRuntime, "java25");
   assert.equal(workload.runtime.architecture, "arm64");
-  assert.equal(workload.runtime.snapStart, "None");
+  assert.equal(workload.runtime.snapStart, "PublishedVersions");
   assert.equal(workload.runtime.memorySelection, "maximum-of-the-two-lowest-qualified-memory-values");
 });
 
@@ -30,7 +30,7 @@ test("weights are exact and every request passes the closed HTTP boundary", () =
   for (const profile of ["datahike-s3", "datahike-dynamodb"]) {
     for (const entry of workload.schedule.operations) {
       const request = {
-        path: `/api/v1/${profile}/${entry.operation}`,
+        path: `/${entry.operation}`,
         method: entry.method,
         query: "",
         body: entry.method === "GET" ? null : JSON.stringify(entry.input),

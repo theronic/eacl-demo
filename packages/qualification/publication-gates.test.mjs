@@ -62,7 +62,7 @@ test("ordinary publication requires an already-enabled profile and a sealed exac
   const initial = structuredClone(registry);
   await assert.rejects(() => createOrdinaryDeploymentPublication({ baseRegistry: initial, profileDefinitions: definitions, profileId, deployment: replacement, smoke, productionRecheck, publishedAt: "2026-08-25T12:05:03Z" }, { cryptoImpl: webcrypto, now: "2026-08-25T12:06:00Z" }), /initial enablement/u);
   const drifted = structuredClone(smoke);
-  drifted.target.path = "/api/v1/datomic-dynamodb";
+  drifted.target.path = "/";
   await assert.rejects(() => createOrdinaryDeploymentPublication({ baseRegistry, profileDefinitions: definitions, profileId, deployment: replacement, smoke: drifted, productionRecheck, publishedAt: "2026-08-25T12:05:03Z" }, { cryptoImpl: webcrypto, now: "2026-08-25T12:06:00Z" }));
   await assert.rejects(() => createOrdinaryDeploymentPublication({ baseRegistry, profileDefinitions: definitions, profileId, deployment: replacement, smoke, productionRecheck: null, publishedAt: "2026-08-25T12:05:03Z" }, { cryptoImpl: webcrypto, now: "2026-08-25T12:06:00Z" }));
   const early = structuredClone(productionRecheck);
@@ -98,7 +98,7 @@ function enabledRegistry() {
 function initialInput() {
   const qualification = {
     schema: "eacl-demo.qualification-report.v1", result: "pass", startedAt: "2026-08-25T12:00:01Z", completedAt: "2026-08-25T12:01:00Z",
-    target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/api/v1/datahike-s3", profileId }, identity, descriptorIdentity: identity, releaseOutcome: "released",
+    target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/", profileId }, identity, descriptorIdentity: identity, releaseOutcome: "released",
     counts: { passed: categories.length, failed: 0, unsupported: 0 },
     cases: categories.map((category) => ({ id: `${category}-case`, category, status: "passed", durationMs: 1, reason: null, details: {} }))
   };
@@ -106,7 +106,7 @@ function initialInput() {
   const phase = (name, samples) => ({ phase: name, status: "passed", reason: null, samples, errors: 0, errorRate: 0, latencyMs: { p50: 10, p95: 20, maximumP95: criteria.maximumP95Ms[name] }, memory: { minimumHeadroomPercent: 30, requiredHeadroomPercent: 20 } });
   const workload = { schema: "eacl-demo.qualification-workload.v1", result: "pass", profileId, dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, cacheStates: ["bypass", "warm"], concurrency: 2, criteria, phases: [phase("cold", 2), { phase: "restore", status: "unsupported", reason: "SnapStart is disabled.", samples: 0, errors: 0, latencyMs: null, memory: null }, phase("warm", 4)] };
   const named = (names) => names.map((name) => ({ name, status: "ready" }));
-  const observability = createObservabilityReadiness({ schema: "eacl-demo.observability-readiness.v1", identity, route: "/api/v1/datahike-s3", completedAt: "2026-08-25T12:02:00Z", logs: { structured: true, redactionAudit: "passed", retentionDays: 14 }, signals: named(["requests", "errors", "duration", "initialization", "restore", "throttles", "timeouts", "oom", "storage"]), alarms: ["duration", "errors", "health", "initialization", "oom", "throttles", "timeouts"].map((name) => ({ name, status: "ready", state: "OK", actionsEnabled: true, notificationPath: "sns-telegram", scope: { profileId, resourceIdentifier: "eacl-demo-datahike-s3" } })), dashboard: { status: "ready", identifier: "eacl-demo-datahike-s3" }, synthetics: ["bootstrap", "exemplar", "health"].map((name) => ({ name, status: "passed", target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/api/v1/datahike-s3" }, checkedAt: "2026-08-25T12:01:30Z", observedIdentity: identity })), runbook: { status: "ready", identifier: "docs/operator-runbook.md#profile-incidents" } });
+  const observability = createObservabilityReadiness({ schema: "eacl-demo.observability-readiness.v1", identity, route: "/", completedAt: "2026-08-25T12:02:00Z", logs: { structured: true, redactionAudit: "passed", retentionDays: 14 }, signals: named(["requests", "errors", "duration", "initialization", "restore", "throttles", "timeouts", "oom", "storage"]), alarms: ["duration", "errors", "health", "initialization", "oom", "throttles", "timeouts"].map((name) => ({ name, status: "ready", state: "OK", actionsEnabled: true, notificationPath: "sns-telegram", scope: { profileId, resourceIdentifier: "eacl-demo-datahike-s3" } })), dashboard: { status: "ready", identifier: "eacl-demo-datahike-s3" }, synthetics: ["bootstrap", "exemplar", "health"].map((name) => ({ name, status: "passed", target: { kind: "staged-cloudfront", baseUrl: "https://staging.demo.eacl.dev/" }, checkedAt: "2026-08-25T12:01:30Z", observedIdentity: identity })), runbook: { status: "ready", identifier: "docs/operator-runbook.md#profile-incidents" } });
   return { baseRegistry: structuredClone(registry), profileDefinitions: definitions, profileId, deployment, qualification, workload, observability, publishedAt: "2026-08-25T12:03:00Z" };
 }
 
@@ -115,12 +115,12 @@ async function passingSmoke() {
     const meta = { revision: "basis-1", requestId: `request-${operation}` };
     if (operation === "health") return { meta, data: { ready: true, status: "ready", identity } };
     if (operation === "bootstrap") return { meta, data: { identity } };
-    if (operation === "authorize") return { meta, data: { allowed: input.subjectId === "user-1" } };
+    if (operation === "check-permission") return { meta, data: { allowed: input.subjectId === "user-1" } };
     return { meta, error: { code: "route-not-found", message: "The route is not available." } };
   } };
   const times = ["2026-08-25T12:00:01Z", "2026-08-25T12:00:02Z"];
   let index = 0;
-  return runMergeSmoke({ transport, expectedIdentity: identity, target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/api/v1/datahike-s3", profileId }, allowedDemand: { subject: { type: "user", id: "user-1" }, resource: { type: "account", id: "account-1" }, permission: "read" }, deniedDemand: { subject: { type: "user", id: "user-2" }, resource: { type: "account", id: "account-1" }, permission: "read" }, clock: () => times[index++] });
+  return runMergeSmoke({ transport, expectedIdentity: identity, target: { kind: "staged-cloudfront", origin: "https://staging.demo.eacl.dev", path: "/", profileId }, allowedDemand: { subject: { type: "user", id: "user-1" }, resource: { type: "account", id: "account-1" }, permission: "read" }, deniedDemand: { subject: { type: "user", id: "user-2" }, resource: { type: "account", id: "account-1" }, permission: "read" }, clock: () => times[index++] });
 }
 
 async function passingProductionRecheck() {
@@ -132,7 +132,7 @@ async function passingProductionRecheck() {
   } };
   const times = ["2026-08-25T12:00:03Z", "2026-08-25T12:00:04Z"];
   let index = 0;
-  return runProductionRecheck({ transport, expectedIdentity: identity, target: { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: "/api/v1/datahike-s3", profileId }, clock: () => times[index++] });
+  return runProductionRecheck({ transport, expectedIdentity: identity, target: { kind: "production-cloudfront", origin: "https://demo.eacl.dev", path: "/", profileId }, clock: () => times[index++] });
 }
 
 function resealSmoke(report) {

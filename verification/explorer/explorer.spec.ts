@@ -99,7 +99,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   };
   const profile = {
     id: identity.profileId, backend: "datahike", storage: "s3", state: "enabled", reason: null,
-    route: "/api/v1/datahike-s3",
+    route: "/",
     deployment: {
       demoSha: identity.demoSha, eaclSha: identity.eaclSha,
       artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "7" },
@@ -119,8 +119,8 @@ test("an enabled publication opens the schema-validated server explorer over the
     profile: { backend: "datahike", storage: "s3" },
     runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
     capabilities: {
-      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
-      consistencyModes: ["current", "minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
+      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
+      consistencyModes: ["minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
     },
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
     dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
@@ -135,7 +135,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(baselinePublications.get(id)) });
     }
   });
-  await page.route("**/api/v1/datahike-s3/*", async (route) => {
+  await page.route("**/*", async (route) => {
     const request = route.request();
     const operation = new URL(request.url()).pathname.split("/").at(-1)!;
     const requestId = request.headers()["x-eacl-request-id"] ?? null;
@@ -151,7 +151,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       "get-object": { object },
       "list-relationships": { items: [{ resourceType: input.resourceType, resourceId: input.resourceId, relation: input.relation ?? "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo },
       "reverse-relationships": { items: [object], pageInfo },
-      authorize: { allowed: true },
+      "check-permission": { allowed: true },
       "lookup-resources": { items: [{ type: input.resourceType, id: "server-1", displayName: "Server one", attributes: [] }], pageInfo },
       "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
       "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
@@ -217,7 +217,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".permission-decision__status--allowed", { hasText: "Allowed" })).toBeVisible();
   await expect(page.locator(".cache-timing", { hasText: "1.25ms" }).first()).toBeVisible();
   await expect(page.locator(".cache-timing__status", { hasText: "hit" }).first()).toBeVisible();
-  expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "authorize", "lookup-subjects"]));
+  expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "check-permission", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);
   expect(apiRequests.every(({ payloadHash }) => payloadHash === null)).toBe(true);

@@ -1,6 +1,6 @@
 import { successfulData, unsupportedResult } from "./runner.mjs";
 
-const CONSISTENCY_MODES = ["current", "minimize", "authoritative", "at-least", "exact", "historical-date"];
+const CONSISTENCY_MODES = ["minimize", "authoritative", "at-least", "exact", "historical-date"];
 
 export function commonQualificationCases(exemplars) {
   const decisions = exemplars.cases.filter(({ kind }) => kind === "decision");
@@ -28,16 +28,16 @@ function healthCase() {
 }
 
 function authorizationCase(exemplar) {
-  return operationCase(`authorization-${exemplar.id}`, "authorization", ["authorize"], async ({ transport, descriptor }) => {
+  return operationCase(`authorization-${exemplar.id}`, "authorization", ["check-permission"], async ({ transport, descriptor }) => {
     const demand = exemplar.demand;
-    const decision = successfulData(await transport.request("authorize", {
+    const decision = successfulData(await transport.request("check-permission", {
       subjectType: demand.subject.type,
       subjectId: demand.subject.id,
       resourceType: demand.resource.type,
       resourceId: demand.resource.id,
       permission: demand.permission,
       consistency: advertisedConsistency(descriptor)
-    }), "authorize");
+    }), "check-permission");
     if (decision.allowed !== exemplar.expected.allowed) throw new Error(`authorization exemplar ${exemplar.id} disagrees`);
     return { allowed: decision.allowed };
   });
@@ -79,11 +79,11 @@ function paginationAndCursorCase() {
 
 function cacheCase(exemplar) {
   return {
-    ...operationCase("cache-semantic-equivalence", "cache", ["authorize", "get-cache-info"], async ({ transport, descriptor }) => {
+    ...operationCase("cache-semantic-equivalence", "cache", ["check-permission", "get-cache-info"], async ({ transport, descriptor }) => {
       if (descriptor.capabilities.cacheBehavior === "none") return unsupportedResult("The profile descriptor advertises no cache.");
       const input = demandInput(exemplar.demand, descriptor);
-      const first = successfulData(await transport.request("authorize", input), "authorize");
-      const second = successfulData(await transport.request("authorize", input), "authorize");
+      const first = successfulData(await transport.request("check-permission", input), "check-permission");
+      const second = successfulData(await transport.request("check-permission", input), "check-permission");
       if (first.allowed !== second.allowed) throw new Error("cached and uncached authorization semantics differ");
       const cache = successfulData(await transport.request("get-cache-info", {}), "get-cache-info");
       if (cache.behavior !== descriptor.capabilities.cacheBehavior) throw new Error("cache behavior differs from descriptor");
@@ -93,10 +93,10 @@ function cacheCase(exemplar) {
 }
 
 function consistencyCase(exemplar) {
-  return operationCase("advertised-consistency-modes", "consistency", ["authorize"], async ({ transport, descriptor }) => {
+  return operationCase("advertised-consistency-modes", "consistency", ["check-permission"], async ({ transport, descriptor }) => {
     const outcomes = [];
     for (const mode of descriptor.capabilities.consistencyModes) {
-      const decision = successfulData(await transport.request("authorize", { ...demandInput(exemplar.demand, descriptor), consistency: mode }), "authorize");
+      const decision = successfulData(await transport.request("check-permission", { ...demandInput(exemplar.demand, descriptor), consistency: mode }), "check-permission");
       if (decision.allowed !== exemplar.expected.allowed) throw new Error(`advertised consistency ${mode} changed semantics`);
       outcomes.push(mode);
     }
@@ -105,20 +105,20 @@ function consistencyCase(exemplar) {
 }
 
 function unsupportedConsistencyCase(exemplar) {
-  return operationCase("unsupported-consistency-rejection", "consistency-failure", ["authorize"], async ({ transport, descriptor }) => {
+  return operationCase("unsupported-consistency-rejection", "consistency-failure", ["check-permission"], async ({ transport, descriptor }) => {
     const unsupported = CONSISTENCY_MODES.find((mode) => !descriptor.capabilities.consistencyModes.includes(mode));
     if (!unsupported) return unsupportedResult("The profile advertises every closed consistency mode.");
-    await expectFailure(() => transport.request("authorize", { ...demandInput(exemplar.demand, descriptor), consistency: unsupported }), "unsupported-consistency");
+    await expectFailure(() => transport.request("check-permission", { ...demandInput(exemplar.demand, descriptor), consistency: unsupported }), "unsupported-consistency");
     return { rejectedMode: unsupported };
   });
 }
 
 function failureAndRedactionCase() {
-  return operationCase("validation-failure-redaction", "failure-redaction", ["authorize"], async ({ transport }) => {
+  return operationCase("validation-failure-redaction", "failure-redaction", ["check-permission"], async ({ transport }) => {
     // Assemble the probe at runtime so the repository-wide scanner can still
     // treat every literal credential-shaped URL as a release blocker.
     const secretLike = ["https", "://", "user", ":", "password", "@example.invalid/token", "?secret", "=value"].join("");
-    const failure = await captureFailure(() => transport.request("authorize", { subjectType: "user", subjectId: secretLike }));
+    const failure = await captureFailure(() => transport.request("check-permission", { subjectType: "user", subjectId: secretLike }));
     if (failure.code !== "validation-error") throw new Error(`malformed authorization returned ${failure.code ?? "no stable code"}`);
     if (JSON.stringify(failure.public).includes(secretLike) || JSON.stringify(failure.public).includes("password")) throw new Error("validation failure reflected secret-like input");
     return { code: failure.code, reflectedInput: false };

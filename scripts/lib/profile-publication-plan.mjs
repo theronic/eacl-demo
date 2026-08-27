@@ -97,7 +97,7 @@ export function createServerProfilePublicationPlan({ publication, activeAlias, r
 }
 
 function validateServerProfile(profile) {
-  if (!profile || profile.id === "datascript-browser-memory" || !profile.route?.startsWith("/api/v1/")) throw new Error("server publication requires one closed server profile");
+  if (!profile || profile.id === "datascript-browser-memory" || profile.route !== "/") throw new Error("server publication requires one closed server profile");
 }
 
 function validateAlias(alias) {

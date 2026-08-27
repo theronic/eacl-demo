@@ -40,7 +40,7 @@ export function CachePanel(): JSX.Element {
     setRefreshError(undefined);
     setEvictError(undefined);
     try {
-      const result = await refreshRequest.run<CacheSnapshot>("/api/cache");
+      const result = await refreshRequest.run<CacheSnapshot>("/get-cache-info");
       setSnapshot({
         capturedAt: result.data.capturedAt,
         cacheEnabled: app.cacheEnabled(),
@@ -58,7 +58,7 @@ export function CachePanel(): JSX.Element {
     setEvictError(undefined);
     setRefreshError(undefined);
     try {
-      const result = await evictRequest.run<{ status: string }>("/api/cache/evict", {
+      const result = await evictRequest.run<{ status: string }>("/evict-cache", {
         method: "POST",
         body: "{}",
       });

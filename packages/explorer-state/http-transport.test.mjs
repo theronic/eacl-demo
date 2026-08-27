@@ -6,7 +6,7 @@ import { createServerProfileTransport } from "./src/http-transport.mjs";
 const identity = { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "deployment-7", dataManifestSha256: "d".repeat(64) };
 const profile = {
   id: identity.profileId, backend: "datahike", storage: "s3", state: "enabled", reason: null,
-  route: "/api/v1/datahike-s3",
+  route: "/",
   apiOrigin: "https://direct.lambda-url.us-east-1.on.aws",
   deployment: { demoSha: identity.demoSha, eaclSha: identity.eaclSha, artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "7" }, deploymentId: identity.deploymentId, dataManifestSha256: identity.dataManifestSha256, deployedAt: "2026-08-25T12:00:00Z" }
 };
@@ -15,12 +15,12 @@ const descriptor = {
   contract: { name: "explorer.v1", routeMajor: 1, revision: 1, minimumClientRevision: 1 }, identity,
   profile: { backend: "datahike", storage: "s3" },
   runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
-  capabilities: { operations: ["health", "bootstrap", "authorize"], consistencyModes: ["current"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"] },
+  capabilities: { operations: ["health", "bootstrap", "check-permission"], consistencyModes: ["minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"] },
   limits: [{ name: "responseBodyBytes", value: 1_048_576 }],
   dataset: { fixtureId: "fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
 };
 
-test("server transport starts health and bootstrap sequentially on the reserved-concurrency-one runtime", async () => {
+test("server transport validates health before bootstrap", async () => {
   const calls = [];
   let inFlight = 0;
   let maximumInFlight = 0;
@@ -37,7 +37,7 @@ test("server transport starts health and bootstrap sequentially on the reserved-
     return result;
   });
   assert.deepEqual(await transport.bootstrap({ epoch: 4 }), descriptor);
-  assert.deepEqual(calls.map(({ url }) => url), ["https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/health", "https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/bootstrap"]);
+  assert.deepEqual(calls.map(({ url }) => url), ["https://direct.lambda-url.us-east-1.on.aws/health", "https://direct.lambda-url.us-east-1.on.aws/bootstrap"]);
   assert.equal(maximumInFlight, 1);
   assert.equal(calls.every(({ init }) => init.method === "GET" && !("body" in init) && init.credentials === "omit" && init.redirect === "error"), true);
   assert.deepEqual(calls.map(({ init }) => init.headers["x-eacl-request-id"]).sort(), ["browser-4-1", "browser-4-2"]);
@@ -45,7 +45,7 @@ test("server transport starts health and bootstrap sequentially on the reserved-
   assert.equal(await transport.release(), false);
 });
 
-test("server transport serializes concurrent operations to preserve the runtime concurrency cap", async () => {
+test("server transport allows concurrent independent operations", async () => {
   let inFlight = 0;
   let maximumInFlight = 0;
   const transport = createTransport(async (url, init) => {
@@ -57,23 +57,23 @@ test("server transport serializes concurrent operations to preserve the runtime 
     inFlight -= 1;
     return response(success(operation, requestId, { allowed: true }));
   });
-  const requests = ["parallel-1", "parallel-2", "parallel-3"].map((requestId) => transport.request("authorize", {}, { requestId }));
+  const requests = ["parallel-1", "parallel-2", "parallel-3"].map((requestId) => transport.request("check-permission", {}, { requestId }));
   const envelopes = await Promise.all(requests);
   assert.equal(envelopes.every(({ data }) => data.allowed === true), true);
-  assert.equal(maximumInFlight, 1);
+  assert.equal(maximumInFlight, 3);
 });
 
 test("POST bodies go directly to Lambda without CloudFront signing headers", async () => {
   let observed;
   const transport = createTransport(async (url, init) => {
     observed = { url, init };
-    return response(success("authorize", "9-2", { allowed: true }));
+    return response(success("check-permission", "9-2", { allowed: true }));
   });
-  const envelope = await transport.request("authorize", { subjectId: "alice" }, { epoch: 9, requestId: "9-2" });
+  const envelope = await transport.request("check-permission", { subjectId: "alice" }, { epoch: 9, requestId: "9-2" });
   assert.equal(envelope.data.allowed, true);
   assert.equal(observed.init.body, '{"subjectId":"alice"}');
   assert.equal(observed.init.headers["x-eacl-request-id"], "9-2");
-  assert.equal(observed.url, "https://direct.lambda-url.us-east-1.on.aws/api/v1/datahike-s3/authorize");
+  assert.equal(observed.url, "https://direct.lambda-url.us-east-1.on.aws/check-permission");
   assert.equal(observed.init.headers["x-amz-content-sha256"], undefined);
   assert.equal(observed.init.cache, "no-store");
 });
@@ -84,7 +84,7 @@ test("every backend accepts the same original compact decision metadata", async 
     id: "datomic-dynamodb",
     backend: "datomic",
     storage: "dynamodb",
-    route: "/api/v1/datomic-dynamodb",
+    route: "/",
     apiOrigin: "https://datomic.lambda-url.us-east-1.on.aws",
     deployment: { ...profile.deployment },
   };
@@ -92,7 +92,7 @@ test("every backend accepts the same original compact decision metadata", async 
     meta: { revision: "datomic:fixture:42", requestId: "compact-1", elapsedMs: 0.8, cacheStatus: "hit" },
     data: { allowed: true },
   }), { profile: datomicProfile });
-  const envelope = await transport.request("authorize", {}, { requestId: "compact-1" });
+  const envelope = await transport.request("check-permission", {}, { requestId: "compact-1" });
   assert.deepEqual(envelope.data, { allowed: true });
   assert.equal(envelope.meta.identity, undefined);
   assert.equal(envelope.meta.basis, undefined);
@@ -100,14 +100,14 @@ test("every backend accepts the same original compact decision metadata", async 
     meta: { revision: "basis-1", requestId: "compact-2" },
     data: { allowed: true },
   }));
-  assert.deepEqual((await datahike.request("authorize", {}, { requestId: "compact-2" })).data, { allowed: true });
+  assert.deepEqual((await datahike.request("check-permission", {}, { requestId: "compact-2" })).data, { allowed: true });
 });
 
 test("request correlation and HTTP status drift still fail closed", async () => {
-  const wrongRequest = createTransport(async () => response(success("authorize", "wrong", {})));
-  await assert.rejects(wrongRequest.request("authorize", {}, { requestId: "1-1" }), /identity|match/u);
-  const badStatus = createTransport(async () => response(success("authorize", "1-1", {}), 503));
-  await assert.rejects(badStatus.request("authorize", {}, { requestId: "1-1" }), /status/u);
+  const wrongRequest = createTransport(async () => response(success("check-permission", "wrong", {})));
+  await assert.rejects(wrongRequest.request("check-permission", {}, { requestId: "1-1" }), /identity|match/u);
+  const badStatus = createTransport(async () => response(success("check-permission", "1-1", {}), 503));
+  await assert.rejects(badStatus.request("check-permission", {}, { requestId: "1-1" }), /status/u);
 });
 
 test("startup requires ready health and the same exact basis as bootstrap", async () => {
@@ -123,7 +123,7 @@ test("startup requires ready health and the same exact basis as bootstrap", asyn
 test("insecure, noncanonical, released, redirected, and non-JSON transports are rejected", async () => {
   assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: "https://demo.eacl.dev" } }), /Function URL/u);
   assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: null } }), /requires a direct/u);
-  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, route: "/api/v1/datahike-s3/extra" } }), /canonical/u);
+  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, route: "/extra" } }), /canonical/u);
   const redirected = createTransport(async (url) => {
     const operation = new URL(url).pathname.split("/").at(-1);
     const value = operation === "health" ? { status: "ready", ready: true, identity, basis } : descriptor;

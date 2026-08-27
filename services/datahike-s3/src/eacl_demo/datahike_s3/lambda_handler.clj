@@ -31,9 +31,16 @@
        (observability/runtime-context "datahike-s3" environment)
        #(initialize environment)))))
 
+(defn initialize-runtime!
+  "Realizes the immutable reader during published-version initialization so
+  SnapStart captures the adopted, read-only Datahike/S3 runtime at 1024 MB."
+  []
+  @runtime
+  nil)
+
 (defn initialize
-  "Builds one reader and boundary. The S3 connection is not SnapStarted; the
-  profile explicitly remains SnapStart-disabled until restore qualification."
+  "Builds one immutable reader and boundary before the published-version
+  SnapStart checkpoint. Restored candidates are qualified before promotion."
   ([environment]
    (initialize environment reader/open-reader!))
   ([environment open-reader!]

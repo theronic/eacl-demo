@@ -16,23 +16,24 @@
    :capturedAt "2026-08-25T12:00:00Z"
    :fixedForEnvironment false})
 
-(deftest s3-claims-are-current-only-environment-local-and-read-only-test
+(deftest s3-claims-are-restored-consistency-aware-and-read-only-test
   (let [descriptor
         (profile/descriptor
          {:identity profile-identity
           :basis request-basis
           :operations #{"health" "bootstrap"}
           :memory-mib 1024})]
-    (is (= ["current"] (get-in descriptor [:capabilities :consistencyModes])))
+    (is (= ["minimize" "at-least" "exact"]
+           (get-in descriptor [:capabilities :consistencyModes])))
     (is (= "request-snapshot"
            (get-in descriptor [:capabilities :snapshotBehavior])))
     (is (= "environment-local"
            (get-in descriptor [:capabilities :cacheBehavior])))
     (is (= "none" (get-in descriptor [:capabilities :mutationLocality])))
     (is (= #{"read-only" "no-history-api" "unequal-dataset-scale"
-             "unsupported-consistency" "no-snapstart"}
+             "unsupported-consistency"}
            (set (get-in descriptor [:capabilities :limitations]))))
-    (is (= "disabled" (get-in descriptor [:runtime :snapStart])))
+    (is (= "enabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 1001584 (get-in descriptor [:dataset :logicalResourceCount])))
     (is (= 1000000 (get-in descriptor [:dataset :serverCount])))
     (is (= profile/data-manifest-sha256

@@ -59,7 +59,7 @@
         (main/handle-event
          runtime
          {"version" "2.0" "routeKey" "$default"
-          "rawPath" "/api/v1/jank-memory/list-subjects"
+          "rawPath" "/list-subjects"
           "rawQueryString" ""
           "headers" {"content-type" "application/json"}
           "requestContext" {"requestId" "handler-cursor-test"

@@ -73,7 +73,7 @@ test("candidate memory, alarm templates, budgets, and Telegram routing are not p
   const serverProfiles = committed.profiles.filter(({ id }) => id !== "datascript-browser-memory");
   assert.equal(serverProfiles.every(({ memory }) => memory.status === "candidate-unqualified" && memory.qualifiedMiB === null && memory.evidenceId === null), true);
   assert.equal(serverProfiles.every(({ alarms }) => alarms.status === "defined-not-deployed" && alarms.count === 7 && alarms.evidenceId === null), true);
-  assert.deepEqual(serverProfiles.map(({ memory }) => memory.configuredMiB), [2048, 2048, 2048, 3072, 4096]);
+  assert.deepEqual(serverProfiles.map(({ memory }) => memory.configuredMiB), [1024, 1024, 1024, 1024, 4096]);
   assert.equal(committed.costControls.budgets.every(({ status, evidenceId }) => status === "defined-not-deployed" && evidenceId === null), true);
   assert.equal(committed.costControls.notifications.status, "defined-not-verified");
   assert.equal(committed.costControls.notifications.evidenceId, null);
@@ -108,7 +108,7 @@ test("benchmark summaries cannot exist without their exact validated evidence fi
 
 test("profile mapping, fixture scale, and manifest self-identity fail closed", () => {
   const route = input();
-  route.registry.profiles[0].route = "/api/v1/datahike-dynamodb";
+  route.registry.profiles[0].route = "/api/v1/datahike-s3";
   assert.throws(() => createPreReleaseReport(route), /profile mapping|route is not canonical/u);
 
   const fixture = input();
@@ -229,9 +229,9 @@ test("mutable source language, unknown fields, and credential-shaped material fa
 
 test("template drift changes the report identity and malformed safety definitions fail generation", () => {
   const changed = input();
-  changed.sources["infra/profiles/datahike-s3-runtime.yaml"] = changed.sources["infra/profiles/datahike-s3-runtime.yaml"].replace("Default: 2048", "Default: 3072");
+  changed.sources["infra/profiles/datahike-s3-runtime.yaml"] = changed.sources["infra/profiles/datahike-s3-runtime.yaml"].replace("Default: 1024", "Default: 1536");
   const regenerated = createPreReleaseReport(changed);
-  assert.equal(regenerated.profiles[0].memory.configuredMiB, 3072);
+  assert.equal(regenerated.profiles[0].memory.configuredMiB, 1536);
   assert.notEqual(regenerated.reportId, committed.reportId);
 
   const architecture = input();

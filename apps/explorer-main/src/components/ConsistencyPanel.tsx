@@ -92,10 +92,9 @@ export function ConsistencyPanel(): JSX.Element {
                   <For each={consistencyModeOrder}>
                     {(mode) => {
                       const disabled = () =>
-                        mode === "fully-consistent" ||
                         !supportedModes().has(mode as ConsistencyMode);
                       const title = () =>
-                        mode === "fully-consistent"
+                        mode === "fully-consistent" && disabled()
                           ? `${mode}: ${consistency()?.fullyConsistentReason ?? "Unavailable in this deployment."}`
                           : mode;
                       return (
@@ -115,7 +114,7 @@ export function ConsistencyPanel(): JSX.Element {
                               app.setConsistencyMode(mode as ConsistencyMode)
                             }
                           />
-                          <span>{mode}</span>
+                          <span>{mode}{mode === "fully-consistent" && disabled() ? "*" : ""}</span>
                         </label>
                       );
                     }}
@@ -135,6 +134,12 @@ export function ConsistencyPanel(): JSX.Element {
                 )}
               </Show>
             </div>
+
+            <Show when={!supportedModes().has("fully-consistent")}>
+              <p class="basis-info__note">
+                * {consistency()?.fullyConsistentReason}
+              </p>
+            </Show>
 
             <div class="consistency-panel__controls">
               <Show when={app.consistencyMode() === "at-least-as-fresh"}>

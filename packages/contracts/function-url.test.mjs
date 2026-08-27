@@ -5,7 +5,7 @@ import { createFunctionUrlResponse, normalizeFunctionUrlEvent, runFunctionUrlCon
 import { createFailure, createSuccess } from "./src/envelopes.mjs";
 
 const suite = JSON.parse(await readFile(new URL("../../verification/contracts/function-url-v2.cases.json", import.meta.url), "utf8"));
-const context = { requestId: "r", operation: "authorize", identity: { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "d", dataManifestSha256: "e".repeat(64) }, basis: null };
+const context = { requestId: "r", operation: "check-permission", identity: { profileId: "datahike-s3", demoSha: "a".repeat(40), eaclSha: "b".repeat(40), artifactSha256: "c".repeat(64), deploymentId: "d", dataManifestSha256: "e".repeat(64) }, basis: null };
 
 test("reference adapter passes the reusable Function URL event suite", async () => {
   const result = await runFunctionUrlContractSuite({ name: "reference-js", normalizeEvent: normalizeFunctionUrlEvent }, suite);
@@ -25,6 +25,6 @@ test("Function URL responses use stable status and security headers", () => {
 
 test("base64 request bodies normalize identically", () => {
   const body = JSON.stringify({ type: "server", id: "server-1" });
-  const event = { version: "2.0", routeKey: "$default", rawPath: "/api/v1/datahike-s3/get-object", rawQueryString: "", headers: { "content-type": "application/json" }, requestContext: { requestId: "r", http: { method: "POST" } }, isBase64Encoded: true, body: btoa(body) };
+  const event = { version: "2.0", routeKey: "$default", rawPath: "/get-object", rawQueryString: "", headers: { "content-type": "application/json" }, requestContext: { requestId: "r", http: { method: "POST" } }, isBase64Encoded: true, body: btoa(body) };
   assert.equal(normalizeFunctionUrlEvent(event).input.id, "server-1");
 });

@@ -30,9 +30,16 @@
        (observability/runtime-context "datahike-dynamodb" environment)
        #(initialize environment)))))
 
+(defn initialize-runtime!
+  "Realizes the immutable reader during published-version initialization so
+  SnapStart captures a ready Datahike database and EACL runtime at 1024 MB."
+  []
+  @runtime
+  nil)
+
 (defn initialize
-  "Builds one reader and boundary. The DynamoDB connection is not SnapStarted;
-  the profile explicitly remains SnapStart-disabled until restore qualification."
+  "Builds one immutable reader and boundary before the published-version
+  SnapStart checkpoint. Restored DynamoDB reads are qualified before promotion."
   ([environment]
    (initialize environment reader/open-reader!))
   ([environment open-reader!]

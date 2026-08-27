@@ -73,13 +73,13 @@ export async function runLambdaMemoryExercise({ invoke, target, expectedIdentity
   const cases = [];
   const observations = [];
   for (let index = 0; index < samples; index += 1) {
-    const operation = index === 0 ? "health" : (index % 2 === 0 ? "authorize-deny" : "authorize-allow");
-    const input = operation === "authorize-allow" ? demandInput(allowedDemand) : operation === "authorize-deny" ? demandInput(deniedDemand) : {};
-    const requestOperation = operation.startsWith("authorize") ? "authorize" : operation;
+    const operation = index === 0 ? "health" : (index % 2 === 0 ? "check-permission-deny" : "check-permission-allow");
+    const input = operation === "check-permission-allow" ? demandInput(allowedDemand) : operation === "check-permission-deny" ? demandInput(deniedDemand) : {};
+    const requestOperation = operation.startsWith("check-permission") ? "check-permission" : operation;
     const started = performance.now();
     try {
       const observation = await invoke({ operation: requestOperation, input, sample: index });
-      validateMemoryObservation(observation, functionConfiguration, expectedIdentity, requestOperation, input, operation === "authorize-allow" ? true : operation === "authorize-deny" ? false : null);
+      validateMemoryObservation(observation, functionConfiguration, expectedIdentity, requestOperation, input, operation === "check-permission-allow" ? true : operation === "check-permission-deny" ? false : null);
       observations.push(observation);
       cases.push(passed(`memory-sample-${index + 1}`, performance.now() - started));
     } catch (error) {
@@ -155,8 +155,8 @@ async function runBoundedLoad({ transport, expectedIdentity, allowedDemand, deni
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(new DOMException("manual exercise deadline", "TimeoutError")), requestTimeoutMs);
       try {
-        const response = assertEnvelope(await transport.request("authorize", input, { signal: controller.signal }), "authorize");
-        const decision = successfulData(response, "authorize");
+        const response = assertEnvelope(await transport.request("check-permission", input, { signal: controller.signal }), "check-permission");
+        const decision = successfulData(response, "check-permission");
         assertDecision(decision, input, allowed);
         outcomes.push({ ok: true });
       } catch (error) {
@@ -324,7 +324,7 @@ function validateTarget(target, profileId, exercise) {
   exactKeys(target, ["kind", "origin", "path", "profileId"], "manual runtime exercise target");
   if (target.kind !== "staged-cloudfront" || target.profileId !== profileId) throw new Error("manual HTTP runtime exercise must target staged CloudFront");
   const origin = new URL(target.origin);
-  if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash || target.path.replace(/\/$/u, "") !== `/api/v1/${profileId}`) throw new Error("manual runtime exercise target is invalid");
+  if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash || target.path !== "/") throw new Error("manual runtime exercise target is invalid");
 }
 
 function validateHttpBounds(value) {

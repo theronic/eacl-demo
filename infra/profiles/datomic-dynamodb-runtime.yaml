@@ -7,7 +7,7 @@ Metadata:
     Runtime: java25
     Architecture: x86_64
     SnapshotBehavior: fixed-environment
-    SnapStartPolicy: disabled-until-non-snapstart-memory-qualification
+    SnapStartPolicy: published-version-preinitialized-fixed-reader
 
 Parameters:
   FunctionName:
@@ -52,15 +52,11 @@ Parameters:
     MinLength: 32
     MaxLength: 256
     AllowedPattern: "^[ -~]{32,256}$"
-  MaximumConcurrency:
-    Type: Number
-    Default: 2
-    AllowedValues: [1, 2, 4]
   MemorySize:
     Type: Number
-    Default: 2048
+    Default: 1024
     AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
-    Description: Candidate only; publish the smallest passing non-SnapStart sweep result.
+    Description: Default to the lowest measured fit; published versions are SnapStarted.
   CandidateAliasName:
     Type: String
     Default: candidate
@@ -99,18 +95,17 @@ Resources:
           EACL_DATOMIC_TABLE: !Ref TableName
           EACL_DEMO_SHA: !Ref DemoSha
           EACL_DEPLOYMENT_ID: !Ref DeploymentId
-          EACL_MAXIMUM_CONCURRENCY: !Sub "${MaximumConcurrency}"
+          EACL_MAXIMUM_CONCURRENCY: "1"
       EphemeralStorage:
         Size: 512
       FunctionName: !Ref FunctionName
       Handler: eacl_demo.datomic_dynamodb.LambdaHandler::handleRequest
       MemorySize: !Ref MemorySize
       PackageType: Zip
-      ReservedConcurrentExecutions: !Ref MaximumConcurrency
       Role: !Ref ExecutionRoleArn
       Runtime: java25
       SnapStart:
-        ApplyOn: None
+        ApplyOn: PublishedVersions
       Timeout: 60
       TracingConfig:
         Mode: PassThrough
@@ -188,4 +183,4 @@ Outputs:
   Architecture:
     Value: x86_64
   SnapStartEnabled:
-    Value: "false"
+    Value: "true"

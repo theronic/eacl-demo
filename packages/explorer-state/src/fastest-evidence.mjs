@@ -3,7 +3,7 @@ import { sha256Hex } from "../../contracts/src/sha256.mjs";
 const SHA1 = /^[0-9a-f]{40}$/u;
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
 const EXPECTED_PROFILES = Object.freeze(["datahike-s3", "datahike-dynamodb"]);
-const EXPECTED_OPERATION_WEIGHTS = Object.freeze({ authorize: 40, bootstrap: 5, countObjects: 10, getObject: 10, getSchema: 5, listRelationships: 15, listSubjects: 5, reverseRelationships: 10 });
+const EXPECTED_OPERATION_WEIGHTS = Object.freeze({ checkPermission: 40, bootstrap: 5, countObjects: 10, getObject: 10, getSchema: 5, listRelationships: 15, listSubjects: 5, reverseRelationships: 10 });
 const COMMON_BINDING_FIELDS = [
   "demoSha", "eaclSha", "serviceCodeDigest", "dataManifestDigest",
   "contractVersion", "region", "runtime", "architecture", "memoryMb",

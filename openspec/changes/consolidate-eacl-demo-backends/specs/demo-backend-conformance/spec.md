@@ -35,9 +35,9 @@ Qualified profiles SHALL prove advertised page directions/bounds, no duplicates/
 ### Requirement: Capability and limitation truthfulness
 Executable checks SHALL compare descriptor claims with behavior/infrastructure. Profiles MUST NOT advertise unsupported consistency, liveness, history, mutation, durability, runtime, dataset size, source identity, or qualification.
 
-#### Scenario: Datomic exact history is advertised
-- **WHEN** the fixed-current Lambda descriptor lists at-exact-snapshot
-- **THEN** enablement/smoke SHALL fail and the UI SHALL not expose it
+#### Scenario: Fixed Datomic consistency is advertised
+- **WHEN** the fixed-value Datomic Lambda descriptor lists fully-consistent, at-least-as-fresh, or at-exact-snapshot
+- **THEN** qualification SHALL prove the selected basis and rejection of any unattainable future floor without `d/sync`, live-head claims, or silent basis substitution
 
 ### Requirement: Provenance manifest binds both repositories
 Each candidate SHALL bind immutable EACL Core SHA, demo SHA, dependencies, toolchain/architecture, fixture/data identity, infrastructure digest, artifact digest, non-secret configuration, and applicable evidence. Aliases SHALL resolve to the recorded artifact.

@@ -14,12 +14,12 @@ const descriptor = {
   contract: { name: "explorer.v1", routeMajor: 1, revision: 1, minimumClientRevision: 0 }, identity,
   profile: { backend: "datahike", storage: "s3" },
   runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
-  capabilities: { operations: ["authorize"], consistencyModes: ["current"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only"] },
+  capabilities: { operations: ["check-permission"], consistencyModes: ["minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "shared-read-through", mutationLocality: "private-seed-workflow", limitations: ["read-only"] },
   limits: [{ name: "page-size", value: 25 }], dataset: { fixtureId: "canonical-v1", logicalResourceCount: 1000000, serverCount: 998417, manifestSha256: sha256 }, basis
 };
 
 test("all runtime boundaries accept canonical values", async () => {
-  assert.equal(validate.client({ contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "r1", operation: "authorize", input: {} }).requestId, "r1");
+  assert.equal(validate.client({ contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "r1", operation: "check-permission", input: {} }).requestId, "r1");
   assert.equal(validate.server({ meta: { revision: "basis-1", requestId: "r1" }, data: { object: { type: "server", id: "server-1", displayName: null, attributes: [] } } }).data.object.id, "server-1");
   assert.equal(validate.server({ meta: { revision: "datomic:fixture:42", requestId: "r2", elapsedMs: 0.8, cacheStatus: "hit" }, data: { allowed: true } }).data.allowed, true);
   assert.equal(validate.fixture({ schema: "eacl-demo.fixture-manifest.v1", fixtureId: "canonical-v1-10000", algorithmVersion: "fixture-v1", seed: "eacl-demo", cutPoint: 10000, logicalResourceCount: 10000, schemaSha256: sha256, manifestSha256: sha256 }).cutPoint, 10000);
@@ -35,7 +35,7 @@ test("all runtime boundaries accept canonical values", async () => {
 });
 
 test("unknown fields and malformed identities fail closed without exposing values", () => {
-  const candidate = { contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "sensitive-value", operation: "authorize", input: {}, extra: true };
+  const candidate = { contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "sensitive-value", operation: "check-permission", input: {}, extra: true };
   assert.throws(() => validate.client(candidate), (error) => {
     assert.equal(error.code, "validation-error");
     assert.equal(error.boundary, "client");

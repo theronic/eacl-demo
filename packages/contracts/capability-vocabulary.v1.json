@@ -1,8 +1,8 @@
 {
   "$schema": "../../schemas/capability-vocabulary.v1.schema.json",
   "schema": "eacl-demo.capability-vocabulary.v1",
-  "operations": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "authorize", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
-  "consistencyModes": ["current", "minimize", "authoritative", "at-least", "exact", "historical-date"],
+  "operations": ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
+  "consistencyModes": ["minimize", "authoritative", "at-least", "exact", "historical-date"],
   "snapshotBehaviors": ["fixed-environment", "request-snapshot", "page-lifecycle", "rebuild-lifecycle"],
   "cacheBehaviors": ["none", "request-local", "environment-local", "browser-page-local", "shared-read-through"],
   "mutationLocalities": ["none", "private-seed-workflow", "initialization-before-ready", "browser-initialization"],
