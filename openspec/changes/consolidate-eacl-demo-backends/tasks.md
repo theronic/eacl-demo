@@ -215,9 +215,9 @@ decision as well as the existing qualification evidence.
 ## 14. GitHub settings, OIDC, and maximum-parallel deployment
 
 - [ ] 14.1 Reverify owner/repository IDs; make every OIDC job dependency-install-free with pinned actions, no persisted checkout credential, and signature-verified allowlisted non-secret claim capture that never retains a token; capture each distinct active eacl-demo workflow/environment; configure the immutable `[repo, ref, workflow_ref, environment, event_name, runner_environment]` subject template; and configure every active ordinary/manual role trust with exact custom subject plus AWS-supported direct audience, immutable repository, demos ref, workflow-name, and environment conditions; require `push` for ordinary deployment, `workflow_dispatch` for manual authorities, and `github-hosted` execution; do not require `job_workflow_ref` in trust unless an actual reusable workflow is adopted, and reject any captured `job_workflow_*` identity that differs from the already validated top-level `workflow_*` identity; migrate all trusts before the repository-wide template change, and remove exact legacy-subject alternatives after verification. Do not create an ordinary Jank authority while that profile is parked.
-- [ ] 14.2 Configure separate eacl-demo static and active per-profile deployment environments with demos-branch restrictions, no manual reviewers or wait timer, read-only default token permissions, and job-scoped id-token write; create no ordinary Jank environment while it is parked.
-- [ ] 14.3 Configure branch rules so a merge to theronic/eacl-demo:demos triggers deployment and required fast build/package checks cannot be bypassed accidentally.
-- [ ] 14.4 Perform GitHub settings changes through the user's connected Chrome session and record a redacted settings audit.
+- [x] 14.2 Configure separate eacl-demo static and active per-profile deployment environments with demos-branch restrictions, no manual reviewers or wait timer, read-only default token permissions, and job-scoped id-token write; create no ordinary Jank environment while it is parked.
+- [x] 14.3 Configure branch rules so a merge to theronic/eacl-demo:demos triggers deployment and required fast build/package checks cannot be bypassed accidentally.
+- [x] 14.4 Perform GitHub settings changes through the user's connected Chrome session and record a redacted settings audit.
 - [x] 14.5 Add no CI secrets speculatively; if a clean build of the pinned EACL revision proves a dependency credential is required, add only that scoped credential through Chrome.
 - [x] 14.6 Store immutable GitHub identity, AWS account, region, role identifiers, distribution IDs, and non-secret deployment coordinates as GitHub variables rather than secrets.
 - [x] 14.7 Assert GitHub contains no AWS access-key, Telegram bot-token, or cross-repository dispatch secret.
@@ -237,7 +237,7 @@ decision as well as the existing qualification evidence.
 - [x] 15.5 Qualify and deploy each profile independently; leave any failing profile disabled without blocking healthy profiles.
 - [ ] 15.6 Publish the main explorer, DataScript entry, and current profile registry to staging and verify two-step selection, mixed-generation handling, and bundle isolation.
 - [ ] 15.7 Rehearse static rollback, each enabled Lambda alias rollback, data-generation selection rollback, and DNS fallback without deleting state.
-- [ ] 15.8 Assign existing infrastructure a tested fallback hostname and verify its certificate, routing, and health independently.
+- [x] 15.8 Assign existing infrastructure a tested fallback hostname and verify its certificate, routing, and health independently.
 - [ ] 15.9 Obtain explicit approval immediately before changing the production demo.eacl.dev DNS alias.
 - [x] 15.10 Cut demo.eacl.dev over to the accepted CloudFront distribution and run immediate health, identity, allow, deny, mutation-denial, selector, and browser checks.
 - [ ] 15.11 Restore the affected alias, registry entry, static manifest, or prior DNS target if its defined threshold fails; do not perform a fleet-wide rollback.
@@ -251,7 +251,7 @@ decision as well as the existing qualification evidence.
 - [ ] 16.4 Publish a release report listing enabled and disabled profiles, exact source and artifact identities, storage default evidence, fixture identities, memory settings, alarms, budgets, and rollback coordinates.
 - [x] 16.5 Reconcile sibling OpenSpec changes and identify prerequisites, adopted evidence, superseded demo deployment, and still-independent work.
 - [ ] 16.6 Observe production health, deployed source identities and outcomes, latency, errors, throttles, cost, Telegram delivery, and orphan-resource checks through the agreed window.
-- [ ] 16.7 Resolve exact legacy resources and dependencies and produce a retirement impact, recovery, backup, and cost report.
+- [x] 16.7 Resolve exact legacy resources and dependencies and produce a retirement impact, recovery, backup, and cost report.
 - [ ] 16.8 Obtain separate explicit approval for each material legacy stop, delete, or overwrite batch; DNS cutover approval does not authorize retirement.
 - [ ] 16.9 Perform only approved retirement actions, prefer reversible phases, and record what changed and how long recovery remains possible.
 - [ ] 16.10 Close the change only after `npm run verify:change-readiness` has no remaining gates, strict OpenSpec validation, deployed behavior, demos-branch CI execution, stateful cleanup, cost controls, Telegram notifications, documentation, and evidence are complete.

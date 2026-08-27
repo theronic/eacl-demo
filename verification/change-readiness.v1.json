@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 171,
-    "open": 34,
+    "completed": 176,
+    "open": 29,
     "total": 205
   },
   "freeze": {
@@ -65,14 +65,14 @@
     {
       "id": "stack-and-rollback-coordinates",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["12.1", "12.10", "15.7", "15.8", "16.7"],
-      "condition": "The local stack boundaries exist, but legacy compatibility, live reversibility, and retirement reporting require exact healthy targets, certificates, hosted-zone records, deployed coordinates, and recovery evidence.",
+      "taskIds": ["12.1", "12.10", "15.7"],
+      "condition": "The legacy serverless fallback now has exact DNS, certificate, distribution, origin, and live health evidence, and the legacy estate has an exact dependency, recovery, backup, cost, and separately approvable retirement report. Independent stack-boundary proof and non-destructive static, alias, and data-generation rollback rehearsal remain incomplete.",
       "requiredEvidence": [
         "Exact healthy legacy fallback target and certificate coverage",
         "Exact DNS, static, alias, data-generation, and rollback coordinates",
         "Independent rehearsal and legacy dependency, backup, cost, impact, and recovery report"
       ],
-      "safeActionNow": "Keep legacy compatibility non-executable and perform no DNS or retirement action from ordinary deployment."
+      "safeActionNow": "Preserve the healthy fallback and adopted S3 store, perform no retirement without per-batch approval, and rehearse only reversible stack/static/alias/data rollback paths."
     },
     {
       "id": "telegram-live-routing",
@@ -89,14 +89,14 @@
     {
       "id": "github-settings-and-oidc",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["14.1", "14.2", "14.3", "14.4"],
-      "condition": "Local manifests and trust policies are definitions only; completion requires authenticated GitHub settings, live allowlisted claim capture, AWS role migration, variables, and a redacted secrets/settings audit.",
+      "taskIds": ["14.1"],
+      "condition": "The authenticated settings audit now proves the production environments, branch protection, variables, read-only default token permission, absence of Actions secrets, immutable custom subject template, exact ordinary-role trusts, and five successful custom-subject claim captures. Manual qualification, transition, and stateful authorities still require independent live capture, exact trust migration, and legacy-subject removal before task 14.1 can close.",
       "requiredEvidence": [
         "Reverified immutable owner/repository IDs and live OIDC claim captures for every authority",
         "Trust-first custom-subject migration with exact StringEquals conditions and legacy-subject removal",
         "Branch, environment, token-permission, variable, and absence-of-sensitive-secret audit"
       ],
-      "safeActionNow": "Do not mutate GitHub, Chrome, secrets, variables, environments, branch rules, subject templates, or AWS trusts while the freeze is active."
+      "safeActionNow": "Preserve the proven ordinary deployment settings and migrate only the exact published manual authorities after their environments, roles, and live allowlisted claim evidence are available."
     },
     {
       "id": "initial-deployment-and-cutover",

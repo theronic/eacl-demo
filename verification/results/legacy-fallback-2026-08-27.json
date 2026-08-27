@@ -1,0 +1,43 @@
+{
+  "schema": "eacl-demo.legacy-fallback-check.v1",
+  "observedAt": "2026-08-27T15:55:31Z",
+  "hostname": "serverless-datahike.demo.eacl.dev",
+  "dns": {
+    "hostedZoneId": "Z05228481ZHF8BAKXOZB2",
+    "records": ["A", "AAAA"],
+    "target": "d1hfgknwkzo8a1.cloudfront.net"
+  },
+  "certificate": {
+    "arn": "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d",
+    "status": "ISSUED",
+    "domain": "serverless-datahike.demo.eacl.dev",
+    "notAfter": "2027-03-06T23:59:59Z",
+    "renewalEligibility": "ELIGIBLE"
+  },
+  "distribution": {
+    "id": "EYDAU1XQ7KZLQ",
+    "status": "Deployed",
+    "enabled": true,
+    "domain": "d1hfgknwkzo8a1.cloudfront.net",
+    "staticOrigin": "demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo.s3.us-east-1.amazonaws.com",
+    "apiOrigin": "5tqpr2yjsrujdabeix6gfkis540xoplq.lambda-url.us-east-1.on.aws",
+    "apiBehavior": "/datahike/api/*"
+  },
+  "probes": {
+    "root": {
+      "url": "https://serverless-datahike.demo.eacl.dev/datahike/",
+      "status": 200,
+      "elapsedSeconds": 0.481078
+    },
+    "health": {
+      "url": "https://serverless-datahike.demo.eacl.dev/datahike/api/health",
+      "status": 200,
+      "elapsedSeconds": 3.19338,
+      "ready": true,
+      "storeBackend": "s3",
+      "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310",
+      "basisId": "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73"
+    }
+  },
+  "interpretation": "The legacy serverless Datahike deployment remains an independently addressable and healthy fallback. It is not the production demo.eacl.dev target and does not provide the consolidated multi-backend shell."
+}
