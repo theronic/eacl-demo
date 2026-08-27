@@ -26,7 +26,7 @@
     (is (= {:execution "lambda" :name "java25" :architecture "x86_64"
             :snapStart "disabled"}
            (:runtime descriptor)))
-    (is (= ["current" "minimize"]
+    (is (= ["minimize"]
            (get-in descriptor [:capabilities :consistencyModes])))
     (is (= "fixed-environment"
            (get-in descriptor [:capabilities :snapshotBehavior])))

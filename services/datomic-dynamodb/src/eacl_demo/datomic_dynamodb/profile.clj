@@ -33,7 +33,10 @@
     :basis basis
     :capabilities
     {:operations (vec (sort closed-operations))
-     :consistencyModes ["current" "minimize"]
+     ;; A read-only Peer captures one fixed database value. "current" and
+     ;; "minimize" would therefore be two labels for the same operation, so
+     ;; advertise only the original Explorer's lowest-latency semantic.
+     :consistencyModes ["minimize"]
      :snapshotBehavior "fixed-environment"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
