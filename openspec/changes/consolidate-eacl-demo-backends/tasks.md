@@ -203,7 +203,7 @@ decision as well as the existing qualification evidence.
 - [x] 13.3 Create project seed and monthly budgets with 50%, 80%, and 100% notifications plus cost anomaly detection, while documenting their delayed nature.
 - [x] 13.4 Generalize the existing SNS-to-Lambda Telegram notifier and reuse the existing retained AWS Secrets Manager bot token without copying it to GitHub.
 - [x] 13.5 Store only the Telegram chat identifier and non-secret routing configuration where required and keep the bot token out of GitHub Actions.
-- [ ] 13.6 Route alarm, budget, anomaly, applicable deployment-failure, and overdue temporary-compute notifications to Telegram.
+- [x] 13.6 Route alarm, budget, anomaly, applicable deployment-failure, and overdue temporary-compute notifications to Telegram.
 - [x] 13.7 Send and verify a synthetic Telegram alarm before creating or seeding durable DynamoDB data.
 - [x] 13.8 Implement explicit dispatch-only workflows for table creation, seed, verification, backup, data publication, and temporary compute.
 - [x] 13.9 Ensure ordinary demos-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.

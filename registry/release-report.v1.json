@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:01d862c5e699f85812d273c183ff4021902e61e46ea1a9e399fdcd7a5526bc2c",
+  "reportId": "sha256:b8e95a97da1600bd16502f6ab99e16aa911ffa9698a279c5dd1e50245b974012",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -498,7 +498,7 @@
         "status": "defined-not-deployed",
         "definition": {
           "path": "infra/observability/template.yaml",
-          "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+          "sha256": "3baa2aeba7e42b96da36bf872236feeb3f3b5e288328f0c348bc9a15f5bbb497"
         },
         "evidenceId": null
       },
@@ -514,7 +514,7 @@
         "status": "defined-not-deployed",
         "definition": {
           "path": "infra/observability/template.yaml",
-          "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+          "sha256": "3baa2aeba7e42b96da36bf872236feeb3f3b5e288328f0c348bc9a15f5bbb497"
         },
         "evidenceId": null
       }
@@ -524,7 +524,7 @@
       "status": "defined-not-deployed",
       "definition": {
         "path": "infra/observability/template.yaml",
-        "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+        "sha256": "3baa2aeba7e42b96da36bf872236feeb3f3b5e288328f0c348bc9a15f5bbb497"
       },
       "evidenceId": null
     },
@@ -533,7 +533,7 @@
       "status": "defined-not-verified",
       "definition": {
         "path": "infra/observability/template.yaml",
-        "sha256": "e20feda413d2d0b010e59bd9a589a5cd7a53fac3001dc844a53820bef4e886a3"
+        "sha256": "3baa2aeba7e42b96da36bf872236feeb3f3b5e288328f0c348bc9a15f5bbb497"
       },
       "evidenceId": null,
       "reason": "Routing is defined locally; no live delivery test is claimed by this report."

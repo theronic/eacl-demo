@@ -1,0 +1,103 @@
+{
+  "schema": "eacl-demo.telegram-routing-live.v1",
+  "checkedAt": "2026-08-27T16:27:30Z",
+  "accountId": "843761893873",
+  "region": "us-east-1",
+  "observability": {
+    "stackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/eacl-demo-observability/af9984b0-a08e-11f1-a78c-0ed7c15a4249",
+    "stackStatus": "UPDATE_COMPLETE",
+    "templateSha256": "3baa2aeba7e42b96da36bf872236feeb3f3b5e288328f0c348bc9a15f5bbb497",
+    "topicArn": "arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms",
+    "notifierArn": "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-observability-telegram-notifier",
+    "notifierArtifactSha256": "9fe4a1198e1fda69dd66ce62b7fe74b0a50b73f644e84ebc7a24b4cc19bc17e0",
+    "notifierArtifactVersionId": "kZ.8KDQQoa.EpZFhueJ7S4N_QI14FIUT",
+    "subscriptionArn": "arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms:864767ed-ce19-4219-9063-4100ad0c1585",
+    "subscriptionConfirmed": true,
+    "subscriptionDeadLetterQueueArn": "arn:aws:sqs:us-east-1:843761893873:eacl-demo-observability-telegram-notifier-failures",
+    "notifierMaximumEventAgeSeconds": 900,
+    "notifierMaximumRetryAttempts": 2,
+    "notifierFailureQueueMessages": 0,
+    "notifierFailureQueueSqsManagedEncryption": true,
+    "notifierFailureAlarmState": "OK"
+  },
+  "alarms": {
+    "datahikeServingAlarmCount": 9,
+    "datomicServingAlarmCount": 9,
+    "allServingAlarmsOk": true,
+    "allActionsEnabled": true,
+    "allAlarmActionsTargetCanonicalTopic": true,
+    "perAlarmOkActionsPresent": false
+  },
+  "budgets": [
+    {
+      "name": "eacl-demo-observability-monthly",
+      "costFilter": "user:Project$eacl-demo",
+      "actualThresholdPercent": [50, 80, 100],
+      "allSubscribers": "arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms"
+    },
+    {
+      "name": "eacl-demo-observability-seed",
+      "costFilter": "user:Workload$eacl-demo-seed",
+      "actualThresholdPercent": [50, 80, 100],
+      "allSubscribers": "arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms"
+    }
+  ],
+  "costAnomaly": {
+    "subscriptionName": "eacl-demo-observability-immediate",
+    "frequency": "IMMEDIATE",
+    "thresholdUsd": 5,
+    "subscriberStatus": "CONFIRMED",
+    "monitorArn": "arn:aws:ce::843761893873:anomalymonitor/46ca3511-9aaf-4c54-b06a-7c8011fe3dbd",
+    "monitorType": "CUSTOM",
+    "tagKey": "user:Project",
+    "tagValue": "eacl-demo",
+    "obsoleteAccountWideServiceMonitorPresent": false
+  },
+  "eventRouting": {
+    "deploymentFailureRuleArn": "arn:aws:events:us-east-1:843761893873:rule/eacl-demo-observability-DeploymentFailureEvents-m7SFkqwXlmP3",
+    "deploymentFailureRuleEnabled": true,
+    "deploymentFailureTargetArn": "arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms",
+    "eaclDemoUpdateFailedMatches": true,
+    "eaclDemoUpdateCompleteMatches": false,
+    "unrelatedUpdateFailedMatches": false,
+    "alarmRecoveryRuleArn": "arn:aws:events:us-east-1:843761893873:rule/eacl-demo-observability-alarm-recoveries",
+    "alarmRecoveryRuleEnabled": true,
+    "alarmToOkMatches": true,
+    "initialInsufficientDataToOkMatches": false,
+    "maximumEventAgeSeconds": 900,
+    "maximumRetryAttempts": 2,
+    "deadLetterQueueArn": "arn:aws:sqs:us-east-1:843761893873:eacl-demo-observability-telegram-notifier-failures"
+  },
+  "temporaryComputeWatchdog": {
+    "stackId": "arn:aws:cloudformation:us-east-1:843761893873:stack/eacl-demo-temp-compute-watchdog/ac2d9910-a232-11f1-9b5b-12eaf402f69b",
+    "stackStatus": "CREATE_COMPLETE",
+    "templateSha256": "d16a83932443ffeba135f7ed5e1f424b7d395dbe1be0842f57e60ba5909dfb20",
+    "functionArn": "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-temp-compute-watchdog-watchdog",
+    "artifactSha256": "105ea5bfc0bfa1cc33887ed1c6ce3785559b5efbf7bb80500195f995f65390dd",
+    "artifactVersionId": "NBCSmtAjLvB8_GiGrnQ8qsw6j36PBwqc",
+    "scheduleRuleArn": "arn:aws:events:us-east-1:843761893873:rule/eacl-demo-temp-compute-watchdog-schedule",
+    "schedule": "rate(5 minutes)",
+    "scheduleEnabled": true,
+    "manualReadinessInvocation": {
+      "statusCode": 200,
+      "inspected": 0,
+      "terminated": []
+    },
+    "failureQueueArn": "arn:aws:sqs:us-east-1:843761893873:eacl-demo-temp-compute-watchdog-delivery-failures",
+    "failureQueueMessages": 0,
+    "failureQueueSqsManagedEncryption": true,
+    "failureAlarmState": "OK",
+    "failureQueueAlarmState": "OK"
+  },
+  "priorSyntheticTelegramDelivery": {
+    "evidencePath": "verification/datahike-dynamodb/real-aws-qualification-2026-08-25.json",
+    "evidenceSha256": "c3595cb5fa1dc82dbf0d5906a73155595c5cea87958ab42815d5bd421ce1b8ff",
+    "snsMessageId": "64e11474-db54-5d27-a239-77737fb34773",
+    "notifierAccepted": true,
+    "telegramDeliveriesLogged": true,
+    "newSyntheticNotificationSent": false
+  },
+  "kmsCustomerManagedKeysCreated": 0,
+  "temporaryInstancesFoundOrStarted": 0,
+  "result": "passed"
+}
