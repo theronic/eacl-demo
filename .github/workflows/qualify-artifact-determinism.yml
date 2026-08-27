@@ -51,7 +51,7 @@ jobs:
           name: deterministic-artifacts-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             dist/static-site/
-            dist/datascript-worker/artifact.json
+            dist/datascript-runtime/artifact.json
             dist/datahike-s3/function.jar
             dist/datahike-dynamodb/function.jar
             dist/datomic-dynamodb/function.jar
