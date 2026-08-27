@@ -206,7 +206,7 @@ const closedRuntimeSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "1"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85"
+                     "EACL_CORE_SHA" "e06e429d1cf6ed686fc294924241312379b3bb3e"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}
