@@ -2,18 +2,18 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-Ds-6OO_y.js",
+    "entry": "assets/index-DGPnckz5.js",
     "files": [
       ".vite/manifest.json",
-      "assets/SchemaGraph-DZcqQDIV.js",
-      "assets/SchemaGraph-DZcqQDIV.js.map",
+      "assets/SchemaGraph-DpV3byFp.js",
+      "assets/SchemaGraph-DpV3byFp.js.map",
       "assets/index-BnSs3WBb.css",
-      "assets/index-Ds-6OO_y.js",
-      "assets/index-Ds-6OO_y.js.map",
+      "assets/index-DGPnckz5.js",
+      "assets/index-DGPnckz5.js.map",
       "index.html"
     ],
-    "scriptBytes": 642953,
-    "scriptSha256": "f518500608eef4ad33f2272ecd768c05bef38f279cae2c34b5c9fd06efa60e03",
+    "scriptBytes": 607667,
+    "scriptSha256": "8d6774fe1a6d0c4558e121038e62a5aa210f3d9e3ff3e435623534b5cb362601",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/Explorer.tsx",
@@ -166,7 +166,6 @@
       "../../../../packages/contracts/src/runtime-validation.mjs",
       "../../../../packages/contracts/src/sha256.mjs",
       "../../../../packages/explorer-state/src/availability.mjs",
-      "../../../../packages/explorer-state/src/benchmark-publication.mjs",
       "../../../../packages/explorer-state/src/default-storage.mjs",
       "../../../../packages/explorer-state/src/fastest-evidence.mjs",
       "../../../../packages/explorer-state/src/http-transport.mjs",
@@ -203,8 +202,8 @@
   },
   "dedicatedWorker": {
     "path": "dist/datascript-worker/datascript-worker.js",
-    "bytes": 1295327,
-    "sha256": "4bf0b348319f4e63ff616e42d07b8347e8555cd8392dc9158dec2fb096815413",
+    "bytes": 5900122,
+    "sha256": "dc5e11eb74ba5fb499586e714bced0ca1cf6f137f01ca068bee8709a4c5f08f5",
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",

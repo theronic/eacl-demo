@@ -237,7 +237,7 @@ for this demo.
 
 ### 10. DataScript remains a separate worker-backed entry
 
-`/datascript/` shares UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and worker only from its own build graph. The worker owns database/client/cache/cursor lifecycle and bounded request messages. It creates the 10,000-resource fixture in one worker-local import rather than ten separate relationship imports; this preserves the exact fixture while removing repeated transaction setup from startup. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
+`/datascript/` shares UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and worker only from its own build graph. The worker owns database/client/cache/cursor lifecycle and bounded request messages. The build creates a DataScript-native serialized database from the exact 10,000-resource generator and embeds it in the content-addressed worker; startup restores that database rather than replaying 48,693 records in every browser. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
 
 ### 11. Jank targets `provided.al2023` x86_64 and does not use SnapStart
 
