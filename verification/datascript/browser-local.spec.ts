@@ -76,12 +76,19 @@ test("fixture initialization and authorization stay in the browser worker", asyn
     body: JSON.stringify(benchmarkIndex),
   }));
 
+  const startupStartedAt = Date.now();
   await page.goto(process.env.EACL_DATASCRIPT_URL ?? "http://127.0.0.1:4174/datascript/");
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
   await expect(page.getByRole("radio", { name: "Browser memory", exact: true })).toBeChecked();
   await expect(page.getByRole("button", { name: "Read Basis" })).toBeVisible({ timeout: 60_000 });
+  const startupElapsedMs = Date.now() - startupStartedAt;
+  await testInfo.attach("datascript-startup.json", {
+    body: JSON.stringify({ startupElapsedMs }),
+    contentType: "application/json",
+  });
+  expect(startupElapsedMs).toBeLessThan(15_000);
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".metadata-list")).toHaveCount(0);
   expect(requests.some(({ url }) => url.endsWith(`/registry/profiles/datascript-browser-memory.json`))).toBe(true);

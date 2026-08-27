@@ -2,7 +2,7 @@ import { loadProfilePublication } from "./profile-publication.mjs";
 
 const PROFILE_ID = "datascript-browser-memory";
 const PROFILE_ROUTE = "/datascript/";
-const MAXIMUM_WORKER_BYTES = 4 * 1024 * 1024;
+const MAXIMUM_WORKER_BYTES = 8 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SHA256 = /^[0-9a-f]{64}$/u;
 const JAVASCRIPT_MEDIA_TYPE = /^(?:application|text)\/(?:java|ecma)script(?:\s*;|$)/iu;
@@ -25,7 +25,7 @@ export async function loadVerifiedDataScriptWorker({
   if (typeof fetchImpl !== "function") throw new TypeError("DataScript worker fetch is unavailable");
   if (!cryptoImpl?.subtle || typeof cryptoImpl.subtle.digest !== "function") throw new TypeError("Web Crypto SHA-256 is unavailable");
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000) throw new RangeError("worker timeout must be 100..30000 milliseconds");
-  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1 || maximumBytes > MAXIMUM_WORKER_BYTES) throw new RangeError("worker byte limit must be 1..4194304");
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1 || maximumBytes > MAXIMUM_WORKER_BYTES) throw new RangeError("worker byte limit must be 1..8388608");
 
   const publication = await loadProfilePublication({
     baseUrl,

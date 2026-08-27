@@ -3,7 +3,8 @@
             [eacl-demo.fixture :as fixture]
             [eacl.core :as eacl]
             [eacl.datascript.core :as eacl-datascript]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [goog.object :as gobj]))
 
 (goog-define core-sha "0000000000000000000000000000000000000000")
 (def ^:private profile-id "datascript-browser-memory")
@@ -412,14 +413,6 @@
             (failure! request runtime "internal-error"
                       "The browser-local explorer operation failed.")))))))
 
-(defn- relationship [record]
-  (eacl/->Relationship
-   (eacl/spice-object (keyword (get-in record [:subject :type]))
-                      (get-in record [:subject :id]))
-   (keyword (:relation record))
-   (eacl/spice-object (keyword (get-in record [:resource :type]))
-                      (get-in record [:resource :id]))))
-
 (defn- normalized-object [record]
   (let [{:keys [type id]} (:object record)]
     {:type type
@@ -446,33 +439,30 @@
             request))
         (vals (:waiters @lifecycle))))
 
-(defn- seed-fixture! [request runtime]
+(defn- restore-fixture! [request]
   (js/setTimeout
    (fn []
      (if-let [progress-request (active-initialization-request)]
        (try
-         (let [records (mapcat :records (fixture/small-fixture-bundles))
-               objects (into [] (comp (filter #(= :object (:kind %)))
-                                      (map (fn [record]
-                                             {:eacl/id (get-in record [:object :id])})))
-                             records)
-               relationships (into [] (comp (filter #(= :relationship (:kind %)))
-                                            (map relationship))
-                                   records)
+         (let [snapshot (gobj/get js/self "__EACL_DATASCRIPT_SNAPSHOT__")
+               connection (ds/conn-from-db (ds/from-serializable snapshot))
+               client (eacl-datascript/make-client connection {})
+               records (mapcat :records (fixture/small-fixture-bundles))
                accumulator (reduce add-record
                                    {:objects {} :subjects [] :relationships []}
-                                   records)]
+                                   records)
+               ready-runtime {:connection connection
+                              :client client
+                              :cursors (atom {:by-token {} :order []})
+                              :captured-at (.toISOString (js/Date.))
+                              :objects (:objects accumulator)
+                              :subjects (:subjects accumulator)
+                              :relationships (:relationships accumulator)}]
+           (when-not (eacl/acl? client)
+             (throw (js/Error. "EACL DataScript adapter did not restore an authorization client.")))
            (post-progress! progress-request "fixture-seed" 0
-                           "Seeding the deterministic fixture into browser memory.")
-           (when (seq objects)
-             (ds/transact! (:connection runtime) objects))
-           (when (seq relationships)
-             (eacl/create-relationships! (:client runtime) relationships))
-           (let [ready-runtime (assoc runtime
-                                      :objects (:objects accumulator)
-                                      :subjects (:subjects accumulator)
-                                      :relationships (:relationships accumulator))
-                 state @lifecycle
+                           "Restoring the deterministic fixture in browser memory.")
+           (let [state @lifecycle
                  waiters (vals (:waiters state))]
              (when (= (:clientEpoch progress-request) (:epoch state))
                (swap! lifecycle assoc :runtime ready-runtime :initialization nil :waiters {})
@@ -495,18 +485,10 @@
 
 (defn- start-initialization! [request]
   (try
-    (let [connection (eacl-datascript/create-conn)
-          client (eacl-datascript/make-client connection {})
-          runtime {:connection connection
-                   :client client
-                   :cursors (atom {:by-token {} :order []})
-                   :captured-at (.toISOString (js/Date.))}]
-      (when-not (eacl/acl? client)
-        (throw (js/Error. "EACL DataScript adapter did not create an authorization client.")))
-      (swap! lifecycle assoc :initialization {:requestId (:requestId request)} :runtime nil)
-      (post-progress! request "fixture-generation" 0 "Generating the deterministic canonical fixture inside this worker.")
-      (eacl/write-schema! client fixture/schema)
-      (seed-fixture! request runtime))
+    (swap! lifecycle assoc :initialization {:requestId (:requestId request)} :runtime nil)
+    (post-progress! request "fixture-generation" 0
+                    "Loading the deterministic canonical fixture inside this worker.")
+    (restore-fixture! request)
     (catch :default _
       (swap! lifecycle assoc :initialization nil :runtime nil :waiters {})
       (failure! request nil "internal-error"
