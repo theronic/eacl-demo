@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const source = await readFile(new URL("../infra/deployment/server-profile-deploy-role.yaml", import.meta.url), "utf8");
+const deploySource = await readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8");
 
 test("server deployment role is inactive by default and binds every exact ordinary profile subject", () => {
   assert.match(source, /Activation:\s*\n\s+Type: String\s*\n\s+Default: disabled\s*\n\s+AllowedValues: \[disabled, enabled\]/u);
@@ -31,4 +32,9 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
     "distribution/${DistributionId}"
   ]) assert.ok(source.includes(resource));
   assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:DeleteFunction(?:\s|$)|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
+});
+
+test("successful empty AWS JSON output represents an absent optional setting", () => {
+  assert.match(deploySource, /const output = aws\(\[\.\.\.args, "--output", "json"\]\)\.trim\(\);/u);
+  assert.match(deploySource, /return output === "" \? \{\} : JSON\.parse\(output\);/u);
 });

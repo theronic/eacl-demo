@@ -340,7 +340,8 @@ function aws(args) {
 }
 
 function awsJson(args) {
-  return JSON.parse(aws([...args, "--output", "json"]));
+  const output = aws([...args, "--output", "json"]).trim();
+  return output === "" ? {} : JSON.parse(output);
 }
 
 function deleteReservedConcurrency(functionName) {
