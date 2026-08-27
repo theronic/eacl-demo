@@ -90,7 +90,7 @@ export function validateAndCaptureToken({ token, jwks, manifest, authorityId, ex
     runner_environment: authority.runnerEnvironment
   };
   for (const [name, value] of Object.entries(expected)) assert(claims[name] === value, `OIDC ${name} claim does not match the registered authority`);
-  assert(claims.job_workflow_ref === undefined && claims.job_workflow_sha === undefined, "OIDC token unexpectedly identifies a reusable workflow");
+  validateTopLevelWorkflowIdentity(claims);
 
   const subjects = {
     custom: customSubject(manifest, authority),
@@ -108,6 +108,23 @@ export function validateAndCaptureToken({ token, jwks, manifest, authorityId, ex
     observedSubjectMode,
     claims: Object.freeze(Object.fromEntries(OUTPUT_CLAIMS.map((name) => [name, claims[name]])))
   });
+}
+
+function validateTopLevelWorkflowIdentity(claims) {
+  if (claims.job_workflow_ref !== undefined) {
+    assert(
+      claims.job_workflow_ref === claims.workflow_ref,
+      "OIDC token identifies a different called reusable workflow"
+    );
+  }
+  if (claims.job_workflow_sha !== undefined) {
+    assert(
+      claims.job_workflow_ref !== undefined &&
+        typeof claims.workflow_sha === "string" &&
+        claims.job_workflow_sha === claims.workflow_sha,
+      "OIDC token identifies a different called reusable workflow revision"
+    );
+  }
 }
 
 export async function captureGitHubOidcClaims(options = {}) {

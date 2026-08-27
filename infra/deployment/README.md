@@ -29,8 +29,12 @@ The generated AWS policies also compare the current AWS-supported `aud`,
 direct `workflow_ref` condition key, so the exact path-and-ref value is carried
 inside the required non-wildcard `sub`. The subject also requires `push` for
 ordinary deployment, `workflow_dispatch` for every manual authority, and a
-GitHub-hosted runner. `job_workflow_ref` is deliberately not required because
-these are top-level workflows, not called reusable workflows.
+GitHub-hosted runner. `job_workflow_ref` is deliberately not required in IAM
+because these are top-level workflows, not called reusable workflows. GitHub
+currently emits a self-referential `job_workflow_*` compatibility identity for
+some top-level tokens; the local capture accepts it only when its path (and,
+when present, revision) exactly equals the already validated top-level
+`workflow_*` identity. A distinct called workflow is rejected.
 
 Every current `id-token: write` job runs
 `scripts/capture-github-oidc-claims.mjs` before AWS credential configuration.
