@@ -22,7 +22,28 @@
   #"(?=.{3,63}$)(?![0-9]+(?:\.[0-9]+){3}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?")
 
 (declare handle-event initialize parse-environment parse-nonnegative-int
-         parse-positive-int)
+         parse-positive-int prime-runtime!)
+
+(def ^:private snapstart-prime-event
+  {:version "2.0"
+   :routeKey "$default"
+   :rawPath "/lookup-resources"
+   :rawQueryString ""
+   :headers {"content-type" "application/json"}
+   :requestContext
+   {:requestId "snapstart-prime-lookup-resources"
+    :http {:method "POST"}}
+   :isBase64Encoded false
+   :body (json/write-str
+          {:subjectType "user"
+           :subjectId "user-1"
+           :resourceType "server"
+           :permission "view"
+           :pageSize 20
+           :cache true
+           :populateCache true})
+   :cookies nil})
+(def ^:private snapstart-prime-repetitions 256)
 
 (defonce ^:private runtime
   (delay
@@ -35,7 +56,7 @@
   "Realizes the immutable reader during published-version initialization so
   SnapStart captures the adopted, read-only Datahike/S3 runtime at 1024 MB."
   []
-  @runtime
+  (prime-runtime! @runtime)
   nil)
 
 (defn initialize
@@ -94,6 +115,24 @@
                              :deadline-ms deadline
                              :cancelled? (constantly false)))]
         (function-url/create-response envelope)))))
+
+(defn prime-runtime!
+  "Exercises and populates the exact first explorer page before SnapStart.
+
+  EACL cache hits alone are sub-millisecond; capturing the complete route,
+  boundary, pagination, and JSON code path prevents every restored environment
+  from paying the interpreter/JIT warm-up cost on its first resource page."
+  [running]
+  (dotimes [_ snapstart-prime-repetitions]
+    (let [response (handle-event running snapstart-prime-event 30000)
+          envelope (json/read-str (:body response) :key-fn keyword)]
+      (when-not (and (= 200 (:statusCode response))
+                     (= 20 (count (get-in envelope [:data :items]))))
+        (throw (ex-info "Datahike/S3 SnapStart lookup priming failed."
+                        {:type :eacl-demo/snapstart-prime-failed
+                         :status (:statusCode response)
+                         :error-code (get-in envelope [:error :code])})))))
+  running)
 
 (defn handle-request-stream
   [^InputStream input ^OutputStream output ^Context context]
