@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 158,
-    "open": 47,
+    "completed": 165,
+    "open": 40,
     "total": 205
   },
   "freeze": {
@@ -17,8 +17,8 @@
     {
       "id": "live-profile-qualification",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["8.11", "8.15", "8.16", "8.17", "9.12", "10.6", "10.8", "11.10", "11.11", "11.12"],
-      "condition": "The enabled Datahike/S3, Datomic/DynamoDB, and Datalevin/memory profiles have passing direct production qualification and ordinary deployment evidence. The remaining tasks require Datahike/DynamoDB real-AWS/comparison work, memory/restore sweeps, or the explicitly parked Jank runtime evidence.",
+      "taskIds": ["8.15", "8.16", "8.17", "9.12", "10.6", "10.8", "11.10", "11.11", "11.12"],
+      "condition": "The enabled Datahike/S3, Datomic/DynamoDB, and Datalevin/memory profiles have passing direct production qualification and ordinary deployment evidence, and the repaired Datahike/DynamoDB adapter has passing disposable real-AWS evidence. The remaining tasks require the durable Datahike/DynamoDB profile and comparable storage work, memory/restore sweeps, or the explicitly parked Jank runtime evidence.",
       "requiredEvidence": [
         "Content-addressed reports from the exact staged or production topology",
         "Exact source, artifact, deployment, data, runtime, architecture, and memory identities",
@@ -29,8 +29,8 @@
     {
       "id": "durable-aws-state",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["8.12", "8.13", "9.3", "9.5", "9.6", "9.14", "13.12", "13.13", "15.3", "15.4"],
-      "condition": "Completion would create, seed, transition, inspect, or clean durable AWS data and temporary compute.",
+      "taskIds": ["8.12", "8.13", "13.13", "15.3", "15.4"],
+      "condition": "The Datomic table, temporary writer, history proof, and cleanup are complete. The remaining tasks require durable Datahike/DynamoDB creation/seed plus complete historical evidence for the pre-seed cost-control and seed-to-serving transition ordering.",
       "requiredEvidence": [
         "Pre-action exact-resource preview and live cost-control readiness",
         "Immutable seed, normal-Peer history, backup, cap-transition, and publication evidence",
@@ -113,8 +113,8 @@
     {
       "id": "initial-deployment-and-cutover",
       "disposition": "awaiting-separate-authorization",
-      "taskIds": ["15.2", "15.6", "15.9", "15.11"],
-      "condition": "The production cutover and immediate direct-profile/browser checks passed. Non-stateful observability, an independently recorded staging qualification, the historical fresh-approval gate, and conditional rollback evidence remain incomplete; any future DNS change still requires fresh explicit approval.",
+      "taskIds": ["15.6", "15.9", "15.11"],
+      "condition": "The non-stateful foundation/observability deployment, production cutover, and immediate direct-profile/browser checks passed. An independently recorded staging qualification, the historical fresh-approval gate, and conditional rollback evidence remain incomplete; any future DNS change still requires fresh explicit approval.",
       "requiredEvidence": [
         "Deployed non-stateful foundation, static shell, registry, route isolation, headers, origin denial, and synthetics",
         "Staged two-step selector, mixed-generation, DataScript isolation, and browser evidence",

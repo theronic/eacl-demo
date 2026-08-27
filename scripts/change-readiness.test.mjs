@@ -11,8 +11,8 @@ const tasks = parseTaskChecklist(taskSource);
 
 test("completion ledger covers every and only open OpenSpec task", () => {
   assert.deepEqual(validateChangeReadiness(ledger, tasks), {
-    completed: 158,
-    open: 47,
+    completed: 165,
+    open: 40,
     total: 205,
     gateGroups: 10
   });
@@ -29,7 +29,7 @@ test("an omitted or duplicated task cannot disappear from the completion audit",
 });
 
 test("checkbox and freeze drift require an explicit ledger update", () => {
-  const changedTasks = tasks.map((task) => task.id === "8.11" ? { ...task, completed: true } : task);
+  const changedTasks = tasks.map((task) => task.id === "8.12" ? { ...task, completed: true } : task);
   assert.throws(() => validateChangeReadiness(ledger, changedTasks), /completed task count drifted/u);
 
   const inconsistentFreeze = structuredClone(ledger);

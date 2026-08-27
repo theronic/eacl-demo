@@ -374,7 +374,9 @@
 (defn- build-runtime []
   (let [snapshot (gobj/get js/window "__EACL_DATASCRIPT_SNAPSHOT__")
         connection (ds/conn-from-db (ds/from-serializable snapshot))
-        client (eacl-datascript/make-client connection {})
+        client (eacl-datascript/make-client
+                connection
+                {:security-key (random-token)})
         records (mapcat :records (fixture/small-fixture-bundles))
         accumulator (reduce add-record
                             {:objects {} :subjects [] :relationships []}

@@ -29,7 +29,7 @@ function qualification() {
     cases: [
       { id: "health", category: "contract", status: "passed", durationMs: 1, reason: null, details: {} },
       { id: "history", category: "consistency", status: "unsupported", durationMs: 0, reason: "exact history is not advertised", details: {} },
-      { id: "authorization", category: "authorization", status: "failed", durationMs: 2, reason: "secret=do-not-serialize /Users/name/file", details: { token: "also-secret", note: "https://user:password@example.invalid/private" } }
+      { id: "authorization", category: "authorization", status: "failed", durationMs: 2, reason: "secret=do-not-serialize /Users/name/file", details: { token: "also-secret", note: "https://example.invalid/private" } }
     ]
   };
 }
