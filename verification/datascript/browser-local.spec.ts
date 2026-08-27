@@ -17,8 +17,12 @@ const dataManifestSha256 = "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a
 test("fixture initialization and authorization stay in the direct browser runtime", async ({ page }, testInfo) => {
   const requests: Array<{ url: string; method: string; body: string | null }> = [];
   const browserErrors: string[] = [];
+  const browserWarnings: string[] = [];
   page.on("request", (request) => requests.push({ url: request.url(), method: request.method(), body: request.postData() }));
-  page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+    if (message.type() === "warning") browserWarnings.push(message.text());
+  });
   page.on("pageerror", (error) => browserErrors.push(`${error.name}: ${error.message}`));
   await page.addInitScript(() => {
     (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount = 0;
@@ -194,4 +198,5 @@ test("fixture initialization and authorization stay in the direct browser runtim
 
   expect(requests).toEqual([]);
   expect(browserErrors).toEqual([]);
+  expect(browserWarnings).toEqual([]);
 });

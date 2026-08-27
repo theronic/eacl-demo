@@ -122,7 +122,7 @@
 - [x] 8.8 Implement bounded jittered retry that preserves deadline, cancellation, and error classification.
 - [x] 8.9 Fully handle unprocessed batch keys within bounds or remove the affected batch path from qualified serving operations.
 - [x] 8.10 Exclude destructive store deletion and all write or administration paths from the serving artifact.
-- [ ] 8.11 Qualify the repaired adapter first with DynamoDB Local and then with a disposable real AWS table covering publication, consistency, throttling, IAM denial, partial batches, missing or corrupt nodes, cancellation, and concurrency.
+- [x] 8.11 Qualify the repaired adapter first with DynamoDB Local and then with a disposable real AWS table covering publication, consistency, throttling, IAM denial, partial batches, missing or corrupt nodes, cancellation, and concurrency.
 - [ ] 8.12 Provision a dedicated blue-green production Datahike DynamoDB table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and seed roles.
 - [ ] 8.13 Seed and verify the immutable one-million-resource Datahike fixture through the explicit stateful workflow after alarms and request caps are active.
 - [ ] 8.14 Obtain separate explicit authorization, then provision, seed, verify, and publish a distinct canonical one-million-resource Datahike/S3 blue-green generation without mutating or relabeling the adopted store.
@@ -134,10 +134,10 @@
 
 - [x] 9.1 Pin Datomic Peer 1.0.7622 or later, its storage-client dependencies, the accepted EACL v8 Datomic adapter, licenses, and dependency convergence.
 - [x] 9.2 Separate database creation, transactor, schema, and seed code from the public reader and prove no write path is initialized by the serving artifact.
-- [ ] 9.3 Provision a dedicated blue-green Datomic DynamoDB database and table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and temporary writer roles.
+- [x] 9.3 Provision a dedicated blue-green Datomic DynamoDB database and table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and temporary writer roles.
 - [x] 9.4 Implement an idempotent resumable million-resource seed with bounded batches, multiple recorded bases, history-preserving schema, final indexing or publication wait, and digest verification.
-- [ ] 9.5 Launch any required temporary EC2 transactor or seed machine without inbound SSH, with a scoped role, IMDSv2, expiry tags, watchdog, and exact instance identity.
-- [ ] 9.6 Terminate the exact temporary instance in success and failure cleanup and verify that no instance, volume, or address remains.
+- [x] 9.5 Launch any required temporary EC2 transactor or seed machine without inbound SSH, with a scoped role, IMDSv2, expiry tags, watchdog, and exact instance identity.
+- [x] 9.6 Terminate the exact temporary instance in success and failure cleanup and verify that no instance, volume, or address remains.
 - [x] 9.7 Configure the serving connection with datomic:ddb and read-only=true, capture d/db once during initialization, and serve that fixed value for the full Lambda environment lifetime.
 - [x] 9.8 Route supported current or minimize requests directly through the captured database value without calling d/sync.
 - [x] 9.9 Reject authoritative, at-least, exact, historical date, and other synchronization requests before generic EACL source traversal or cache work.
@@ -145,7 +145,7 @@
 - [x] 9.11 Verify the serving role contains only documented Datomic read actions and denies writes, administration, and cross-profile table access.
 - [ ] 9.12 Sweep non-SnapStart memory first and treat SnapStart as an optional optimization that cannot block deployment.
 - [x] 9.13 Publish immutable function, fixed-basis data, descriptor, and evidence identities and enable the profile only after staged qualification passes.
-- [ ] 9.14 Prove with the temporary normal Peer that relevant attributes do not use :db/noHistory true and that recorded prior bases support expected d/as-of and history results.
+- [x] 9.14 Prove with the temporary normal Peer that relevant attributes do not use :db/noHistory true and that recorded prior bases support expected d/as-of and history results.
 - [x] 9.15 Document the future non-read-only Datomic EC2 demo as a separate out-of-scope serving deployment that may use the retained history rather than broadening this Lambda profile.
 - [x] 9.16 Measure the live fixed-snapshot cache path, remove redundant Datomic existence reads from authorization, and retain a regression test for the compact decision result.
 
@@ -209,7 +209,7 @@ decision as well as the existing qualification evidence.
 - [x] 13.9 Ensure ordinary demos-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.
 - [x] 13.10 Encode the user's authorization for initial DynamoDB seeding and temporary seed, transactor, or Jank-build EC2, while retaining exact-target previews and noninteractive cleanup checks.
 - [x] 13.11 Add expiry-tag enforcement and a watchdog that emits a critical Telegram notification and terminates overdue temporary seed, transactor, or build compute.
-- [ ] 13.12 Verify after every temporary-compute run that applicable tables respect caps and alarms, temporary roles are no longer active, EC2 is terminated, and no orphan volume or address remains.
+- [x] 13.12 Verify after every temporary-compute run that applicable tables respect caps and alarms, temporary roles are no longer active, EC2 is terminated, and no orphan volume or address remains.
 - [ ] 13.13 Transition from seed-phase write alarms and caps to immutable-serving write alarms and caps without suppressing unexpected writes after publication.
 
 ## 14. GitHub settings, OIDC, and maximum-parallel deployment
@@ -231,7 +231,7 @@ decision as well as the existing qualification evidence.
 ## 15. Initial deployment, independent updates, and rollback
 
 - [x] 15.1 Reauthenticate the petrus-prod AWS profile and verify exact account and region before making AWS changes.
-- [ ] 15.2 Deploy non-stateful foundation and observability first, then verify static delivery, origin restriction, security headers, route isolation, and synthetic checks.
+- [x] 15.2 Deploy non-stateful foundation and observability first, then verify static delivery, origin restriction, security headers, route isolation, and synthetic checks.
 - [ ] 15.3 Create cost controls and verify Telegram notification before provisioning or seeding Datahike or Datomic DynamoDB.
 - [ ] 15.4 Execute the approved stateful workflows to create, seed, verify, back up, and publish immutable Datahike and Datomic data generations.
 - [x] 15.5 Qualify and deploy each profile independently; leave any failing profile disabled without blocking healthy profiles.

@@ -1,0 +1,105 @@
+{
+  "schema": "eacl-demo.stateful-and-foundation-live.v1",
+  "checkedAt": "2026-08-27T10:36:08Z",
+  "accountId": "843761893873",
+  "region": "us-east-1",
+  "datahikeDynamodbQualification": {
+    "evidencePath": "verification/datahike-dynamodb/real-aws-qualification-2026-08-25.json",
+    "evidenceSha256": "c3595cb5fa1dc82dbf0d5906a73155595c5cea87958ab42815d5bd421ce1b8ff",
+    "environment": "disposable-real-aws",
+    "normalReadFailures": 0,
+    "normalReadErrors": 0,
+    "throttleFailures": 0,
+    "throttleErrors": 0,
+    "covered": [
+      "strongly-consistent publication reads",
+      "absence versus corrupt item classification",
+      "bounded unprocessed-key retry",
+      "pre-dependency cancellation and deadline rejection",
+      "480 concurrent-path equality checks",
+      "real on-demand throughput throttling",
+      "exact-table read allow and write, zero-permission, and cross-table denial"
+    ],
+    "cleanupVerified": true
+  },
+  "datomic": {
+    "table": {
+      "name": "eacl-demo-datomic-fixture-v1-green",
+      "stack": "eacl-demo-datomic-fixture-v1-green",
+      "stackStatus": "UPDATE_COMPLETE",
+      "billingMode": "PAY_PER_REQUEST",
+      "awsOwnedEncryption": true,
+      "deletionProtection": true,
+      "pointInTimeRecovery": "ENABLED",
+      "maxReadRequestUnits": 250,
+      "maxWriteRequestUnits": 1,
+      "publicationPhase": "serving",
+      "fixtureDigest": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+    },
+    "seedEvidence": {
+      "bucket": "eacl-demo-foundation-artifactbucket-xxzglw0b0v6t",
+      "key": "evidence/datomic-dynamodb/fixture-v1-green/seed-evidence.jsonl",
+      "versionId": "OseBlCYpCPesznS2KEIWODm2w_G0FNaM",
+      "sha256": "10ec8364dafc7d25e805aa93ae53e5ca45ea6b556d16f172912589b3f83b28d8",
+      "status": "ready",
+      "finalResourceCount": 1000000,
+      "contentBasisT": 1018626,
+      "publicationBasisT": 1018628
+    },
+    "history": {
+      "normalPeer": true,
+      "historyVerified": true,
+      "historyPreservedAttributeCount": 36,
+      "priorResourceCount": 250,
+      "priorBasisT": 1357,
+      "contentBasisT": 1018626,
+      "publicationBasisT": 1018628,
+      "historyStatuses": ["ready", "seeding"]
+    },
+    "temporaryCompute": {
+      "authorizationId": "sha256:be89156ae1256c68e9d4bd2890b3beed1b8bb4bef7e920e8805080ddbecc711a",
+      "purpose": "datomic-transactor",
+      "instanceType": "m7i.2xlarge",
+      "architecture": "x86_64",
+      "instanceIds": ["i-0b6d145c920f5f6f3", "i-0f94b0ff2edd4ed1b"],
+      "imdsV2Required": true,
+      "inboundSecurityGroupAuthorizations": 0,
+      "rootVolumeDeleteOnTermination": true,
+      "instanceInitiatedShutdownBehavior": "terminate",
+      "bothTerminated": true
+    },
+    "cleanup": {
+      "pendingRunningStoppingOrStoppedInstances": [],
+      "creatingAvailableOrInUseVolumes": [],
+      "allocatedAddresses": [],
+      "temporaryWriterRolePresent": false,
+      "temporaryWriterInstanceProfilePresent": false,
+      "temporaryWriterStackPresent": false,
+      "temporarySecurityGroupsPresent": false
+    },
+    "servingAlarms": {
+      "stack": "eacl-demo-datomic-fixture-v1-green-alarms",
+      "phase": "serving",
+      "count": 9,
+      "allOk": true,
+      "allActionsEnabled": true,
+      "allActionsTargetCanonicalTopic": true,
+      "unexpectedServingWriteAlarmPresent": true,
+      "perAlarmOkActionsPresent": false
+    }
+  },
+  "foundation": {
+    "foundationStack": "eacl-demo-foundation",
+    "observabilityStack": "eacl-demo-observability",
+    "createdBeforeDurableDatomicTable": true,
+    "cloudFrontDistributionId": "E1BIWUU7H35MWG",
+    "cloudFrontOrigins": ["static"],
+    "cloudFrontApiBehaviors": 0,
+    "formerSameOriginApiStatus": 403,
+    "directFunctionUrlEvidencePath": "verification/results/direct-function-url-cutover-2026-08-27.json",
+    "directFunctionUrlEvidenceSha256": "05890a826daa682a778411e4a0f979f727ab8d36d764ce390662653790336005",
+    "latestDeploymentRun": "https://github.com/theronic/eacl-demo/actions/runs/33062496122",
+    "latestDeploymentConclusion": "success"
+  },
+  "result": "passed"
+}
