@@ -5,7 +5,7 @@ Define a stable bounded read-only explorer contract that remains compatible whil
 ## ADDED Requirements
 
 ### Requirement: Versioned logical contract and mixed-generation compatibility
-All profiles SHALL implement `explorer.v1` logical operations and normalized data/error shapes. Server profiles SHALL expose them below `/api/v1/{profile-id}` and the DataScript worker SHALL expose the same logical operations through structured messages. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; incompatible behavior SHALL use a new versioned route.
+All profiles SHALL implement `explorer.v1` logical operations and normalized data/error shapes. Server profiles SHALL expose them below `/api/v1/{profile-id}` and the direct DataScript page runtime SHALL implement the same logical operations without a second protocol. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; incompatible behavior SHALL use a new versioned route.
 
 #### Scenario: Shell deploys before one backend
 - **WHEN** the current shell contacts a healthy N-1 profile during a non-atomic rollout

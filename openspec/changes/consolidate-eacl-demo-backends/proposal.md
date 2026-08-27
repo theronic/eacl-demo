@@ -4,7 +4,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
 
 ## What Changes
 
-- Establish the public `theronic/eacl-demo` repository and local `eacl-demo` workspace as the owner of the shared SolidJS UI, versioned explorer contract, browser worker, deterministic fixtures, backend services, infrastructure, CI/CD, deployment manifests, and operating documentation.
+- Establish the public `theronic/eacl-demo` repository and local `eacl-demo` workspace as the owner of the shared SolidJS UI, compact explorer contract, direct DataScript browser runtime, deterministic fixtures, backend services, infrastructure, CI/CD, deployment manifests, and operating documentation.
 - Serve `https://demo.eacl.dev` from a private S3 origin through CloudFront, with a separately built DataScript entry at `https://demo.eacl.dev/datascript/` so ClojureScript/DataScript do not inflate the main application.
 - Replace a composite-profile UI control with two explicit steps:
   1. select the EACL backend (`Datahike`, `Datomic`, `Datalevin`, `Jank`, or `DataScript`); and
@@ -17,7 +17,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
   - Datomic Pro/DynamoDB using a temporary provisioning transactor, history-preserving storage for the later separately qualified EC2 demo, and a Lambda read-only Peer that serves only the fixed current snapshot captured at environment initialization;
   - Datalevin/in-memory using approximately ten thousand deterministic resources in a managed Java Lambda that rebuilds ephemeral native state on a cold environment, with SnapStart disabled;
   - Jank using its bundled in-memory Datomic-like conformance store in a Linux x86_64 `provided.al2023` Lambda custom runtime with no SnapStart claim or dependency; and
-  - DataScript running entirely in a browser worker at `/datascript/`.
+  - DataScript running directly in the browser page at `/datascript/`.
 - Keep Jank registered and fail-closed but park it outside the active rollout. Datahike, Datomic, Datalevin, DataScript, and their shared static/data/infrastructure units SHALL become deployable without waiting for Jank; Jank re-enters ordinary deployment only after an explicit unpark decision and its existing Linux qualification gates pass.
 - Make every public server profile read-only. Durable schema installation and one-million-resource seeding use private workflows and temporary compute, never public routes or ordinary merge deployment.
 - Record the user's preauthorization to create the two dedicated DynamoDB datasets and temporary EC2 seed, transactor, or Jank-build compute. Each run still resolves exact resources, forecasts cost, installs alarms first, and guarantees teardown; material scope expansion requires new authorization.
@@ -35,11 +35,11 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
 ### New Capabilities
 
 - `unified-demo-shell`: Shared two-step backend/storage selection, capability-driven SolidJS presentation, portable URL state, mixed-generation behavior, accessibility, and isolated DataScript loading.
-- `unified-demo-api`: Versioned read-only HTTP and worker contracts, response/source metadata, errors, cancellation, limits, and capability discovery.
+- `unified-demo-api`: One compact read-only logical contract, server HTTP routing, response/source metadata, errors, cancellation, limits, and capability discovery.
 - `datahike-storage-demos`: Adoption and comparison requirements for Datahike/S3 and qualification-gated Datahike/DynamoDB.
 - `datomic-read-only-demo`: One-million-resource Datomic/DynamoDB provisioning and a transactor-free Lambda serving one fixed current database value.
 - `datalevin-memory-demo`: Approximately ten-thousand-resource Datalevin in-memory Lambda, bounded cold rebuild, and honest ephemeral-storage lifecycle.
-- `datascript-browser-demo`: EACL v8 DataScript browser worker, separate artifact boundary, deterministic local data, and shared explorer behavior.
+- `datascript-browser-demo`: Direct EACL v8 DataScript browser runtime, separate static artifact boundary, deterministic local data, and exact shared explorer behavior.
 - `jank-lambda-demo`: Linux x86_64 `provided.al2023` Jank custom-runtime Lambda using the bundled in-memory Datomic-like conformance store without SnapStart.
 - `demo-backend-conformance`: Deterministic fixtures, one-time backend qualification, lightweight merge smoke gates, comparable storage performance evidence, provenance, and honest limitations.
 - `demo-delivery-operations`: CloudFront/S3 delivery, isolated AWS profiles, GitHub/OIDC CI/CD, parallel rollout, DynamoDB cost/Telegram controls, migration, rollback, and legacy retirement.

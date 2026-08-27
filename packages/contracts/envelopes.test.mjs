@@ -4,7 +4,7 @@ import test from "node:test";
 import { createFailure, createSuccess, httpStatusForError } from "./src/envelopes.mjs";
 import { createRuntimeValidators } from "./src/runtime-validation.mjs";
 
-const names = ["artifact-digests.v1", "error-codes.v1", "explorer.v1", "explorer-client-request.v1", "explorer-response.v1", "explorer-worker-message.v1", "explorer-worker-event.v1", "explorer-descriptor.v1", "fixture-manifest-boundary.v1", "profile-registry.v1", "profile-publication.v1", "benchmark-evidence-index.v1", "fastest-storage-evidence.v1", "release-manifest.v1"];
+const names = ["artifact-digests.v1", "error-codes.v1", "explorer.v1", "explorer-client-request.v1", "explorer-response.v1", "explorer-descriptor.v1", "fixture-manifest-boundary.v1", "profile-registry.v1", "profile-publication.v1", "benchmark-evidence-index.v1", "fastest-storage-evidence.v1", "release-manifest.v1"];
 const schemas = Object.fromEntries(await Promise.all(names.map(async (name) => [name, JSON.parse(await readFile(new URL(`../../schemas/${name}.schema.json`, import.meta.url), "utf8"))])));
 const validate = createRuntimeValidators(schemas);
 const context = {

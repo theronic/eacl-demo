@@ -20,7 +20,7 @@ eligibility of their own `ordinaryDeploymentTarget`; `parked` units remain in
 the closed catalog and can still be built or qualified manually, but they
 neither block nor enter ordinary deployment fan-out. A target becomes eligible
 only when every active unit assigned to it is eligible. The static target thus
-closes over the main entry, DataScript entry and worker, and fixtures; profile
+closes over the main entry, DataScript entry, direct browser runtime, and fixtures; profile
 targets qualify independently; infrastructure has no ordinary target and is
 managed outside merge deployment. Jank is currently the only parked unit.
 Parking does not make it deployment-eligible and does not remove its fail-closed
@@ -38,9 +38,9 @@ units eligible. Datalevin/memory remains transaction-ineligible until its
 qualified remote dependency/native closure produces a real JAR. Jank remains
 parked and has no ordinary target definition.
 
-The required units are the main explorer, isolated DataScript entry, isolated DataScript worker, five independent server-profile artifacts, fixture manifests, and infrastructure plans. Adding a runtime or static surface requires extending the closed build registry deliberately; adding it to ordinary deployment additionally requires an explicit `active` track decision.
+The required units are the main explorer, isolated DataScript entry, direct DataScript browser runtime, five independent server-profile artifacts, fixture manifests, and infrastructure plans. Adding a runtime or static surface requires extending the closed build registry deliberately; adding it to ordinary deployment additionally requires an explicit `active` track decision.
 
-`npm run build:static-site` is the single static deployment input. It starts the main, DataScript entry, and DataScript worker builds concurrently, waits for every constituent, and then assembles `dist/static-site` from scratch with the worker under `datascript/assets/`. Its manifest records every uploaded file, digest, byte count, and cache class. A deployment job uploads only this tree; it never synchronizes the main and DataScript prefixes independently.
+`npm run build:static-site` is the single static deployment input. It starts the main, DataScript entry, and direct DataScript runtime builds concurrently, waits for every constituent, and then assembles `dist/static-site` from scratch with the runtime under `datascript/assets/`. Its manifest records every uploaded file, digest, byte count, and cache class. A deployment job uploads only this tree; it never synchronizes the main and DataScript prefixes independently.
 Vite's internal `.vite/manifest.json` files are build evidence, not public site
 objects, and are removed from the assembled deployment tree. Apart from the two
 versioned HTML entry documents, every assembled file must use a content-addressed

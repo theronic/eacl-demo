@@ -38,7 +38,7 @@ presentation component or stylesheet of its own on every static deployment.
 
 Both static entries instantiate `apps/explorer-main/src/App.tsx`, which in
 turn instantiates the single `Explorer.tsx` and `components/*` tree above.
-`apps/explorer-datascript/src/App.tsx` contains only the verified worker
+`apps/explorer-datascript/src/App.tsx` contains only the direct browser-runtime
 transport wiring. Its entry imports `apps/explorer-main/src/styles.css`
 directly. The former alternate `ServerExplorer.tsx` and DataScript-local
 stylesheet were deleted, so there is no second deployed presentation surface
@@ -60,8 +60,8 @@ reduced motion, focus states, responsive breakpoints, empty/loading/error
 states, and the original three-column Subjects/Resources/Detail layout.
 
 The only new visible control is the Backend & Storage section. It uses radio
-options and the original panel/radio classes. DataScript is a separate new-tab
-deployment of the same component tree. Backend-specific framework names, dashboard/report copy, deployment
+options and the original panel/radio classes. DataScript is a separate same-tab
+route and deployment of the same component tree. Backend-specific framework names, dashboard/report copy, deployment
 statistics, verified-fact cards, and storage statistics are not part of the
 Explorer UI.
 
@@ -78,8 +78,8 @@ request validator, response schema, client preferences, URL state, and active
 JVM handlers therefore use a maximum of 1000 and the original default of 20.
 The 1 MiB serialized response ceiling remains authoritative.
 
-The DataScript worker implements the same `lookup-resources`,
+The direct DataScript page runtime implements the same `lookup-resources`,
 `count-resources`, `lookup-subjects`, and `authorize` operations consumed by
-the canonical Explorer adapter. It returns worker-measured elapsed time and
+the canonical Explorer adapter. It returns runtime-measured elapsed time and
 EACL cache provenance, so the same paging, bounded-count, permission-holder,
 and per-permission decision components behave identically without a UI fork.

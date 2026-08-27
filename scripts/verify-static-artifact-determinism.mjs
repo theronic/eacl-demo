@@ -17,7 +17,7 @@ if (differences.length > 0) {
   throw new Error(`static artifact builds differ: ${JSON.stringify(differences)}`);
 }
 
-await verifyWorkerBinding();
+await verifyRuntimeBinding();
 console.log(`deterministic static artifact verified for ${second.length} files under Node ${actualNode}`);
 
 async function buildAndSnapshot() {
@@ -28,7 +28,7 @@ async function buildAndSnapshot() {
   return snapshotRoots([
     "dist/explorer-main/static",
     "dist/datascript-entry/static",
-    "dist/datascript-worker",
+    "dist/datascript-runtime",
     "dist/static-site"
   ]);
 }
@@ -69,21 +69,21 @@ function compare(first, second) {
   });
 }
 
-async function verifyWorkerBinding() {
-  const workerArtifact = JSON.parse(await readFile(path.join(root, "dist/datascript-worker/artifact.json"), "utf8"));
+async function verifyRuntimeBinding() {
+  const runtimeArtifact = JSON.parse(await readFile(path.join(root, "dist/datascript-runtime/artifact.json"), "utf8"));
   const siteManifest = JSON.parse(await readFile(path.join(root, "dist/static-site/site-manifest.json"), "utf8"));
-  const workerBytes = await readFile(path.join(root, "dist/datascript-worker/datascript-worker.js"));
-  const siteWorkerBytes = await readFile(path.join(root, "dist/static-site", siteManifest.entries.datascriptWorker));
-  const expected = workerArtifact.artifact.sha256;
-  const expectedRelative = `datascript/assets/datascript-worker-${expected}.js`;
+  const runtimeBytes = await readFile(path.join(root, "dist/datascript-runtime/datascript-runtime.js"));
+  const siteRuntimeBytes = await readFile(path.join(root, "dist/static-site", siteManifest.entries.datascriptRuntime));
+  const expected = runtimeArtifact.artifact.sha256;
+  const expectedRelative = `datascript/assets/datascript-runtime-${expected}.js`;
   const manifestFile = siteManifest.files.find(({ path: relative }) => relative === expectedRelative);
-  if (workerArtifact.artifact.path !== "datascript-worker.js"
-      || siteManifest.entries.datascriptWorker !== expectedRelative
+  if (runtimeArtifact.artifact.path !== "datascript-runtime.js"
+      || siteManifest.entries.datascriptRuntime !== expectedRelative
       || manifestFile?.sha256 !== expected) {
-    throw new Error("static-site manifest does not bind the content-addressed DataScript worker");
+    throw new Error("static-site manifest does not bind the content-addressed DataScript runtime");
   }
-  if (sha256(workerBytes) !== expected || sha256(siteWorkerBytes) !== expected) {
-    throw new Error("compiled and assembled DataScript worker digests do not match the worker artifact manifest");
+  if (sha256(runtimeBytes) !== expected || sha256(siteRuntimeBytes) !== expected) {
+    throw new Error("compiled and assembled DataScript runtime digests do not match the runtime artifact manifest");
   }
 }
 

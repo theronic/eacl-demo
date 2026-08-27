@@ -15,7 +15,7 @@
         "additionalProperties": false,
         "required": ["kind", "source", "target", "deploymentTrack", "ordinaryDeploymentTarget", "deploymentEligible"],
         "properties": {
-          "kind": {"enum": ["static-entry", "browser-worker", "lambda-source", "fixture-manifest", "infrastructure-plan"]},
+          "kind": {"enum": ["static-entry", "lambda-source", "fixture-manifest", "infrastructure-plan"]},
           "source": {"type": "string", "minLength": 1},
           "target": {"type": "string", "pattern": "^dist/"},
           "deploymentTrack": {"enum": ["active", "parked"]},

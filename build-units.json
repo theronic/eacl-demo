@@ -4,7 +4,7 @@
   "units": {
     "explorer-main": {"kind": "static-entry", "source": "apps/explorer-main", "target": "dist/foundation-explorer-main", "deploymentTrack": "active", "ordinaryDeploymentTarget": "static", "deploymentEligible": false},
     "datascript-entry": {"kind": "static-entry", "source": "apps/explorer-datascript", "target": "dist/foundation-datascript-entry", "deploymentTrack": "active", "ordinaryDeploymentTarget": "static", "deploymentEligible": false},
-    "datascript-worker": {"kind": "browser-worker", "source": "apps/explorer-datascript", "target": "dist/foundation-datascript-worker", "deploymentTrack": "active", "ordinaryDeploymentTarget": "static", "deploymentEligible": false},
+    "datascript-runtime": {"kind": "static-entry", "source": "apps/explorer-datascript", "target": "dist/foundation-datascript-runtime", "deploymentTrack": "active", "ordinaryDeploymentTarget": "static", "deploymentEligible": false},
     "datahike-s3": {"kind": "lambda-source", "source": "services/datahike-s3", "target": "dist/foundation-datahike-s3", "deploymentTrack": "active", "ordinaryDeploymentTarget": "datahike-s3", "deploymentEligible": false},
     "datahike-dynamodb": {"kind": "lambda-source", "source": "services/datahike-dynamodb", "target": "dist/foundation-datahike-dynamodb", "deploymentTrack": "active", "ordinaryDeploymentTarget": "datahike-dynamodb", "deploymentEligible": false},
     "datomic-dynamodb": {"kind": "lambda-source", "source": "services/datomic-dynamodb", "target": "dist/foundation-datomic-dynamodb", "deploymentTrack": "active", "ordinaryDeploymentTarget": "datomic-dynamodb", "deploymentEligible": false},

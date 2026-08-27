@@ -36,7 +36,7 @@ test("the active rollout excludes only the explicitly parked Jank unit", () => {
     {
       "explorer-main": "static",
       "datascript-entry": "static",
-      "datascript-worker": "static",
+      "datascript-runtime": "static",
       "datahike-s3": "datahike-s3",
       "datahike-dynamodb": "datahike-dynamodb",
       "datomic-dynamodb": "datomic-dynamodb",
@@ -59,7 +59,7 @@ test("foundation manifests cannot share concrete artifact roots", () => {
     "foundation targets must be unique");
 
   const concreteRoots = [
-    "dist/explorer-main", "dist/datascript-entry", "dist/datascript-worker",
+    "dist/explorer-main", "dist/datascript-entry", "dist/datascript-runtime",
     "dist/static-site", "dist/datahike-s3", "dist/datahike-dynamodb",
     "dist/datomic-dynamodb", "dist/datomic-dynamodb-seed",
     "dist/datalevin-memory", "dist/jank-memory", "dist/fixtures",

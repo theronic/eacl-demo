@@ -116,7 +116,7 @@ test("a missing object on the smaller fixture remains a scoped response", async 
   await controller.close();
 });
 
-test("DataScript worker teardown runs exactly once", async () => {
+test("DataScript page runtime teardown runs exactly once", async () => {
   const profile = enabled("datascript-browser-memory", "d");
   let terminations = 0;
   const controller = createProfileController({ transportFactory: () => ({ bootstrap: async () => descriptor(profile), release: async () => { terminations += 1; } }) });

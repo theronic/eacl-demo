@@ -123,7 +123,6 @@ export function SchemaPanel(): JSX.Element {
             <section class="schema-panel__pane">
               <div class="section-header">
                 <div>
-                  <p class="panel-label">Spice Schema</p>
                   <p class="section-meta">
                     {writable() ? "Edit the schema and click Write Schema" : "Read-only public demo"}
                   </p>

@@ -65,10 +65,11 @@ silently upgrades `current` into exact or historical behavior.
   use retained history; that does not broaden this Lambda.
 - Datalevin and Jank rebuild bounded in-memory state for a runtime lifecycle.
   Their caches are environment-local and their data is not durable.
-- DataScript owns its fixture, authorization state, cache, and snapshots in a
-  dedicated browser worker. Normal DataScript operations do not call a public
-  profile API or transmit the authorization data. Loading the static page and
-  worker assets still uses the website normally.
+- DataScript owns its fixture, authorization state, cache, and snapshots in the
+  `/datascript/` page. Its ClojureScript runtime executes directly in the page;
+  normal operations do not call a public profile API or transmit authorization
+  data. Loading the static page and its content-addressed runtime still uses the
+  website normally.
 
 Every response binds the profile, deployed demo SHA, pinned EACL Core SHA,
 artifact digest, deployment ID, data-manifest digest, and basis. A mismatch

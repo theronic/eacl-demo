@@ -9,7 +9,7 @@ import {
 } from "../types";
 import { ButtonSpinner, ErrorBlock } from "./Common";
 
-export function Header(props: { backendLabel: string; storageLabel: string }): JSX.Element {
+export function Header(): JSX.Element {
   const app = useAppState();
   const seedRequest = new LatestRequest();
   const [seedSize, setSeedSize] = createSignal("10000");
@@ -57,9 +57,6 @@ export function Header(props: { backendLabel: string; storageLabel: string }): J
   return (
     <header class="app-header">
       <div class="app-header__intro">
-        <p class="eyebrow">
-          EACL v8 + {props.backendLabel} + {props.storageLabel}
-        </p>
         <h1 class="app-title">🦅 EACL Explorer</h1>
         <p class="app-subtitle">
           Reactive authorization over explicit, inspectable HTTP queries.

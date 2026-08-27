@@ -18,7 +18,7 @@ test("the vocabulary can state each required semantic distinction", () => {
   assert.equal(vocabulary.operations.includes("authorize"), true);
   assert.equal(vocabulary.consistencyModes.includes("exact"), true);
   assert.equal(vocabulary.snapshotBehaviors.includes("fixed-environment"), true);
-  assert.equal(vocabulary.cacheBehaviors.includes("browser-worker-local"), true);
+  assert.equal(vocabulary.cacheBehaviors.includes("browser-page-local"), true);
   assert.equal(vocabulary.mutationLocalities.includes("private-seed-workflow"), true);
   assert.equal(vocabulary.limitFields.includes("response-bytes"), true);
   assert.equal(vocabulary.datasetIdentityFields.includes("manifest-sha256"), true);

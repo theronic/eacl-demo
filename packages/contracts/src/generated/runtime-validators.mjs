@@ -202,9 +202,9 @@ const schema34 = {"type":"object","additionalProperties":false,"required":["meta
 const schema35 = {"type":"object","additionalProperties":false,"required":["revision","requestId"],"properties":{"revision":{"type":"string","minLength":1,"maxLength":256},"requestId":{"type":"string","minLength":1,"maxLength":128},"elapsedMs":{"type":"number","minimum":0},"cacheStatus":{"enum":["hit","miss","disabled"]}}};
 const schema64 = {"type":"object","additionalProperties":false,"required":["allowed"],"properties":{"allowed":{"type":"boolean"}}};
 const schema65 = {"type":"object","additionalProperties":false,"required":["kind","value","exact","ceiling"],"properties":{"kind":{"enum":["subjects","objects","relationships"]},"value":{"type":"integer","minimum":0},"exact":{"type":"boolean"},"ceiling":{"type":["integer","null"],"minimum":1}}};
-const schema75 = {"type":"object","additionalProperties":false,"required":["behavior","hit","scope","entries","limitations"],"properties":{"behavior":{"enum":["none","request-local","environment-local","browser-worker-local","shared-read-through"]},"hit":{"type":["boolean","null"]},"scope":{"type":"string","minLength":1,"maxLength":128},"entries":{"type":["integer","null"],"minimum":0},"limitations":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"type":"string","maxLength":256}}}};
+const schema75 = {"type":"object","additionalProperties":false,"required":["behavior","hit","scope","entries","limitations"],"properties":{"behavior":{"enum":["none","request-local","environment-local","browser-page-local","shared-read-through"]},"hit":{"type":["boolean","null"]},"scope":{"type":"string","minLength":1,"maxLength":128},"entries":{"type":["integer","null"],"minimum":0},"limitations":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"type":"string","maxLength":256}}}};
 const schema36 = {"type":"object","additionalProperties":false,"required":["status","ready","identity","basis"],"properties":{"status":{"enum":["ready","starting","degraded","unavailable"]},"ready":{"type":"boolean"},"identity":{"$ref":"#/$defs/identity"},"basis":{"anyOf":[{"$ref":"#/$defs/basis"},{"type":"null"}]}}};
-const schema42 = {"type":"object","additionalProperties":false,"required":["behavior","id","capturedAt","fixedForEnvironment"],"properties":{"behavior":{"enum":["fixed-environment","request-snapshot","worker-lifecycle","rebuild-lifecycle"]},"id":{"type":"string","minLength":1,"maxLength":256},"capturedAt":{"type":"string","format":"date-time"},"fixedForEnvironment":{"type":"boolean"}}};
+const schema42 = {"type":"object","additionalProperties":false,"required":["behavior","id","capturedAt","fixedForEnvironment"],"properties":{"behavior":{"enum":["fixed-environment","request-snapshot","page-lifecycle","rebuild-lifecycle"]},"id":{"type":"string","minLength":1,"maxLength":256},"capturedAt":{"type":"string","format":"date-time"},"fixedForEnvironment":{"type":"boolean"}}};
 const schema37 = {"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"$ref":"#/$defs/sha256"}}};
 const schema38 = {"type":"string","pattern":"^[0-9a-f]{40}$"};
 const schema40 = {"type":"string","pattern":"^[0-9a-f]{64}$"};
@@ -627,7 +627,7 @@ errors++;
 }
 if(data3.behavior !== undefined){
 let data4 = data3.behavior;
-if(!((((data4 === "fixed-environment") || (data4 === "request-snapshot")) || (data4 === "worker-lifecycle")) || (data4 === "rebuild-lifecycle"))){
+if(!((((data4 === "fixed-environment") || (data4 === "request-snapshot")) || (data4 === "page-lifecycle")) || (data4 === "rebuild-lifecycle"))){
 const err12 = {instancePath:instancePath+"/basis/behavior",schemaPath:"#/$defs/basis/properties/behavior/enum",keyword:"enum",params:{allowedValues: schema42.properties.behavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err12];
@@ -774,7 +774,7 @@ return errors === 0;
 }
 validate24.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema43 = {"type":"object","additionalProperties":false,"required":["contract","identity","profile","runtime","capabilities","limits","dataset","basis"],"properties":{"contract":{"type":"object","additionalProperties":false,"required":["name","routeMajor","revision","minimumClientRevision"],"properties":{"name":{"const":"explorer.v1"},"routeMajor":{"const":1},"revision":{"type":"integer","minimum":0},"minimumClientRevision":{"type":"integer","minimum":0}}},"identity":{"$ref":"#/$defs/identity"},"profile":{"type":"object","additionalProperties":false,"required":["backend","storage"],"properties":{"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]}}},"runtime":{"type":"object","additionalProperties":false,"required":["execution","name","architecture","snapStart"],"properties":{"execution":{"enum":["lambda","browser-worker"]},"name":{"type":"string","minLength":1,"maxLength":64},"architecture":{"enum":["arm64","x86_64","wasm32","javascript"]},"snapStart":{"enum":["enabled","disabled","not-applicable"]}}},"capabilities":{"type":"object","additionalProperties":false,"required":["operations","consistencyModes","snapshotBehavior","cacheBehavior","mutationLocality","limitations"],"properties":{"operations":{"type":"array","minItems":1,"maxItems":13,"uniqueItems":true,"items":{"enum":["health","bootstrap","list-subjects","get-object","list-relationships","reverse-relationships","authorize","lookup-resources","lookup-subjects","count-resources","get-schema","get-cache-info","count-objects"]}},"consistencyModes":{"type":"array","minItems":1,"maxItems":6,"uniqueItems":true,"items":{"enum":["current","minimize","authoritative","at-least","exact","historical-date"]}},"snapshotBehavior":{"enum":["fixed-environment","request-snapshot","worker-lifecycle","rebuild-lifecycle"]},"cacheBehavior":{"enum":["none","request-local","environment-local","browser-worker-local","shared-read-through"]},"mutationLocality":{"enum":["none","private-seed-workflow","initialization-before-ready","browser-worker-initialization"]},"limitations":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"enum":["read-only","fixed-current-snapshot","no-synchronization","no-history-api","ephemeral","browser-local","no-durability","datomic-like-not-datomic-pro","no-datalog-api","no-distribution","not-production-database","unequal-dataset-scale","no-snapstart","eventual-storage-read","lifecycle-rebuild","unsupported-consistency"]}}}},"limits":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["name","value"],"properties":{"name":{"type":"string"},"value":{"type":"integer","minimum":0}}}},"dataset":{"type":"object","additionalProperties":false,"required":["fixtureId","logicalResourceCount","serverCount","manifestSha256"],"properties":{"fixtureId":{"type":"string"},"logicalResourceCount":{"type":"integer","minimum":1},"serverCount":{"type":"integer","minimum":1},"manifestSha256":{"$ref":"#/$defs/sha256"}}},"basis":{"$ref":"#/$defs/basis"}}};
+const schema43 = {"type":"object","additionalProperties":false,"required":["contract","identity","profile","runtime","capabilities","limits","dataset","basis"],"properties":{"contract":{"type":"object","additionalProperties":false,"required":["name","routeMajor","revision","minimumClientRevision"],"properties":{"name":{"const":"explorer.v1"},"routeMajor":{"const":1},"revision":{"type":"integer","minimum":0},"minimumClientRevision":{"type":"integer","minimum":0}}},"identity":{"$ref":"#/$defs/identity"},"profile":{"type":"object","additionalProperties":false,"required":["backend","storage"],"properties":{"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]}}},"runtime":{"type":"object","additionalProperties":false,"required":["execution","name","architecture","snapStart"],"properties":{"execution":{"enum":["lambda","browser"]},"name":{"type":"string","minLength":1,"maxLength":64},"architecture":{"enum":["arm64","x86_64","wasm32","javascript"]},"snapStart":{"enum":["enabled","disabled","not-applicable"]}}},"capabilities":{"type":"object","additionalProperties":false,"required":["operations","consistencyModes","snapshotBehavior","cacheBehavior","mutationLocality","limitations"],"properties":{"operations":{"type":"array","minItems":1,"maxItems":13,"uniqueItems":true,"items":{"enum":["health","bootstrap","list-subjects","get-object","list-relationships","reverse-relationships","authorize","lookup-resources","lookup-subjects","count-resources","get-schema","get-cache-info","count-objects"]}},"consistencyModes":{"type":"array","minItems":1,"maxItems":6,"uniqueItems":true,"items":{"enum":["current","minimize","authoritative","at-least","exact","historical-date"]}},"snapshotBehavior":{"enum":["fixed-environment","request-snapshot","page-lifecycle","rebuild-lifecycle"]},"cacheBehavior":{"enum":["none","request-local","environment-local","browser-page-local","shared-read-through"]},"mutationLocality":{"enum":["none","private-seed-workflow","initialization-before-ready","browser-initialization"]},"limitations":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"enum":["read-only","fixed-current-snapshot","no-synchronization","no-history-api","ephemeral","browser-local","no-durability","datomic-like-not-datomic-pro","no-datalog-api","no-distribution","not-production-database","unequal-dataset-scale","no-snapstart","eventual-storage-read","lifecycle-rebuild","unsupported-consistency"]}}}},"limits":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["name","value"],"properties":{"name":{"type":"string"},"value":{"type":"integer","minimum":0}}}},"dataset":{"type":"object","additionalProperties":false,"required":["fixtureId","logicalResourceCount","serverCount","manifestSha256"],"properties":{"fixtureId":{"type":"string"},"logicalResourceCount":{"type":"integer","minimum":1},"serverCount":{"type":"integer","minimum":1},"manifestSha256":{"$ref":"#/$defs/sha256"}}},"basis":{"$ref":"#/$defs/basis"}}};
 const func0 = equalRuntime.default;
 
 function validate28(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
@@ -1157,7 +1157,7 @@ errors++;
 }
 if(data9.execution !== undefined){
 let data10 = data9.execution;
-if(!((data10 === "lambda") || (data10 === "browser-worker"))){
+if(!((data10 === "lambda") || (data10 === "browser"))){
 const err32 = {instancePath:instancePath+"/runtime/execution",schemaPath:"#/properties/runtime/properties/execution/enum",keyword:"enum",params:{allowedValues: schema43.properties.runtime.properties.execution.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err32];
@@ -1456,7 +1456,7 @@ errors++;
 }
 if(data14.snapshotBehavior !== undefined){
 let data19 = data14.snapshotBehavior;
-if(!((((data19 === "fixed-environment") || (data19 === "request-snapshot")) || (data19 === "worker-lifecycle")) || (data19 === "rebuild-lifecycle"))){
+if(!((((data19 === "fixed-environment") || (data19 === "request-snapshot")) || (data19 === "page-lifecycle")) || (data19 === "rebuild-lifecycle"))){
 const err56 = {instancePath:instancePath+"/capabilities/snapshotBehavior",schemaPath:"#/properties/capabilities/properties/snapshotBehavior/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.snapshotBehavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err56];
@@ -1469,7 +1469,7 @@ errors++;
 }
 if(data14.cacheBehavior !== undefined){
 let data20 = data14.cacheBehavior;
-if(!(((((data20 === "none") || (data20 === "request-local")) || (data20 === "environment-local")) || (data20 === "browser-worker-local")) || (data20 === "shared-read-through"))){
+if(!(((((data20 === "none") || (data20 === "request-local")) || (data20 === "environment-local")) || (data20 === "browser-page-local")) || (data20 === "shared-read-through"))){
 const err57 = {instancePath:instancePath+"/capabilities/cacheBehavior",schemaPath:"#/properties/capabilities/properties/cacheBehavior/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.cacheBehavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err57];
@@ -1482,7 +1482,7 @@ errors++;
 }
 if(data14.mutationLocality !== undefined){
 let data21 = data14.mutationLocality;
-if(!((((data21 === "none") || (data21 === "private-seed-workflow")) || (data21 === "initialization-before-ready")) || (data21 === "browser-worker-initialization"))){
+if(!((((data21 === "none") || (data21 === "private-seed-workflow")) || (data21 === "initialization-before-ready")) || (data21 === "browser-initialization"))){
 const err58 = {instancePath:instancePath+"/capabilities/mutationLocality",schemaPath:"#/properties/capabilities/properties/mutationLocality/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.mutationLocality.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err58];
@@ -1895,7 +1895,7 @@ errors++;
 }
 if(data33.behavior !== undefined){
 let data34 = data33.behavior;
-if(!((((data34 === "fixed-environment") || (data34 === "request-snapshot")) || (data34 === "worker-lifecycle")) || (data34 === "rebuild-lifecycle"))){
+if(!((((data34 === "fixed-environment") || (data34 === "request-snapshot")) || (data34 === "page-lifecycle")) || (data34 === "rebuild-lifecycle"))){
 const err92 = {instancePath:instancePath+"/basis/behavior",schemaPath:"#/$defs/basis/properties/behavior/enum",keyword:"enum",params:{allowedValues: schema42.properties.behavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err92];
@@ -4752,7 +4752,7 @@ errors++;
 }
 if(data5.behavior !== undefined){
 let data11 = data5.behavior;
-if(!(((((data11 === "none") || (data11 === "request-local")) || (data11 === "environment-local")) || (data11 === "browser-worker-local")) || (data11 === "shared-read-through"))){
+if(!(((((data11 === "none") || (data11 === "request-local")) || (data11 === "environment-local")) || (data11 === "browser-page-local")) || (data11 === "shared-read-through"))){
 const err38 = {instancePath:instancePath+"/data/behavior",schemaPath:"#/$defs/cacheInfo/properties/behavior/enum",keyword:"enum",params:{allowedValues: schema75.properties.behavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err38];
@@ -5351,2560 +5351,15 @@ return errors === 0;
 }
 validate21.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-export const worker = validate58;
-const schema82 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/explorer-worker-message.v1.schema.json","$defs":{"requestId":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]*$"},"clientEpoch":{"type":"integer","minimum":1,"maximum":2147483647},"operation":{"enum":["health","bootstrap","list-subjects","get-object","list-relationships","reverse-relationships","authorize","lookup-resources","lookup-subjects","count-resources","get-schema","get-cache-info","count-objects"]},"identity":{"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"const":"datascript-browser-memory"},"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}},"oneOf":[{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","identity"],"properties":{"type":{"const":"initialize"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"identity":{"$ref":"#/$defs/identity"}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","operation","input"],"properties":{"type":{"const":"request"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"operation":{"$ref":"#/$defs/operation"},"input":{"type":"object","maxProperties":32}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch"],"properties":{"type":{"const":"cancel"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch"],"properties":{"type":{"const":"reset"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"}}}]};
-const schema83 = {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]*$"};
-const schema84 = {"type":"integer","minimum":1,"maximum":2147483647};
-const schema85 = {"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"const":"datascript-browser-memory"},"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
-const schema88 = {"enum":["health","bootstrap","list-subjects","get-object","list-relationships","reverse-relationships","authorize","lookup-resources","lookup-subjects","count-resources","get-schema","get-cache-info","count-objects"]};
-const pattern24 = new RegExp("^[A-Za-z0-9][A-Za-z0-9._:-]*$", "u");
+export const fixture = validate58;
+const schema82 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json","type":"object","additionalProperties":false,"required":["schema","fixtureId","algorithmVersion","seed","cutPoint","logicalResourceCount","schemaSha256","manifestSha256"],"properties":{"schema":{"const":"eacl-demo.fixture-manifest.v1"},"fixtureId":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"algorithmVersion":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"seed":{"type":"string","minLength":1,"maxLength":128},"cutPoint":{"enum":[10000,1000000]},"logicalResourceCount":{"enum":[10000,1000000]},"schemaSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"manifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
+const pattern24 = new RegExp("^[a-z0-9]+(?:[._-][a-z0-9]+)*$", "u");
 
 function validate58(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
-/*# sourceURL="https://demo.eacl.dev/schemas/explorer-worker-message.v1.schema.json" */;
-let vErrors = null;
-let errors = 0;
-const evaluated0 = validate58.evaluated;
-if(evaluated0.dynamicProps){
-evaluated0.props = undefined;
-}
-if(evaluated0.dynamicItems){
-evaluated0.items = undefined;
-}
-const _errs0 = errors;
-let valid0 = false;
-let passing0 = null;
-const _errs1 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err0 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err0];
-}
-else {
-vErrors.push(err0);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err1 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err1];
-}
-else {
-vErrors.push(err1);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err2 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err2];
-}
-else {
-vErrors.push(err2);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err3 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err3];
-}
-else {
-vErrors.push(err3);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err4 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err4];
-}
-else {
-vErrors.push(err4);
-}
-errors++;
-}
-if(data.identity === undefined){
-const err5 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "identity"},message:"must have required property '"+"identity"+"'"};
-if(vErrors === null){
-vErrors = [err5];
-}
-else {
-vErrors.push(err5);
-}
-errors++;
-}
-for(const key0 in data){
-if(!((((((key0 === "type") || (key0 === "contractVersion")) || (key0 === "profileId")) || (key0 === "requestId")) || (key0 === "clientEpoch")) || (key0 === "identity"))){
-const err6 = {instancePath,schemaPath:"#/oneOf/0/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err6];
-}
-else {
-vErrors.push(err6);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("initialize" !== data.type){
-const err7 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/0/properties/type/const",keyword:"const",params:{allowedValue: "initialize"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err7];
-}
-else {
-vErrors.push(err7);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err8 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/0/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err8];
-}
-else {
-vErrors.push(err8);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err9 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/0/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err9];
-}
-else {
-vErrors.push(err9);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data3 = data.requestId;
-if(typeof data3 === "string"){
-if(func1(data3) > 128){
-const err10 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err10];
-}
-else {
-vErrors.push(err10);
-}
-errors++;
-}
-if(func1(data3) < 1){
-const err11 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err11];
-}
-else {
-vErrors.push(err11);
-}
-errors++;
-}
-if(!pattern24.test(data3)){
-const err12 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err12];
-}
-else {
-vErrors.push(err12);
-}
-errors++;
-}
-}
-else {
-const err13 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err13];
-}
-else {
-vErrors.push(err13);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data4 = data.clientEpoch;
-if(!(((typeof data4 == "number") && (!(data4 % 1) && !isNaN(data4))) && (isFinite(data4)))){
-const err14 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err14];
-}
-else {
-vErrors.push(err14);
-}
-errors++;
-}
-if((typeof data4 == "number") && (isFinite(data4))){
-if(data4 > 2147483647 || isNaN(data4)){
-const err15 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err15];
-}
-else {
-vErrors.push(err15);
-}
-errors++;
-}
-if(data4 < 1 || isNaN(data4)){
-const err16 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err16];
-}
-else {
-vErrors.push(err16);
-}
-errors++;
-}
-}
-}
-if(data.identity !== undefined){
-let data5 = data.identity;
-if(data5 && typeof data5 == "object" && !Array.isArray(data5)){
-if(data5.profileId === undefined){
-const err17 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err17];
-}
-else {
-vErrors.push(err17);
-}
-errors++;
-}
-if(data5.demoSha === undefined){
-const err18 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "demoSha"},message:"must have required property '"+"demoSha"+"'"};
-if(vErrors === null){
-vErrors = [err18];
-}
-else {
-vErrors.push(err18);
-}
-errors++;
-}
-if(data5.eaclSha === undefined){
-const err19 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "eaclSha"},message:"must have required property '"+"eaclSha"+"'"};
-if(vErrors === null){
-vErrors = [err19];
-}
-else {
-vErrors.push(err19);
-}
-errors++;
-}
-if(data5.artifactSha256 === undefined){
-const err20 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "artifactSha256"},message:"must have required property '"+"artifactSha256"+"'"};
-if(vErrors === null){
-vErrors = [err20];
-}
-else {
-vErrors.push(err20);
-}
-errors++;
-}
-if(data5.deploymentId === undefined){
-const err21 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "deploymentId"},message:"must have required property '"+"deploymentId"+"'"};
-if(vErrors === null){
-vErrors = [err21];
-}
-else {
-vErrors.push(err21);
-}
-errors++;
-}
-if(data5.dataManifestSha256 === undefined){
-const err22 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "dataManifestSha256"},message:"must have required property '"+"dataManifestSha256"+"'"};
-if(vErrors === null){
-vErrors = [err22];
-}
-else {
-vErrors.push(err22);
-}
-errors++;
-}
-for(const key1 in data5){
-if(!((((((key1 === "profileId") || (key1 === "demoSha")) || (key1 === "eaclSha")) || (key1 === "artifactSha256")) || (key1 === "deploymentId")) || (key1 === "dataManifestSha256"))){
-const err23 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key1},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err23];
-}
-else {
-vErrors.push(err23);
-}
-errors++;
-}
-}
-if(data5.profileId !== undefined){
-if("datascript-browser-memory" !== data5.profileId){
-const err24 = {instancePath:instancePath+"/identity/profileId",schemaPath:"#/$defs/identity/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err24];
-}
-else {
-vErrors.push(err24);
-}
-errors++;
-}
-}
-if(data5.demoSha !== undefined){
-let data7 = data5.demoSha;
-if(typeof data7 === "string"){
-if(!pattern5.test(data7)){
-const err25 = {instancePath:instancePath+"/identity/demoSha",schemaPath:"#/$defs/identity/properties/demoSha/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{40}$"},message:"must match pattern \""+"^[0-9a-f]{40}$"+"\""};
-if(vErrors === null){
-vErrors = [err25];
-}
-else {
-vErrors.push(err25);
-}
-errors++;
-}
-}
-else {
-const err26 = {instancePath:instancePath+"/identity/demoSha",schemaPath:"#/$defs/identity/properties/demoSha/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err26];
-}
-else {
-vErrors.push(err26);
-}
-errors++;
-}
-}
-if(data5.eaclSha !== undefined){
-let data8 = data5.eaclSha;
-if(typeof data8 === "string"){
-if(!pattern5.test(data8)){
-const err27 = {instancePath:instancePath+"/identity/eaclSha",schemaPath:"#/$defs/identity/properties/eaclSha/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{40}$"},message:"must match pattern \""+"^[0-9a-f]{40}$"+"\""};
-if(vErrors === null){
-vErrors = [err27];
-}
-else {
-vErrors.push(err27);
-}
-errors++;
-}
-}
-else {
-const err28 = {instancePath:instancePath+"/identity/eaclSha",schemaPath:"#/$defs/identity/properties/eaclSha/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err28];
-}
-else {
-vErrors.push(err28);
-}
-errors++;
-}
-}
-if(data5.artifactSha256 !== undefined){
-let data9 = data5.artifactSha256;
-if(typeof data9 === "string"){
-if(!pattern7.test(data9)){
-const err29 = {instancePath:instancePath+"/identity/artifactSha256",schemaPath:"#/$defs/identity/properties/artifactSha256/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{64}$"},message:"must match pattern \""+"^[0-9a-f]{64}$"+"\""};
-if(vErrors === null){
-vErrors = [err29];
-}
-else {
-vErrors.push(err29);
-}
-errors++;
-}
-}
-else {
-const err30 = {instancePath:instancePath+"/identity/artifactSha256",schemaPath:"#/$defs/identity/properties/artifactSha256/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err30];
-}
-else {
-vErrors.push(err30);
-}
-errors++;
-}
-}
-if(data5.deploymentId !== undefined){
-let data10 = data5.deploymentId;
-if(typeof data10 === "string"){
-if(func1(data10) > 256){
-const err31 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/maxLength",keyword:"maxLength",params:{limit: 256},message:"must NOT have more than 256 characters"};
-if(vErrors === null){
-vErrors = [err31];
-}
-else {
-vErrors.push(err31);
-}
-errors++;
-}
-if(func1(data10) < 1){
-const err32 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err32];
-}
-else {
-vErrors.push(err32);
-}
-errors++;
-}
-}
-else {
-const err33 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err33];
-}
-else {
-vErrors.push(err33);
-}
-errors++;
-}
-}
-if(data5.dataManifestSha256 !== undefined){
-let data11 = data5.dataManifestSha256;
-if(typeof data11 === "string"){
-if(!pattern7.test(data11)){
-const err34 = {instancePath:instancePath+"/identity/dataManifestSha256",schemaPath:"#/$defs/identity/properties/dataManifestSha256/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{64}$"},message:"must match pattern \""+"^[0-9a-f]{64}$"+"\""};
-if(vErrors === null){
-vErrors = [err34];
-}
-else {
-vErrors.push(err34);
-}
-errors++;
-}
-}
-else {
-const err35 = {instancePath:instancePath+"/identity/dataManifestSha256",schemaPath:"#/$defs/identity/properties/dataManifestSha256/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err35];
-}
-else {
-vErrors.push(err35);
-}
-errors++;
-}
-}
-}
-else {
-const err36 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err36];
-}
-else {
-vErrors.push(err36);
-}
-errors++;
-}
-}
-}
-else {
-const err37 = {instancePath,schemaPath:"#/oneOf/0/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err37];
-}
-else {
-vErrors.push(err37);
-}
-errors++;
-}
-var _valid0 = _errs1 === errors;
-if(_valid0){
-valid0 = true;
-passing0 = 0;
-var props0 = true;
-}
-const _errs28 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err38 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err38];
-}
-else {
-vErrors.push(err38);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err39 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err39];
-}
-else {
-vErrors.push(err39);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err40 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err40];
-}
-else {
-vErrors.push(err40);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err41 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err41];
-}
-else {
-vErrors.push(err41);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err42 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err42];
-}
-else {
-vErrors.push(err42);
-}
-errors++;
-}
-if(data.operation === undefined){
-const err43 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "operation"},message:"must have required property '"+"operation"+"'"};
-if(vErrors === null){
-vErrors = [err43];
-}
-else {
-vErrors.push(err43);
-}
-errors++;
-}
-if(data.input === undefined){
-const err44 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "input"},message:"must have required property '"+"input"+"'"};
-if(vErrors === null){
-vErrors = [err44];
-}
-else {
-vErrors.push(err44);
-}
-errors++;
-}
-for(const key2 in data){
-if(!(((((((key2 === "type") || (key2 === "contractVersion")) || (key2 === "profileId")) || (key2 === "requestId")) || (key2 === "clientEpoch")) || (key2 === "operation")) || (key2 === "input"))){
-const err45 = {instancePath,schemaPath:"#/oneOf/1/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key2},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err45];
-}
-else {
-vErrors.push(err45);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("request" !== data.type){
-const err46 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/1/properties/type/const",keyword:"const",params:{allowedValue: "request"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err46];
-}
-else {
-vErrors.push(err46);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err47 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/1/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err47];
-}
-else {
-vErrors.push(err47);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err48 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/1/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err48];
-}
-else {
-vErrors.push(err48);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data15 = data.requestId;
-if(typeof data15 === "string"){
-if(func1(data15) > 128){
-const err49 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err49];
-}
-else {
-vErrors.push(err49);
-}
-errors++;
-}
-if(func1(data15) < 1){
-const err50 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err50];
-}
-else {
-vErrors.push(err50);
-}
-errors++;
-}
-if(!pattern24.test(data15)){
-const err51 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err51];
-}
-else {
-vErrors.push(err51);
-}
-errors++;
-}
-}
-else {
-const err52 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err52];
-}
-else {
-vErrors.push(err52);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data16 = data.clientEpoch;
-if(!(((typeof data16 == "number") && (!(data16 % 1) && !isNaN(data16))) && (isFinite(data16)))){
-const err53 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err53];
-}
-else {
-vErrors.push(err53);
-}
-errors++;
-}
-if((typeof data16 == "number") && (isFinite(data16))){
-if(data16 > 2147483647 || isNaN(data16)){
-const err54 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err54];
-}
-else {
-vErrors.push(err54);
-}
-errors++;
-}
-if(data16 < 1 || isNaN(data16)){
-const err55 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err55];
-}
-else {
-vErrors.push(err55);
-}
-errors++;
-}
-}
-}
-if(data.operation !== undefined){
-let data17 = data.operation;
-if(!(((((((((((((data17 === "health") || (data17 === "bootstrap")) || (data17 === "list-subjects")) || (data17 === "get-object")) || (data17 === "list-relationships")) || (data17 === "reverse-relationships")) || (data17 === "authorize")) || (data17 === "lookup-resources")) || (data17 === "lookup-subjects")) || (data17 === "count-resources")) || (data17 === "get-schema")) || (data17 === "get-cache-info")) || (data17 === "count-objects"))){
-const err56 = {instancePath:instancePath+"/operation",schemaPath:"#/$defs/operation/enum",keyword:"enum",params:{allowedValues: schema88.enum},message:"must be equal to one of the allowed values"};
-if(vErrors === null){
-vErrors = [err56];
-}
-else {
-vErrors.push(err56);
-}
-errors++;
-}
-}
-if(data.input !== undefined){
-let data18 = data.input;
-if(data18 && typeof data18 == "object" && !Array.isArray(data18)){
-if(Object.keys(data18).length > 32){
-const err57 = {instancePath:instancePath+"/input",schemaPath:"#/oneOf/1/properties/input/maxProperties",keyword:"maxProperties",params:{limit: 32},message:"must NOT have more than 32 properties"};
-if(vErrors === null){
-vErrors = [err57];
-}
-else {
-vErrors.push(err57);
-}
-errors++;
-}
-}
-else {
-const err58 = {instancePath:instancePath+"/input",schemaPath:"#/oneOf/1/properties/input/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err58];
-}
-else {
-vErrors.push(err58);
-}
-errors++;
-}
-}
-}
-else {
-const err59 = {instancePath,schemaPath:"#/oneOf/1/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err59];
-}
-else {
-vErrors.push(err59);
-}
-errors++;
-}
-var _valid0 = _errs28 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 1];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 1;
-if(props0 !== true){
-props0 = true;
-}
-}
-const _errs44 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err60 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err60];
-}
-else {
-vErrors.push(err60);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err61 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err61];
-}
-else {
-vErrors.push(err61);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err62 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err62];
-}
-else {
-vErrors.push(err62);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err63 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err63];
-}
-else {
-vErrors.push(err63);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err64 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err64];
-}
-else {
-vErrors.push(err64);
-}
-errors++;
-}
-for(const key3 in data){
-if(!(((((key3 === "type") || (key3 === "contractVersion")) || (key3 === "profileId")) || (key3 === "requestId")) || (key3 === "clientEpoch"))){
-const err65 = {instancePath,schemaPath:"#/oneOf/2/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key3},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err65];
-}
-else {
-vErrors.push(err65);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("cancel" !== data.type){
-const err66 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/2/properties/type/const",keyword:"const",params:{allowedValue: "cancel"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err66];
-}
-else {
-vErrors.push(err66);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err67 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/2/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err67];
-}
-else {
-vErrors.push(err67);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err68 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/2/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err68];
-}
-else {
-vErrors.push(err68);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data22 = data.requestId;
-if(typeof data22 === "string"){
-if(func1(data22) > 128){
-const err69 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err69];
-}
-else {
-vErrors.push(err69);
-}
-errors++;
-}
-if(func1(data22) < 1){
-const err70 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err70];
-}
-else {
-vErrors.push(err70);
-}
-errors++;
-}
-if(!pattern24.test(data22)){
-const err71 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err71];
-}
-else {
-vErrors.push(err71);
-}
-errors++;
-}
-}
-else {
-const err72 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err72];
-}
-else {
-vErrors.push(err72);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data23 = data.clientEpoch;
-if(!(((typeof data23 == "number") && (!(data23 % 1) && !isNaN(data23))) && (isFinite(data23)))){
-const err73 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err73];
-}
-else {
-vErrors.push(err73);
-}
-errors++;
-}
-if((typeof data23 == "number") && (isFinite(data23))){
-if(data23 > 2147483647 || isNaN(data23)){
-const err74 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err74];
-}
-else {
-vErrors.push(err74);
-}
-errors++;
-}
-if(data23 < 1 || isNaN(data23)){
-const err75 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err75];
-}
-else {
-vErrors.push(err75);
-}
-errors++;
-}
-}
-}
-}
-else {
-const err76 = {instancePath,schemaPath:"#/oneOf/2/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err76];
-}
-else {
-vErrors.push(err76);
-}
-errors++;
-}
-var _valid0 = _errs44 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 2];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 2;
-if(props0 !== true){
-props0 = true;
-}
-}
-const _errs56 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err77 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err77];
-}
-else {
-vErrors.push(err77);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err78 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err78];
-}
-else {
-vErrors.push(err78);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err79 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err79];
-}
-else {
-vErrors.push(err79);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err80 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err80];
-}
-else {
-vErrors.push(err80);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err81 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err81];
-}
-else {
-vErrors.push(err81);
-}
-errors++;
-}
-for(const key4 in data){
-if(!(((((key4 === "type") || (key4 === "contractVersion")) || (key4 === "profileId")) || (key4 === "requestId")) || (key4 === "clientEpoch"))){
-const err82 = {instancePath,schemaPath:"#/oneOf/3/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key4},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err82];
-}
-else {
-vErrors.push(err82);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("reset" !== data.type){
-const err83 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/3/properties/type/const",keyword:"const",params:{allowedValue: "reset"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err83];
-}
-else {
-vErrors.push(err83);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err84 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/3/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err84];
-}
-else {
-vErrors.push(err84);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err85 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/3/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err85];
-}
-else {
-vErrors.push(err85);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data27 = data.requestId;
-if(typeof data27 === "string"){
-if(func1(data27) > 128){
-const err86 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err86];
-}
-else {
-vErrors.push(err86);
-}
-errors++;
-}
-if(func1(data27) < 1){
-const err87 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err87];
-}
-else {
-vErrors.push(err87);
-}
-errors++;
-}
-if(!pattern24.test(data27)){
-const err88 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err88];
-}
-else {
-vErrors.push(err88);
-}
-errors++;
-}
-}
-else {
-const err89 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err89];
-}
-else {
-vErrors.push(err89);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data28 = data.clientEpoch;
-if(!(((typeof data28 == "number") && (!(data28 % 1) && !isNaN(data28))) && (isFinite(data28)))){
-const err90 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err90];
-}
-else {
-vErrors.push(err90);
-}
-errors++;
-}
-if((typeof data28 == "number") && (isFinite(data28))){
-if(data28 > 2147483647 || isNaN(data28)){
-const err91 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err91];
-}
-else {
-vErrors.push(err91);
-}
-errors++;
-}
-if(data28 < 1 || isNaN(data28)){
-const err92 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err92];
-}
-else {
-vErrors.push(err92);
-}
-errors++;
-}
-}
-}
-}
-else {
-const err93 = {instancePath,schemaPath:"#/oneOf/3/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err93];
-}
-else {
-vErrors.push(err93);
-}
-errors++;
-}
-var _valid0 = _errs56 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 3];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 3;
-if(props0 !== true){
-props0 = true;
-}
-}
-}
-}
-}
-if(!valid0){
-const err94 = {instancePath,schemaPath:"#/oneOf",keyword:"oneOf",params:{passingSchemas: passing0},message:"must match exactly one schema in oneOf"};
-if(vErrors === null){
-vErrors = [err94];
-}
-else {
-vErrors.push(err94);
-}
-errors++;
-}
-else {
-errors = _errs0;
-if(vErrors !== null){
-if(_errs0){
-vErrors.length = _errs0;
-}
-else {
-vErrors = null;
-}
-}
-}
-validate58.errors = vErrors;
-evaluated0.props = props0;
-return errors === 0;
-}
-validate58.evaluated = {"dynamicProps":true,"dynamicItems":false};
-
-export const workerEvent = validate59;
-const schema93 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/explorer-worker-event.v1.schema.json","$defs":{"requestId":{"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]*$"},"clientEpoch":{"type":"integer","minimum":1,"maximum":2147483647},"baseProperties":{"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"}},"identity":{"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"const":"datascript-browser-memory"},"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}},"oneOf":[{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","identity"],"properties":{"type":{"const":"initialized"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"identity":{"$ref":"#/$defs/identity"}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","response"],"properties":{"type":{"const":"response"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"response":{"$ref":"explorer-response.v1.schema.json"}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","phase","completed","total","message"],"properties":{"type":{"const":"progress"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"phase":{"enum":["fixture-generation","fixture-seed","ready","canceled"]},"completed":{"type":"integer","minimum":0,"maximum":10000},"total":{"const":10000},"message":{"type":"string","minLength":1,"maxLength":256}}},{"type":"object","additionalProperties":false,"required":["type","contractVersion","profileId","requestId","clientEpoch","error"],"properties":{"type":{"const":"protocol-error"},"contractVersion":{"const":"explorer.v1"},"profileId":{"const":"datascript-browser-memory"},"requestId":{"$ref":"#/$defs/requestId"},"clientEpoch":{"$ref":"#/$defs/clientEpoch"},"error":{"type":"object","additionalProperties":false,"required":["code","message","retryable"],"properties":{"code":{"enum":["validation-error","identity-mismatch","unsupported-consistency"]},"message":{"type":"string","minLength":1,"maxLength":256},"retryable":{"type":"boolean"}}}}}]};
-const schema94 = {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]*$"};
-const schema95 = {"type":"integer","minimum":1,"maximum":2147483647};
-const schema96 = {"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"const":"datascript-browser-memory"},"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
-const func79 = Object.prototype.hasOwnProperty;
-
-function validate59(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
-/*# sourceURL="https://demo.eacl.dev/schemas/explorer-worker-event.v1.schema.json" */;
-let vErrors = null;
-let errors = 0;
-const evaluated0 = validate59.evaluated;
-if(evaluated0.dynamicProps){
-evaluated0.props = undefined;
-}
-if(evaluated0.dynamicItems){
-evaluated0.items = undefined;
-}
-const _errs0 = errors;
-let valid0 = false;
-let passing0 = null;
-const _errs1 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err0 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err0];
-}
-else {
-vErrors.push(err0);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err1 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err1];
-}
-else {
-vErrors.push(err1);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err2 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err2];
-}
-else {
-vErrors.push(err2);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err3 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err3];
-}
-else {
-vErrors.push(err3);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err4 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err4];
-}
-else {
-vErrors.push(err4);
-}
-errors++;
-}
-if(data.identity === undefined){
-const err5 = {instancePath,schemaPath:"#/oneOf/0/required",keyword:"required",params:{missingProperty: "identity"},message:"must have required property '"+"identity"+"'"};
-if(vErrors === null){
-vErrors = [err5];
-}
-else {
-vErrors.push(err5);
-}
-errors++;
-}
-for(const key0 in data){
-if(!((((((key0 === "type") || (key0 === "contractVersion")) || (key0 === "profileId")) || (key0 === "requestId")) || (key0 === "clientEpoch")) || (key0 === "identity"))){
-const err6 = {instancePath,schemaPath:"#/oneOf/0/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err6];
-}
-else {
-vErrors.push(err6);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("initialized" !== data.type){
-const err7 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/0/properties/type/const",keyword:"const",params:{allowedValue: "initialized"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err7];
-}
-else {
-vErrors.push(err7);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err8 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/0/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err8];
-}
-else {
-vErrors.push(err8);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err9 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/0/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err9];
-}
-else {
-vErrors.push(err9);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data3 = data.requestId;
-if(typeof data3 === "string"){
-if(func1(data3) > 128){
-const err10 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err10];
-}
-else {
-vErrors.push(err10);
-}
-errors++;
-}
-if(func1(data3) < 1){
-const err11 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err11];
-}
-else {
-vErrors.push(err11);
-}
-errors++;
-}
-if(!pattern24.test(data3)){
-const err12 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err12];
-}
-else {
-vErrors.push(err12);
-}
-errors++;
-}
-}
-else {
-const err13 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err13];
-}
-else {
-vErrors.push(err13);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data4 = data.clientEpoch;
-if(!(((typeof data4 == "number") && (!(data4 % 1) && !isNaN(data4))) && (isFinite(data4)))){
-const err14 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err14];
-}
-else {
-vErrors.push(err14);
-}
-errors++;
-}
-if((typeof data4 == "number") && (isFinite(data4))){
-if(data4 > 2147483647 || isNaN(data4)){
-const err15 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err15];
-}
-else {
-vErrors.push(err15);
-}
-errors++;
-}
-if(data4 < 1 || isNaN(data4)){
-const err16 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err16];
-}
-else {
-vErrors.push(err16);
-}
-errors++;
-}
-}
-}
-if(data.identity !== undefined){
-let data5 = data.identity;
-if(data5 && typeof data5 == "object" && !Array.isArray(data5)){
-if(data5.profileId === undefined){
-const err17 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err17];
-}
-else {
-vErrors.push(err17);
-}
-errors++;
-}
-if(data5.demoSha === undefined){
-const err18 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "demoSha"},message:"must have required property '"+"demoSha"+"'"};
-if(vErrors === null){
-vErrors = [err18];
-}
-else {
-vErrors.push(err18);
-}
-errors++;
-}
-if(data5.eaclSha === undefined){
-const err19 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "eaclSha"},message:"must have required property '"+"eaclSha"+"'"};
-if(vErrors === null){
-vErrors = [err19];
-}
-else {
-vErrors.push(err19);
-}
-errors++;
-}
-if(data5.artifactSha256 === undefined){
-const err20 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "artifactSha256"},message:"must have required property '"+"artifactSha256"+"'"};
-if(vErrors === null){
-vErrors = [err20];
-}
-else {
-vErrors.push(err20);
-}
-errors++;
-}
-if(data5.deploymentId === undefined){
-const err21 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "deploymentId"},message:"must have required property '"+"deploymentId"+"'"};
-if(vErrors === null){
-vErrors = [err21];
-}
-else {
-vErrors.push(err21);
-}
-errors++;
-}
-if(data5.dataManifestSha256 === undefined){
-const err22 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/required",keyword:"required",params:{missingProperty: "dataManifestSha256"},message:"must have required property '"+"dataManifestSha256"+"'"};
-if(vErrors === null){
-vErrors = [err22];
-}
-else {
-vErrors.push(err22);
-}
-errors++;
-}
-for(const key1 in data5){
-if(!((((((key1 === "profileId") || (key1 === "demoSha")) || (key1 === "eaclSha")) || (key1 === "artifactSha256")) || (key1 === "deploymentId")) || (key1 === "dataManifestSha256"))){
-const err23 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key1},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err23];
-}
-else {
-vErrors.push(err23);
-}
-errors++;
-}
-}
-if(data5.profileId !== undefined){
-if("datascript-browser-memory" !== data5.profileId){
-const err24 = {instancePath:instancePath+"/identity/profileId",schemaPath:"#/$defs/identity/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err24];
-}
-else {
-vErrors.push(err24);
-}
-errors++;
-}
-}
-if(data5.demoSha !== undefined){
-let data7 = data5.demoSha;
-if(typeof data7 === "string"){
-if(!pattern5.test(data7)){
-const err25 = {instancePath:instancePath+"/identity/demoSha",schemaPath:"#/$defs/identity/properties/demoSha/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{40}$"},message:"must match pattern \""+"^[0-9a-f]{40}$"+"\""};
-if(vErrors === null){
-vErrors = [err25];
-}
-else {
-vErrors.push(err25);
-}
-errors++;
-}
-}
-else {
-const err26 = {instancePath:instancePath+"/identity/demoSha",schemaPath:"#/$defs/identity/properties/demoSha/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err26];
-}
-else {
-vErrors.push(err26);
-}
-errors++;
-}
-}
-if(data5.eaclSha !== undefined){
-let data8 = data5.eaclSha;
-if(typeof data8 === "string"){
-if(!pattern5.test(data8)){
-const err27 = {instancePath:instancePath+"/identity/eaclSha",schemaPath:"#/$defs/identity/properties/eaclSha/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{40}$"},message:"must match pattern \""+"^[0-9a-f]{40}$"+"\""};
-if(vErrors === null){
-vErrors = [err27];
-}
-else {
-vErrors.push(err27);
-}
-errors++;
-}
-}
-else {
-const err28 = {instancePath:instancePath+"/identity/eaclSha",schemaPath:"#/$defs/identity/properties/eaclSha/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err28];
-}
-else {
-vErrors.push(err28);
-}
-errors++;
-}
-}
-if(data5.artifactSha256 !== undefined){
-let data9 = data5.artifactSha256;
-if(typeof data9 === "string"){
-if(!pattern7.test(data9)){
-const err29 = {instancePath:instancePath+"/identity/artifactSha256",schemaPath:"#/$defs/identity/properties/artifactSha256/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{64}$"},message:"must match pattern \""+"^[0-9a-f]{64}$"+"\""};
-if(vErrors === null){
-vErrors = [err29];
-}
-else {
-vErrors.push(err29);
-}
-errors++;
-}
-}
-else {
-const err30 = {instancePath:instancePath+"/identity/artifactSha256",schemaPath:"#/$defs/identity/properties/artifactSha256/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err30];
-}
-else {
-vErrors.push(err30);
-}
-errors++;
-}
-}
-if(data5.deploymentId !== undefined){
-let data10 = data5.deploymentId;
-if(typeof data10 === "string"){
-if(func1(data10) > 256){
-const err31 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/maxLength",keyword:"maxLength",params:{limit: 256},message:"must NOT have more than 256 characters"};
-if(vErrors === null){
-vErrors = [err31];
-}
-else {
-vErrors.push(err31);
-}
-errors++;
-}
-if(func1(data10) < 1){
-const err32 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err32];
-}
-else {
-vErrors.push(err32);
-}
-errors++;
-}
-}
-else {
-const err33 = {instancePath:instancePath+"/identity/deploymentId",schemaPath:"#/$defs/identity/properties/deploymentId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err33];
-}
-else {
-vErrors.push(err33);
-}
-errors++;
-}
-}
-if(data5.dataManifestSha256 !== undefined){
-let data11 = data5.dataManifestSha256;
-if(typeof data11 === "string"){
-if(!pattern7.test(data11)){
-const err34 = {instancePath:instancePath+"/identity/dataManifestSha256",schemaPath:"#/$defs/identity/properties/dataManifestSha256/pattern",keyword:"pattern",params:{pattern: "^[0-9a-f]{64}$"},message:"must match pattern \""+"^[0-9a-f]{64}$"+"\""};
-if(vErrors === null){
-vErrors = [err34];
-}
-else {
-vErrors.push(err34);
-}
-errors++;
-}
-}
-else {
-const err35 = {instancePath:instancePath+"/identity/dataManifestSha256",schemaPath:"#/$defs/identity/properties/dataManifestSha256/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err35];
-}
-else {
-vErrors.push(err35);
-}
-errors++;
-}
-}
-}
-else {
-const err36 = {instancePath:instancePath+"/identity",schemaPath:"#/$defs/identity/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err36];
-}
-else {
-vErrors.push(err36);
-}
-errors++;
-}
-}
-}
-else {
-const err37 = {instancePath,schemaPath:"#/oneOf/0/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err37];
-}
-else {
-vErrors.push(err37);
-}
-errors++;
-}
-var _valid0 = _errs1 === errors;
-if(_valid0){
-valid0 = true;
-passing0 = 0;
-var props0 = true;
-}
-const _errs28 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err38 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err38];
-}
-else {
-vErrors.push(err38);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err39 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err39];
-}
-else {
-vErrors.push(err39);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err40 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err40];
-}
-else {
-vErrors.push(err40);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err41 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err41];
-}
-else {
-vErrors.push(err41);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err42 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err42];
-}
-else {
-vErrors.push(err42);
-}
-errors++;
-}
-if(data.response === undefined){
-const err43 = {instancePath,schemaPath:"#/oneOf/1/required",keyword:"required",params:{missingProperty: "response"},message:"must have required property '"+"response"+"'"};
-if(vErrors === null){
-vErrors = [err43];
-}
-else {
-vErrors.push(err43);
-}
-errors++;
-}
-for(const key2 in data){
-if(!((((((key2 === "type") || (key2 === "contractVersion")) || (key2 === "profileId")) || (key2 === "requestId")) || (key2 === "clientEpoch")) || (key2 === "response"))){
-const err44 = {instancePath,schemaPath:"#/oneOf/1/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key2},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err44];
-}
-else {
-vErrors.push(err44);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("response" !== data.type){
-const err45 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/1/properties/type/const",keyword:"const",params:{allowedValue: "response"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err45];
-}
-else {
-vErrors.push(err45);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err46 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/1/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err46];
-}
-else {
-vErrors.push(err46);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err47 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/1/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err47];
-}
-else {
-vErrors.push(err47);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data15 = data.requestId;
-if(typeof data15 === "string"){
-if(func1(data15) > 128){
-const err48 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err48];
-}
-else {
-vErrors.push(err48);
-}
-errors++;
-}
-if(func1(data15) < 1){
-const err49 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err49];
-}
-else {
-vErrors.push(err49);
-}
-errors++;
-}
-if(!pattern24.test(data15)){
-const err50 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err50];
-}
-else {
-vErrors.push(err50);
-}
-errors++;
-}
-}
-else {
-const err51 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err51];
-}
-else {
-vErrors.push(err51);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data16 = data.clientEpoch;
-if(!(((typeof data16 == "number") && (!(data16 % 1) && !isNaN(data16))) && (isFinite(data16)))){
-const err52 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err52];
-}
-else {
-vErrors.push(err52);
-}
-errors++;
-}
-if((typeof data16 == "number") && (isFinite(data16))){
-if(data16 > 2147483647 || isNaN(data16)){
-const err53 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err53];
-}
-else {
-vErrors.push(err53);
-}
-errors++;
-}
-if(data16 < 1 || isNaN(data16)){
-const err54 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err54];
-}
-else {
-vErrors.push(err54);
-}
-errors++;
-}
-}
-}
-if(data.response !== undefined){
-if(!(validate21(data.response, {instancePath:instancePath+"/response",parentData:data,parentDataProperty:"response",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate21.errors : vErrors.concat(validate21.errors);
-errors = vErrors.length;
-}
-}
-}
-else {
-const err55 = {instancePath,schemaPath:"#/oneOf/1/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err55];
-}
-else {
-vErrors.push(err55);
-}
-errors++;
-}
-var _valid0 = _errs28 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 1];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 1;
-if(props0 !== true){
-props0 = true;
-}
-}
-const _errs41 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err56 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err56];
-}
-else {
-vErrors.push(err56);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err57 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err57];
-}
-else {
-vErrors.push(err57);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err58 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err58];
-}
-else {
-vErrors.push(err58);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err59 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err59];
-}
-else {
-vErrors.push(err59);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err60 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err60];
-}
-else {
-vErrors.push(err60);
-}
-errors++;
-}
-if(data.phase === undefined){
-const err61 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "phase"},message:"must have required property '"+"phase"+"'"};
-if(vErrors === null){
-vErrors = [err61];
-}
-else {
-vErrors.push(err61);
-}
-errors++;
-}
-if(data.completed === undefined){
-const err62 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "completed"},message:"must have required property '"+"completed"+"'"};
-if(vErrors === null){
-vErrors = [err62];
-}
-else {
-vErrors.push(err62);
-}
-errors++;
-}
-if(data.total === undefined){
-const err63 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "total"},message:"must have required property '"+"total"+"'"};
-if(vErrors === null){
-vErrors = [err63];
-}
-else {
-vErrors.push(err63);
-}
-errors++;
-}
-if(data.message === undefined){
-const err64 = {instancePath,schemaPath:"#/oneOf/2/required",keyword:"required",params:{missingProperty: "message"},message:"must have required property '"+"message"+"'"};
-if(vErrors === null){
-vErrors = [err64];
-}
-else {
-vErrors.push(err64);
-}
-errors++;
-}
-for(const key3 in data){
-if(!(func79.call(schema93.oneOf[2].properties, key3))){
-const err65 = {instancePath,schemaPath:"#/oneOf/2/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key3},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err65];
-}
-else {
-vErrors.push(err65);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("progress" !== data.type){
-const err66 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/2/properties/type/const",keyword:"const",params:{allowedValue: "progress"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err66];
-}
-else {
-vErrors.push(err66);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err67 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/2/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err67];
-}
-else {
-vErrors.push(err67);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err68 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/2/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err68];
-}
-else {
-vErrors.push(err68);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data21 = data.requestId;
-if(typeof data21 === "string"){
-if(func1(data21) > 128){
-const err69 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err69];
-}
-else {
-vErrors.push(err69);
-}
-errors++;
-}
-if(func1(data21) < 1){
-const err70 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err70];
-}
-else {
-vErrors.push(err70);
-}
-errors++;
-}
-if(!pattern24.test(data21)){
-const err71 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err71];
-}
-else {
-vErrors.push(err71);
-}
-errors++;
-}
-}
-else {
-const err72 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err72];
-}
-else {
-vErrors.push(err72);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data22 = data.clientEpoch;
-if(!(((typeof data22 == "number") && (!(data22 % 1) && !isNaN(data22))) && (isFinite(data22)))){
-const err73 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err73];
-}
-else {
-vErrors.push(err73);
-}
-errors++;
-}
-if((typeof data22 == "number") && (isFinite(data22))){
-if(data22 > 2147483647 || isNaN(data22)){
-const err74 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err74];
-}
-else {
-vErrors.push(err74);
-}
-errors++;
-}
-if(data22 < 1 || isNaN(data22)){
-const err75 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err75];
-}
-else {
-vErrors.push(err75);
-}
-errors++;
-}
-}
-}
-if(data.phase !== undefined){
-let data23 = data.phase;
-if(!((((data23 === "fixture-generation") || (data23 === "fixture-seed")) || (data23 === "ready")) || (data23 === "canceled"))){
-const err76 = {instancePath:instancePath+"/phase",schemaPath:"#/oneOf/2/properties/phase/enum",keyword:"enum",params:{allowedValues: schema93.oneOf[2].properties.phase.enum},message:"must be equal to one of the allowed values"};
-if(vErrors === null){
-vErrors = [err76];
-}
-else {
-vErrors.push(err76);
-}
-errors++;
-}
-}
-if(data.completed !== undefined){
-let data24 = data.completed;
-if(!(((typeof data24 == "number") && (!(data24 % 1) && !isNaN(data24))) && (isFinite(data24)))){
-const err77 = {instancePath:instancePath+"/completed",schemaPath:"#/oneOf/2/properties/completed/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err77];
-}
-else {
-vErrors.push(err77);
-}
-errors++;
-}
-if((typeof data24 == "number") && (isFinite(data24))){
-if(data24 > 10000 || isNaN(data24)){
-const err78 = {instancePath:instancePath+"/completed",schemaPath:"#/oneOf/2/properties/completed/maximum",keyword:"maximum",params:{comparison: "<=", limit: 10000},message:"must be <= 10000"};
-if(vErrors === null){
-vErrors = [err78];
-}
-else {
-vErrors.push(err78);
-}
-errors++;
-}
-if(data24 < 0 || isNaN(data24)){
-const err79 = {instancePath:instancePath+"/completed",schemaPath:"#/oneOf/2/properties/completed/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
-if(vErrors === null){
-vErrors = [err79];
-}
-else {
-vErrors.push(err79);
-}
-errors++;
-}
-}
-}
-if(data.total !== undefined){
-if(10000 !== data.total){
-const err80 = {instancePath:instancePath+"/total",schemaPath:"#/oneOf/2/properties/total/const",keyword:"const",params:{allowedValue: 10000},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err80];
-}
-else {
-vErrors.push(err80);
-}
-errors++;
-}
-}
-if(data.message !== undefined){
-let data26 = data.message;
-if(typeof data26 === "string"){
-if(func1(data26) > 256){
-const err81 = {instancePath:instancePath+"/message",schemaPath:"#/oneOf/2/properties/message/maxLength",keyword:"maxLength",params:{limit: 256},message:"must NOT have more than 256 characters"};
-if(vErrors === null){
-vErrors = [err81];
-}
-else {
-vErrors.push(err81);
-}
-errors++;
-}
-if(func1(data26) < 1){
-const err82 = {instancePath:instancePath+"/message",schemaPath:"#/oneOf/2/properties/message/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err82];
-}
-else {
-vErrors.push(err82);
-}
-errors++;
-}
-}
-else {
-const err83 = {instancePath:instancePath+"/message",schemaPath:"#/oneOf/2/properties/message/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err83];
-}
-else {
-vErrors.push(err83);
-}
-errors++;
-}
-}
-}
-else {
-const err84 = {instancePath,schemaPath:"#/oneOf/2/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err84];
-}
-else {
-vErrors.push(err84);
-}
-errors++;
-}
-var _valid0 = _errs41 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 2];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 2;
-if(props0 !== true){
-props0 = true;
-}
-}
-const _errs59 = errors;
-if(data && typeof data == "object" && !Array.isArray(data)){
-if(data.type === undefined){
-const err85 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
-if(vErrors === null){
-vErrors = [err85];
-}
-else {
-vErrors.push(err85);
-}
-errors++;
-}
-if(data.contractVersion === undefined){
-const err86 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "contractVersion"},message:"must have required property '"+"contractVersion"+"'"};
-if(vErrors === null){
-vErrors = [err86];
-}
-else {
-vErrors.push(err86);
-}
-errors++;
-}
-if(data.profileId === undefined){
-const err87 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "profileId"},message:"must have required property '"+"profileId"+"'"};
-if(vErrors === null){
-vErrors = [err87];
-}
-else {
-vErrors.push(err87);
-}
-errors++;
-}
-if(data.requestId === undefined){
-const err88 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "requestId"},message:"must have required property '"+"requestId"+"'"};
-if(vErrors === null){
-vErrors = [err88];
-}
-else {
-vErrors.push(err88);
-}
-errors++;
-}
-if(data.clientEpoch === undefined){
-const err89 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "clientEpoch"},message:"must have required property '"+"clientEpoch"+"'"};
-if(vErrors === null){
-vErrors = [err89];
-}
-else {
-vErrors.push(err89);
-}
-errors++;
-}
-if(data.error === undefined){
-const err90 = {instancePath,schemaPath:"#/oneOf/3/required",keyword:"required",params:{missingProperty: "error"},message:"must have required property '"+"error"+"'"};
-if(vErrors === null){
-vErrors = [err90];
-}
-else {
-vErrors.push(err90);
-}
-errors++;
-}
-for(const key4 in data){
-if(!((((((key4 === "type") || (key4 === "contractVersion")) || (key4 === "profileId")) || (key4 === "requestId")) || (key4 === "clientEpoch")) || (key4 === "error"))){
-const err91 = {instancePath,schemaPath:"#/oneOf/3/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key4},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err91];
-}
-else {
-vErrors.push(err91);
-}
-errors++;
-}
-}
-if(data.type !== undefined){
-if("protocol-error" !== data.type){
-const err92 = {instancePath:instancePath+"/type",schemaPath:"#/oneOf/3/properties/type/const",keyword:"const",params:{allowedValue: "protocol-error"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err92];
-}
-else {
-vErrors.push(err92);
-}
-errors++;
-}
-}
-if(data.contractVersion !== undefined){
-if("explorer.v1" !== data.contractVersion){
-const err93 = {instancePath:instancePath+"/contractVersion",schemaPath:"#/oneOf/3/properties/contractVersion/const",keyword:"const",params:{allowedValue: "explorer.v1"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err93];
-}
-else {
-vErrors.push(err93);
-}
-errors++;
-}
-}
-if(data.profileId !== undefined){
-if("datascript-browser-memory" !== data.profileId){
-const err94 = {instancePath:instancePath+"/profileId",schemaPath:"#/oneOf/3/properties/profileId/const",keyword:"const",params:{allowedValue: "datascript-browser-memory"},message:"must be equal to constant"};
-if(vErrors === null){
-vErrors = [err94];
-}
-else {
-vErrors.push(err94);
-}
-errors++;
-}
-}
-if(data.requestId !== undefined){
-let data30 = data.requestId;
-if(typeof data30 === "string"){
-if(func1(data30) > 128){
-const err95 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/maxLength",keyword:"maxLength",params:{limit: 128},message:"must NOT have more than 128 characters"};
-if(vErrors === null){
-vErrors = [err95];
-}
-else {
-vErrors.push(err95);
-}
-errors++;
-}
-if(func1(data30) < 1){
-const err96 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err96];
-}
-else {
-vErrors.push(err96);
-}
-errors++;
-}
-if(!pattern24.test(data30)){
-const err97 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/pattern",keyword:"pattern",params:{pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},message:"must match pattern \""+"^[A-Za-z0-9][A-Za-z0-9._:-]*$"+"\""};
-if(vErrors === null){
-vErrors = [err97];
-}
-else {
-vErrors.push(err97);
-}
-errors++;
-}
-}
-else {
-const err98 = {instancePath:instancePath+"/requestId",schemaPath:"#/$defs/requestId/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err98];
-}
-else {
-vErrors.push(err98);
-}
-errors++;
-}
-}
-if(data.clientEpoch !== undefined){
-let data31 = data.clientEpoch;
-if(!(((typeof data31 == "number") && (!(data31 % 1) && !isNaN(data31))) && (isFinite(data31)))){
-const err99 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err99];
-}
-else {
-vErrors.push(err99);
-}
-errors++;
-}
-if((typeof data31 == "number") && (isFinite(data31))){
-if(data31 > 2147483647 || isNaN(data31)){
-const err100 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/maximum",keyword:"maximum",params:{comparison: "<=", limit: 2147483647},message:"must be <= 2147483647"};
-if(vErrors === null){
-vErrors = [err100];
-}
-else {
-vErrors.push(err100);
-}
-errors++;
-}
-if(data31 < 1 || isNaN(data31)){
-const err101 = {instancePath:instancePath+"/clientEpoch",schemaPath:"#/$defs/clientEpoch/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
-if(vErrors === null){
-vErrors = [err101];
-}
-else {
-vErrors.push(err101);
-}
-errors++;
-}
-}
-}
-if(data.error !== undefined){
-let data32 = data.error;
-if(data32 && typeof data32 == "object" && !Array.isArray(data32)){
-if(data32.code === undefined){
-const err102 = {instancePath:instancePath+"/error",schemaPath:"#/oneOf/3/properties/error/required",keyword:"required",params:{missingProperty: "code"},message:"must have required property '"+"code"+"'"};
-if(vErrors === null){
-vErrors = [err102];
-}
-else {
-vErrors.push(err102);
-}
-errors++;
-}
-if(data32.message === undefined){
-const err103 = {instancePath:instancePath+"/error",schemaPath:"#/oneOf/3/properties/error/required",keyword:"required",params:{missingProperty: "message"},message:"must have required property '"+"message"+"'"};
-if(vErrors === null){
-vErrors = [err103];
-}
-else {
-vErrors.push(err103);
-}
-errors++;
-}
-if(data32.retryable === undefined){
-const err104 = {instancePath:instancePath+"/error",schemaPath:"#/oneOf/3/properties/error/required",keyword:"required",params:{missingProperty: "retryable"},message:"must have required property '"+"retryable"+"'"};
-if(vErrors === null){
-vErrors = [err104];
-}
-else {
-vErrors.push(err104);
-}
-errors++;
-}
-for(const key5 in data32){
-if(!(((key5 === "code") || (key5 === "message")) || (key5 === "retryable"))){
-const err105 = {instancePath:instancePath+"/error",schemaPath:"#/oneOf/3/properties/error/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key5},message:"must NOT have additional properties"};
-if(vErrors === null){
-vErrors = [err105];
-}
-else {
-vErrors.push(err105);
-}
-errors++;
-}
-}
-if(data32.code !== undefined){
-let data33 = data32.code;
-if(!(((data33 === "validation-error") || (data33 === "identity-mismatch")) || (data33 === "unsupported-consistency"))){
-const err106 = {instancePath:instancePath+"/error/code",schemaPath:"#/oneOf/3/properties/error/properties/code/enum",keyword:"enum",params:{allowedValues: schema93.oneOf[3].properties.error.properties.code.enum},message:"must be equal to one of the allowed values"};
-if(vErrors === null){
-vErrors = [err106];
-}
-else {
-vErrors.push(err106);
-}
-errors++;
-}
-}
-if(data32.message !== undefined){
-let data34 = data32.message;
-if(typeof data34 === "string"){
-if(func1(data34) > 256){
-const err107 = {instancePath:instancePath+"/error/message",schemaPath:"#/oneOf/3/properties/error/properties/message/maxLength",keyword:"maxLength",params:{limit: 256},message:"must NOT have more than 256 characters"};
-if(vErrors === null){
-vErrors = [err107];
-}
-else {
-vErrors.push(err107);
-}
-errors++;
-}
-if(func1(data34) < 1){
-const err108 = {instancePath:instancePath+"/error/message",schemaPath:"#/oneOf/3/properties/error/properties/message/minLength",keyword:"minLength",params:{limit: 1},message:"must NOT have fewer than 1 characters"};
-if(vErrors === null){
-vErrors = [err108];
-}
-else {
-vErrors.push(err108);
-}
-errors++;
-}
-}
-else {
-const err109 = {instancePath:instancePath+"/error/message",schemaPath:"#/oneOf/3/properties/error/properties/message/type",keyword:"type",params:{type: "string"},message:"must be string"};
-if(vErrors === null){
-vErrors = [err109];
-}
-else {
-vErrors.push(err109);
-}
-errors++;
-}
-}
-if(data32.retryable !== undefined){
-if(typeof data32.retryable !== "boolean"){
-const err110 = {instancePath:instancePath+"/error/retryable",schemaPath:"#/oneOf/3/properties/error/properties/retryable/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
-if(vErrors === null){
-vErrors = [err110];
-}
-else {
-vErrors.push(err110);
-}
-errors++;
-}
-}
-}
-else {
-const err111 = {instancePath:instancePath+"/error",schemaPath:"#/oneOf/3/properties/error/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err111];
-}
-else {
-vErrors.push(err111);
-}
-errors++;
-}
-}
-}
-else {
-const err112 = {instancePath,schemaPath:"#/oneOf/3/type",keyword:"type",params:{type: "object"},message:"must be object"};
-if(vErrors === null){
-vErrors = [err112];
-}
-else {
-vErrors.push(err112);
-}
-errors++;
-}
-var _valid0 = _errs59 === errors;
-if(_valid0 && valid0){
-valid0 = false;
-passing0 = [passing0, 3];
-}
-else {
-if(_valid0){
-valid0 = true;
-passing0 = 3;
-if(props0 !== true){
-props0 = true;
-}
-}
-}
-}
-}
-if(!valid0){
-const err113 = {instancePath,schemaPath:"#/oneOf",keyword:"oneOf",params:{passingSchemas: passing0},message:"must match exactly one schema in oneOf"};
-if(vErrors === null){
-vErrors = [err113];
-}
-else {
-vErrors.push(err113);
-}
-errors++;
-}
-else {
-errors = _errs0;
-if(vErrors !== null){
-if(_errs0){
-vErrors.length = _errs0;
-}
-else {
-vErrors = null;
-}
-}
-}
-validate59.errors = vErrors;
-evaluated0.props = props0;
-return errors === 0;
-}
-validate59.evaluated = {"dynamicProps":true,"dynamicItems":false};
-
-export const fixture = validate61;
-const schema103 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json","type":"object","additionalProperties":false,"required":["schema","fixtureId","algorithmVersion","seed","cutPoint","logicalResourceCount","schemaSha256","manifestSha256"],"properties":{"schema":{"const":"eacl-demo.fixture-manifest.v1"},"fixtureId":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"algorithmVersion":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"seed":{"type":"string","minLength":1,"maxLength":128},"cutPoint":{"enum":[10000,1000000]},"logicalResourceCount":{"enum":[10000,1000000]},"schemaSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"manifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
-const pattern40 = new RegExp("^[a-z0-9]+(?:[._-][a-z0-9]+)*$", "u");
-
-function validate61(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate61.evaluated;
+const evaluated0 = validate58.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8019,7 +5474,7 @@ errors++;
 if(data.fixtureId !== undefined){
 let data1 = data.fixtureId;
 if(typeof data1 === "string"){
-if(!pattern40.test(data1)){
+if(!pattern24.test(data1)){
 const err10 = {instancePath:instancePath+"/fixtureId",schemaPath:"#/properties/fixtureId/pattern",keyword:"pattern",params:{pattern: "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},message:"must match pattern \""+"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"+"\""};
 if(vErrors === null){
 vErrors = [err10];
@@ -8044,7 +5499,7 @@ errors++;
 if(data.algorithmVersion !== undefined){
 let data2 = data.algorithmVersion;
 if(typeof data2 === "string"){
-if(!pattern40.test(data2)){
+if(!pattern24.test(data2)){
 const err12 = {instancePath:instancePath+"/algorithmVersion",schemaPath:"#/properties/algorithmVersion/pattern",keyword:"pattern",params:{pattern: "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},message:"must match pattern \""+"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"+"\""};
 if(vErrors === null){
 vErrors = [err12];
@@ -8104,7 +5559,7 @@ errors++;
 if(data.cutPoint !== undefined){
 let data4 = data.cutPoint;
 if(!((data4 === 10000) || (data4 === 1000000))){
-const err17 = {instancePath:instancePath+"/cutPoint",schemaPath:"#/properties/cutPoint/enum",keyword:"enum",params:{allowedValues: schema103.properties.cutPoint.enum},message:"must be equal to one of the allowed values"};
+const err17 = {instancePath:instancePath+"/cutPoint",schemaPath:"#/properties/cutPoint/enum",keyword:"enum",params:{allowedValues: schema82.properties.cutPoint.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err17];
 }
@@ -8117,7 +5572,7 @@ errors++;
 if(data.logicalResourceCount !== undefined){
 let data5 = data.logicalResourceCount;
 if(!((data5 === 10000) || (data5 === 1000000))){
-const err18 = {instancePath:instancePath+"/logicalResourceCount",schemaPath:"#/properties/logicalResourceCount/enum",keyword:"enum",params:{allowedValues: schema103.properties.logicalResourceCount.enum},message:"must be equal to one of the allowed values"};
+const err18 = {instancePath:instancePath+"/logicalResourceCount",schemaPath:"#/properties/logicalResourceCount/enum",keyword:"enum",params:{allowedValues: schema82.properties.logicalResourceCount.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err18];
 }
@@ -8188,18 +5643,18 @@ vErrors.push(err23);
 }
 errors++;
 }
-validate61.errors = vErrors;
+validate58.errors = vErrors;
 return errors === 0;
 }
-validate61.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate58.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const descriptor = validate62;
-const schema104 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/explorer-descriptor.v1.schema.json","$ref":"explorer.v1.schema.json#/$defs/bootstrap"};
+export const descriptor = validate59;
+const schema83 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/explorer-descriptor.v1.schema.json","$ref":"explorer.v1.schema.json#/$defs/bootstrap"};
 
-function validate63(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate60(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate63.evaluated;
+const evaluated0 = validate60.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8576,7 +6031,7 @@ errors++;
 }
 if(data9.execution !== undefined){
 let data10 = data9.execution;
-if(!((data10 === "lambda") || (data10 === "browser-worker"))){
+if(!((data10 === "lambda") || (data10 === "browser"))){
 const err32 = {instancePath:instancePath+"/runtime/execution",schemaPath:"#/properties/runtime/properties/execution/enum",keyword:"enum",params:{allowedValues: schema43.properties.runtime.properties.execution.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err32];
@@ -8875,7 +6330,7 @@ errors++;
 }
 if(data14.snapshotBehavior !== undefined){
 let data19 = data14.snapshotBehavior;
-if(!((((data19 === "fixed-environment") || (data19 === "request-snapshot")) || (data19 === "worker-lifecycle")) || (data19 === "rebuild-lifecycle"))){
+if(!((((data19 === "fixed-environment") || (data19 === "request-snapshot")) || (data19 === "page-lifecycle")) || (data19 === "rebuild-lifecycle"))){
 const err56 = {instancePath:instancePath+"/capabilities/snapshotBehavior",schemaPath:"#/properties/capabilities/properties/snapshotBehavior/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.snapshotBehavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err56];
@@ -8888,7 +6343,7 @@ errors++;
 }
 if(data14.cacheBehavior !== undefined){
 let data20 = data14.cacheBehavior;
-if(!(((((data20 === "none") || (data20 === "request-local")) || (data20 === "environment-local")) || (data20 === "browser-worker-local")) || (data20 === "shared-read-through"))){
+if(!(((((data20 === "none") || (data20 === "request-local")) || (data20 === "environment-local")) || (data20 === "browser-page-local")) || (data20 === "shared-read-through"))){
 const err57 = {instancePath:instancePath+"/capabilities/cacheBehavior",schemaPath:"#/properties/capabilities/properties/cacheBehavior/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.cacheBehavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err57];
@@ -8901,7 +6356,7 @@ errors++;
 }
 if(data14.mutationLocality !== undefined){
 let data21 = data14.mutationLocality;
-if(!((((data21 === "none") || (data21 === "private-seed-workflow")) || (data21 === "initialization-before-ready")) || (data21 === "browser-worker-initialization"))){
+if(!((((data21 === "none") || (data21 === "private-seed-workflow")) || (data21 === "initialization-before-ready")) || (data21 === "browser-initialization"))){
 const err58 = {instancePath:instancePath+"/capabilities/mutationLocality",schemaPath:"#/properties/capabilities/properties/mutationLocality/enum",keyword:"enum",params:{allowedValues: schema43.properties.capabilities.properties.mutationLocality.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err58];
@@ -9314,7 +6769,7 @@ errors++;
 }
 if(data33.behavior !== undefined){
 let data34 = data33.behavior;
-if(!((((data34 === "fixed-environment") || (data34 === "request-snapshot")) || (data34 === "worker-lifecycle")) || (data34 === "rebuild-lifecycle"))){
+if(!((((data34 === "fixed-environment") || (data34 === "request-snapshot")) || (data34 === "page-lifecycle")) || (data34 === "rebuild-lifecycle"))){
 const err92 = {instancePath:instancePath+"/basis/behavior",schemaPath:"#/$defs/basis/properties/behavior/enum",keyword:"enum",params:{allowedValues: schema42.properties.behavior.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err92];
@@ -9420,43 +6875,43 @@ vErrors.push(err100);
 }
 errors++;
 }
-validate63.errors = vErrors;
+validate60.errors = vErrors;
 return errors === 0;
 }
-validate63.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate60.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate62(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate59(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/explorer-descriptor.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate62.evaluated;
+const evaluated0 = validate59.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
 if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
-if(!(validate63(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate63.errors : vErrors.concat(validate63.errors);
+if(!(validate60(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate60.errors : vErrors.concat(validate60.errors);
 errors = vErrors.length;
 }
-validate62.errors = vErrors;
+validate59.errors = vErrors;
 return errors === 0;
 }
-validate62.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate59.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const registry = validate66;
-const schema108 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/profile-registry.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","benchmarkEvidence","storageDefaults","profiles"],"properties":{"$schema":{"const":"../schemas/profile-registry.v1.schema.json"},"schema":{"const":"eacl-demo.profile-registry.v1"},"contractVersion":{"const":"explorer.v1"},"benchmarkEvidence":{"type":"array","items":{"$ref":"#/$defs/evidenceSummary"}},"storageDefaults":{"type":"array","minItems":5,"maxItems":5,"items":{"$ref":"#/$defs/storageDefault"}},"profiles":{"type":"array","minItems":6,"maxItems":6,"items":{"$ref":"#/$defs/profile"}}},"$defs":{"sha1":{"type":["string","null"],"pattern":"^[0-9a-f]{40}$"},"sha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},"prefixedSha256":{"type":["string","null"],"pattern":"^sha256:[0-9a-f]{64}$"},"evidenceSummary":{"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}},"storageDefault":{"type":"object","additionalProperties":false,"required":["outcome","profileId","storage","claim","evidenceId","measuredAt","reason","backend"],"properties":{"outcome":{"enum":["none","sole-qualified","fallback","winner","benchmark-tiebreak"]},"profileId":{"type":["string","null"]},"storage":{"type":["string","null"]},"claim":{"enum":[null,"fastest-qualified","benchmark-selected"]},"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"measuredAt":{"type":["string","null"],"format":"date-time"},"reason":{"type":["string","null"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]}}},"profile":{"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"]},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}},"deployment":{"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version","browser-worker"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}},"outcome":{"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/sha1"},"attemptedEaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}}}};
-const schema109 = {"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
-const schema110 = {"type":["string","null"],"pattern":"^sha256:[0-9a-f]{64}$"};
-const pattern45 = new RegExp("^sha256:[0-9a-f]{64}$", "u");
-const pattern46 = new RegExp("^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$", "u");
+export const registry = validate63;
+const schema87 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/profile-registry.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","benchmarkEvidence","storageDefaults","profiles"],"properties":{"$schema":{"const":"../schemas/profile-registry.v1.schema.json"},"schema":{"const":"eacl-demo.profile-registry.v1"},"contractVersion":{"const":"explorer.v1"},"benchmarkEvidence":{"type":"array","items":{"$ref":"#/$defs/evidenceSummary"}},"storageDefaults":{"type":"array","minItems":5,"maxItems":5,"items":{"$ref":"#/$defs/storageDefault"}},"profiles":{"type":"array","minItems":6,"maxItems":6,"items":{"$ref":"#/$defs/profile"}}},"$defs":{"sha1":{"type":["string","null"],"pattern":"^[0-9a-f]{40}$"},"sha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},"prefixedSha256":{"type":["string","null"],"pattern":"^sha256:[0-9a-f]{64}$"},"evidenceSummary":{"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}},"storageDefault":{"type":"object","additionalProperties":false,"required":["outcome","profileId","storage","claim","evidenceId","measuredAt","reason","backend"],"properties":{"outcome":{"enum":["none","sole-qualified","fallback","winner","benchmark-tiebreak"]},"profileId":{"type":["string","null"]},"storage":{"type":["string","null"]},"claim":{"enum":[null,"fastest-qualified","benchmark-selected"]},"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"measuredAt":{"type":["string","null"],"format":"date-time"},"reason":{"type":["string","null"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]}}},"profile":{"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"]},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}},"deployment":{"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}},"outcome":{"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/sha1"},"attemptedEaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}}}};
+const schema88 = {"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
+const schema89 = {"type":["string","null"],"pattern":"^sha256:[0-9a-f]{64}$"};
+const pattern29 = new RegExp("^sha256:[0-9a-f]{64}$", "u");
+const pattern30 = new RegExp("^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$", "u");
 
-function validate67(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate64(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate67.evaluated;
+const evaluated0 = validate64.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9549,7 +7004,7 @@ errors++;
 if(data.evidenceId !== undefined){
 let data0 = data.evidenceId;
 if((typeof data0 !== "string") && (data0 !== null)){
-const err8 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/type",keyword:"type",params:{type: schema110.type},message:"must be string,null"};
+const err8 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/type",keyword:"type",params:{type: schema89.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err8];
 }
@@ -9559,7 +7014,7 @@ vErrors.push(err8);
 errors++;
 }
 if(typeof data0 === "string"){
-if(!pattern45.test(data0)){
+if(!pattern29.test(data0)){
 const err9 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err9];
@@ -9574,7 +7029,7 @@ errors++;
 if(data.backend !== undefined){
 let data1 = data.backend;
 if(!(((((data1 === "datahike") || (data1 === "datomic")) || (data1 === "datalevin")) || (data1 === "jank")) || (data1 === "datascript"))){
-const err10 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema109.properties.backend.enum},message:"must be equal to one of the allowed values"};
+const err10 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema88.properties.backend.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -9699,7 +7154,7 @@ errors++;
 if(data.path !== undefined){
 let data6 = data.path;
 if(typeof data6 === "string"){
-if(!pattern46.test(data6)){
+if(!pattern30.test(data6)){
 const err19 = {instancePath:instancePath+"/path",schemaPath:"#/properties/path/pattern",keyword:"pattern",params:{pattern: "^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"},message:"must match pattern \""+"^registry/benchmark-evidence/[a-z0-9._/-]+\\.json$"+"\""};
 if(vErrors === null){
 vErrors = [err19];
@@ -9757,17 +7212,17 @@ vErrors.push(err23);
 }
 errors++;
 }
-validate67.errors = vErrors;
+validate64.errors = vErrors;
 return errors === 0;
 }
-validate67.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate64.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema111 = {"type":"object","additionalProperties":false,"required":["outcome","profileId","storage","claim","evidenceId","measuredAt","reason","backend"],"properties":{"outcome":{"enum":["none","sole-qualified","fallback","winner","benchmark-tiebreak"]},"profileId":{"type":["string","null"]},"storage":{"type":["string","null"]},"claim":{"enum":[null,"fastest-qualified","benchmark-selected"]},"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"measuredAt":{"type":["string","null"],"format":"date-time"},"reason":{"type":["string","null"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]}}};
+const schema90 = {"type":"object","additionalProperties":false,"required":["outcome","profileId","storage","claim","evidenceId","measuredAt","reason","backend"],"properties":{"outcome":{"enum":["none","sole-qualified","fallback","winner","benchmark-tiebreak"]},"profileId":{"type":["string","null"]},"storage":{"type":["string","null"]},"claim":{"enum":[null,"fastest-qualified","benchmark-selected"]},"evidenceId":{"$ref":"#/$defs/prefixedSha256"},"measuredAt":{"type":["string","null"],"format":"date-time"},"reason":{"type":["string","null"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]}}};
 
-function validate69(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate66(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate69.evaluated;
+const evaluated0 = validate66.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9870,7 +7325,7 @@ errors++;
 if(data.outcome !== undefined){
 let data0 = data.outcome;
 if(!(((((data0 === "none") || (data0 === "sole-qualified")) || (data0 === "fallback")) || (data0 === "winner")) || (data0 === "benchmark-tiebreak"))){
-const err9 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema111.properties.outcome.enum},message:"must be equal to one of the allowed values"};
+const err9 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema90.properties.outcome.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err9];
 }
@@ -9883,7 +7338,7 @@ errors++;
 if(data.profileId !== undefined){
 let data1 = data.profileId;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err10 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/type",keyword:"type",params:{type: schema111.properties.profileId.type},message:"must be string,null"};
+const err10 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/type",keyword:"type",params:{type: schema90.properties.profileId.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -9896,7 +7351,7 @@ errors++;
 if(data.storage !== undefined){
 let data2 = data.storage;
 if((typeof data2 !== "string") && (data2 !== null)){
-const err11 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/type",keyword:"type",params:{type: schema111.properties.storage.type},message:"must be string,null"};
+const err11 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/type",keyword:"type",params:{type: schema90.properties.storage.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err11];
 }
@@ -9909,7 +7364,7 @@ errors++;
 if(data.claim !== undefined){
 let data3 = data.claim;
 if(!(((data3 === null) || (data3 === "fastest-qualified")) || (data3 === "benchmark-selected"))){
-const err12 = {instancePath:instancePath+"/claim",schemaPath:"#/properties/claim/enum",keyword:"enum",params:{allowedValues: schema111.properties.claim.enum},message:"must be equal to one of the allowed values"};
+const err12 = {instancePath:instancePath+"/claim",schemaPath:"#/properties/claim/enum",keyword:"enum",params:{allowedValues: schema90.properties.claim.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err12];
 }
@@ -9922,7 +7377,7 @@ errors++;
 if(data.evidenceId !== undefined){
 let data4 = data.evidenceId;
 if((typeof data4 !== "string") && (data4 !== null)){
-const err13 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/type",keyword:"type",params:{type: schema110.type},message:"must be string,null"};
+const err13 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/type",keyword:"type",params:{type: schema89.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err13];
 }
@@ -9932,7 +7387,7 @@ vErrors.push(err13);
 errors++;
 }
 if(typeof data4 === "string"){
-if(!pattern45.test(data4)){
+if(!pattern29.test(data4)){
 const err14 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/prefixedSha256/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err14];
@@ -9947,7 +7402,7 @@ errors++;
 if(data.measuredAt !== undefined){
 let data5 = data.measuredAt;
 if((typeof data5 !== "string") && (data5 !== null)){
-const err15 = {instancePath:instancePath+"/measuredAt",schemaPath:"#/properties/measuredAt/type",keyword:"type",params:{type: schema111.properties.measuredAt.type},message:"must be string,null"};
+const err15 = {instancePath:instancePath+"/measuredAt",schemaPath:"#/properties/measuredAt/type",keyword:"type",params:{type: schema90.properties.measuredAt.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err15];
 }
@@ -9972,7 +7427,7 @@ errors++;
 if(data.reason !== undefined){
 let data6 = data.reason;
 if((typeof data6 !== "string") && (data6 !== null)){
-const err17 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema111.properties.reason.type},message:"must be string,null"};
+const err17 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema90.properties.reason.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err17];
 }
@@ -9985,7 +7440,7 @@ errors++;
 if(data.backend !== undefined){
 let data7 = data.backend;
 if(!(((((data7 === "datahike") || (data7 === "datomic")) || (data7 === "datalevin")) || (data7 === "jank")) || (data7 === "datascript"))){
-const err18 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema111.properties.backend.enum},message:"must be equal to one of the allowed values"};
+const err18 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema90.properties.backend.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err18];
 }
@@ -10006,22 +7461,22 @@ vErrors.push(err19);
 }
 errors++;
 }
-validate69.errors = vErrors;
+validate66.errors = vErrors;
 return errors === 0;
 }
-validate69.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate66.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema113 = {"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"]},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}};
-const schema114 = {"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version","browser-worker"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}};
-const pattern53 = new RegExp("^/(?:api/v1/[a-z0-9-]+|datascript/)$", "u");
-const schema116 = {"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/sha1"},"attemptedEaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}};
-const schema117 = {"type":["string","null"],"pattern":"^[0-9a-f]{40}$"};
-const schema119 = {"type":["string","null"],"pattern":"^[0-9a-f]{64}$"};
+const schema92 = {"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"]},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}};
+const schema93 = {"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}};
+const pattern37 = new RegExp("^/(?:api/v1/[a-z0-9-]+|datascript/)$", "u");
+const schema95 = {"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/sha1"},"attemptedEaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}};
+const schema96 = {"type":["string","null"],"pattern":"^[0-9a-f]{40}$"};
+const schema98 = {"type":["string","null"],"pattern":"^[0-9a-f]{64}$"};
 
-function validate72(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate69(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate72.evaluated;
+const evaluated0 = validate69.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -10336,7 +7791,7 @@ errors++;
 if(data.outcome !== undefined){
 let data9 = data.outcome;
 if(!((((data9 === "never-deployed") || (data9 === "succeeded")) || (data9 === "failed")) || (data9 === "rolled-back"))){
-const err22 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema116.properties.outcome.enum},message:"must be equal to one of the allowed values"};
+const err22 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema95.properties.outcome.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err22];
 }
@@ -10349,7 +7804,7 @@ errors++;
 if(data.attemptedDemoSha !== undefined){
 let data10 = data.attemptedDemoSha;
 if((typeof data10 !== "string") && (data10 !== null)){
-const err23 = {instancePath:instancePath+"/attemptedDemoSha",schemaPath:"#/$defs/sha1/type",keyword:"type",params:{type: schema117.type},message:"must be string,null"};
+const err23 = {instancePath:instancePath+"/attemptedDemoSha",schemaPath:"#/$defs/sha1/type",keyword:"type",params:{type: schema96.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err23];
 }
@@ -10374,7 +7829,7 @@ errors++;
 if(data.attemptedEaclSha !== undefined){
 let data11 = data.attemptedEaclSha;
 if((typeof data11 !== "string") && (data11 !== null)){
-const err25 = {instancePath:instancePath+"/attemptedEaclSha",schemaPath:"#/$defs/sha1/type",keyword:"type",params:{type: schema117.type},message:"must be string,null"};
+const err25 = {instancePath:instancePath+"/attemptedEaclSha",schemaPath:"#/$defs/sha1/type",keyword:"type",params:{type: schema96.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err25];
 }
@@ -10399,7 +7854,7 @@ errors++;
 if(data.artifactSha256 !== undefined){
 let data12 = data.artifactSha256;
 if((typeof data12 !== "string") && (data12 !== null)){
-const err27 = {instancePath:instancePath+"/artifactSha256",schemaPath:"#/$defs/sha256/type",keyword:"type",params:{type: schema119.type},message:"must be string,null"};
+const err27 = {instancePath:instancePath+"/artifactSha256",schemaPath:"#/$defs/sha256/type",keyword:"type",params:{type: schema98.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err27];
 }
@@ -10424,7 +7879,7 @@ errors++;
 if(data.at !== undefined){
 let data13 = data.at;
 if((typeof data13 !== "string") && (data13 !== null)){
-const err29 = {instancePath:instancePath+"/at",schemaPath:"#/properties/at/type",keyword:"type",params:{type: schema116.properties.at.type},message:"must be string,null"};
+const err29 = {instancePath:instancePath+"/at",schemaPath:"#/properties/at/type",keyword:"type",params:{type: schema95.properties.at.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err29];
 }
@@ -10492,16 +7947,16 @@ vErrors.push(err34);
 }
 errors++;
 }
-validate72.errors = vErrors;
+validate69.errors = vErrors;
 return errors === 0;
 }
-validate72.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate69.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate71(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate68(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate71.evaluated;
+const evaluated0 = validate68.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -10736,8 +8191,8 @@ errors++;
 }
 if(data5.kind !== undefined){
 let data6 = data5.kind;
-if(!(((data6 === "static") || (data6 === "lambda-version")) || (data6 === "browser-worker"))){
-const err18 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema114.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
+if(!((data6 === "static") || (data6 === "lambda-version"))){
+const err18 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema93.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err18];
 }
@@ -11062,7 +8517,7 @@ errors++;
 if(data.id !== undefined){
 let data13 = data.id;
 if(!((((((data13 === "datahike-s3") || (data13 === "datahike-dynamodb")) || (data13 === "datomic-dynamodb")) || (data13 === "datalevin-memory")) || (data13 === "jank-memory")) || (data13 === "datascript-browser-memory"))){
-const err44 = {instancePath:instancePath+"/id",schemaPath:"#/properties/id/enum",keyword:"enum",params:{allowedValues: schema113.properties.id.enum},message:"must be equal to one of the allowed values"};
+const err44 = {instancePath:instancePath+"/id",schemaPath:"#/properties/id/enum",keyword:"enum",params:{allowedValues: schema92.properties.id.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err44];
 }
@@ -11075,7 +8530,7 @@ errors++;
 if(data.backend !== undefined){
 let data14 = data.backend;
 if(!(((((data14 === "datahike") || (data14 === "datomic")) || (data14 === "datalevin")) || (data14 === "jank")) || (data14 === "datascript"))){
-const err45 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema113.properties.backend.enum},message:"must be equal to one of the allowed values"};
+const err45 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema92.properties.backend.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err45];
 }
@@ -11088,7 +8543,7 @@ errors++;
 if(data.storage !== undefined){
 let data15 = data.storage;
 if(!((((data15 === "s3") || (data15 === "dynamodb")) || (data15 === "memory")) || (data15 === "browser-memory"))){
-const err46 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema113.properties.storage.enum},message:"must be equal to one of the allowed values"};
+const err46 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema92.properties.storage.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err46];
 }
@@ -11101,7 +8556,7 @@ errors++;
 if(data.state !== undefined){
 let data16 = data.state;
 if(!((((data16 === "enabled") || (data16 === "disabled")) || (data16 === "qualifying")) || (data16 === "unavailable"))){
-const err47 = {instancePath:instancePath+"/state",schemaPath:"#/properties/state/enum",keyword:"enum",params:{allowedValues: schema113.properties.state.enum},message:"must be equal to one of the allowed values"};
+const err47 = {instancePath:instancePath+"/state",schemaPath:"#/properties/state/enum",keyword:"enum",params:{allowedValues: schema92.properties.state.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err47];
 }
@@ -11114,7 +8569,7 @@ errors++;
 if(data.reason !== undefined){
 let data17 = data.reason;
 if((typeof data17 !== "string") && (data17 !== null)){
-const err48 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema113.properties.reason.type},message:"must be string,null"};
+const err48 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema92.properties.reason.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err48];
 }
@@ -11127,7 +8582,7 @@ errors++;
 if(data.route !== undefined){
 let data18 = data.route;
 if(typeof data18 === "string"){
-if(!pattern53.test(data18)){
+if(!pattern37.test(data18)){
 const err49 = {instancePath:instancePath+"/route",schemaPath:"#/properties/route/pattern",keyword:"pattern",params:{pattern: "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},message:"must match pattern \""+"^/(?:api/v1/[a-z0-9-]+|datascript/)$"+"\""};
 if(vErrors === null){
 vErrors = [err49];
@@ -11337,8 +8792,8 @@ errors++;
 }
 if(data22.kind !== undefined){
 let data23 = data22.kind;
-if(!(((data23 === "static") || (data23 === "lambda-version")) || (data23 === "browser-worker"))){
-const err67 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema114.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
+if(!((data23 === "static") || (data23 === "lambda-version"))){
+const err67 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema93.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err67];
 }
@@ -11521,8 +8976,8 @@ vErrors = null;
 }
 }
 if(data.lastOutcome !== undefined){
-if(!(validate72(data.lastOutcome, {instancePath:instancePath+"/lastOutcome",parentData:data,parentDataProperty:"lastOutcome",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate72.errors : vErrors.concat(validate72.errors);
+if(!(validate69(data.lastOutcome, {instancePath:instancePath+"/lastOutcome",parentData:data,parentDataProperty:"lastOutcome",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate69.errors : vErrors.concat(validate69.errors);
 errors = vErrors.length;
 }
 }
@@ -11537,17 +8992,17 @@ vErrors.push(err81);
 }
 errors++;
 }
-validate71.errors = vErrors;
+validate68.errors = vErrors;
 return errors === 0;
 }
-validate71.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate68.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate66(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate63(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/profile-registry.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate66.evaluated;
+const evaluated0 = validate63.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11668,8 +9123,8 @@ let data3 = data.benchmarkEvidence;
 if(Array.isArray(data3)){
 const len0 = data3.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate67(data3[i0], {instancePath:instancePath+"/benchmarkEvidence/" + i0,parentData:data3,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate67.errors : vErrors.concat(validate67.errors);
+if(!(validate64(data3[i0], {instancePath:instancePath+"/benchmarkEvidence/" + i0,parentData:data3,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate64.errors : vErrors.concat(validate64.errors);
 errors = vErrors.length;
 }
 }
@@ -11710,8 +9165,8 @@ errors++;
 }
 const len1 = data5.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate69(data5[i1], {instancePath:instancePath+"/storageDefaults/" + i1,parentData:data5,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate69.errors : vErrors.concat(validate69.errors);
+if(!(validate66(data5[i1], {instancePath:instancePath+"/storageDefaults/" + i1,parentData:data5,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate66.errors : vErrors.concat(validate66.errors);
 errors = vErrors.length;
 }
 }
@@ -11752,8 +9207,8 @@ errors++;
 }
 const len2 = data7.length;
 for(let i2=0; i2<len2; i2++){
-if(!(validate71(data7[i2], {instancePath:instancePath+"/profiles/" + i2,parentData:data7,parentDataProperty:i2,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate71.errors : vErrors.concat(validate71.errors);
+if(!(validate68(data7[i2], {instancePath:instancePath+"/profiles/" + i2,parentData:data7,parentDataProperty:i2,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate68.errors : vErrors.concat(validate68.errors);
 errors = vErrors.length;
 }
 }
@@ -11780,23 +9235,23 @@ vErrors.push(err17);
 }
 errors++;
 }
-validate66.errors = vErrors;
+validate63.errors = vErrors;
 return errors === 0;
 }
-validate66.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate63.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const profilePublication = validate75;
-const schema120 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/profile-publication.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","publicationId","publishedAt","gate","profile"],"properties":{"$schema":{"const":"../../schemas/profile-publication.v1.schema.json"},"schema":{"const":"eacl-demo.profile-publication.v1"},"contractVersion":{"const":"explorer.v1"},"publicationId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"publishedAt":{"type":"string","format":"date-time"},"gate":{"oneOf":[{"type":"object","additionalProperties":false,"required":["kind","evidenceId"],"properties":{"kind":{"enum":["initial-qualification","merge-smoke","demo-smoke"]},"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}}},{"type":"object","additionalProperties":false,"required":["kind","evidenceId"],"properties":{"kind":{"const":"failure-outcome"},"evidenceId":{"type":"null"}}}]},"profile":{"$ref":"#/$defs/profile"}},"$defs":{"nullableSha1":{"type":["string","null"],"pattern":"^[0-9a-f]{40}$"},"nullableSha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},"profile":{"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"],"maxLength":320},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}},"deployment":{"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version","browser-worker"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}},"outcome":{"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/nullableSha1"},"attemptedEaclSha":{"$ref":"#/$defs/nullableSha1"},"artifactSha256":{"$ref":"#/$defs/nullableSha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}}}};
-const schema121 = {"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"],"maxLength":320},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}};
-const schema122 = {"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version","browser-worker"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}};
-const schema124 = {"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/nullableSha1"},"attemptedEaclSha":{"$ref":"#/$defs/nullableSha1"},"artifactSha256":{"$ref":"#/$defs/nullableSha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}};
-const schema125 = {"type":["string","null"],"pattern":"^[0-9a-f]{40}$"};
-const schema127 = {"type":["string","null"],"pattern":"^[0-9a-f]{64}$"};
+export const profilePublication = validate72;
+const schema99 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/profile-publication.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","publicationId","publishedAt","gate","profile"],"properties":{"$schema":{"const":"../../schemas/profile-publication.v1.schema.json"},"schema":{"const":"eacl-demo.profile-publication.v1"},"contractVersion":{"const":"explorer.v1"},"publicationId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"publishedAt":{"type":"string","format":"date-time"},"gate":{"oneOf":[{"type":"object","additionalProperties":false,"required":["kind","evidenceId"],"properties":{"kind":{"enum":["initial-qualification","merge-smoke","demo-smoke"]},"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}}},{"type":"object","additionalProperties":false,"required":["kind","evidenceId"],"properties":{"kind":{"const":"failure-outcome"},"evidenceId":{"type":"null"}}}]},"profile":{"$ref":"#/$defs/profile"}},"$defs":{"nullableSha1":{"type":["string","null"],"pattern":"^[0-9a-f]{40}$"},"nullableSha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},"profile":{"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"],"maxLength":320},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}},"deployment":{"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}},"outcome":{"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/nullableSha1"},"attemptedEaclSha":{"$ref":"#/$defs/nullableSha1"},"artifactSha256":{"$ref":"#/$defs/nullableSha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}}}};
+const schema100 = {"type":"object","additionalProperties":false,"required":["id","backend","storage","state","reason","route","deployment","lastOutcome"],"allOf":[{"if":{"properties":{"state":{"const":"enabled"}},"required":["state"]},"then":{"properties":{"reason":{"type":"null"},"deployment":{"$ref":"#/$defs/deployment"}}},"else":{"properties":{"reason":{"type":"string","minLength":12,"maxLength":320}}}}],"properties":{"id":{"enum":["datahike-s3","datahike-dynamodb","datomic-dynamodb","datalevin-memory","jank-memory","datascript-browser-memory"]},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"storage":{"enum":["s3","dynamodb","memory","browser-memory"]},"state":{"enum":["enabled","disabled","qualifying","unavailable"]},"reason":{"type":["string","null"],"maxLength":320},"route":{"type":"string","pattern":"^/(?:api/v1/[a-z0-9-]+|datascript/)$"},"deployment":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/deployment"}]},"lastOutcome":{"$ref":"#/$defs/outcome"}}};
+const schema101 = {"type":"object","additionalProperties":false,"required":["demoSha","eaclSha","artifact","deploymentId","dataManifestSha256","deployedAt"],"properties":{"demoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"eaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifact":{"type":"object","additionalProperties":false,"required":["kind","sha256","version"],"properties":{"kind":{"enum":["static","lambda-version"]},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"version":{"type":"string","minLength":1}}},"deploymentId":{"type":"string","minLength":1},"dataManifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"deployedAt":{"type":"string","format":"date-time"}}};
+const schema103 = {"type":"object","additionalProperties":false,"required":["outcome","attemptedDemoSha","attemptedEaclSha","artifactSha256","at","message"],"allOf":[{"if":{"properties":{"outcome":{"const":"never-deployed"}},"required":["outcome"]},"then":{"properties":{"attemptedDemoSha":{"type":"null"},"attemptedEaclSha":{"type":"null"},"artifactSha256":{"type":"null"},"at":{"type":"null"}}},"else":{"properties":{"attemptedDemoSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"attemptedEaclSha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"artifactSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"at":{"type":"string","format":"date-time"}}}}],"properties":{"outcome":{"enum":["never-deployed","succeeded","failed","rolled-back"]},"attemptedDemoSha":{"$ref":"#/$defs/nullableSha1"},"attemptedEaclSha":{"$ref":"#/$defs/nullableSha1"},"artifactSha256":{"$ref":"#/$defs/nullableSha256"},"at":{"type":["string","null"],"format":"date-time"},"message":{"type":"string","minLength":1,"maxLength":320}}};
+const schema104 = {"type":["string","null"],"pattern":"^[0-9a-f]{40}$"};
+const schema106 = {"type":["string","null"],"pattern":"^[0-9a-f]{64}$"};
 
-function validate77(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate74(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate77.evaluated;
+const evaluated0 = validate74.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12111,7 +9566,7 @@ errors++;
 if(data.outcome !== undefined){
 let data9 = data.outcome;
 if(!((((data9 === "never-deployed") || (data9 === "succeeded")) || (data9 === "failed")) || (data9 === "rolled-back"))){
-const err22 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema124.properties.outcome.enum},message:"must be equal to one of the allowed values"};
+const err22 = {instancePath:instancePath+"/outcome",schemaPath:"#/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema103.properties.outcome.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err22];
 }
@@ -12124,7 +9579,7 @@ errors++;
 if(data.attemptedDemoSha !== undefined){
 let data10 = data.attemptedDemoSha;
 if((typeof data10 !== "string") && (data10 !== null)){
-const err23 = {instancePath:instancePath+"/attemptedDemoSha",schemaPath:"#/$defs/nullableSha1/type",keyword:"type",params:{type: schema125.type},message:"must be string,null"};
+const err23 = {instancePath:instancePath+"/attemptedDemoSha",schemaPath:"#/$defs/nullableSha1/type",keyword:"type",params:{type: schema104.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err23];
 }
@@ -12149,7 +9604,7 @@ errors++;
 if(data.attemptedEaclSha !== undefined){
 let data11 = data.attemptedEaclSha;
 if((typeof data11 !== "string") && (data11 !== null)){
-const err25 = {instancePath:instancePath+"/attemptedEaclSha",schemaPath:"#/$defs/nullableSha1/type",keyword:"type",params:{type: schema125.type},message:"must be string,null"};
+const err25 = {instancePath:instancePath+"/attemptedEaclSha",schemaPath:"#/$defs/nullableSha1/type",keyword:"type",params:{type: schema104.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err25];
 }
@@ -12174,7 +9629,7 @@ errors++;
 if(data.artifactSha256 !== undefined){
 let data12 = data.artifactSha256;
 if((typeof data12 !== "string") && (data12 !== null)){
-const err27 = {instancePath:instancePath+"/artifactSha256",schemaPath:"#/$defs/nullableSha256/type",keyword:"type",params:{type: schema127.type},message:"must be string,null"};
+const err27 = {instancePath:instancePath+"/artifactSha256",schemaPath:"#/$defs/nullableSha256/type",keyword:"type",params:{type: schema106.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err27];
 }
@@ -12199,7 +9654,7 @@ errors++;
 if(data.at !== undefined){
 let data13 = data.at;
 if((typeof data13 !== "string") && (data13 !== null)){
-const err29 = {instancePath:instancePath+"/at",schemaPath:"#/properties/at/type",keyword:"type",params:{type: schema124.properties.at.type},message:"must be string,null"};
+const err29 = {instancePath:instancePath+"/at",schemaPath:"#/properties/at/type",keyword:"type",params:{type: schema103.properties.at.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err29];
 }
@@ -12267,16 +9722,16 @@ vErrors.push(err34);
 }
 errors++;
 }
-validate77.errors = vErrors;
+validate74.errors = vErrors;
 return errors === 0;
 }
-validate77.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate74.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate76(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate73(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate76.evaluated;
+const evaluated0 = validate73.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12511,8 +9966,8 @@ errors++;
 }
 if(data5.kind !== undefined){
 let data6 = data5.kind;
-if(!(((data6 === "static") || (data6 === "lambda-version")) || (data6 === "browser-worker"))){
-const err18 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema122.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
+if(!((data6 === "static") || (data6 === "lambda-version"))){
+const err18 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema101.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err18];
 }
@@ -12837,7 +10292,7 @@ errors++;
 if(data.id !== undefined){
 let data13 = data.id;
 if(!((((((data13 === "datahike-s3") || (data13 === "datahike-dynamodb")) || (data13 === "datomic-dynamodb")) || (data13 === "datalevin-memory")) || (data13 === "jank-memory")) || (data13 === "datascript-browser-memory"))){
-const err44 = {instancePath:instancePath+"/id",schemaPath:"#/properties/id/enum",keyword:"enum",params:{allowedValues: schema121.properties.id.enum},message:"must be equal to one of the allowed values"};
+const err44 = {instancePath:instancePath+"/id",schemaPath:"#/properties/id/enum",keyword:"enum",params:{allowedValues: schema100.properties.id.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err44];
 }
@@ -12850,7 +10305,7 @@ errors++;
 if(data.backend !== undefined){
 let data14 = data.backend;
 if(!(((((data14 === "datahike") || (data14 === "datomic")) || (data14 === "datalevin")) || (data14 === "jank")) || (data14 === "datascript"))){
-const err45 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema121.properties.backend.enum},message:"must be equal to one of the allowed values"};
+const err45 = {instancePath:instancePath+"/backend",schemaPath:"#/properties/backend/enum",keyword:"enum",params:{allowedValues: schema100.properties.backend.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err45];
 }
@@ -12863,7 +10318,7 @@ errors++;
 if(data.storage !== undefined){
 let data15 = data.storage;
 if(!((((data15 === "s3") || (data15 === "dynamodb")) || (data15 === "memory")) || (data15 === "browser-memory"))){
-const err46 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema121.properties.storage.enum},message:"must be equal to one of the allowed values"};
+const err46 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema100.properties.storage.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err46];
 }
@@ -12876,7 +10331,7 @@ errors++;
 if(data.state !== undefined){
 let data16 = data.state;
 if(!((((data16 === "enabled") || (data16 === "disabled")) || (data16 === "qualifying")) || (data16 === "unavailable"))){
-const err47 = {instancePath:instancePath+"/state",schemaPath:"#/properties/state/enum",keyword:"enum",params:{allowedValues: schema121.properties.state.enum},message:"must be equal to one of the allowed values"};
+const err47 = {instancePath:instancePath+"/state",schemaPath:"#/properties/state/enum",keyword:"enum",params:{allowedValues: schema100.properties.state.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err47];
 }
@@ -12889,7 +10344,7 @@ errors++;
 if(data.reason !== undefined){
 let data17 = data.reason;
 if((typeof data17 !== "string") && (data17 !== null)){
-const err48 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema121.properties.reason.type},message:"must be string,null"};
+const err48 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema100.properties.reason.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err48];
 }
@@ -12914,7 +10369,7 @@ errors++;
 if(data.route !== undefined){
 let data18 = data.route;
 if(typeof data18 === "string"){
-if(!pattern53.test(data18)){
+if(!pattern37.test(data18)){
 const err50 = {instancePath:instancePath+"/route",schemaPath:"#/properties/route/pattern",keyword:"pattern",params:{pattern: "^/(?:api/v1/[a-z0-9-]+|datascript/)$"},message:"must match pattern \""+"^/(?:api/v1/[a-z0-9-]+|datascript/)$"+"\""};
 if(vErrors === null){
 vErrors = [err50];
@@ -13124,8 +10579,8 @@ errors++;
 }
 if(data22.kind !== undefined){
 let data23 = data22.kind;
-if(!(((data23 === "static") || (data23 === "lambda-version")) || (data23 === "browser-worker"))){
-const err68 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema122.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
+if(!((data23 === "static") || (data23 === "lambda-version"))){
+const err68 = {instancePath:instancePath+"/deployment/artifact/kind",schemaPath:"#/$defs/deployment/properties/artifact/properties/kind/enum",keyword:"enum",params:{allowedValues: schema101.properties.artifact.properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err68];
 }
@@ -13308,8 +10763,8 @@ vErrors = null;
 }
 }
 if(data.lastOutcome !== undefined){
-if(!(validate77(data.lastOutcome, {instancePath:instancePath+"/lastOutcome",parentData:data,parentDataProperty:"lastOutcome",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate77.errors : vErrors.concat(validate77.errors);
+if(!(validate74(data.lastOutcome, {instancePath:instancePath+"/lastOutcome",parentData:data,parentDataProperty:"lastOutcome",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate74.errors : vErrors.concat(validate74.errors);
 errors = vErrors.length;
 }
 }
@@ -13324,17 +10779,17 @@ vErrors.push(err82);
 }
 errors++;
 }
-validate76.errors = vErrors;
+validate73.errors = vErrors;
 return errors === 0;
 }
-validate76.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate73.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate75(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate72(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/profile-publication.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate75.evaluated;
+const evaluated0 = validate72.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13463,7 +10918,7 @@ errors++;
 if(data.publicationId !== undefined){
 let data3 = data.publicationId;
 if(typeof data3 === "string"){
-if(!pattern45.test(data3)){
+if(!pattern29.test(data3)){
 const err11 = {instancePath:instancePath+"/publicationId",schemaPath:"#/properties/publicationId/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err11];
@@ -13552,7 +11007,7 @@ errors++;
 if(data5.kind !== undefined){
 let data6 = data5.kind;
 if(!(((data6 === "initial-qualification") || (data6 === "merge-smoke")) || (data6 === "demo-smoke"))){
-const err18 = {instancePath:instancePath+"/gate/kind",schemaPath:"#/properties/gate/oneOf/0/properties/kind/enum",keyword:"enum",params:{allowedValues: schema120.properties.gate.oneOf[0].properties.kind.enum},message:"must be equal to one of the allowed values"};
+const err18 = {instancePath:instancePath+"/gate/kind",schemaPath:"#/properties/gate/oneOf/0/properties/kind/enum",keyword:"enum",params:{allowedValues: schema99.properties.gate.oneOf[0].properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err18];
 }
@@ -13565,7 +11020,7 @@ errors++;
 if(data5.evidenceId !== undefined){
 let data7 = data5.evidenceId;
 if(typeof data7 === "string"){
-if(!pattern45.test(data7)){
+if(!pattern29.test(data7)){
 const err19 = {instancePath:instancePath+"/gate/evidenceId",schemaPath:"#/properties/gate/oneOf/0/properties/evidenceId/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err19];
@@ -13710,8 +11165,8 @@ vErrors = null;
 }
 }
 if(data.profile !== undefined){
-if(!(validate76(data.profile, {instancePath:instancePath+"/profile",parentData:data,parentDataProperty:"profile",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate76.errors : vErrors.concat(validate76.errors);
+if(!(validate73(data.profile, {instancePath:instancePath+"/profile",parentData:data,parentDataProperty:"profile",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate73.errors : vErrors.concat(validate73.errors);
 errors = vErrors.length;
 }
 }
@@ -13726,21 +11181,21 @@ vErrors.push(err29);
 }
 errors++;
 }
-validate75.errors = vErrors;
+validate72.errors = vErrors;
 return errors === 0;
 }
-validate75.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate72.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const benchmarkIndex = validate80;
-const schema128 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/benchmark-evidence-index.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","indexId","publishedAt","evidence"],"properties":{"$schema":{"const":"../../schemas/benchmark-evidence-index.v1.schema.json"},"schema":{"const":"eacl-demo.benchmark-evidence-index.v1"},"contractVersion":{"const":"explorer.v1"},"indexId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"publishedAt":{"type":"string","format":"date-time"},"evidence":{"type":"array","maxItems":32,"items":{"$ref":"#/$defs/summary"}}},"$defs":{"summary":{"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}}};
-const schema129 = {"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
-const pattern83 = new RegExp("^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$", "u");
+export const benchmarkIndex = validate77;
+const schema107 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/benchmark-evidence-index.v1.schema.json","type":"object","additionalProperties":false,"required":["$schema","schema","contractVersion","indexId","publishedAt","evidence"],"properties":{"$schema":{"const":"../../schemas/benchmark-evidence-index.v1.schema.json"},"schema":{"const":"eacl-demo.benchmark-evidence-index.v1"},"contractVersion":{"const":"explorer.v1"},"indexId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"publishedAt":{"type":"string","format":"date-time"},"evidence":{"type":"array","maxItems":32,"items":{"$ref":"#/$defs/summary"}}},"$defs":{"summary":{"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}}};
+const schema108 = {"type":"object","additionalProperties":false,"required":["evidenceId","backend","profiles","measuredAt","expiresAt","path","sha256"],"properties":{"evidenceId":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"backend":{"enum":["datahike","datomic","datalevin","jank","datascript"]},"profiles":{"type":"array","minItems":2,"uniqueItems":true,"items":{"type":"string"}},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"path":{"type":"string","pattern":"^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}};
+const pattern67 = new RegExp("^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$", "u");
 
-function validate80(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate77(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/benchmark-evidence-index.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate80.evaluated;
+const evaluated0 = validate77.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13859,7 +11314,7 @@ errors++;
 if(data.indexId !== undefined){
 let data3 = data.indexId;
 if(typeof data3 === "string"){
-if(!pattern45.test(data3)){
+if(!pattern29.test(data3)){
 const err10 = {instancePath:instancePath+"/indexId",schemaPath:"#/properties/indexId/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err10];
@@ -14008,7 +11463,7 @@ errors++;
 if(data6.evidenceId !== undefined){
 let data7 = data6.evidenceId;
 if(typeof data7 === "string"){
-if(!pattern45.test(data7)){
+if(!pattern29.test(data7)){
 const err23 = {instancePath:instancePath+"/evidence/" + i0+"/evidenceId",schemaPath:"#/$defs/summary/properties/evidenceId/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err23];
@@ -14033,7 +11488,7 @@ errors++;
 if(data6.backend !== undefined){
 let data8 = data6.backend;
 if(!(((((data8 === "datahike") || (data8 === "datomic")) || (data8 === "datalevin")) || (data8 === "jank")) || (data8 === "datascript"))){
-const err25 = {instancePath:instancePath+"/evidence/" + i0+"/backend",schemaPath:"#/$defs/summary/properties/backend/enum",keyword:"enum",params:{allowedValues: schema129.properties.backend.enum},message:"must be equal to one of the allowed values"};
+const err25 = {instancePath:instancePath+"/evidence/" + i0+"/backend",schemaPath:"#/$defs/summary/properties/backend/enum",keyword:"enum",params:{allowedValues: schema108.properties.backend.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err25];
 }
@@ -14158,7 +11613,7 @@ errors++;
 if(data6.path !== undefined){
 let data13 = data6.path;
 if(typeof data13 === "string"){
-if(!pattern83.test(data13)){
+if(!pattern67.test(data13)){
 const err34 = {instancePath:instancePath+"/evidence/" + i0+"/path",schemaPath:"#/$defs/summary/properties/path/pattern",keyword:"pattern",params:{pattern: "^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"},message:"must match pattern \""+"^registry/benchmark-evidence/[a-z0-9][a-z0-9._-]*\\.json$"+"\""};
 if(vErrors === null){
 vErrors = [err34];
@@ -14240,23 +11695,24 @@ vErrors.push(err40);
 }
 errors++;
 }
-validate80.errors = vErrors;
+validate77.errors = vErrors;
 return errors === 0;
 }
-validate80.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate77.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const fastestEvidence = validate81;
-const schema130 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/fastest-storage-evidence.v1.schema.json","type":"object","additionalProperties":false,"required":["schema","evidenceId","methodVersion","backend","profiles","fixture","workload","environment","repetitions","measuredAt","expiresAt","candidates","results","decision"],"properties":{"schema":{"const":"eacl-demo.fastest-storage-evidence.v1"},"evidenceId":{"$ref":"#/$defs/digest"},"methodVersion":{"const":"datahike-storage-million.v1"},"backend":{"const":"datahike"},"profiles":{"const":["datahike-s3","datahike-dynamodb"]},"fixture":{"$ref":"#/$defs/fixture"},"workload":{"$ref":"#/$defs/workload"},"environment":{"$ref":"#/$defs/environment"},"repetitions":{"$ref":"#/$defs/repetitions"},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"candidates":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/candidate"}},"results":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/result"}},"decision":{"$ref":"#/$defs/decision"}},"$defs":{"sha1":{"type":"string","pattern":"^[0-9a-f]{40}$"},"digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"fixture":{"type":"object","additionalProperties":false,"required":["id","manifestDigest","fixtureDigest","schemaDigest","logicalResourceCount"],"properties":{"id":{"const":"eacl-demo-fixture-v1"},"manifestDigest":{"$ref":"#/$defs/digest"},"fixtureDigest":{"$ref":"#/$defs/digest"},"schemaDigest":{"$ref":"#/$defs/digest"},"logicalResourceCount":{"const":1000000}}},"workload":{"type":"object","additionalProperties":false,"required":["id","digest","requestsPerWave","operationWeights","cacheLanesDigest"],"properties":{"id":{"const":"datahike-storage-million-v1"},"digest":{"$ref":"#/$defs/digest"},"requestsPerWave":{"const":100},"cacheLanesDigest":{"$ref":"#/$defs/digest"},"operationWeights":{"type":"object","additionalProperties":false,"required":["authorize","bootstrap","countObjects","getObject","getSchema","listRelationships","listSubjects","reverseRelationships"],"properties":{"authorize":{"const":40},"bootstrap":{"const":5},"countObjects":{"const":10},"getObject":{"const":10},"getSchema":{"const":5},"listRelationships":{"const":15},"listSubjects":{"const":5},"reverseRelationships":{"const":10}}}}},"environment":{"type":"object","additionalProperties":false,"required":["region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","productionPath"],"properties":{"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"productionPath":{"const":"function-url-v2"}}},"repetitions":{"type":"object","additionalProperties":false,"required":["coldOrRestore","warmWavesPerLane","concurrency","bootstrapResamples"],"properties":{"coldOrRestore":{"type":"integer","minimum":30},"warmWavesPerLane":{"type":"integer","minimum":30},"concurrency":{"const":[1,8]},"bootstrapResamples":{"const":10000}}},"candidate":{"type":"object","additionalProperties":false,"required":["profileId","storage","demoSha","eaclSha","artifactDigest","deploymentId","serviceCodeDigest","dataLifecycleId","dataManifestDigest","qualificationEvidenceId","qualificationExpiresAt","qualificationPassing","contractVersion","region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","workloadDigest","cacheLanesDigest"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"storage":{"enum":["s3","dynamodb"]},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactDigest":{"$ref":"#/$defs/digest"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"serviceCodeDigest":{"$ref":"#/$defs/digest"},"dataLifecycleId":{"type":"string","minLength":1,"maxLength":256},"dataManifestDigest":{"$ref":"#/$defs/digest"},"qualificationEvidenceId":{"$ref":"#/$defs/digest"},"qualificationExpiresAt":{"type":"string","format":"date-time"},"qualificationPassing":{"const":true},"contractVersion":{"const":"explorer.v1"},"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"workloadDigest":{"$ref":"#/$defs/digest"},"cacheLanesDigest":{"$ref":"#/$defs/digest"}}},"result":{"type":"object","additionalProperties":false,"required":["profileId","warmWeightedP95Ms","coldOrRestoreP95Ms","warmP95Ci95Ms","coldP95Ci95Ms","errorRate","projectedMonthlyUsd","warmSamples","coldSamples"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"warmWeightedP95Ms":{"type":"number","minimum":0},"coldOrRestoreP95Ms":{"type":"number","minimum":0},"warmP95Ci95Ms":{"$ref":"#/$defs/interval"},"coldP95Ci95Ms":{"$ref":"#/$defs/interval"},"errorRate":{"const":0},"projectedMonthlyUsd":{"type":"number","minimum":0},"warmSamples":{"type":"integer","minimum":6000},"coldSamples":{"type":"integer","minimum":30}}},"interval":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":0}},"decision":{"type":"object","additionalProperties":false,"required":["outcome","defaultProfileId","selectionBasis","primaryMetric","minimumEffectFraction","tieBreakOrder"],"properties":{"outcome":{"enum":["winner","benchmark-tiebreak","unresolved"]},"defaultProfileId":{"enum":["datahike-s3","datahike-dynamodb",null]},"selectionBasis":{"enum":["warm-cache-disabled-p95","cold-or-restore-p95","projected-monthly-cost","none"]},"primaryMetric":{"const":"operation-weighted-warm-cache-disabled-service-p95-ms"},"minimumEffectFraction":{"const":0.05},"tieBreakOrder":{"const":["cold-or-restore-p95-ms","projected-monthly-usd"]}}}}};
-const schema131 = {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"};
-const schema139 = {"type":"object","additionalProperties":false,"required":["region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","productionPath"],"properties":{"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"productionPath":{"const":"function-url-v2"}}};
-const schema140 = {"type":"object","additionalProperties":false,"required":["coldOrRestore","warmWavesPerLane","concurrency","bootstrapResamples"],"properties":{"coldOrRestore":{"type":"integer","minimum":30},"warmWavesPerLane":{"type":"integer","minimum":30},"concurrency":{"const":[1,8]},"bootstrapResamples":{"const":10000}}};
-const schema153 = {"type":"object","additionalProperties":false,"required":["outcome","defaultProfileId","selectionBasis","primaryMetric","minimumEffectFraction","tieBreakOrder"],"properties":{"outcome":{"enum":["winner","benchmark-tiebreak","unresolved"]},"defaultProfileId":{"enum":["datahike-s3","datahike-dynamodb",null]},"selectionBasis":{"enum":["warm-cache-disabled-p95","cold-or-restore-p95","projected-monthly-cost","none"]},"primaryMetric":{"const":"operation-weighted-warm-cache-disabled-service-p95-ms"},"minimumEffectFraction":{"const":0.05},"tieBreakOrder":{"const":["cold-or-restore-p95-ms","projected-monthly-usd"]}}};
-const schema132 = {"type":"object","additionalProperties":false,"required":["id","manifestDigest","fixtureDigest","schemaDigest","logicalResourceCount"],"properties":{"id":{"const":"eacl-demo-fixture-v1"},"manifestDigest":{"$ref":"#/$defs/digest"},"fixtureDigest":{"$ref":"#/$defs/digest"},"schemaDigest":{"$ref":"#/$defs/digest"},"logicalResourceCount":{"const":1000000}}};
+export const fastestEvidence = validate78;
+const schema109 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/fastest-storage-evidence.v1.schema.json","type":"object","additionalProperties":false,"required":["schema","evidenceId","methodVersion","backend","profiles","fixture","workload","environment","repetitions","measuredAt","expiresAt","candidates","results","decision"],"properties":{"schema":{"const":"eacl-demo.fastest-storage-evidence.v1"},"evidenceId":{"$ref":"#/$defs/digest"},"methodVersion":{"const":"datahike-storage-million.v1"},"backend":{"const":"datahike"},"profiles":{"const":["datahike-s3","datahike-dynamodb"]},"fixture":{"$ref":"#/$defs/fixture"},"workload":{"$ref":"#/$defs/workload"},"environment":{"$ref":"#/$defs/environment"},"repetitions":{"$ref":"#/$defs/repetitions"},"measuredAt":{"type":"string","format":"date-time"},"expiresAt":{"type":"string","format":"date-time"},"candidates":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/candidate"}},"results":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/result"}},"decision":{"$ref":"#/$defs/decision"}},"$defs":{"sha1":{"type":"string","pattern":"^[0-9a-f]{40}$"},"digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"fixture":{"type":"object","additionalProperties":false,"required":["id","manifestDigest","fixtureDigest","schemaDigest","logicalResourceCount"],"properties":{"id":{"const":"eacl-demo-fixture-v1"},"manifestDigest":{"$ref":"#/$defs/digest"},"fixtureDigest":{"$ref":"#/$defs/digest"},"schemaDigest":{"$ref":"#/$defs/digest"},"logicalResourceCount":{"const":1000000}}},"workload":{"type":"object","additionalProperties":false,"required":["id","digest","requestsPerWave","operationWeights","cacheLanesDigest"],"properties":{"id":{"const":"datahike-storage-million-v1"},"digest":{"$ref":"#/$defs/digest"},"requestsPerWave":{"const":100},"cacheLanesDigest":{"$ref":"#/$defs/digest"},"operationWeights":{"type":"object","additionalProperties":false,"required":["authorize","bootstrap","countObjects","getObject","getSchema","listRelationships","listSubjects","reverseRelationships"],"properties":{"authorize":{"const":40},"bootstrap":{"const":5},"countObjects":{"const":10},"getObject":{"const":10},"getSchema":{"const":5},"listRelationships":{"const":15},"listSubjects":{"const":5},"reverseRelationships":{"const":10}}}}},"environment":{"type":"object","additionalProperties":false,"required":["region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","productionPath"],"properties":{"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"productionPath":{"const":"function-url-v2"}}},"repetitions":{"type":"object","additionalProperties":false,"required":["coldOrRestore","warmWavesPerLane","concurrency","bootstrapResamples"],"properties":{"coldOrRestore":{"type":"integer","minimum":30},"warmWavesPerLane":{"type":"integer","minimum":30},"concurrency":{"const":[1,8]},"bootstrapResamples":{"const":10000}}},"candidate":{"type":"object","additionalProperties":false,"required":["profileId","storage","demoSha","eaclSha","artifactDigest","deploymentId","serviceCodeDigest","dataLifecycleId","dataManifestDigest","qualificationEvidenceId","qualificationExpiresAt","qualificationPassing","contractVersion","region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","workloadDigest","cacheLanesDigest"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"storage":{"enum":["s3","dynamodb"]},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactDigest":{"$ref":"#/$defs/digest"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"serviceCodeDigest":{"$ref":"#/$defs/digest"},"dataLifecycleId":{"type":"string","minLength":1,"maxLength":256},"dataManifestDigest":{"$ref":"#/$defs/digest"},"qualificationEvidenceId":{"$ref":"#/$defs/digest"},"qualificationExpiresAt":{"type":"string","format":"date-time"},"qualificationPassing":{"const":true},"contractVersion":{"const":"explorer.v1"},"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"workloadDigest":{"$ref":"#/$defs/digest"},"cacheLanesDigest":{"$ref":"#/$defs/digest"}}},"result":{"type":"object","additionalProperties":false,"required":["profileId","warmWeightedP95Ms","coldOrRestoreP95Ms","warmP95Ci95Ms","coldP95Ci95Ms","errorRate","projectedMonthlyUsd","warmSamples","coldSamples"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"warmWeightedP95Ms":{"type":"number","minimum":0},"coldOrRestoreP95Ms":{"type":"number","minimum":0},"warmP95Ci95Ms":{"$ref":"#/$defs/interval"},"coldP95Ci95Ms":{"$ref":"#/$defs/interval"},"errorRate":{"const":0},"projectedMonthlyUsd":{"type":"number","minimum":0},"warmSamples":{"type":"integer","minimum":6000},"coldSamples":{"type":"integer","minimum":30}}},"interval":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":0}},"decision":{"type":"object","additionalProperties":false,"required":["outcome","defaultProfileId","selectionBasis","primaryMetric","minimumEffectFraction","tieBreakOrder"],"properties":{"outcome":{"enum":["winner","benchmark-tiebreak","unresolved"]},"defaultProfileId":{"enum":["datahike-s3","datahike-dynamodb",null]},"selectionBasis":{"enum":["warm-cache-disabled-p95","cold-or-restore-p95","projected-monthly-cost","none"]},"primaryMetric":{"const":"operation-weighted-warm-cache-disabled-service-p95-ms"},"minimumEffectFraction":{"const":0.05},"tieBreakOrder":{"const":["cold-or-restore-p95-ms","projected-monthly-usd"]}}}}};
+const schema110 = {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"};
+const schema118 = {"type":"object","additionalProperties":false,"required":["region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","productionPath"],"properties":{"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"productionPath":{"const":"function-url-v2"}}};
+const schema119 = {"type":"object","additionalProperties":false,"required":["coldOrRestore","warmWavesPerLane","concurrency","bootstrapResamples"],"properties":{"coldOrRestore":{"type":"integer","minimum":30},"warmWavesPerLane":{"type":"integer","minimum":30},"concurrency":{"const":[1,8]},"bootstrapResamples":{"const":10000}}};
+const schema132 = {"type":"object","additionalProperties":false,"required":["outcome","defaultProfileId","selectionBasis","primaryMetric","minimumEffectFraction","tieBreakOrder"],"properties":{"outcome":{"enum":["winner","benchmark-tiebreak","unresolved"]},"defaultProfileId":{"enum":["datahike-s3","datahike-dynamodb",null]},"selectionBasis":{"enum":["warm-cache-disabled-p95","cold-or-restore-p95","projected-monthly-cost","none"]},"primaryMetric":{"const":"operation-weighted-warm-cache-disabled-service-p95-ms"},"minimumEffectFraction":{"const":0.05},"tieBreakOrder":{"const":["cold-or-restore-p95-ms","projected-monthly-usd"]}}};
+const func89 = Object.prototype.hasOwnProperty;
+const schema111 = {"type":"object","additionalProperties":false,"required":["id","manifestDigest","fixtureDigest","schemaDigest","logicalResourceCount"],"properties":{"id":{"const":"eacl-demo-fixture-v1"},"manifestDigest":{"$ref":"#/$defs/digest"},"fixtureDigest":{"$ref":"#/$defs/digest"},"schemaDigest":{"$ref":"#/$defs/digest"},"logicalResourceCount":{"const":1000000}}};
 
-function validate82(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate79(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate82.evaluated;
+const evaluated0 = validate79.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14341,7 +11797,7 @@ errors++;
 if(data.manifestDigest !== undefined){
 let data1 = data.manifestDigest;
 if(typeof data1 === "string"){
-if(!pattern45.test(data1)){
+if(!pattern29.test(data1)){
 const err7 = {instancePath:instancePath+"/manifestDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err7];
@@ -14366,7 +11822,7 @@ errors++;
 if(data.fixtureDigest !== undefined){
 let data2 = data.fixtureDigest;
 if(typeof data2 === "string"){
-if(!pattern45.test(data2)){
+if(!pattern29.test(data2)){
 const err9 = {instancePath:instancePath+"/fixtureDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err9];
@@ -14391,7 +11847,7 @@ errors++;
 if(data.schemaDigest !== undefined){
 let data3 = data.schemaDigest;
 if(typeof data3 === "string"){
-if(!pattern45.test(data3)){
+if(!pattern29.test(data3)){
 const err11 = {instancePath:instancePath+"/schemaDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err11];
@@ -14436,17 +11892,17 @@ vErrors.push(err14);
 }
 errors++;
 }
-validate82.errors = vErrors;
+validate79.errors = vErrors;
 return errors === 0;
 }
-validate82.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate79.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema136 = {"type":"object","additionalProperties":false,"required":["id","digest","requestsPerWave","operationWeights","cacheLanesDigest"],"properties":{"id":{"const":"datahike-storage-million-v1"},"digest":{"$ref":"#/$defs/digest"},"requestsPerWave":{"const":100},"cacheLanesDigest":{"$ref":"#/$defs/digest"},"operationWeights":{"type":"object","additionalProperties":false,"required":["authorize","bootstrap","countObjects","getObject","getSchema","listRelationships","listSubjects","reverseRelationships"],"properties":{"authorize":{"const":40},"bootstrap":{"const":5},"countObjects":{"const":10},"getObject":{"const":10},"getSchema":{"const":5},"listRelationships":{"const":15},"listSubjects":{"const":5},"reverseRelationships":{"const":10}}}}};
+const schema115 = {"type":"object","additionalProperties":false,"required":["id","digest","requestsPerWave","operationWeights","cacheLanesDigest"],"properties":{"id":{"const":"datahike-storage-million-v1"},"digest":{"$ref":"#/$defs/digest"},"requestsPerWave":{"const":100},"cacheLanesDigest":{"$ref":"#/$defs/digest"},"operationWeights":{"type":"object","additionalProperties":false,"required":["authorize","bootstrap","countObjects","getObject","getSchema","listRelationships","listSubjects","reverseRelationships"],"properties":{"authorize":{"const":40},"bootstrap":{"const":5},"countObjects":{"const":10},"getObject":{"const":10},"getSchema":{"const":5},"listRelationships":{"const":15},"listSubjects":{"const":5},"reverseRelationships":{"const":10}}}}};
 
-function validate84(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate81(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate84.evaluated;
+const evaluated0 = validate81.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14531,7 +11987,7 @@ errors++;
 if(data.digest !== undefined){
 let data1 = data.digest;
 if(typeof data1 === "string"){
-if(!pattern45.test(data1)){
+if(!pattern29.test(data1)){
 const err7 = {instancePath:instancePath+"/digest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err7];
@@ -14568,7 +12024,7 @@ errors++;
 if(data.cacheLanesDigest !== undefined){
 let data3 = data.cacheLanesDigest;
 if(typeof data3 === "string"){
-if(!pattern45.test(data3)){
+if(!pattern29.test(data3)){
 const err10 = {instancePath:instancePath+"/cacheLanesDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err10];
@@ -14804,18 +12260,18 @@ vErrors.push(err30);
 }
 errors++;
 }
-validate84.errors = vErrors;
+validate81.errors = vErrors;
 return errors === 0;
 }
-validate84.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate81.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema141 = {"type":"object","additionalProperties":false,"required":["profileId","storage","demoSha","eaclSha","artifactDigest","deploymentId","serviceCodeDigest","dataLifecycleId","dataManifestDigest","qualificationEvidenceId","qualificationExpiresAt","qualificationPassing","contractVersion","region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","workloadDigest","cacheLanesDigest"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"storage":{"enum":["s3","dynamodb"]},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactDigest":{"$ref":"#/$defs/digest"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"serviceCodeDigest":{"$ref":"#/$defs/digest"},"dataLifecycleId":{"type":"string","minLength":1,"maxLength":256},"dataManifestDigest":{"$ref":"#/$defs/digest"},"qualificationEvidenceId":{"$ref":"#/$defs/digest"},"qualificationExpiresAt":{"type":"string","format":"date-time"},"qualificationPassing":{"const":true},"contractVersion":{"const":"explorer.v1"},"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"workloadDigest":{"$ref":"#/$defs/digest"},"cacheLanesDigest":{"$ref":"#/$defs/digest"}}};
-const schema142 = {"type":"string","pattern":"^[0-9a-f]{40}$"};
+const schema120 = {"type":"object","additionalProperties":false,"required":["profileId","storage","demoSha","eaclSha","artifactDigest","deploymentId","serviceCodeDigest","dataLifecycleId","dataManifestDigest","qualificationEvidenceId","qualificationExpiresAt","qualificationPassing","contractVersion","region","runtime","architecture","memoryMb","snapStart","timeoutSeconds","ephemeralStorageMiB","workloadDigest","cacheLanesDigest"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"storage":{"enum":["s3","dynamodb"]},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactDigest":{"$ref":"#/$defs/digest"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"serviceCodeDigest":{"$ref":"#/$defs/digest"},"dataLifecycleId":{"type":"string","minLength":1,"maxLength":256},"dataManifestDigest":{"$ref":"#/$defs/digest"},"qualificationEvidenceId":{"$ref":"#/$defs/digest"},"qualificationExpiresAt":{"type":"string","format":"date-time"},"qualificationPassing":{"const":true},"contractVersion":{"const":"explorer.v1"},"region":{"const":"us-east-1"},"runtime":{"const":"java25"},"architecture":{"const":"arm64"},"memoryMb":{"type":"integer","minimum":1},"snapStart":{"enum":["None","PublishedVersions"]},"timeoutSeconds":{"type":"integer","minimum":1},"ephemeralStorageMiB":{"type":"integer","minimum":1},"workloadDigest":{"$ref":"#/$defs/digest"},"cacheLanesDigest":{"$ref":"#/$defs/digest"}}};
+const schema121 = {"type":"string","pattern":"^[0-9a-f]{40}$"};
 
-function validate86(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate83(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate86.evaluated;
+const evaluated0 = validate83.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15044,7 +12500,7 @@ vErrors.push(err21);
 errors++;
 }
 for(const key0 in data){
-if(!(func79.call(schema141.properties, key0))){
+if(!(func89.call(schema120.properties, key0))){
 const err22 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err22];
@@ -15058,7 +12514,7 @@ errors++;
 if(data.profileId !== undefined){
 let data0 = data.profileId;
 if(!((data0 === "datahike-s3") || (data0 === "datahike-dynamodb"))){
-const err23 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/enum",keyword:"enum",params:{allowedValues: schema141.properties.profileId.enum},message:"must be equal to one of the allowed values"};
+const err23 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/enum",keyword:"enum",params:{allowedValues: schema120.properties.profileId.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err23];
 }
@@ -15071,7 +12527,7 @@ errors++;
 if(data.storage !== undefined){
 let data1 = data.storage;
 if(!((data1 === "s3") || (data1 === "dynamodb"))){
-const err24 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema141.properties.storage.enum},message:"must be equal to one of the allowed values"};
+const err24 = {instancePath:instancePath+"/storage",schemaPath:"#/properties/storage/enum",keyword:"enum",params:{allowedValues: schema120.properties.storage.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err24];
 }
@@ -15134,7 +12590,7 @@ errors++;
 if(data.artifactDigest !== undefined){
 let data4 = data.artifactDigest;
 if(typeof data4 === "string"){
-if(!pattern45.test(data4)){
+if(!pattern29.test(data4)){
 const err29 = {instancePath:instancePath+"/artifactDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err29];
@@ -15194,7 +12650,7 @@ errors++;
 if(data.serviceCodeDigest !== undefined){
 let data6 = data.serviceCodeDigest;
 if(typeof data6 === "string"){
-if(!pattern45.test(data6)){
+if(!pattern29.test(data6)){
 const err34 = {instancePath:instancePath+"/serviceCodeDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err34];
@@ -15254,7 +12710,7 @@ errors++;
 if(data.dataManifestDigest !== undefined){
 let data8 = data.dataManifestDigest;
 if(typeof data8 === "string"){
-if(!pattern45.test(data8)){
+if(!pattern29.test(data8)){
 const err39 = {instancePath:instancePath+"/dataManifestDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err39];
@@ -15279,7 +12735,7 @@ errors++;
 if(data.qualificationEvidenceId !== undefined){
 let data9 = data.qualificationEvidenceId;
 if(typeof data9 === "string"){
-if(!pattern45.test(data9)){
+if(!pattern29.test(data9)){
 const err41 = {instancePath:instancePath+"/qualificationEvidenceId",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err41];
@@ -15414,7 +12870,7 @@ errors++;
 if(data.snapStart !== undefined){
 let data17 = data.snapStart;
 if(!((data17 === "None") || (data17 === "PublishedVersions"))){
-const err52 = {instancePath:instancePath+"/snapStart",schemaPath:"#/properties/snapStart/enum",keyword:"enum",params:{allowedValues: schema141.properties.snapStart.enum},message:"must be equal to one of the allowed values"};
+const err52 = {instancePath:instancePath+"/snapStart",schemaPath:"#/properties/snapStart/enum",keyword:"enum",params:{allowedValues: schema120.properties.snapStart.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err52];
 }
@@ -15477,7 +12933,7 @@ errors++;
 if(data.workloadDigest !== undefined){
 let data20 = data.workloadDigest;
 if(typeof data20 === "string"){
-if(!pattern45.test(data20)){
+if(!pattern29.test(data20)){
 const err57 = {instancePath:instancePath+"/workloadDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err57];
@@ -15502,7 +12958,7 @@ errors++;
 if(data.cacheLanesDigest !== undefined){
 let data21 = data.cacheLanesDigest;
 if(typeof data21 === "string"){
-if(!pattern45.test(data21)){
+if(!pattern29.test(data21)){
 const err59 = {instancePath:instancePath+"/cacheLanesDigest",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err59];
@@ -15535,18 +12991,18 @@ vErrors.push(err61);
 }
 errors++;
 }
-validate86.errors = vErrors;
+validate83.errors = vErrors;
 return errors === 0;
 }
-validate86.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate83.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema150 = {"type":"object","additionalProperties":false,"required":["profileId","warmWeightedP95Ms","coldOrRestoreP95Ms","warmP95Ci95Ms","coldP95Ci95Ms","errorRate","projectedMonthlyUsd","warmSamples","coldSamples"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"warmWeightedP95Ms":{"type":"number","minimum":0},"coldOrRestoreP95Ms":{"type":"number","minimum":0},"warmP95Ci95Ms":{"$ref":"#/$defs/interval"},"coldP95Ci95Ms":{"$ref":"#/$defs/interval"},"errorRate":{"const":0},"projectedMonthlyUsd":{"type":"number","minimum":0},"warmSamples":{"type":"integer","minimum":6000},"coldSamples":{"type":"integer","minimum":30}}};
-const schema151 = {"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":0}};
+const schema129 = {"type":"object","additionalProperties":false,"required":["profileId","warmWeightedP95Ms","coldOrRestoreP95Ms","warmP95Ci95Ms","coldP95Ci95Ms","errorRate","projectedMonthlyUsd","warmSamples","coldSamples"],"properties":{"profileId":{"enum":["datahike-s3","datahike-dynamodb"]},"warmWeightedP95Ms":{"type":"number","minimum":0},"coldOrRestoreP95Ms":{"type":"number","minimum":0},"warmP95Ci95Ms":{"$ref":"#/$defs/interval"},"coldP95Ci95Ms":{"$ref":"#/$defs/interval"},"errorRate":{"const":0},"projectedMonthlyUsd":{"type":"number","minimum":0},"warmSamples":{"type":"integer","minimum":6000},"coldSamples":{"type":"integer","minimum":30}}};
+const schema130 = {"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":0}};
 
-function validate88(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate85(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate88.evaluated;
+const evaluated0 = validate85.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15645,7 +13101,7 @@ vErrors.push(err8);
 errors++;
 }
 for(const key0 in data){
-if(!(func79.call(schema150.properties, key0))){
+if(!(func89.call(schema129.properties, key0))){
 const err9 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err9];
@@ -15659,7 +13115,7 @@ errors++;
 if(data.profileId !== undefined){
 let data0 = data.profileId;
 if(!((data0 === "datahike-s3") || (data0 === "datahike-dynamodb"))){
-const err10 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/enum",keyword:"enum",params:{allowedValues: schema150.properties.profileId.enum},message:"must be equal to one of the allowed values"};
+const err10 = {instancePath:instancePath+"/profileId",schemaPath:"#/properties/profileId/enum",keyword:"enum",params:{allowedValues: schema129.properties.profileId.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -15939,17 +13395,17 @@ vErrors.push(err32);
 }
 errors++;
 }
-validate88.errors = vErrors;
+validate85.errors = vErrors;
 return errors === 0;
 }
-validate88.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate85.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate81(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate78(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/fastest-storage-evidence.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate81.evaluated;
+const evaluated0 = validate78.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16098,7 +13554,7 @@ vErrors.push(err13);
 errors++;
 }
 for(const key0 in data){
-if(!(func79.call(schema130.properties, key0))){
+if(!(func89.call(schema109.properties, key0))){
 const err14 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err14];
@@ -16124,7 +13580,7 @@ errors++;
 if(data.evidenceId !== undefined){
 let data1 = data.evidenceId;
 if(typeof data1 === "string"){
-if(!pattern45.test(data1)){
+if(!pattern29.test(data1)){
 const err16 = {instancePath:instancePath+"/evidenceId",schemaPath:"#/$defs/digest/pattern",keyword:"pattern",params:{pattern: "^sha256:[0-9a-f]{64}$"},message:"must match pattern \""+"^sha256:[0-9a-f]{64}$"+"\""};
 if(vErrors === null){
 vErrors = [err16];
@@ -16171,8 +13627,8 @@ errors++;
 }
 }
 if(data.profiles !== undefined){
-if(!func0(data.profiles, schema130.properties.profiles.const)){
-const err20 = {instancePath:instancePath+"/profiles",schemaPath:"#/properties/profiles/const",keyword:"const",params:{allowedValue: schema130.properties.profiles.const},message:"must be equal to constant"};
+if(!func0(data.profiles, schema109.properties.profiles.const)){
+const err20 = {instancePath:instancePath+"/profiles",schemaPath:"#/properties/profiles/const",keyword:"const",params:{allowedValue: schema109.properties.profiles.const},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err20];
 }
@@ -16183,14 +13639,14 @@ errors++;
 }
 }
 if(data.fixture !== undefined){
-if(!(validate82(data.fixture, {instancePath:instancePath+"/fixture",parentData:data,parentDataProperty:"fixture",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate82.errors : vErrors.concat(validate82.errors);
+if(!(validate79(data.fixture, {instancePath:instancePath+"/fixture",parentData:data,parentDataProperty:"fixture",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate79.errors : vErrors.concat(validate79.errors);
 errors = vErrors.length;
 }
 }
 if(data.workload !== undefined){
-if(!(validate84(data.workload, {instancePath:instancePath+"/workload",parentData:data,parentDataProperty:"workload",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate84.errors : vErrors.concat(validate84.errors);
+if(!(validate81(data.workload, {instancePath:instancePath+"/workload",parentData:data,parentDataProperty:"workload",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate81.errors : vErrors.concat(validate81.errors);
 errors = vErrors.length;
 }
 }
@@ -16353,7 +13809,7 @@ errors++;
 if(data7.snapStart !== undefined){
 let data12 = data7.snapStart;
 if(!((data12 === "None") || (data12 === "PublishedVersions"))){
-const err35 = {instancePath:instancePath+"/environment/snapStart",schemaPath:"#/$defs/environment/properties/snapStart/enum",keyword:"enum",params:{allowedValues: schema139.properties.snapStart.enum},message:"must be equal to one of the allowed values"};
+const err35 = {instancePath:instancePath+"/environment/snapStart",schemaPath:"#/$defs/environment/properties/snapStart/enum",keyword:"enum",params:{allowedValues: schema118.properties.snapStart.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err35];
 }
@@ -16543,8 +13999,8 @@ errors++;
 }
 }
 if(data16.concurrency !== undefined){
-if(!func0(data16.concurrency, schema140.properties.concurrency.const)){
-const err51 = {instancePath:instancePath+"/repetitions/concurrency",schemaPath:"#/$defs/repetitions/properties/concurrency/const",keyword:"const",params:{allowedValue: schema140.properties.concurrency.const},message:"must be equal to constant"};
+if(!func0(data16.concurrency, schema119.properties.concurrency.const)){
+const err51 = {instancePath:instancePath+"/repetitions/concurrency",schemaPath:"#/$defs/repetitions/properties/concurrency/const",keyword:"const",params:{allowedValue: schema119.properties.concurrency.const},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err51];
 }
@@ -16653,8 +14109,8 @@ errors++;
 }
 const len0 = data23.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate86(data23[i0], {instancePath:instancePath+"/candidates/" + i0,parentData:data23,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate86.errors : vErrors.concat(validate86.errors);
+if(!(validate83(data23[i0], {instancePath:instancePath+"/candidates/" + i0,parentData:data23,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate83.errors : vErrors.concat(validate83.errors);
 errors = vErrors.length;
 }
 }
@@ -16695,8 +14151,8 @@ errors++;
 }
 const len1 = data25.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate88(data25[i1], {instancePath:instancePath+"/results/" + i1,parentData:data25,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate88.errors : vErrors.concat(validate88.errors);
+if(!(validate85(data25[i1], {instancePath:instancePath+"/results/" + i1,parentData:data25,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate85.errors : vErrors.concat(validate85.errors);
 errors = vErrors.length;
 }
 }
@@ -16790,7 +14246,7 @@ errors++;
 if(data27.outcome !== undefined){
 let data28 = data27.outcome;
 if(!(((data28 === "winner") || (data28 === "benchmark-tiebreak")) || (data28 === "unresolved"))){
-const err71 = {instancePath:instancePath+"/decision/outcome",schemaPath:"#/$defs/decision/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema153.properties.outcome.enum},message:"must be equal to one of the allowed values"};
+const err71 = {instancePath:instancePath+"/decision/outcome",schemaPath:"#/$defs/decision/properties/outcome/enum",keyword:"enum",params:{allowedValues: schema132.properties.outcome.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err71];
 }
@@ -16803,7 +14259,7 @@ errors++;
 if(data27.defaultProfileId !== undefined){
 let data29 = data27.defaultProfileId;
 if(!(((data29 === "datahike-s3") || (data29 === "datahike-dynamodb")) || (data29 === null))){
-const err72 = {instancePath:instancePath+"/decision/defaultProfileId",schemaPath:"#/$defs/decision/properties/defaultProfileId/enum",keyword:"enum",params:{allowedValues: schema153.properties.defaultProfileId.enum},message:"must be equal to one of the allowed values"};
+const err72 = {instancePath:instancePath+"/decision/defaultProfileId",schemaPath:"#/$defs/decision/properties/defaultProfileId/enum",keyword:"enum",params:{allowedValues: schema132.properties.defaultProfileId.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err72];
 }
@@ -16816,7 +14272,7 @@ errors++;
 if(data27.selectionBasis !== undefined){
 let data30 = data27.selectionBasis;
 if(!((((data30 === "warm-cache-disabled-p95") || (data30 === "cold-or-restore-p95")) || (data30 === "projected-monthly-cost")) || (data30 === "none"))){
-const err73 = {instancePath:instancePath+"/decision/selectionBasis",schemaPath:"#/$defs/decision/properties/selectionBasis/enum",keyword:"enum",params:{allowedValues: schema153.properties.selectionBasis.enum},message:"must be equal to one of the allowed values"};
+const err73 = {instancePath:instancePath+"/decision/selectionBasis",schemaPath:"#/$defs/decision/properties/selectionBasis/enum",keyword:"enum",params:{allowedValues: schema132.properties.selectionBasis.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err73];
 }
@@ -16851,8 +14307,8 @@ errors++;
 }
 }
 if(data27.tieBreakOrder !== undefined){
-if(!func0(data27.tieBreakOrder, schema153.properties.tieBreakOrder.const)){
-const err76 = {instancePath:instancePath+"/decision/tieBreakOrder",schemaPath:"#/$defs/decision/properties/tieBreakOrder/const",keyword:"const",params:{allowedValue: schema153.properties.tieBreakOrder.const},message:"must be equal to constant"};
+if(!func0(data27.tieBreakOrder, schema132.properties.tieBreakOrder.const)){
+const err76 = {instancePath:instancePath+"/decision/tieBreakOrder",schemaPath:"#/$defs/decision/properties/tieBreakOrder/const",keyword:"const",params:{allowedValue: schema132.properties.tieBreakOrder.const},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err76];
 }
@@ -16885,22 +14341,22 @@ vErrors.push(err78);
 }
 errors++;
 }
-validate81.errors = vErrors;
+validate78.errors = vErrors;
 return errors === 0;
 }
-validate81.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate78.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const release = validate90;
-const schema154 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/release-manifest.v1.schema.json","title":"EACL demo release manifest v1","type":"object","additionalProperties":false,"required":["schema","contractVersion","source","fixture","deployment","artifacts"],"properties":{"schema":{"const":"eacl-demo.release-manifest.v1"},"contractVersion":{"const":"explorer.v1"},"source":{"type":"object","additionalProperties":false,"required":["demo","eacl"],"properties":{"demo":{"$ref":"#/$defs/source"},"eacl":{"$ref":"#/$defs/source"}}},"fixture":{"type":"object","additionalProperties":false,"required":["id","manifestSha256"],"properties":{"id":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"manifestSha256":{"$ref":"#/$defs/sha256"}}},"deployment":{"type":"object","additionalProperties":false,"required":["provider","repositoryId","runId","runAttempt","ref","identity"],"properties":{"provider":{"const":"github-actions"},"repositoryId":{"const":"1345904214"},"runId":{"type":"string","pattern":"^[1-9][0-9]*$"},"runAttempt":{"type":"integer","minimum":1},"ref":{"const":"refs/heads/demos"},"identity":{"type":"string","pattern":"^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$"}}},"artifacts":{"type":"array","minItems":1,"items":{"$ref":"artifact-digests.v1.schema.json#/$defs/artifact"}}},"$defs":{"sha1":{"type":"string","pattern":"^[0-9a-f]{40}$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"source":{"type":"object","additionalProperties":false,"required":["repository","sha"],"properties":{"repository":{"enum":["https://github.com/theronic/eacl-demo.git","https://github.com/theronic/eacl.git"]},"sha":{"$ref":"#/$defs/sha1"}}}}};
-const schema157 = {"type":"string","pattern":"^[0-9a-f]{64}$"};
-const schema159 = {"type":"object","additionalProperties":false,"required":["name","path","sha256","bytes"],"properties":{"name":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"path":{"type":"string","pattern":"^dist/[a-z0-9-]+/artifact[.]json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"bytes":{"type":"integer","minimum":1}}};
-const schema155 = {"type":"object","additionalProperties":false,"required":["repository","sha"],"properties":{"repository":{"enum":["https://github.com/theronic/eacl-demo.git","https://github.com/theronic/eacl.git"]},"sha":{"$ref":"#/$defs/sha1"}}};
-const schema156 = {"type":"string","pattern":"^[0-9a-f]{40}$"};
+export const release = validate87;
+const schema133 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://demo.eacl.dev/schemas/release-manifest.v1.schema.json","title":"EACL demo release manifest v1","type":"object","additionalProperties":false,"required":["schema","contractVersion","source","fixture","deployment","artifacts"],"properties":{"schema":{"const":"eacl-demo.release-manifest.v1"},"contractVersion":{"const":"explorer.v1"},"source":{"type":"object","additionalProperties":false,"required":["demo","eacl"],"properties":{"demo":{"$ref":"#/$defs/source"},"eacl":{"$ref":"#/$defs/source"}}},"fixture":{"type":"object","additionalProperties":false,"required":["id","manifestSha256"],"properties":{"id":{"type":"string","pattern":"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},"manifestSha256":{"$ref":"#/$defs/sha256"}}},"deployment":{"type":"object","additionalProperties":false,"required":["provider","repositoryId","runId","runAttempt","ref","identity"],"properties":{"provider":{"const":"github-actions"},"repositoryId":{"const":"1345904214"},"runId":{"type":"string","pattern":"^[1-9][0-9]*$"},"runAttempt":{"type":"integer","minimum":1},"ref":{"const":"refs/heads/demos"},"identity":{"type":"string","pattern":"^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$"}}},"artifacts":{"type":"array","minItems":1,"items":{"$ref":"artifact-digests.v1.schema.json#/$defs/artifact"}}},"$defs":{"sha1":{"type":"string","pattern":"^[0-9a-f]{40}$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"source":{"type":"object","additionalProperties":false,"required":["repository","sha"],"properties":{"repository":{"enum":["https://github.com/theronic/eacl-demo.git","https://github.com/theronic/eacl.git"]},"sha":{"$ref":"#/$defs/sha1"}}}}};
+const schema136 = {"type":"string","pattern":"^[0-9a-f]{64}$"};
+const schema138 = {"type":"object","additionalProperties":false,"required":["name","path","sha256","bytes"],"properties":{"name":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"path":{"type":"string","pattern":"^dist/[a-z0-9-]+/artifact[.]json$"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"bytes":{"type":"integer","minimum":1}}};
+const schema134 = {"type":"object","additionalProperties":false,"required":["repository","sha"],"properties":{"repository":{"enum":["https://github.com/theronic/eacl-demo.git","https://github.com/theronic/eacl.git"]},"sha":{"$ref":"#/$defs/sha1"}}};
+const schema135 = {"type":"string","pattern":"^[0-9a-f]{40}$"};
 
-function validate91(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate88(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate91.evaluated;
+const evaluated0 = validate88.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16943,7 +14399,7 @@ errors++;
 if(data.repository !== undefined){
 let data0 = data.repository;
 if(!((data0 === "https://github.com/theronic/eacl-demo.git") || (data0 === "https://github.com/theronic/eacl.git"))){
-const err3 = {instancePath:instancePath+"/repository",schemaPath:"#/properties/repository/enum",keyword:"enum",params:{allowedValues: schema155.properties.repository.enum},message:"must be equal to one of the allowed values"};
+const err3 = {instancePath:instancePath+"/repository",schemaPath:"#/properties/repository/enum",keyword:"enum",params:{allowedValues: schema134.properties.repository.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err3];
 }
@@ -16989,20 +14445,20 @@ vErrors.push(err6);
 }
 errors++;
 }
-validate91.errors = vErrors;
+validate88.errors = vErrors;
 return errors === 0;
 }
-validate91.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate88.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const pattern102 = new RegExp("^[1-9][0-9]*$", "u");
-const pattern103 = new RegExp("^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$", "u");
-const pattern105 = new RegExp("^dist/[a-z0-9-]+/artifact[.]json$", "u");
+const pattern86 = new RegExp("^[1-9][0-9]*$", "u");
+const pattern87 = new RegExp("^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$", "u");
+const pattern89 = new RegExp("^dist/[a-z0-9-]+/artifact[.]json$", "u");
 
-function validate90(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate87(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 /*# sourceURL="https://demo.eacl.dev/schemas/release-manifest.v1.schema.json" */;
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate90.evaluated;
+const evaluated0 = validate87.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17142,14 +14598,14 @@ errors++;
 }
 }
 if(data2.demo !== undefined){
-if(!(validate91(data2.demo, {instancePath:instancePath+"/source/demo",parentData:data2,parentDataProperty:"demo",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate91.errors : vErrors.concat(validate91.errors);
+if(!(validate88(data2.demo, {instancePath:instancePath+"/source/demo",parentData:data2,parentDataProperty:"demo",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate88.errors : vErrors.concat(validate88.errors);
 errors = vErrors.length;
 }
 }
 if(data2.eacl !== undefined){
-if(!(validate91(data2.eacl, {instancePath:instancePath+"/source/eacl",parentData:data2,parentDataProperty:"eacl",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate91.errors : vErrors.concat(validate91.errors);
+if(!(validate88(data2.eacl, {instancePath:instancePath+"/source/eacl",parentData:data2,parentDataProperty:"eacl",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate88.errors : vErrors.concat(validate88.errors);
 errors = vErrors.length;
 }
 }
@@ -17203,7 +14659,7 @@ errors++;
 if(data5.id !== undefined){
 let data6 = data5.id;
 if(typeof data6 === "string"){
-if(!pattern40.test(data6)){
+if(!pattern24.test(data6)){
 const err16 = {instancePath:instancePath+"/fixture/id",schemaPath:"#/properties/fixture/properties/id/pattern",keyword:"pattern",params:{pattern: "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},message:"must match pattern \""+"^[a-z0-9]+(?:[._-][a-z0-9]+)*$"+"\""};
 if(vErrors === null){
 vErrors = [err16];
@@ -17364,7 +14820,7 @@ errors++;
 if(data8.runId !== undefined){
 let data11 = data8.runId;
 if(typeof data11 === "string"){
-if(!pattern102.test(data11)){
+if(!pattern86.test(data11)){
 const err30 = {instancePath:instancePath+"/deployment/runId",schemaPath:"#/properties/deployment/properties/runId/pattern",keyword:"pattern",params:{pattern: "^[1-9][0-9]*$"},message:"must match pattern \""+"^[1-9][0-9]*$"+"\""};
 if(vErrors === null){
 vErrors = [err30];
@@ -17426,7 +14882,7 @@ errors++;
 if(data8.identity !== undefined){
 let data14 = data8.identity;
 if(typeof data14 === "string"){
-if(!pattern103.test(data14)){
+if(!pattern87.test(data14)){
 const err35 = {instancePath:instancePath+"/deployment/identity",schemaPath:"#/properties/deployment/properties/identity/pattern",keyword:"pattern",params:{pattern: "^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$"},message:"must match pattern \""+"^1345904214:[1-9][0-9]*:[1-9][0-9]*:[0-9a-f]{40}$"+"\""};
 if(vErrors === null){
 vErrors = [err35];
@@ -17557,7 +15013,7 @@ errors++;
 if(data16.path !== undefined){
 let data18 = data16.path;
 if(typeof data18 === "string"){
-if(!pattern105.test(data18)){
+if(!pattern89.test(data18)){
 const err46 = {instancePath:instancePath+"/artifacts/" + i0+"/path",schemaPath:"artifact-digests.v1.schema.json#/$defs/artifact/properties/path/pattern",keyword:"pattern",params:{pattern: "^dist/[a-z0-9-]+/artifact[.]json$"},message:"must match pattern \""+"^dist/[a-z0-9-]+/artifact[.]json$"+"\""};
 if(vErrors === null){
 vErrors = [err46];
@@ -17664,8 +15120,8 @@ vErrors.push(err54);
 }
 errors++;
 }
-validate90.errors = vErrors;
+validate87.errors = vErrors;
 return errors === 0;
 }
-validate90.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate87.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 

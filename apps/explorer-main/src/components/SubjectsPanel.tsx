@@ -72,10 +72,6 @@ export function SubjectsPanel(): JSX.Element {
 
   const settledSubjects = displayedSubjects;
 
-  const permissions = createMemo(() => {
-    const byType = app.bootstrapData()?.data.schema.permissionsByType ?? {};
-    return [...new Set(Object.values(byType).flat())].sort();
-  });
   const targetPage = () => Math.floor(offset() / app.pageSize()) + 1;
   const displayedPage = () =>
     Math.floor(displayedOffset() / displayedPageSize()) + 1;
@@ -100,33 +96,7 @@ export function SubjectsPanel(): JSX.Element {
 
   return (
     <div class="panel-card subjects-panel">
-      <h2 class="panel-kicker">Subjects &amp; permissions</h2>
-      <div class="active-summary active-summary--subject">
-        <span class="active-summary__label">Active subject</span>
-        <span class="active-summary__value">{app.subjectId()}</span>
-      </div>
-
-      <section class="panel-section" aria-labelledby="permission-heading">
-        <div class="section-header">
-          <p id="permission-heading" class="panel-label">
-            Permission
-          </p>
-        </div>
-        <div class="chip-row">
-          <For each={permissions()} fallback={<EmptyState>No permissions defined.</EmptyState>}>
-            {(permission) => (
-              <button
-                type="button"
-                class={`chip ${app.permission() === permission ? "chip--active" : ""}`}
-                aria-pressed={app.permission() === permission}
-                onClick={() => app.setPermission(permission)}
-              >
-                :{permission}
-              </button>
-            )}
-          </For>
-        </div>
-      </section>
+      <h2 class="panel-kicker">Subjects</h2>
 
       <section class="panel-section" aria-labelledby="quick-subject-heading">
         <div class="section-header">

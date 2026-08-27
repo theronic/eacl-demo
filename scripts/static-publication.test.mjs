@@ -20,7 +20,7 @@ const validateStatus = ajv.compile(statusSchema);
 test("static publication plan admits only immutable assets plus two versioned entries", async () => {
   const fixture = await staticArtifact();
   const plan = await createStaticPublicationPlan(fixture);
-  assert.deepEqual(plan.immutable.map(({ key }) => key), ["assets/app-deadbeef.js", "datascript/assets/datascript-worker-" + "a".repeat(64) + ".js"]);
+  assert.deepEqual(plan.immutable.map(({ key }) => key), ["assets/app-deadbeef.js", "datascript/assets/datascript-runtime-" + "a".repeat(64) + ".js"]);
   assert.deepEqual(plan.preSmoke.map(({ key }) => key), ["site-manifest.json", "datascript/index.html", "index.html"]);
   assert.equal(plan.postSmokeStatusKey, "registry/static.json");
   assert.deepEqual(plan.invalidationPaths, ["/index.html", "/datascript/index.html", "/site-manifest.json"]);
@@ -136,7 +136,7 @@ async function staticArtifact({ unsafeAsset = false } = {}) {
   await mkdir(path.join(source, "datascript", "assets"), { recursive: true });
   const values = new Map([
     ["assets/app-deadbeef.js", Buffer.from("main")],
-    ["datascript/assets/datascript-worker-" + "a".repeat(64) + ".js", Buffer.from("worker")],
+    ["datascript/assets/datascript-runtime-" + "a".repeat(64) + ".js", Buffer.from("runtime")],
     ["datascript/index.html", Buffer.from("<title>DataScript</title>")],
     ["index.html", Buffer.from("<title>EACL</title>")]
   ]);
@@ -151,8 +151,8 @@ async function staticArtifact({ unsafeAsset = false } = {}) {
     schema: "eacl-demo.static-site.v1",
     result: "assembled",
     uploadRoot: "dist/static-site",
-    entries: { main: "index.html", datascript: "datascript/index.html", datascriptWorker: "datascript/assets/datascript-worker-" + "a".repeat(64) + ".js" },
-    sourceBuilds: ["explorer-main", "datascript-entry", "datascript-worker"],
+    entries: { main: "index.html", datascript: "datascript/index.html", datascriptRuntime: "datascript/assets/datascript-runtime-" + "a".repeat(64) + ".js" },
+    sourceBuilds: ["explorer-main", "datascript-entry", "datascript-runtime"],
     files
   };
   await writeFile(path.join(source, "site-manifest.json"), `${JSON.stringify(site, null, 2)}\n`);

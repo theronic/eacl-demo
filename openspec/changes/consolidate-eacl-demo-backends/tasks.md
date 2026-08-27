@@ -14,7 +14,7 @@
 
 - [x] 2.1 Create clear app, package, fixture, service, infrastructure, verification, and documentation boundaries in eacl-demo.
 - [x] 2.2 Pin Node, package manager, Java, Clojure, ClojureScript, Jank, native compiler, infrastructure, formatter, and test tool versions.
-- [x] 2.3 Add independently callable builds for the main explorer, DataScript entry and worker, each Lambda artifact, fixture manifests, and infrastructure plans.
+- [x] 2.3 Add independently callable builds for the main explorer, DataScript entry and direct browser runtime, each Lambda artifact, fixture manifests, and infrastructure plans.
 - [x] 2.4 Add isolated dependency locks or reproducible resolution records for JVM, JavaScript, native, and infrastructure dependencies.
 - [x] 2.5 Generate artifact digests and a closed release-manifest format containing both repository SHAs, fixture identity, contract version, and deployment identity.
 - [x] 2.6 Add deterministic clean-build checks and record any unavoidable nondeterministic fields.
@@ -34,7 +34,7 @@
 - [x] 3.9 Fall back to the sole qualified storage choice when no comparable benchmark exists and show no unsupported speed claim.
 - [x] 3.10 Implement the profile registry as independently publishable data with actual deployed demo/core SHAs, artifact identity, and last deployment outcome, without a latest-source or convergence claim.
 - [x] 3.11 Implement profile switching with request cancellation, monotonically increasing client epochs, backend-state release, descriptor identity checks, and first-page restart.
-- [x] 3.12 Test rapid switches, late success and error responses, unavailable options, missing small-fixture objects, worker teardown, and mixed deployment generations.
+- [x] 3.12 Test rapid switches, late success and error responses, unavailable options, missing small-fixture objects, page teardown, and mixed deployment generations.
 - [x] 3.13 Implement canonical URL parsing and serialization with allowlisted bounded semantic fields and no cursor, token, basis, request ID, or secret values.
 - [x] 3.14 Test direct links, canonical normalization, malformed and oversized inputs, browser back/forward navigation, and backend/storage replacement semantics.
 
@@ -43,8 +43,8 @@
 - [x] 4.1 Define closed explorer.v1 schemas for objects, relationships, page information, counts, authorization decisions, schema, cache information, basis metadata, health, bootstrap, success, and failure.
 - [x] 4.2 Define stable error codes for validation, method and route rejection, cursor failures, unsupported consistency, cancellation, deadline, overload, throttling, unavailable dependencies, corrupt or missing storage, and internal failure.
 - [x] 4.3 Define bounded request and response limits for bodies, strings, arrays, pages, counts, cursors, diagnostics, and total output.
-- [x] 4.4 Implement /api/v1/{profile-id} routing and the equivalent DataScript worker message contract.
-- [x] 4.5 Implement runtime boundary validation for client, server, worker, fixture, descriptor, registry, and release-manifest data.
+- [x] 4.4 Implement /api/v1/{profile-id} routing and direct in-page dispatch for the same DataScript logical operations.
+- [x] 4.5 Implement runtime boundary validation for client, server, fixture, descriptor, registry, and release-manifest data.
 - [x] 4.6 Implement one common compact success/error envelope carrying only operation data or error plus revision, request ID, and optional elapsed/cache metadata.
 - [x] 4.7 Implement identity-checked health/bootstrap descriptors and reject route, artifact, or registry mismatches before normal use.
 - [x] 4.8 Implement closed method, route, content-type, query, path, and body allowlists.
@@ -82,12 +82,20 @@
 - [x] 6.7 Implement light and dark themes, reduced motion, visible focus, durable async focus, and responsive layouts.
 - [x] 6.8 Add component and state tests for capabilities, unavailable profiles, validation failures, stale responses, and selector changes.
 - [x] 6.9 Add accessibility and principal desktop/mobile browser qualification outside the ordinary merge deployment gate.
-- [x] 6.10 Build /datascript/ as a separate SolidJS entry with a dedicated ClojureScript worker and EACL v8 DataScript adapter.
-- [x] 6.11 Implement bounded worker validation, request IDs, client epochs, cancellation, late-reply suppression, deterministic fixture generation, progress, and cleanup.
+- [x] 6.10 Build /datascript/ as a separate SolidJS entry with a direct ClojureScript browser runtime and EACL v8 DataScript adapter.
+- [x] 6.11 Implement compact direct operation dispatch, request IDs, deterministic serialized fixture restoration, page-local lifecycle, and cleanup without a worker protocol.
 - [x] 6.12 Prove DataScript authorization and fixture data remain browser-local and public network calls are not made for its operations.
-- [x] 6.13 Prove DataScript, ClojureScript worker, and DataScript-only dependencies are absent from the main server-profile bundle.
+- [x] 6.13 Prove DataScript, the ClojureScript browser runtime, and DataScript-only dependencies are absent from the main server-profile bundle.
 - [x] 6.14 Build the main and DataScript static entries into one static artifact in the same unprivileged job so they never race on the static bucket prefix.
 - [x] 6.15 Restore the original Explorer consistency labels and compact Datomic permission response shape, leaving deployment identity in the validated health/bootstrap handshake.
+- [x] 6.16 Remove the DataScript Web Worker, verified Blob loader, worker schemas, worker transport, progress protocol, and worker-specific build unit.
+- [x] 6.17 Navigate between the main and DataScript entries when the user selects a backend owned by the other entry.
+- [x] 6.18 Show only `Waiting for <backend> Lambda to start... <timer>` during server cold start and remove DataScript/fixture progress from backend switching.
+- [x] 6.19 Rename Read Basis to Consistency Semantics and remove its redundant visible field label.
+- [x] 6.20 Remove the backend/storage eyebrow and restore the exact open-source Explorer footer.
+- [x] 6.21 Remove the visible Spice Schema label, active-subject summary, and Subjects permission selector; rename the panel Subjects and move Permission into Resources.
+- [x] 6.22 Capture cache metrics exactly once on first Cache expansion while retaining explicit manual refresh.
+- [x] 6.23 Qualify the shared UI changes across desktop/mobile browsers and prove the DataScript entry creates zero Workers and makes no authorization API calls.
 
 ## 7. Qualification harness and fast merge smoke
 

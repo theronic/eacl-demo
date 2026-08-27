@@ -6,8 +6,8 @@
          :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}}
   :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
           :main-opts ["-m" "nrepl.cmdline" "--bind" "127.0.0.1"]}
-  :datascript-worker
-  {:extra-paths ["apps/explorer-datascript/worker-src"]
+  :datascript-runtime
+  {:extra-paths ["apps/explorer-datascript/cljs-src"]
    :extra-deps
    {org.clojure/clojurescript {:mvn/version "1.12.42"}
     dev.eacl/eacl-datascript

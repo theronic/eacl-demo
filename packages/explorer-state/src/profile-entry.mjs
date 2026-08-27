@@ -2,7 +2,7 @@ const SHA1 = /^[0-9a-f]{40}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
 const STATES = new Set(["enabled", "disabled", "qualifying", "unavailable"]);
 const OUTCOMES = new Set(["never-deployed", "succeeded", "failed", "rolled-back"]);
-const ARTIFACT_KINDS = new Set(["static", "lambda-version", "browser-worker"]);
+const ARTIFACT_KINDS = new Set(["static", "lambda-version"]);
 
 export function validateProfileEntry(profile, definition) {
   exactKeys(profile, ["id", "backend", "storage", "state", "reason", "route", "deployment", "lastOutcome"], `profile ${profile?.id ?? "unknown"}`);

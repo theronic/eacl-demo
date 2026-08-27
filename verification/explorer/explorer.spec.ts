@@ -52,15 +52,12 @@ test("two-step selection, canonical normalization, and keyboard focus remain usa
   await expect(backend).toBeFocused();
 });
 
-test("DataScript remains a separate browser entry", async ({ page }) => {
-  const originalUrl = page.url();
-  const popupPromise = page.waitForEvent("popup");
-  await page.getByRole("radio", { name: "DataScript", exact: true }).click();
-  const popup = await popupPromise;
-  await expect(popup).toHaveURL(/\/datascript\//u);
-  await expect(page).toHaveURL(originalUrl);
-  await expect(page.getByRole("radio", { name: "Datahike", exact: true })).toBeChecked();
-  await popup.close();
+test("DataScript navigates to its separate browser entry", async ({ page }) => {
+  await Promise.all([
+    page.waitForURL(/\/datascript\//u),
+    page.getByRole("radio", { name: "DataScript", exact: true }).click(),
+  ]);
+  await expect(page).toHaveURL(/\/datascript\//u);
 });
 
 test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ page }) => {
@@ -179,12 +176,29 @@ test("an enabled publication opens the schema-validated server explorer over the
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Read Basis" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
+  await expect(page.getByText("Consistency Semantics:", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/EACL v8 \+/iu)).toHaveCount(0);
+  await expect(page.getByText("Spice Schema", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Subjects", exact: true })).toBeVisible();
+  await expect(page.getByText("Active subject", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".subjects-panel").getByText("Permission", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".resources-panel").getByText("Permission", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "open source" })).toHaveAttribute("href", "https://github.com/theronic/eacl");
+  await expect(page.getByRole("link", { name: "Petrus Theron" })).toHaveAttribute("href", "https://petrustheron.com/");
   await expect(page.getByText(/independent profile status records/u)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Schema/u })).toBeVisible();
+  const cacheButton = page.getByRole("button", { name: "Cache", exact: true });
+  expect(apiRequests.filter(({ operation }) => operation === "get-cache-info")).toHaveLength(0);
+  await cacheButton.click();
+  await expect.poll(() => apiRequests.filter(({ operation }) => operation === "get-cache-info").length).toBe(1);
+  await cacheButton.click();
+  await cacheButton.click();
+  await page.waitForTimeout(100);
+  expect(apiRequests.filter(({ operation }) => operation === "get-cache-info")).toHaveLength(1);
   await expect(page.getByLabel("Page size").locator("option")).toHaveText([
     "10", "20", "50", "100", "250", "500", "1,000",
   ]);

@@ -4,12 +4,12 @@ import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
 const mainRoot = path.join(root, "dist", "explorer-main", "static");
-const workerPath = path.join(root, "dist", "datascript-worker", "datascript-worker.js");
+const runtimePath = path.join(root, "dist", "datascript-runtime", "datascript-runtime.js");
 const evidencePath = path.join(root, "verification", "datascript", "bundle-isolation.latest.json");
 const forbiddenSourceFragments = [
   "__vite-browser-external",
   "apps/explorer-datascript",
-  "worker-src",
+  "cljs-src",
   "eacl_demo/datascript",
   "node_modules/datascript",
   "EaclKernel.browser.js",
@@ -24,7 +24,7 @@ const forbiddenBundleMarkers = [
   "datascript.core",
   "cljs.core",
   "EaclKernel.browser",
-  "datascript-worker"
+  "datascript-runtime"
 ];
 
 const manifest = JSON.parse(await readFile(path.join(mainRoot, ".vite", "manifest.json"), "utf8"));
@@ -60,10 +60,10 @@ for (const relative of maps) {
   }
 }
 
-const workerBytes = await readFile(workerPath);
-const workerText = workerBytes.toString("utf8");
+const runtimeBytes = await readFile(runtimePath);
+const runtimeText = runtimeBytes.toString("utf8");
 for (const marker of ["dev.eacl/eacl-datascript", "cljs.core", "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"]) {
-  if (!workerText.includes(marker)) throw new Error(`dedicated worker is missing expected isolation witness: ${marker}`);
+  if (!runtimeText.includes(marker)) throw new Error(`dedicated DataScript runtime is missing expected isolation witness: ${marker}`);
 }
 
 const evidence = {
@@ -80,15 +80,15 @@ const evidence = {
     sourceFragments: forbiddenSourceFragments,
     bundleMarkers: forbiddenBundleMarkers
   },
-  dedicatedWorker: {
-    path: "dist/datascript-worker/datascript-worker.js",
-    bytes: workerBytes.length,
-    sha256: sha256(workerBytes),
+  dedicatedRuntime: {
+    path: "dist/datascript-runtime/datascript-runtime.js",
+    bytes: runtimeBytes.length,
+    sha256: sha256(runtimeBytes),
     witnesses: ["dev.eacl/eacl-datascript", "cljs.core", "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"]
   }
 };
 await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);
-console.log(`DataScript bundle isolation passed: main ${evidence.main.scriptBytes} bytes, worker ${evidence.dedicatedWorker.bytes} bytes`);
+console.log(`DataScript bundle isolation passed: main ${evidence.main.scriptBytes} bytes, runtime ${evidence.dedicatedRuntime.bytes} bytes`);
 
 async function enumerate(directory, prefix = "") {
   const found = [];

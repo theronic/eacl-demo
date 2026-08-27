@@ -2,18 +2,18 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-DGPnckz5.js",
+    "entry": "assets/index-BQUgOjCz.js",
     "files": [
       ".vite/manifest.json",
-      "assets/SchemaGraph-DpV3byFp.js",
-      "assets/SchemaGraph-DpV3byFp.js.map",
+      "assets/SchemaGraph-sGanSjUL.js",
+      "assets/SchemaGraph-sGanSjUL.js.map",
+      "assets/index-BQUgOjCz.js",
+      "assets/index-BQUgOjCz.js.map",
       "assets/index-BnSs3WBb.css",
-      "assets/index-DGPnckz5.js",
-      "assets/index-DGPnckz5.js.map",
       "index.html"
     ],
-    "scriptBytes": 607667,
-    "scriptSha256": "8d6774fe1a6d0c4558e121038e62a5aa210f3d9e3ff3e435623534b5cb362601",
+    "scriptBytes": 551316,
+    "scriptSha256": "eb95e5a016313afbb9cba7b2b7ec4a1aedc28bc314dabcf60206870c16392fc0",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/Explorer.tsx",
@@ -182,7 +182,7 @@
     "sourceFragments": [
       "__vite-browser-external",
       "apps/explorer-datascript",
-      "worker-src",
+      "cljs-src",
       "eacl_demo/datascript",
       "node_modules/datascript",
       "EaclKernel.browser.js",
@@ -197,13 +197,13 @@
       "datascript.core",
       "cljs.core",
       "EaclKernel.browser",
-      "datascript-worker"
+      "datascript-runtime"
     ]
   },
-  "dedicatedWorker": {
-    "path": "dist/datascript-worker/datascript-worker.js",
-    "bytes": 5900122,
-    "sha256": "dc5e11eb74ba5fb499586e714bced0ca1cf6f137f01ca068bee8709a4c5f08f5",
+  "dedicatedRuntime": {
+    "path": "dist/datascript-runtime/datascript-runtime.js",
+    "bytes": 5894752,
+    "sha256": "b76111953d244440b923e46a957eea8ea739684ab77ecc07b1bd520fcf96b83c",
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",

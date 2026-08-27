@@ -161,9 +161,9 @@ export async function smokeStaticPublication({ plan, origin, fetchImpl = globalT
 function validateSiteManifest(site) {
   exactKeys(site, ["schema", "result", "uploadRoot", "entries", "sourceBuilds", "files"], "static site manifest");
   if (site.schema !== "eacl-demo.static-site.v1" || site.result !== "assembled" || site.uploadRoot !== "dist/static-site") throw new Error("static site manifest identity is invalid");
-  exactKeys(site.entries, ["main", "datascript", "datascriptWorker"], "static site entries");
-  if (site.entries.main !== "index.html" || site.entries.datascript !== "datascript/index.html" || !/^datascript\/assets\/datascript-worker-[0-9a-f]{64}\.js$/u.test(site.entries.datascriptWorker)) throw new Error("static site entries are invalid");
-  if (JSON.stringify(site.sourceBuilds) !== JSON.stringify(["explorer-main", "datascript-entry", "datascript-worker"])) throw new Error("static source build closure is invalid");
+  exactKeys(site.entries, ["main", "datascript", "datascriptRuntime"], "static site entries");
+  if (site.entries.main !== "index.html" || site.entries.datascript !== "datascript/index.html" || !/^datascript\/assets\/datascript-runtime-[0-9a-f]{64}\.js$/u.test(site.entries.datascriptRuntime)) throw new Error("static site entries are invalid");
+  if (JSON.stringify(site.sourceBuilds) !== JSON.stringify(["explorer-main", "datascript-entry", "datascript-runtime"])) throw new Error("static source build closure is invalid");
   if (!Array.isArray(site.files) || site.files.length < 3 || site.files.length > 20_000) throw new Error("static site file list is invalid");
   const paths = new Set();
   for (const file of site.files) {
@@ -175,7 +175,7 @@ function validateSiteManifest(site) {
     const entry = ENTRY_DOCUMENTS.includes(file.path);
     if (entry ? file.cacheClass !== "no-cache" : file.cacheClass !== "immutable") throw new Error(`static site cache class is unsafe: ${file.path}`);
   }
-  for (const entry of [...ENTRY_DOCUMENTS, site.entries.datascriptWorker]) if (!paths.has(entry)) throw new Error(`static site entry is missing: ${entry}`);
+  for (const entry of [...ENTRY_DOCUMENTS, site.entries.datascriptRuntime]) if (!paths.has(entry)) throw new Error(`static site entry is missing: ${entry}`);
   if (JSON.stringify([...paths]) !== JSON.stringify([...paths].sort())) throw new Error("static site files are not sorted");
 }
 

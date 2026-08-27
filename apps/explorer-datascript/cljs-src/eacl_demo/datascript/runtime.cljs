@@ -1,4 +1,4 @@
-(ns eacl-demo.datascript.worker
+(ns eacl-demo.datascript.runtime
   (:require [datascript.core :as ds]
             [eacl-demo.fixture :as fixture]
             [eacl.core :as eacl]
@@ -10,7 +10,6 @@
 (def ^:private profile-id "datascript-browser-memory")
 (def ^:private contract-version "explorer.v1")
 (def ^:private maximum-message-bytes 65536)
-(def ^:private maximum-client-epoch 2147483647)
 (def ^:private maximum-cursors 4096)
 (def ^:private default-page-size 25)
 (def ^:private default-count-ceiling 1000)
@@ -21,60 +20,17 @@
     "get-schema" "get-cache-info" "count-objects"})
 (def ^:private unsupported-consistency
   #{"exact" "at-least" "authoritative" "historical-date"})
-(def ^:private request-keys
-  #{:type :contractVersion :profileId :requestId :clientEpoch :operation :input})
-(def ^:private control-keys
-  #{:type :contractVersion :profileId :requestId :clientEpoch})
-(def ^:private initialize-keys
-  #{:type :contractVersion :profileId :requestId :clientEpoch :identity})
 (def ^:private identity-keys
   #{:profileId :demoSha :eaclSha :artifactSha256 :deploymentId :dataManifestSha256})
 
 (defonce ^:private lifecycle
-  (atom {:epoch 0
-         :identity nil
+  (atom {:identity nil
          :runtime nil
-         :initialization nil
-         :requests {}
-         :waiters {}
-         :canceled #{}}))
+         :initialization nil}))
 
-(defn- current-epoch? [epoch]
-  (= epoch (:epoch @lifecycle)))
-
-(defn- active-request? [epoch request-id]
-  (let [state @lifecycle]
-    (and (= epoch (:epoch state))
-         (contains? (:requests state) request-id)
-         (not (contains? (:canceled state) request-id)))))
-
-(defn- post-event! [event]
-  (.postMessage js/self (clj->js event)))
-
-(defn- event-base [type request]
-  {:type type
-   :contractVersion contract-version
-   :profileId profile-id
-   :requestId (:requestId request)
-   :clientEpoch (:clientEpoch request)})
-
-(defn- post-progress! [request phase completed message]
-  (when (current-epoch? (:clientEpoch request))
-    (post-event!
-     (assoc (event-base "progress" request)
-            :phase phase
-            :completed completed
-            :total fixture/small-resource-count
-            :message message))))
-
-(defn- protocol-error! [request code message]
-  (post-event!
-   (assoc (event-base "protocol-error" request)
-          :error {:code code :message message :retryable false})))
-
-(defn- basis [runtime epoch]
-  {:behavior "worker-lifecycle"
-   :id (str profile-id ":epoch-" epoch ":tx-" (:max-tx (ds/db (:connection runtime))))
+(defn- basis [runtime]
+  {:behavior "page-lifecycle"
+   :id (str profile-id ":page-tx-" (:max-tx (ds/db (:connection runtime))))
    :capturedAt (:captured-at runtime)
    :fixedForEnvironment false})
 
@@ -84,54 +40,37 @@
 (defn- response-meta [request runtime cache-status]
   (cond->
    {:revision (if runtime
-                (:id (basis runtime (:clientEpoch request)))
+                (:id (basis runtime))
                 (:deploymentId (deployment-identity)))
     :requestId (:requestId request)
     :elapsedMs (max 0 (- (.now js/performance) (:startedAt request)))}
    cache-status (assoc :cacheStatus cache-status)))
 
-(defn- post-response! [request response]
-  (when (current-epoch? (:clientEpoch request))
-    (post-event!
-     (assoc (event-base "response" request) :response response)))
-  (swap! lifecycle
-         (fn [state]
-           (-> state
-               (update :requests dissoc (:requestId request))
-               (update :waiters dissoc (:requestId request))
-               (update :canceled disj (:requestId request))))))
-
-(defn- success!
+(defn- success
   ([request runtime data]
-   (success! request runtime data nil))
+   (success request runtime data nil))
   ([request runtime data cache-status]
-   (when (active-request? (:clientEpoch request) (:requestId request))
-     (post-response!
-      request
-      {:data data
-       :meta (response-meta request runtime cache-status)}))))
+   {:data data
+    :meta (response-meta request runtime cache-status)}))
 
-(defn- failure! [request runtime code message]
-  (when (current-epoch? (:clientEpoch request))
-    (post-response!
-     request
-     {:error {:code code :message message}
-      :meta (response-meta request runtime nil)})))
+(defn- failure [request runtime code message]
+  {:error {:code code :message message}
+   :meta (response-meta request runtime nil)})
 
-(defn- bootstrap-data [runtime epoch]
+(defn- bootstrap-data [runtime]
   {:contract {:name contract-version :routeMajor 1 :revision 1 :minimumClientRevision 0}
    :identity (deployment-identity)
    :profile {:backend "datascript" :storage "browser-memory"}
-   :runtime {:execution "browser-worker" :name "clojurescript" :architecture "javascript" :snapStart "not-applicable"}
+   :runtime {:execution "browser" :name "clojurescript" :architecture "javascript" :snapStart "not-applicable"}
    :capabilities
    {:operations ["health" "bootstrap" "list-subjects" "get-object"
                  "list-relationships" "reverse-relationships" "authorize"
                  "lookup-resources" "lookup-subjects" "count-resources"
                  "get-schema" "get-cache-info" "count-objects"]
     :consistencyModes ["current" "minimize"]
-    :snapshotBehavior "worker-lifecycle"
-    :cacheBehavior "browser-worker-local"
-    :mutationLocality "browser-worker-initialization"
+    :snapshotBehavior "page-lifecycle"
+    :cacheBehavior "browser-page-local"
+    :mutationLocality "browser-initialization"
     :limitations ["browser-local" "ephemeral" "no-durability" "unequal-dataset-scale" "unsupported-consistency"]}
    :limits [{:name "message-bytes" :value maximum-message-bytes}
             {:name "page-size" :value 1000}
@@ -140,13 +79,13 @@
              :logicalResourceCount fixture/small-resource-count
              :serverCount 9922
              :manifestSha256 fixture/small-manifest-sha256}
-   :basis (basis runtime epoch)})
+   :basis (basis runtime)})
 
-(defn- health-data [runtime epoch]
+(defn- health-data [runtime]
   {:status "ready"
    :ready true
    :identity (deployment-identity)
-   :basis (basis runtime epoch)})
+   :basis (basis runtime)})
 
 (defn- authorization-data [runtime input]
   (let [subject-key [(:subjectType input) (:subjectId input)]
@@ -211,10 +150,10 @@
     0
     (let [entry (get-in @(:cursors runtime) [:by-token cursor])]
       (when-not entry
-        (throw (ex-info "The browser-worker cursor is unknown or expired."
+        (throw (ex-info "The browser-page cursor is unknown or expired."
                         {:code "cursor-invalid"})))
       (when-not (= scope (:scope entry))
-        (throw (ex-info "The browser-worker cursor belongs to another query."
+        (throw (ex-info "The browser-page cursor belongs to another query."
                         {:code "cursor-scope-mismatch"})))
       (:offset entry))))
 
@@ -370,48 +309,47 @@
      :cache-status (cached-status result input)}))
 
 (defn- cache-data []
-  {:behavior "browser-worker-local"
+  {:behavior "browser-page-local"
    :hit nil
-   :scope "current-worker-lifecycle"
+   :scope "current-page-lifecycle"
    :entries nil
-   :limitations ["Cache state is ephemeral and is discarded with this worker lifecycle."]})
+   :limitations ["Cache state is ephemeral and is discarded when this page is closed."]})
 
-(defn- dispatch! [request runtime]
-  (when (active-request? (:clientEpoch request) (:requestId request))
-    (try
-      (case (:operation request)
-        "health" (success! request runtime (health-data runtime (:clientEpoch request)))
-        "bootstrap" (success! request runtime (bootstrap-data runtime (:clientEpoch request)))
-        "list-subjects" (success! request runtime (list-subjects-data runtime (:input request)))
-        "get-object" (if-let [data (object-data runtime (:input request))]
-                       (success! request runtime data)
-                       (failure! request runtime "storage-missing" "The requested fixture object does not exist."))
-        "list-relationships" (success! request runtime (relationships-data runtime (:input request)))
-        "reverse-relationships" (success! request runtime (reverse-data runtime (:input request)))
-        "authorize" (let [{:keys [data cache-status]}
-                          (authorization-data runtime (:input request))]
-                      (success! request runtime data cache-status))
-        "lookup-resources" (let [{:keys [data cache-status]}
-                                 (lookup-resources-data runtime (:input request))]
-                             (success! request runtime data cache-status))
-        "lookup-subjects" (let [{:keys [data cache-status]}
-                                (lookup-subjects-data runtime (:input request))]
-                            (success! request runtime data cache-status))
-        "count-resources" (let [{:keys [data cache-status]}
-                                (count-resources-data runtime (:input request))]
-                            (success! request runtime data cache-status))
-        "get-schema" (success! request runtime fixture/wire-schema)
-        "get-cache-info" (success! request runtime (cache-data))
-        "count-objects" (success! request runtime (count-data runtime (:input request)))
-        (failure! request runtime "validation-error"
-                  "This operation is outside the worker dispatcher."))
-      (catch :default error
-        (let [code (:code (ex-data error))]
-          (case code
-            "cursor-invalid" (failure! request runtime code "The cursor is invalid or expired.")
-            "cursor-scope-mismatch" (failure! request runtime code "The cursor belongs to another query or lifecycle.")
-            (failure! request runtime "internal-error"
-                      "The browser-local explorer operation failed.")))))))
+(defn- dispatch [request runtime]
+  (try
+    (case (:operation request)
+      "health" (success request runtime (health-data runtime))
+      "bootstrap" (success request runtime (bootstrap-data runtime))
+      "list-subjects" (success request runtime (list-subjects-data runtime (:input request)))
+      "get-object" (if-let [data (object-data runtime (:input request))]
+                     (success request runtime data)
+                     (failure request runtime "storage-missing" "The requested fixture object does not exist."))
+      "list-relationships" (success request runtime (relationships-data runtime (:input request)))
+      "reverse-relationships" (success request runtime (reverse-data runtime (:input request)))
+      "authorize" (let [{:keys [data cache-status]}
+                        (authorization-data runtime (:input request))]
+                    (success request runtime data cache-status))
+      "lookup-resources" (let [{:keys [data cache-status]}
+                               (lookup-resources-data runtime (:input request))]
+                           (success request runtime data cache-status))
+      "lookup-subjects" (let [{:keys [data cache-status]}
+                              (lookup-subjects-data runtime (:input request))]
+                          (success request runtime data cache-status))
+      "count-resources" (let [{:keys [data cache-status]}
+                              (count-resources-data runtime (:input request))]
+                          (success request runtime data cache-status))
+      "get-schema" (success request runtime fixture/wire-schema)
+      "get-cache-info" (success request runtime (cache-data))
+      "count-objects" (success request runtime (count-data runtime (:input request)))
+      (failure request runtime "validation-error"
+               "This operation is outside the browser dispatcher."))
+    (catch :default error
+      (let [code (:code (ex-data error))]
+        (case code
+          "cursor-invalid" (failure request runtime code "The cursor is invalid or expired.")
+          "cursor-scope-mismatch" (failure request runtime code "The cursor belongs to another query or lifecycle.")
+          (failure request runtime "internal-error"
+                   "The browser-local explorer operation failed."))))))
 
 (defn- normalized-object [record]
   (let [{:keys [type id]} (:object record)]
@@ -433,81 +371,46 @@
 
     accumulator))
 
-(defn- active-initialization-request []
-  (some (fn [request]
-          (when (active-request? (:clientEpoch request) (:requestId request))
-            request))
-        (vals (:waiters @lifecycle))))
+(defn- build-runtime []
+  (let [snapshot (gobj/get js/window "__EACL_DATASCRIPT_SNAPSHOT__")
+        connection (ds/conn-from-db (ds/from-serializable snapshot))
+        client (eacl-datascript/make-client connection {})
+        records (mapcat :records (fixture/small-fixture-bundles))
+        accumulator (reduce add-record
+                            {:objects {} :subjects [] :relationships []}
+                            records)
+        runtime {:connection connection
+                 :client client
+                 :cursors (atom {:by-token {} :order []})
+                 :captured-at (.toISOString (js/Date.))
+                 :objects (:objects accumulator)
+                 :subjects (:subjects accumulator)
+                 :relationships (:relationships accumulator)}]
+    (when-not (eacl/acl? client)
+      (throw (js/Error. "EACL DataScript adapter did not restore an authorization client.")))
+    runtime))
 
-(defn- restore-fixture! [request]
-  (js/setTimeout
-   (fn []
-     (if-let [progress-request (active-initialization-request)]
-       (try
-         (let [snapshot (gobj/get js/self "__EACL_DATASCRIPT_SNAPSHOT__")
-               connection (ds/conn-from-db (ds/from-serializable snapshot))
-               client (eacl-datascript/make-client connection {})
-               records (mapcat :records (fixture/small-fixture-bundles))
-               accumulator (reduce add-record
-                                   {:objects {} :subjects [] :relationships []}
-                                   records)
-               ready-runtime {:connection connection
-                              :client client
-                              :cursors (atom {:by-token {} :order []})
-                              :captured-at (.toISOString (js/Date.))
-                              :objects (:objects accumulator)
-                              :subjects (:subjects accumulator)
-                              :relationships (:relationships accumulator)}]
-           (when-not (eacl/acl? client)
-             (throw (js/Error. "EACL DataScript adapter did not restore an authorization client.")))
-           (post-progress! progress-request "fixture-seed" 0
-                           "Restoring the deterministic fixture in browser memory.")
-           (let [state @lifecycle
-                 waiters (vals (:waiters state))]
-             (when (= (:clientEpoch progress-request) (:epoch state))
-               (swap! lifecycle assoc :runtime ready-runtime :initialization nil :waiters {})
-               (post-progress! progress-request "ready" fixture/small-resource-count
-                               "The deterministic 10,000-resource fixture is ready.")
-               (doseq [waiter waiters]
-                 (js/setTimeout #(dispatch! waiter ready-runtime) 0)))))
-         (catch :default _
-           (let [state @lifecycle
-                 waiters (vals (:waiters state))]
-             (swap! lifecycle assoc :runtime nil :initialization nil :waiters {})
-             (doseq [waiter waiters]
-               (failure! waiter nil "internal-error"
-                         "The browser-local fixture could not be initialized.")))))
-       (do
-         (post-progress! request "canceled" 0
-                         "Fixture initialization was canceled and its worker-owned state was released.")
-         (swap! lifecycle assoc :initialization nil :runtime nil :waiters {}))))
-   0))
-
-(defn- start-initialization! [request]
-  (try
-    (swap! lifecycle assoc :initialization {:requestId (:requestId request)} :runtime nil)
-    (post-progress! request "fixture-generation" 0
-                    "Loading the deterministic canonical fixture inside this worker.")
-    (restore-fixture! request)
-    (catch :default _
-      (swap! lifecycle assoc :initialization nil :runtime nil :waiters {})
-      (failure! request nil "internal-error"
-                "The EACL DataScript adapter could not start."))))
-
-(defn- ensure-runtime! [request]
+(defn- ensure-runtime! []
   (let [{:keys [runtime initialization]} @lifecycle]
     (cond
-      runtime (js/setTimeout #(dispatch! request runtime) 0)
-      initialization (swap! lifecycle assoc-in [:waiters (:requestId request)] request)
-      :else (do
-              (swap! lifecycle assoc-in [:waiters (:requestId request)] request)
-              (start-initialization! request)))))
-
-(defn- message-bytes [value]
-  (try
-    (.-length (.encode (js/TextEncoder.) (.stringify js/JSON value)))
-    (catch :default _
-      (inc maximum-message-bytes))))
+      runtime (js/Promise.resolve runtime)
+      initialization initialization
+      :else
+      (let [promise
+            (js/Promise.
+             (fn [resolve reject]
+               (js/setTimeout
+                (fn []
+                  (try
+                    (let [runtime (build-runtime)]
+                      (swap! lifecycle assoc :runtime runtime :initialization nil)
+                      (resolve runtime))
+                    (catch :default error
+                      (swap! lifecycle assoc :runtime nil :initialization nil)
+                      (reject error))))
+                0)))]
+        (swap! lifecycle assoc :initialization promise)
+        promise))))
 
 (defn- valid-request-id? [value]
   (and (string? value)
@@ -520,11 +423,6 @@
 (defn- sha256? [value]
   (and (string? value)
        (boolean (re-matches #"[0-9a-f]{64}" value))))
-
-(defn- valid-epoch? [value]
-  (and (number? value)
-       (js/Number.isSafeInteger value)
-       (<= 1 value maximum-client-epoch)))
 
 (defn- identifier? [value]
   (and (string? value)
@@ -659,36 +557,6 @@
       (assoc :ceiling default-count-ceiling)
       (and (= "count-objects" operation) (nil? (:ceiling input))) (assoc :ceiling default-count-ceiling))))
 
-(defn- base-valid? [message]
-  (and (= contract-version (:contractVersion message))
-       (= profile-id (:profileId message))
-       (valid-request-id? (:requestId message))
-       (valid-epoch? (:clientEpoch message))))
-
-(defn- input-object? [value]
-  (and (some? value)
-       (= "object" (goog/typeOf value))
-       (not (array? value))))
-
-(defn- request-valid? [raw message]
-  (and (= request-keys (set (keys message)))
-       (= "request" (:type message))
-       (base-valid? message)
-       (contains? operations (:operation message))
-       (input-object? (.-input raw))
-       (<= (count (keys (:input message))) 32)))
-
-(defn- control-valid? [message expected-type]
-  (and (= control-keys (set (keys message)))
-       (= expected-type (:type message))
-       (base-valid? message)))
-
-(defn- initialize-valid? [message]
-  (and (= initialize-keys (set (keys message)))
-       (= "initialize" (:type message))
-       (base-valid? message)
-       (map? (:identity message))))
-
 (defn- deployment-identity-valid? [identity]
   (and (= identity-keys (set (keys identity)))
        (= profile-id (:profileId identity))
@@ -699,99 +567,52 @@
        (<= 1 (count (:deploymentId identity)) 256)
        (= fixture/small-manifest-sha256 (:dataManifestSha256 identity))))
 
-(defn- cleanup-for-epoch! [epoch]
-  (let [identity (:identity @lifecycle)]
-    (reset! lifecycle {:epoch epoch
-                       :identity identity
-                       :runtime nil
-                       :initialization nil
-                       :requests {}
-                       :waiters {}
-                       :canceled #{}})))
-
-(defn- initialize-worker! [request]
-  (let [epoch (:clientEpoch request)
-        current (:epoch @lifecycle)
-        identity (:identity request)
-        active-identity (:identity @lifecycle)]
-    (cond
-      (< epoch current) nil
-      (not (deployment-identity-valid? identity))
-      (protocol-error! request "identity-mismatch" "The worker identity does not match its compiled EACL and fixture closure.")
-      (and active-identity (not= active-identity identity))
-      (protocol-error! request "identity-mismatch" "The worker lifecycle is already bound to another deployment identity.")
-      :else
+(defn- initialize! [raw-identity]
+  (let [identity (js->clj raw-identity :keywordize-keys true)]
+    (if-not (deployment-identity-valid? identity)
+      (js/Promise.reject
+       (js/Error. "The DataScript runtime identity does not match its compiled EACL and fixture closure."))
       (do
-        (cleanup-for-epoch! epoch)
-        (swap! lifecycle assoc :identity identity)
-        (post-event! (assoc (event-base "initialized" request) :identity identity))))))
+        (reset! lifecycle {:identity identity :runtime nil :initialization nil})
+        (js/Promise.resolve true)))))
 
-(defn- accept-request! [request]
-  (let [request (assoc request :startedAt (.now js/performance))
-        epoch (:clientEpoch request)
-        current (:epoch @lifecycle)]
+(defn- request! [operation raw-input request-id]
+  (let [request {:operation operation
+                 :input (js->clj raw-input :keywordize-keys true)
+                 :requestId request-id
+                 :startedAt (.now js/performance)}]
     (cond
-      (< epoch current) nil
-      (> epoch current) (do (cleanup-for-epoch! epoch)
-                            (accept-request! request))
       (nil? (:identity @lifecycle))
-      (protocol-error! request "identity-mismatch" "The worker identity handshake must complete before operations begin.")
-      (get-in @lifecycle [:requests (:requestId request)])
-      (protocol-error! request "validation-error" "The request ID is already active in this client epoch.")
+      (js/Promise.reject (js/Error. "The DataScript runtime has not been initialized."))
+
       (contains? unsupported-consistency (get-in request [:input :consistency]))
-      (do
-        (swap! lifecycle assoc-in [:requests (:requestId request)] request)
-        (failure! request nil "unsupported-consistency"
-                  "DataScript does not retain exact or externally synchronized historical snapshots."))
-      (not (valid-operation-input? request))
-      (protocol-error! request "validation-error" "The operation input failed closed validation.")
+      (js/Promise.resolve
+       (clj->js (failure request (:runtime @lifecycle) "unsupported-consistency"
+                         "DataScript does not retain exact or externally synchronized historical snapshots.")))
+
+      (or (not (contains? operations operation))
+          (not (valid-request-id? request-id))
+          (> (count (keys (:input request))) 32)
+          (not (valid-operation-input? request)))
+      (js/Promise.resolve
+       (clj->js (failure request (:runtime @lifecycle) "validation-error"
+                         "The operation input failed closed validation.")))
+
       :else
-      (let [request (assoc request
-                           :input (normalize-operation-input request))]
-        (swap! lifecycle assoc-in [:requests (:requestId request)] request)
-        (ensure-runtime! request)))))
+      (let [request (update request :input #(normalize-operation-input (assoc request :input %)))]
+        (-> (ensure-runtime!)
+            (.then (fn [runtime]
+                     (clj->js (dispatch request runtime))))
+            (.catch (fn [_]
+                      (clj->js
+                       (failure request nil "internal-error"
+                                "The browser-local fixture could not be initialized.")))))))))
 
-(defn- cancel-request! [request]
-  (when (= (:clientEpoch request) (:epoch @lifecycle))
-    (when-let [active (get-in @lifecycle [:requests (:requestId request)])]
-      (swap! lifecycle
-             (fn [state]
-               (-> state
-                   (update :requests dissoc (:requestId request))
-                   (update :waiters dissoc (:requestId request))
-                   (update :canceled conj (:requestId request)))))
-      (failure! active (:runtime @lifecycle) "canceled" "The browser-local request was canceled."))))
+(defn- release! []
+  (reset! lifecycle {:identity nil :runtime nil :initialization nil})
+  true)
 
-(defn- reset-worker! [request]
-  (let [epoch (:clientEpoch request)]
-    (when (> epoch (:epoch @lifecycle))
-      (cleanup-for-epoch! epoch)
-      (let [bootstrap-request (assoc request
-                                     :type "request"
-                                     :operation "bootstrap"
-                                     :input {}
-                                     :startedAt (.now js/performance))]
-        (swap! lifecycle assoc-in [:requests (:requestId request)] bootstrap-request)
-        (ensure-runtime! bootstrap-request)))))
-
-(defn- handle-message [event]
-  (let [raw (.-data event)
-        bytes (message-bytes raw)
-        message (when (and (<= bytes maximum-message-bytes)
-                           (= "object" (goog/typeOf raw))
-                           (not (array? raw)))
-                  (js->clj raw :keywordize-keys true))
-        request-id (:requestId message)
-        epoch (:clientEpoch message)]
-    (cond
-      (nil? message) nil
-      (and (valid-epoch? epoch) (< epoch (:epoch @lifecycle))) nil
-      (initialize-valid? message) (initialize-worker! message)
-      (request-valid? raw message) (accept-request! message)
-      (control-valid? message "cancel") (cancel-request! message)
-      (control-valid? message "reset") (reset-worker! message)
-      (and (valid-request-id? request-id) (valid-epoch? epoch))
-      (protocol-error! message "validation-error" "The worker message failed closed validation.")
-      :else nil)))
-
-(set! (.-onmessage js/self) handle-message)
+(gobj/set js/window "EaclDataScriptRuntime"
+          #js {:initialize initialize!
+               :request request!
+               :release release!})

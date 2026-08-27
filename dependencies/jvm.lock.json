@@ -5,7 +5,7 @@
   "aliases": [
     "test",
     "nrepl",
-    "datascript-worker",
+    "datascript-runtime",
     "datahike-s3",
     "datahike-s3-upstream-audit",
     "datahike-dynamodb",
@@ -15,6 +15,14 @@
   ],
   "artifacts": [
     {
+      "path": "dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar",
+      "sha256": "be264ee95cf67148194a87b9ef9d533d74caa7dbb2f64bac29a1e159498dcb63",
+      "bytes": 3579574,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/adzerk/boot-test/1.1.2/boot-test-1.1.2.jar",
       "sha256": "5455c1ad581474c47ef645f76467fa36bab14d5110eae7ba1d96165459de6594",
       "bytes": 4550,
@@ -22,6 +30,22 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/babashka/babashka.pods/0.2.0/babashka.pods-0.2.0.jar",
+      "sha256": "783f1ce037214fd6d255b8ff371da79215d387a97f58d6aabae852e825865a5d",
+      "bytes": 24999,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/babashka/fs/0.1.6/fs-0.1.6.jar",
+      "sha256": "d7474834e16fbb52a4d9b7b1aa6052ca4d01b9c671d1ff41598231c1a17556be",
+      "bytes": 18976,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -40,6 +64,62 @@
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/borkdude/edamame/1.5.39/edamame-1.5.39.jar",
+      "sha256": "e83ca0f962c580c5c9c8d00967698b3fd0d002247e37e4f46c3383b9c29d8855",
+      "bytes": 26916,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/borkdude/graal.locking/0.0.2/graal.locking-0.0.2.jar",
+      "sha256": "7859697555c154d72030ceb34534cfbaa70ac4b58984041d37850b53bdf7145e",
+      "bytes": 14748,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/cheshire/cheshire/5.10.0/cheshire-5.10.0.jar",
+      "sha256": "73acc91695907a3240a62a6f20d0570650c60e535ff6f7a16fa35ae65bdc4fd8",
+      "bytes": 24604,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/alipay/sofa/bolt/1.6.12/bolt-1.6.12.jar",
+      "sha256": "2a3db1bb77b4facb5f4bffac8c9c1f62540d76dcab2f374825fc2bccf7364c53",
+      "bytes": 284124,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/alipay/sofa/common/sofa-common-tools/1.4.0/sofa-common-tools-1.4.0.jar",
+      "sha256": "e6ceb045e214bd75652527ca5828a5a6c2ddbd930734055f4449d98f6eb3e3bf",
+      "bytes": 237770,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/alipay/sofa/hessian/3.5.5/hessian-3.5.5.jar",
+      "sha256": "0c80589112f82445d47d2ef19748f0cd81fa149dcc0b49f79d7d0791782da5e6",
+      "bytes": 452340,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/alipay/sofa/jraft-core/1.4.1/jraft-core-1.4.1.jar",
+      "sha256": "bb263a996f3ab831859c579242b6b19eb978d78aaa6d9093e094896e0af26d1b",
+      "bytes": 1268031,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -144,6 +224,14 @@
       ]
     },
     {
+      "path": "repository/com/cognitect/transit-clj/1.1.357/transit-clj-1.1.357.jar",
+      "sha256": "a9fc682e189acf3f3f1a1d739d25291d233345d31c2326f89cf3a752f8dcc55a",
+      "bytes": 6833,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/cognitect/transit-cljs/0.8.269/transit-cljs-0.8.269.jar",
       "sha256": "6ce6af12c0fdff7b3b01da082d0ce4c83fe48dc52b88b00510785334aa56515b",
       "bytes": 6128,
@@ -161,7 +249,15 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3",
-        "datascript-worker"
+        "datascript-runtime"
+      ]
+    },
+    {
+      "path": "repository/com/cognitect/transit-java/1.1.403/transit-java-1.1.403.jar",
+      "sha256": "07744f8931188516837c36ff8bec87a14de0f3c6d67a80b2c82ff620ebed218f",
+      "bytes": 102696,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -244,7 +340,8 @@
       "bytes": 82104,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -261,7 +358,8 @@
       "bytes": 595531,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -269,7 +367,7 @@
       "sha256": "256ff34118ab292d1b4f3ee4d2c3e5e5f0f609d8e07c57e8ad1f51c46d4fbb46",
       "bytes": 282314,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -286,7 +384,16 @@
       "bytes": 1701926,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.10.2/jackson-dataformat-cbor-2.10.2.jar",
+      "sha256": "7c1e5ec5c9d8478041bd057835c8f2872cf838e7bcc3ce1b594a17ee959dc534",
+      "bytes": 58564,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -299,12 +406,21 @@
       ]
     },
     {
+      "path": "repository/com/fasterxml/jackson/dataformat/jackson-dataformat-smile/2.10.2/jackson-dataformat-smile-2.10.2.jar",
+      "sha256": "c4a6b047db85d57894a3eb45a62bf832f39386d0ef65b1f892f66abd0d627eba",
+      "bytes": 90817,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.2/jackson-datatype-jsr310-2.21.2.jar",
       "sha256": "a083d57cd1c4a28fefcc6bd071740779eb7fc1c22a3c1b40451b5477c443f02f",
       "bytes": 136578,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -313,6 +429,22 @@
       "bytes": 1029147,
       "aliases": [
         "datomic-dynamodb"
+      ]
+    },
+    {
+      "path": "repository/com/github/clj-easy/graal-build-time/1.0.5/graal-build-time-1.0.5.jar",
+      "sha256": "33afd4dbb6b99ff406b94cc69a8f0aa6156735ad8af8b15a8cfe5ca198855e86",
+      "bytes": 27237,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/github/luben/zstd-jni/1.5.7-11/zstd-jni-1.5.7-11.jar",
+      "sha256": "e45c18832293934924e4f2f1dd97ee2083a74def46caeeea1346cf817a37cea4",
+      "bytes": 7569993,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -345,6 +477,22 @@
       ]
     },
     {
+      "path": "repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7",
+      "bytes": 19936,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/google/errorprone/error_prone_annotations/2.2.0/error_prone_annotations-2.2.0.jar",
+      "sha256": "6ebd22ca1b9d8ec06d41de8d64e0596981d9607b42035f9ed374f9de271a481a",
+      "bytes": 13694,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/google/errorprone/error_prone_annotations/2.49.0/error_prone_annotations-2.49.0.jar",
       "sha256": "3b1003e51b8ae56fdbd7c71073e81d1683b97e6c4dff5a9151164d59b769d13c",
       "bytes": 20255,
@@ -353,11 +501,43 @@
       ]
     },
     {
+      "path": "repository/com/google/guava/failureaccess/1.0/failureaccess-1.0.jar",
+      "sha256": "d084bef9cd07a8537a1753e4850a69b7e8bab1d1e22e9f3a1e4826309a7a2336",
+      "bytes": 3727,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/google/guava/guava/27.0-jre/guava-27.0-jre.jar",
+      "sha256": "63b09db6861011e7fb2481be7790c7fd4b03f0bb884b3de2ecba8823ad19bf3f",
+      "bytes": 2747878,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "sha256": "b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99",
+      "bytes": 2199,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/google/j2objc/j2objc-annotations/1.1/j2objc-annotations-1.1.jar",
+      "sha256": "2994a7eb78f2710bd3d3bfb639b2c94e219cedac0d4d084d516e78c16dddecf6",
+      "bytes": 8782,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/google/javascript/closure-compiler/v20250402/closure-compiler-v20250402.jar",
       "sha256": "6fcbd20f75994edc6856e336bc0147ce3dd7110c6b3a132e93edf580673c72bb",
       "bytes": 14062314,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -369,6 +549,14 @@
       ]
     },
     {
+      "path": "repository/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5.jar",
+      "sha256": "8540247fad9e06baefa8fb45eb313802d019f485f14300e0f9d6b556ed88e753",
+      "bytes": 1875414,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar",
       "sha256": "4e69696892b88b41c55d49ab2fdcc21eead92bf54acc588c0050596c3b75199c",
       "bytes": 23931,
@@ -376,7 +564,7 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3",
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -396,14 +584,47 @@
       ]
     },
     {
+      "path": "repository/com/lmax/disruptor/3.3.7/disruptor-3.3.7.jar",
+      "sha256": "d5135e76ee238c2f3a5da905115de15ca4c1f1338a3c8869d6947cf108acdb9c",
+      "bytes": 85577,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/com/rpl/specter/1.1.4/specter-1.1.4.jar",
       "sha256": "09550b6929f696d60eeddfd068d08c47eaf09309091963e805ae6744c911ded6",
       "bytes": 42250,
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3",
-        "datascript-worker",
+        "datalevin-memory",
+        "datascript-runtime",
         "datomic-dynamodb"
+      ]
+    },
+    {
+      "path": "repository/com/taoensso/encore/3.160.1/encore-3.160.1.jar",
+      "sha256": "7bdcca3d065da695864e500e14d14de800b2779d22c78095bd7b5fbf218c761f",
+      "bytes": 128860,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/taoensso/nippy/3.7.0-beta1/nippy-3.7.0-beta1.jar",
+      "sha256": "69dd3b7930ada8513ffc907fbaf68449673b603049ccd027033ca4802a10fac1",
+      "bytes": 51849,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/com/taoensso/timbre/6.5.0/timbre-6.5.0.jar",
+      "sha256": "4a37027d7f1abf6d6923516b2004e436324802790e5c11ddcd84c0a19c2130a0",
+      "bytes": 52268,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -414,6 +635,14 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/com/taoensso/truss/2.3.0/truss-2.3.0.jar",
+      "sha256": "bc551ce3c8fb21608084733139e169a92c597b1783d48fb84a73d54f13141c7c",
+      "bytes": 23902,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -450,6 +679,14 @@
       ]
     },
     {
+      "path": "repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar",
+      "sha256": "df90bba0fe3cb586b7f164e78fe8f8f4da3f2dd5c27fa645f888100ccc25dd72",
+      "bytes": 563971,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/commons-io/commons-io/2.22.0/commons-io-2.22.0.jar",
       "sha256": "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758",
       "bytes": 609182,
@@ -463,7 +700,8 @@
       "bytes": 61829,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-s3",
+        "datomic-dynamodb"
       ]
     },
     {
@@ -481,7 +719,7 @@
       "sha256": "127f7457a0496d675a1e0e4fa1a890280dfa85773aaec982120f7d2fd8befd1c",
       "bytes": 86080,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -527,8 +765,33 @@
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3",
-        "datascript-worker",
+        "datalevin-memory",
+        "datascript-runtime",
         "datomic-dynamodb"
+      ]
+    },
+    {
+      "path": "repository/io/airlift/aircompressor/2.0.3/aircompressor-2.0.3.jar",
+      "sha256": "b86bb66f610079e0bf790d62e2ff68853eb0dc4748a6d68ae28bce92b68094aa",
+      "bytes": 255256,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/io/dropwizard/metrics/metrics-core/4.0.2/metrics-core-4.0.2.jar",
+      "sha256": "750e2aed52ca23dd1583352b764d5562161ef2f3b7b702f29a170ea6fe6c6bfb",
+      "bytes": 97677,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/io/github/nextjournal/markdown/0.7.225/markdown-0.7.225.jar",
+      "sha256": "d3543b85e00a0c4b38af3bf47d754ff671cdb4fa415b8d40c878fac49e5c17c7",
+      "bytes": 34395,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -536,7 +799,15 @@
       "sha256": "5a7e067e14d10d1a762f5bcb0ab4dc02c4eee4f4ae898e6d387ba70e5c1eb8d2",
       "bytes": 7179,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
+      ]
+    },
+    {
+      "path": "repository/io/netty/netty-all/4.1.42.Final/netty-all-4.1.42.Final.jar",
+      "sha256": "6d79d4ac3e999c91bb9137128c532ce322a8fe439c28ae8fb8ae0fde622245f9",
+      "bytes": 4080249,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -661,6 +932,14 @@
       ]
     },
     {
+      "path": "repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar",
+      "sha256": "43fdef0b5b6ceb31b0424b208b930c74ab58fac2ceeb7b3f6fd3aeb8b5ca4393",
+      "bytes": 56674,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar",
       "sha256": "883007989d373d19f352ba9792b25dec21dc7d0e205a710a93a3815101bb3d03",
       "bytes": 125632,
@@ -668,7 +947,15 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3",
-        "datascript-worker"
+        "datascript-runtime"
+      ]
+    },
+    {
+      "path": "repository/javax/xml/bind/jaxb-api/2.4.0-b180830.0359/jaxb-api-2.4.0-b180830.0359.jar",
+      "sha256": "56b9e9702753763007435162ea788055efcfefc86ab920f032c0411dc547b836",
+      "bytes": 128032,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -690,6 +977,14 @@
       ]
     },
     {
+      "path": "repository/me/lemire/integercompression/JavaFastPFOR/0.3.14/JavaFastPFOR-0.3.14.jar",
+      "sha256": "15fda6339610976fcb31ceeef8b36e98ce44a1abad236f52eef77caaae68aa63",
+      "bytes": 511254,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/medley/medley/1.4.0/medley-1.4.0.jar",
       "sha256": "4cf21169bbdcb46b99e77d409beeb7bfd1aa366088528757424cb997d496f355",
       "bytes": 12703,
@@ -704,7 +999,8 @@
       "bytes": 40256,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -745,12 +1041,21 @@
       ]
     },
     {
+      "path": "repository/net/java/dev/jna/jna/5.14.0/jna-5.14.0.jar",
+      "sha256": "34ed1e1f27fa896bca50dbc4e99cf3732967cec387a7a0d5e3486c09673fe8c6",
+      "bytes": 1878533,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/nrepl/bencode/1.2.0/bencode-1.2.0.jar",
       "sha256": "8422956bb01c5efdc5866407ccd70b9e7b0b14da910a35a9ab733ea3e528fb85",
       "bytes": 14697,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -778,6 +1083,14 @@
       ]
     },
     {
+      "path": "repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar",
+      "sha256": "4eeeae8d20c078abb64b015ec158add383ac581571cddc45c68f0c9ae0230720",
+      "bytes": 702952,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar",
       "sha256": "6fe9026a566c6a5001608cf3fc32196641f6c1e5e1986d1037ccdbd5f31ef743",
       "bytes": 780321,
@@ -793,7 +1106,14 @@
       "bytes": 328593,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datahike-s3",
+        "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar",
+      "sha256": "6c9b3dd142a09dc468e23ad39aad6f75a0f2b85125104469f026e52a474e464f",
+      "bytes": 327891,
+      "aliases": [
         "datomic-dynamodb"
       ]
     },
@@ -823,6 +1143,94 @@
       ]
     },
     {
+      "path": "repository/org/babashka/sci.impl.types/0.0.3/sci.impl.types-0.0.3.jar",
+      "sha256": "d331dba0e0738c381d737f18525070e75b63f3f67efc88d3450db00c755fe6de",
+      "bytes": 2624,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/babashka/sci/0.13.53/sci-0.13.53.jar",
+      "sha256": "f44fb507fa3383a22db0cb9dad6ec05bf27e0c05409d3cd6e33aee95b4555340",
+      "bytes": 151193,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/bouncycastle/bcpkix-jdk15on/1.70/bcpkix-jdk15on-1.70.jar",
+      "sha256": "e5b9cb821df57f70b0593358e89c0e8d7266515da9d088af6c646f63d433c07c",
+      "bytes": 963713,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar",
+      "sha256": "8f3c20e3e2d565d26f33e8d4857a37d0d7f8ac39b62a7026496fcab1bdac30d4",
+      "bytes": 5867298,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/bouncycastle/bcutil-jdk15on/1.70/bcutil-jdk15on-1.70.jar",
+      "sha256": "52dc5551b0257666526c5095424567fed7dc7b00d2b1ba7bd52298411112b1d0",
+      "bytes": 482530,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/bytedeco/javacpp/1.5.13/javacpp-1.5.13.jar",
+      "sha256": "077f27d663cc928adce43e912a90ec06f97f92f120ca02d414735ae0fb1c743c",
+      "bytes": 526511,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/checkerframework/checker-qual/2.5.2/checker-qual-2.5.2.jar",
+      "sha256": "64b02691c8b9d4e7700f8ee2e742dce7ea2c6e81e662b7522c9ee3bf568c040a",
+      "bytes": 193322,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/clj-commons/pretty/2.2.1/pretty-2.2.1.jar",
+      "sha256": "578ca8deecdef1c2b49def3aa82cd18556c525b569bf92a909bfb289313e6e4d",
+      "bytes": 21236,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/clojars/huahaiy/dtlvnative-linux-x86_64/0.18.8/dtlvnative-linux-x86_64-0.18.8.jar",
+      "sha256": "88a1dd39754fafed961e60b2af3f36241fd04e6d6bb19f715ce16d364848d4f2",
+      "bytes": 3861342,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/clojars/huahaiy/dtlvnative-macosx-arm64/0.18.8/dtlvnative-macosx-arm64-0.18.8.jar",
+      "sha256": "9ca9b76df758176acb74a23a4e5112de815f5cb0281c06b56a3b80bb038ae834",
+      "bytes": 2485493,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/clojars/huahaiy/dtlvnative-windows-x86_64/0.18.8/dtlvnative-windows-x86_64-0.18.8.jar",
+      "sha256": "59cba1979b3015382f8dd999288ecc3bc01085a73df8b91d1d2584a504e506c3",
+      "bytes": 2605037,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/clojars/mmb90/cljs-cache/0.1.4/cljs-cache-0.1.4.jar",
       "sha256": "673205c0465661b943fbc33293c68c6637d8169b239f0211696d8301cf7d88e5",
       "bytes": 5841,
@@ -842,7 +1250,7 @@
         "datahike-s3",
         "datahike-s3-upstream-audit",
         "datalevin-memory",
-        "datascript-worker",
+        "datascript-runtime",
         "datomic-dynamodb",
         "nrepl",
         "test"
@@ -861,7 +1269,7 @@
       "sha256": "ac8aee8f79457fe32e63d5eb558111cd0c356404fab7bdfae3318baef5739a3b",
       "bytes": 5349977,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -937,7 +1345,7 @@
         "datahike-s3",
         "datahike-s3-upstream-audit",
         "datalevin-memory",
-        "datascript-worker",
+        "datascript-runtime",
         "datomic-dynamodb",
         "nrepl",
         "test"
@@ -968,7 +1376,8 @@
       "sha256": "0938c730961d32b331ea7e5cd7c6a822c0a889def79d1c3f2af4dd201fdddeb3",
       "bytes": 10200,
       "aliases": [
-        "datahike-s3"
+        "datahike-s3",
+        "datalevin-memory"
       ]
     },
     {
@@ -995,7 +1404,7 @@
       "bytes": 50089,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -1004,7 +1413,7 @@
       "bytes": 5479009,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -1017,7 +1426,7 @@
         "datahike-s3",
         "datahike-s3-upstream-audit",
         "datalevin-memory",
-        "datascript-worker",
+        "datascript-runtime",
         "datomic-dynamodb",
         "nrepl",
         "test"
@@ -1095,12 +1504,20 @@
       ]
     },
     {
+      "path": "repository/org/clojure/tools.cli/1.4.256/tools.cli-1.4.256.jar",
+      "sha256": "2a2d1769aa5ced5aa40e92c8ff568ea2751398b0ea45520308774ec2317abcee",
+      "bytes": 11488,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/clojure/tools.reader/1.3.6/tools.reader-1.3.6.jar",
       "sha256": "11d1b31f2c65c3355b292bb9b44b8fcafda54b44da63e34ab97b79a8ab3bb8e0",
       "bytes": 52544,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -1121,6 +1538,14 @@
       ]
     },
     {
+      "path": "repository/org/clojure/tools.reader/1.6.0/tools.reader-1.6.0.jar",
+      "sha256": "036dc155f3b62548df3da934791aa9d8ec36572a9c664ce2cc7f6551856436be",
+      "bytes": 52614,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/codehaus/janino/commons-compiler-jdk/3.1.12/commons-compiler-jdk-3.1.12.jar",
       "sha256": "fcd403580da03c40024ba00952c428d8824cf2d74dd31afc425764e3c7bee176",
       "bytes": 64580,
@@ -1134,6 +1559,78 @@
       "bytes": 171943,
       "aliases": [
         "datomic-dynamodb"
+      ]
+    },
+    {
+      "path": "repository/org/codehaus/mojo/animal-sniffer-annotations/1.17/animal-sniffer-annotations-1.17.jar",
+      "sha256": "92654f493ecfec52082e76354f0ebf87648dc3d5cec2e3c3cdb947c016747a53",
+      "bytes": 3448,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark-ext-autolink/0.24.0/commonmark-ext-autolink-0.24.0.jar",
+      "sha256": "013ba4f3ba4850a1de35935d1501587c518f764331d279805da33473e79f5f33",
+      "bytes": 7299,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark-ext-footnotes/0.24.0/commonmark-ext-footnotes-0.24.0.jar",
+      "sha256": "6ba102121a785d47d0713604f02ecc71947b7548637b34911fe18e3b9e2bd2bc",
+      "bytes": 21229,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark-ext-gfm-strikethrough/0.24.0/commonmark-ext-gfm-strikethrough-0.24.0.jar",
+      "sha256": "7385cb637f04dc4cbda4ddca9c2fcd2af7ac536a50e4c8d2c77f4748bb14bf41",
+      "bytes": 13938,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark-ext-gfm-tables/0.24.0/commonmark-ext-gfm-tables-0.24.0.jar",
+      "sha256": "b54dc332f931e6d07c2766144c087b08f3693677e368151a67020b4e95bb4b99",
+      "bytes": 23462,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark-ext-task-list-items/0.24.0/commonmark-ext-task-list-items-0.24.0.jar",
+      "sha256": "9705b53140c68f63136f183e6c90c834e376ae0780e84800f9ec2ea49ecab984",
+      "bytes": 9307,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/commonmark/commonmark/0.24.0/commonmark-0.24.0.jar",
+      "sha256": "679338e0b7fc15c02d275d598654b01a149893bc28a87992e90123c8d06af25b",
+      "bytes": 214528,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/eclipse/collections/eclipse-collections-api/13.0.0/eclipse-collections-api-13.0.0.jar",
+      "sha256": "2ede735db355b079fc08b0bc7657bd4f95d045416bdaa7ec5235853cf6f364d2",
+      "bytes": 1879018,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/eclipse/collections/eclipse-collections/13.0.0/eclipse-collections-13.0.0.jar",
+      "sha256": "4c1d2fc77eeb52325893337f4080c9f73cc53670956f80489b5f375fdc5bb6e1",
+      "bytes": 10617521,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -1171,7 +1668,15 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3",
-        "datascript-worker"
+        "datascript-runtime"
+      ]
+    },
+    {
+      "path": "repository/org/jctools/jctools-core/2.1.1/jctools-core-2.1.1.jar",
+      "sha256": "21d1f6c06bca41fc8ededed6dbc7972cff668299f1e4c79ca62a9cb39f2fb4f8",
+      "bytes": 255316,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -1193,6 +1698,14 @@
       ]
     },
     {
+      "path": "repository/org/msgpack/msgpack-core/0.9.11/msgpack-core-0.9.11.jar",
+      "sha256": "031b780833e8766fecb2af629bc04f2eb5d2c2b1e17475b9b6b8a81f932aea31",
+      "bytes": 126964,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/msgpack/msgpack/0.6.12/msgpack-0.6.12.jar",
       "sha256": "e09ca65d8520488e80a5dc426848a8afccfd40f4a2eb3b9646042595d3bd9b5e",
       "bytes": 283342,
@@ -1200,7 +1713,23 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3",
-        "datascript-worker"
+        "datascript-runtime"
+      ]
+    },
+    {
+      "path": "repository/org/nibor/autolink/autolink/0.11.0/autolink-0.11.0.jar",
+      "sha256": "39c6588948ab31b98ab1fea4a6abab37243f387cb48cb50ae599410effb70038",
+      "bytes": 20234,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
+      "path": "repository/org/ow2/asm/asm/6.0/asm-6.0.jar",
+      "sha256": "dd8971c74a4e697899a8e95caae4ea8760ea6c486dc6b97b1795e75760420461",
+      "bytes": 95209,
+      "aliases": [
+        "datalevin-memory"
       ]
     },
     {
@@ -1360,6 +1889,14 @@
       ]
     },
     {
+      "path": "repository/org/roaringbitmap/RoaringBitmap/1.6.14/RoaringBitmap-1.6.14.jar",
+      "sha256": "78ae7a6261b5b03f53b8db991047d06959cfadbd0b08af54bd95dda40af9acba",
+      "bytes": 474903,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/roaringbitmap/RoaringBitmap/1.6.20/RoaringBitmap-1.6.20.jar",
       "sha256": "86a23f4be195446269ac4117fe6b884f26a4e29e0bfba2d183a342682619e590",
       "bytes": 479307,
@@ -1393,6 +1930,14 @@
       ]
     },
     {
+      "path": "repository/org/slf4j/slf4j-api/1.7.21/slf4j-api-1.7.21.jar",
+      "sha256": "1d5aeb6bd98b0fdd151269eae941c05f6468a791ea0f1e68d8e7fe518af3e7df",
+      "bytes": 41071,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar",
       "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
       "bytes": 41125,
@@ -1411,11 +1956,19 @@
       ]
     },
     {
+      "path": "repository/org/tukaani/xz/1.12/xz-1.12.jar",
+      "sha256": "3e158a87bd73d8afb4b6e8239c013b7d049c48563f45860ce99cd2e448cf4a6b",
+      "bytes": 168792,
+      "aliases": [
+        "datalevin-memory"
+      ]
+    },
+    {
       "path": "repository/persistent-sorted-set/persistent-sorted-set/0.3.0/persistent-sorted-set-0.3.0.jar",
       "sha256": "db68864659ffe79248678ae2fb4e490b9eabfca28819d05ee7180787511f3a88",
       "bytes": 66388,
       "aliases": [
-        "datascript-worker"
+        "datascript-runtime"
       ]
     },
     {
@@ -1425,7 +1978,8 @@
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3",
-        "datascript-worker",
+        "datalevin-memory",
+        "datascript-runtime",
         "datomic-dynamodb"
       ]
     },
@@ -1447,9 +2001,17 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/annotations/2.31.45/annotations-2.31.45.jar",
-      "sha256": "518553bd9b378f1b17663ff50329299ac3d5a14c3706c89b07cdf5cac0363cd2",
-      "bytes": 13760,
+      "path": "repository/software/amazon/awssdk/annotations/2.32.26/annotations-2.32.26.jar",
+      "sha256": "8e42f42cce03e44f54b48fccb0cf102cf9f8211fa35707c3dbe640ab10143a1a",
+      "bytes": 13759,
+      "aliases": [
+        "datomic-dynamodb"
+      ]
+    },
+    {
+      "path": "repository/software/amazon/awssdk/apache-client/2.32.26/apache-client-2.32.26.jar",
+      "sha256": "6989216669e4115618f9ca0caefd60fba87aebc39d4c3e8dd16b17626e353100",
+      "bytes": 77015,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1480,9 +2042,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/auth/2.31.45/auth-2.31.45.jar",
-      "sha256": "b14622bce3a84819d6efbacd6833f0ff6fe85125a5b7724ef7c8b2b229aa5594",
-      "bytes": 234900,
+      "path": "repository/software/amazon/awssdk/auth/2.32.26/auth-2.32.26.jar",
+      "sha256": "f321a43d9f58a06b9d7f35c14a9817c72866d026eb85310444d98690d17245ec",
+      "bytes": 234932,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1505,9 +2067,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-core/2.31.45/aws-core-2.31.45.jar",
-      "sha256": "dcf6d5bd73852f5ffcb8c56c994b1472e8fedf5c9ecc4c73e525764baf9d477c",
-      "bytes": 186431,
+      "path": "repository/software/amazon/awssdk/aws-core/2.32.26/aws-core-2.32.26.jar",
+      "sha256": "c85d73a65da789c1f6f400cd6883aabe48d9f497814bcd8cb06002e0158583a7",
+      "bytes": 192120,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1522,8 +2084,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-json-protocol/2.31.45/aws-json-protocol-2.31.45.jar",
-      "sha256": "6b2fd799654057f33fab79ce1ac8c97a289f1f7079992f49231c17b1376848cd",
+      "path": "repository/software/amazon/awssdk/aws-json-protocol/2.32.26/aws-json-protocol-2.32.26.jar",
+      "sha256": "0a478bfd1048dd3f93053056bd2bb48f559b43c68105c37f740e60e27ccb9c8f",
       "bytes": 141897,
       "aliases": [
         "datomic-dynamodb"
@@ -1563,8 +2125,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/checksums-spi/2.31.45/checksums-spi-2.31.45.jar",
-      "sha256": "6dd36349c472e312989c51f1a60c92cf33f26d16c035e5bda63387c251234851",
+      "path": "repository/software/amazon/awssdk/checksums-spi/2.32.26/checksums-spi-2.32.26.jar",
+      "sha256": "285d395f113ddefff790ded211c1712e00721ae1faae6006175fa1f989eaeda1",
       "bytes": 8046,
       "aliases": [
         "datomic-dynamodb"
@@ -1588,9 +2150,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/checksums/2.31.45/checksums-2.31.45.jar",
-      "sha256": "592133137e4ab331a8516327091655c3bb3bdc8ef48be562a994bb9851dec603",
-      "bytes": 69776,
+      "path": "repository/software/amazon/awssdk/checksums/2.32.26/checksums-2.32.26.jar",
+      "sha256": "8c15c08b2c4d81700205b88817f0d7489849766a895c092941cacf80c5c56cdc",
+      "bytes": 69586,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1613,9 +2175,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/dynamodb/2.31.45/dynamodb-2.31.45.jar",
-      "sha256": "1dc9e521cb17002fe75c102d36244089d5e0e0960cd07d1fd0c1b236cc934e40",
-      "bytes": 3010542,
+      "path": "repository/software/amazon/awssdk/dynamodb/2.32.26/dynamodb-2.32.26.jar",
+      "sha256": "4da6315557e47d510c7df120c157402f9c50f0fbe654090ea2ec0487b342c0b8",
+      "bytes": 3124267,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1638,8 +2200,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/endpoints-spi/2.31.45/endpoints-spi-2.31.45.jar",
-      "sha256": "34d2d8d3fbf853217936e6fe6ee1879bbb2c6d5a88f0b701fae3805947ab45f9",
+      "path": "repository/software/amazon/awssdk/endpoints-spi/2.32.26/endpoints-spi-2.32.26.jar",
+      "sha256": "e52ad5c1df4e777854ae349e5d0251f62d7d9d3ebe7b517b780543f23f8616e3",
       "bytes": 13170,
       "aliases": [
         "datomic-dynamodb"
@@ -1663,8 +2225,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-aws-eventstream/2.31.45/http-auth-aws-eventstream-2.31.45.jar",
-      "sha256": "8d5db4370182fea5e8c4059b9b824d9fbec199c59444e8661cea59c2279586d1",
+      "path": "repository/software/amazon/awssdk/http-auth-aws-eventstream/2.32.26/http-auth-aws-eventstream-2.32.26.jar",
+      "sha256": "57651a661329fae881721ddc35eca5525efc848a87766dc2022008d6686fb12a",
       "bytes": 8706,
       "aliases": [
         "datomic-dynamodb"
@@ -1688,9 +2250,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-aws/2.31.45/http-auth-aws-2.31.45.jar",
-      "sha256": "bd9939aa3dde5f901df102b374738a1c09286a69864f31310e6e4ba4ef1596b9",
-      "bytes": 159424,
+      "path": "repository/software/amazon/awssdk/http-auth-aws/2.32.26/http-auth-aws-2.32.26.jar",
+      "sha256": "6e1998fa747f72888bcb94f7e2a4b17e03e7108584fb47b49ebf61889878ec06",
+      "bytes": 168304,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1713,9 +2275,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-spi/2.31.45/http-auth-spi-2.31.45.jar",
-      "sha256": "e21af9d846226a803c9768fcac6b167e37eca65106ec501926e1b17d9888cadb",
-      "bytes": 45762,
+      "path": "repository/software/amazon/awssdk/http-auth-spi/2.32.26/http-auth-spi-2.32.26.jar",
+      "sha256": "c6cb1c730399a2ce8061121137c53047cd3faf02630a28e205d0b373fa57d218",
+      "bytes": 45763,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1738,9 +2300,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth/2.31.45/http-auth-2.31.45.jar",
-      "sha256": "084feb6f62b19cc6a9a001b22d883edd9090fec0efc1b78e3d0244089bc720cb",
-      "bytes": 17477,
+      "path": "repository/software/amazon/awssdk/http-auth/2.32.26/http-auth-2.32.26.jar",
+      "sha256": "d43c353ee788a544056649b7aa5d2ac1714cdf9838e2f555d8bfd025adcfbc50",
+      "bytes": 17475,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1763,9 +2325,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-client-spi/2.31.45/http-client-spi-2.31.45.jar",
-      "sha256": "1c7284d653364e9506f66c51d16f306098d55762f184796ca3a0abf9c16555eb",
-      "bytes": 88589,
+      "path": "repository/software/amazon/awssdk/http-client-spi/2.32.26/http-client-spi-2.32.26.jar",
+      "sha256": "0be7d65566f12c28c762e4f871fb1af22e2d5c6090c20287993a5a7310273a4a",
+      "bytes": 91686,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1788,9 +2350,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/identity-spi/2.31.45/identity-spi-2.31.45.jar",
-      "sha256": "c45b9aa5bcbe30f509a295db67b2485bdc3a9ab3902dcd1d3a8d340cafd48fd0",
-      "bytes": 30965,
+      "path": "repository/software/amazon/awssdk/identity-spi/2.32.26/identity-spi-2.32.26.jar",
+      "sha256": "188c7d7938d41776f5b5765677a7d23e734bd8323e963b99eb54758e9ac23996",
+      "bytes": 30964,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1813,8 +2375,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/json-utils/2.31.45/json-utils-2.31.45.jar",
-      "sha256": "0b6f724789af54a2adecd55673c92870ecab45c3a8b12c6a4ebe69befc376fe3",
+      "path": "repository/software/amazon/awssdk/json-utils/2.32.26/json-utils-2.32.26.jar",
+      "sha256": "73a0ec93d23d14977fe9da3529b24ba2e372c22412fac1d8fed35a4792e1f50f",
       "bytes": 33227,
       "aliases": [
         "datomic-dynamodb"
@@ -1838,8 +2400,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/metrics-spi/2.31.45/metrics-spi-2.31.45.jar",
-      "sha256": "44eef665331f1467debb9c58759027b59d77dae91a64fa6051e2cbc0ccb563e9",
+      "path": "repository/software/amazon/awssdk/metrics-spi/2.32.26/metrics-spi-2.32.26.jar",
+      "sha256": "3234214846890af478bb482429be26eb8f0a749c1f4c9e29b8142aaf51829c26",
       "bytes": 27264,
       "aliases": [
         "datomic-dynamodb"
@@ -1863,9 +2425,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/profiles/2.31.45/profiles-2.31.45.jar",
-      "sha256": "a076ea07f5acde867ec2375983b8a2850f8be5c59412baeff5322829f2ae5f05",
-      "bytes": 50382,
+      "path": "repository/software/amazon/awssdk/profiles/2.32.26/profiles-2.32.26.jar",
+      "sha256": "3da1bf696d506c85fe463ab8716966887152d4c7b04a768fc572350ba1e361ae",
+      "bytes": 50526,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1888,8 +2450,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/protocol-core/2.31.45/protocol-core-2.31.45.jar",
-      "sha256": "23f06ed5fb9d8c5a452748f843c9cedeee5a84c0609240d50afe11d58b3063aa",
+      "path": "repository/software/amazon/awssdk/protocol-core/2.32.26/protocol-core-2.32.26.jar",
+      "sha256": "5644e3f421c232bab9e38664704a135e2ccf6337287425ccb0d913664602cb98",
       "bytes": 44372,
       "aliases": [
         "datomic-dynamodb"
@@ -1913,9 +2475,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/regions/2.31.45/regions-2.31.45.jar",
-      "sha256": "5fb2ba1d0c6c0e080a11dc9938c2b571a2d89256e31d6accd6ee8418c84a56bd",
-      "bytes": 943642,
+      "path": "repository/software/amazon/awssdk/regions/2.32.26/regions-2.32.26.jar",
+      "sha256": "01c48b4b40ca89d84470ed415d6592c2f8c0888b47e02fbd5bd7bcce228d2ee4",
+      "bytes": 964998,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1938,9 +2500,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/retries-spi/2.31.45/retries-spi-2.31.45.jar",
-      "sha256": "e7308569b6545e209861427c067aaefe9d839a20328c8c6a9a6ef35819fc3776",
-      "bytes": 31488,
+      "path": "repository/software/amazon/awssdk/retries-spi/2.32.26/retries-spi-2.32.26.jar",
+      "sha256": "d12c804bb17fd6988e14a7d8820de14a00714511cba84313796b7e20fec7a01a",
+      "bytes": 31487,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1963,9 +2525,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/retries/2.31.45/retries-2.31.45.jar",
-      "sha256": "9b24d899657e92083cddf9e258f8955c8aff1ab6ffa88f2a0a1999daf82ee576",
-      "bytes": 66311,
+      "path": "repository/software/amazon/awssdk/retries/2.32.26/retries-2.32.26.jar",
+      "sha256": "ba4774c9f7c924fbb914d6dbcbddf263d815e78d6585367bdc170a5662519a2f",
+      "bytes": 66310,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -1996,9 +2558,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/sdk-core/2.31.45/sdk-core-2.31.45.jar",
-      "sha256": "2dc3083adc3eda66e48caaccb205cb84d2c57338ce491831ffd946db00f0121c",
-      "bytes": 988789,
+      "path": "repository/software/amazon/awssdk/sdk-core/2.32.26/sdk-core-2.32.26.jar",
+      "sha256": "a5af7c9f90f6321f862162b91b61442937b1071dc724fb6e7757ad6f974b5435",
+      "bytes": 1003727,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -2021,8 +2583,8 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/third-party-jackson-core/2.31.45/third-party-jackson-core-2.31.45.jar",
-      "sha256": "617033e1a0a12e266e103de953843986bf713dd47a5e61afac4b94bb6a90571f",
+      "path": "repository/software/amazon/awssdk/third-party-jackson-core/2.32.26/third-party-jackson-core-2.32.26.jar",
+      "sha256": "356c2ea77af4c4f8043bb40d2552525d5634339dc31d95b13473e5011d31bff3",
       "bytes": 535001,
       "aliases": [
         "datomic-dynamodb"
@@ -2046,9 +2608,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/url-connection-client/2.31.45/url-connection-client-2.31.45.jar",
-      "sha256": "8dde920bd9cae6316674e27e5d1069b61c2704b809821ee6290e10b9b56b4d33",
-      "bytes": 33076,
+      "path": "repository/software/amazon/awssdk/url-connection-client/2.32.26/url-connection-client-2.32.26.jar",
+      "sha256": "c12a1f5dd256c02dabc7506bb9a09c1096f958789d0b02b6ada8a5349599feaf",
+      "bytes": 33043,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -2071,9 +2633,9 @@
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/utils/2.31.45/utils-2.31.45.jar",
-      "sha256": "bdfaa2f5f54eaa73b405496a9f7fda2052e189cf8809c3091e573049f13a12a3",
-      "bytes": 227800,
+      "path": "repository/software/amazon/awssdk/utils/2.32.26/utils-2.32.26.jar",
+      "sha256": "f6d54fa60d40166fd30080a393a99b5bc07c100e628e19771d100aadb9c1c233",
+      "bytes": 241620,
       "aliases": [
         "datomic-dynamodb"
       ]
@@ -2106,6 +2668,14 @@
         "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit",
         "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/tigris/tigris/0.1.2/tigris-0.1.2.jar",
+      "sha256": "49aa648edb6c14e57095a11b391eaee606578323fb79755f92331ac6300f97a0",
+      "bytes": 10550,
+      "aliases": [
+        "datalevin-memory"
       ]
     }
   ]

@@ -1,5 +1,4 @@
 import {
-  type Accessor,
   createMemo,
   createSignal,
   onCleanup,
@@ -21,7 +20,7 @@ import { parseCanonicalUrl } from "../../../packages/explorer-state/src/url-stat
 import { createUrlStateController } from "../../../packages/explorer-state/src/url-controller.mjs";
 import { ApiProvider } from "./api";
 import { ProfileSelector } from "./components/ProfileSelector";
-import { Explorer } from "./Explorer";
+import { Explorer, ExplorerFooter } from "./Explorer";
 import {
   createProfileApi,
   type ExplorerProfile,
@@ -43,7 +42,7 @@ interface DeploymentIdentity {
   demoSha: string;
   eaclSha: string;
   artifact: {
-    kind: "static" | "lambda-version" | "browser-worker";
+    kind: "static" | "lambda-version";
     sha256: string;
     version: string;
   };
@@ -81,7 +80,6 @@ const catalog = catalogData as {
 export interface ExplorerAppProps {
   entry?: "server" | "datascript";
   createDataScriptTransport?: (profile: ExplorerProfile) => ExplorerTransport;
-  startupMessage?: Accessor<string | null>;
 }
 
 export default function App(props: ExplorerAppProps): JSX.Element {
@@ -140,13 +138,12 @@ export default function App(props: ExplorerAppProps): JSX.Element {
 
   const selectBackend = (backend: BackendId) => {
     if (backend === "datascript" && props.entry !== "datascript") {
-      window.open("/datascript/", "_blank", "noopener,noreferrer");
-      setSelection({ ...selection() });
-      queueMicrotask(() => {
-        document.querySelector<HTMLInputElement>(
-          'input[name="explorer-backend"][value="datascript"]',
-        )?.focus();
-      });
+      window.location.assign("/datascript/");
+      return;
+    }
+    if (backend !== "datascript" && props.entry === "datascript") {
+      const next = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend)) as Selection;
+      window.location.assign(`/?backend=${encodeURIComponent(next.backend)}&storage=${encodeURIComponent(next.storage)}`);
       return;
     }
     shouldApplyRegistryDefault = false;
@@ -243,13 +240,13 @@ export default function App(props: ExplorerAppProps): JSX.Element {
       ) : (
         <ConfiguredExplorer
           profile={entry.profile}
+          execution={entry.profile.backend === "datascript" ? "browser" : "lambda"}
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
           transport={entry.profile.backend === "datascript"
             ? props.createDataScriptTransport?.(entry.profile)
             : undefined}
-          startupMessage={props.startupMessage}
         />
       )}
     </Show>
@@ -258,11 +255,11 @@ export default function App(props: ExplorerAppProps): JSX.Element {
 
 function ConfiguredExplorer(props: {
   profile: ExplorerProfile;
+  execution: "lambda" | "browser";
   backendLabel: string;
   storageLabel: string;
   selector: JSX.Element;
   transport?: ExplorerTransport;
-  startupMessage?: Accessor<string | null>;
 }): JSX.Element {
   const api = createProfileApi(props.profile, { transport: props.transport });
   onCleanup(() => void api.release());
@@ -273,7 +270,7 @@ function ConfiguredExplorer(props: {
           backendLabel={props.backendLabel}
           storageLabel={props.storageLabel}
           profileSelector={props.selector}
-          startupMessage={props.startupMessage}
+          execution={props.execution}
         />
       </AppStateProvider>
     </ApiProvider>
@@ -298,7 +295,6 @@ function StandaloneExplorer(props: {
     <div class="app-shell" data-theme={theme()}>
       <header class="app-header">
         <div class="app-header__intro">
-          <p class="eyebrow">EACL v8 + {props.backendLabel} + {props.storageLabel}</p>
           <h1 class="app-title">🦅 EACL Explorer</h1>
           <p class="app-subtitle">Reactive authorization over explicit, inspectable HTTP queries.</p>
         </div>
@@ -321,17 +317,13 @@ function StandaloneExplorer(props: {
             when={props.datascript}
             fallback={<p class="empty-state">The selected demo is not available.</p>}
           >
-            <a
-              class="graph-toggle"
-              href="/datascript/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open DataScript explorer in a new tab
+            <a class="graph-toggle" href="/datascript/">
+              Open DataScript explorer
             </a>
           </Show>
         </div>
       </main>
+      <ExplorerFooter />
     </div>
   );
 }

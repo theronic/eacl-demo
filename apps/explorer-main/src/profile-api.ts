@@ -32,7 +32,7 @@ export interface ExplorerProfile {
     demoSha: string;
     eaclSha: string;
     artifact: {
-      kind: "static" | "lambda-version" | "browser-worker";
+      kind: "static" | "lambda-version";
       sha256: string;
       version: string;
     };

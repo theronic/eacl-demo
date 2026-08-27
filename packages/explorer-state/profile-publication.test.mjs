@@ -154,7 +154,7 @@ function successfulProfile(id, demoDigit, eaclDigit, artifactDigit, deployedAt) 
   const deployment = {
     demoSha: demoDigit.repeat(40),
     eaclSha: eaclDigit.repeat(40),
-    artifact: { kind: id === "datascript-browser-memory" ? "browser-worker" : "lambda-version", sha256: artifactDigit.repeat(64), version: "42" },
+    artifact: { kind: id === "datascript-browser-memory" ? "static" : "lambda-version", sha256: artifactDigit.repeat(64), version: "42" },
     deploymentId: `${id}:deploy-42`,
     dataManifestSha256: "d".repeat(64),
     deployedAt

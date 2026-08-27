@@ -41,7 +41,7 @@ Several platform facts determine the design:
 **Non-Goals:**
 
 - A hosted authorization service, arbitrary user data/schema/query, public writes, or an SLA.
-- Cursor or exact-basis portability across profiles, deployments, or browser workers.
+- Cursor or exact-basis portability across profiles, deployments, or browser page lifecycles.
 - Fleet-wide atomic rollout or a requirement that every backend expose the same consistency/history/storage features.
 - A formal-verification gate for demo build or deployment.
 - Historical or at-exact-snapshot support from the Datomic read-only Lambda; a future non-read-only EC2 demo owns that problem.
@@ -53,7 +53,7 @@ Several platform facts determine the design:
 
 ### 1. `theronic/eacl-demo` owns the consolidated product
 
-The new repository contains shared UI/state/contract packages, deterministic fixtures, one service package per profile, browser worker code, infrastructure units, qualification/smoke tooling, deployment workflows, and runbooks. Adapter repositories remain upstream dependencies until separately moved. Generic build-unit manifests prove deterministic source identity only; they cannot qualify concrete deployment bytes. Each real static, ZIP, JAR, or native artifact requires its own byte-for-byte double-build evidence before its unit becomes deployment-eligible. The compiled static check remains a manual/material-change qualification and does not slow ordinary demo merges.
+The new repository contains shared UI/state/contract packages, deterministic fixtures, one service package per server profile, a direct DataScript browser runtime, infrastructure units, qualification/smoke tooling, deployment workflows, and runbooks. Adapter repositories remain upstream dependencies until separately moved. Generic build-unit manifests prove deterministic source identity only; they cannot qualify concrete deployment bytes. Each real static, ZIP, JAR, or native artifact requires its own byte-for-byte double-build evidence before its unit becomes deployment-eligible. The compiled static check remains a manual/material-change qualification and does not slow ordinary demo merges.
 
 Deterministic JVM uber-JAR normalization preserves Clojure's AOT loader invariant: non-class entries use the fixed ZIP timestamp `2000-01-01T00:00:00`, while `.class` entries use `2000-01-01T00:00:02`. Equal source and class timestamps are forbidden because Clojure then recompiles `.clj`/`.cljc` sources and can split generated interfaces/proxies across classloaders. Packaged audits execute an AOT-sensitive `clojure.pprint` path in addition to loading each entrypoint.
 
@@ -74,7 +74,7 @@ The first selector is a stable backend ID. The second is filtered by enabled reg
 | Datomic | DynamoDB | managed Java Lambda, read-only Peer | exactly 1,000,000 |
 | Datalevin | in-memory LMDB | managed Java 25 arm64 Lambda; preinitialized published-version SnapStart | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
-| DataScript | browser memory | ClojureScript Web Worker | exactly 10,000 by default |
+| DataScript | browser memory | direct ClojureScript page runtime | exactly 10,000 prebuilt |
 
 The internal key remains a composite profile ID such as `datahike-dynamodb`; routes, IAM, aliases, cursors, caches, and evidence stay profile-scoped. The canonical URL uses separate `backend` and `storage` parameters. Datahike is the neutral landing backend because a global speed comparison across unequal datasets/topologies is invalid.
 
@@ -235,9 +235,9 @@ not storage or durability. Broader repeated restore/eviction/load evidence can
 still harden the topology later, but formal verification is not a merge gate
 for this demo.
 
-### 10. DataScript remains a separate worker-backed entry
+### 10. DataScript remains a separate direct static entry
 
-`/datascript/` shares UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and worker only from its own build graph. The worker owns database/client/cache/cursor lifecycle and bounded request messages. The build creates a DataScript-native serialized database from the exact 10,000-resource generator and embeds it in the content-addressed worker; startup restores that database rather than replaying 48,693 records in every browser. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
+`/datascript/` shares the exact UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and its direct browser runtime only from its own build graph. There is no Web Worker, Blob loader, independent worker protocol, or duplicated presentation. The page owns the database/client/cache/cursor lifecycle. The build creates a DataScript-native serialized database from the exact 10,000-resource generator and embeds it in the content-addressed runtime; startup restores that database rather than replaying the fixture in every browser. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
 
 ### 11. Jank targets `provided.al2023` x86_64 and does not use SnapStart
 

@@ -145,7 +145,7 @@ test("a released aggregate permits exact mixed profile generations without a con
   profile.deployment = {
     demoSha: profileDemoSha,
     eaclSha: profileEaclSha,
-    artifact: { kind: "browser-worker", sha256: artifactSha256, version: "worker-e" },
+    artifact: { kind: "static", sha256: artifactSha256, version: "datascript-runtime-e.js" },
     deploymentId: "datascript-run-9",
     dataManifestSha256: profile.fixture.manifestSha256.slice("sha256:".length),
     deployedAt: "2026-08-26T12:00:00Z"

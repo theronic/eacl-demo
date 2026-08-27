@@ -30,7 +30,7 @@
     "preview:static-site": "node scripts/serve-static-site.mjs",
     "build:explorer-main": "node scripts/generate-runtime-validators.mjs --check && vite build --config apps/explorer-main/vite.config.ts",
     "build:datascript-entry": "node scripts/generate-runtime-validators.mjs --check && vite build --config apps/explorer-datascript/vite.config.ts",
-    "build:datascript-worker": "node scripts/build-datascript-worker.mjs",
+    "build:datascript-runtime": "node scripts/build-datascript-runtime.mjs",
     "build:datahike-s3": "node scripts/build-unit.mjs datahike-s3",
     "build:datahike-s3-lambda": "clojure -T:build datahike-s3-lambda",
     "build:datahike-dynamodb": "node scripts/build-unit.mjs datahike-dynamodb",
