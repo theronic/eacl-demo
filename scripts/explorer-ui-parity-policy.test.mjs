@@ -25,14 +25,30 @@ test("unchanged Explorer components remain byte-identical to the current Datahik
   }
 });
 
-test("the stylesheet is exactly Datahike plus Datomic permission-decision rules", () => {
+test("the stylesheet is exactly Datahike plus approved primary-control and consistency-note rules and Datomic permission-decision rules", () => {
   const demo = file(resolve(demoSource, "styles.css"));
   const withoutDecisionRules = demo.replace(
     /\n\n\/\* DATOMIC_PERMISSION_DECISIONS_START \*\/[\s\S]*?\/\* DATOMIC_PERMISSION_DECISIONS_END \*\/\n\n/u,
     "\n\n",
   );
+  const approvedPrimaryControlRules = `.profile-selector__option {
+  padding: 7px 12px;
+  font-size: 1rem;
+}
+`;
+  const approvedConsistencyNoteRules = `.basis-info__note--consistency {
+  max-width: none;
+  font-size: 0.84rem;
+  text-align: left;
+}
+`;
+  assert.equal(withoutDecisionRules.includes(approvedPrimaryControlRules), true);
+  assert.equal(withoutDecisionRules.includes(approvedConsistencyNoteRules), true);
+  const withoutApprovedRules = withoutDecisionRules
+    .replace(`${approvedPrimaryControlRules}\n`, "")
+    .replace(`${approvedConsistencyNoteRules}\n`, "");
   assert.equal(
-    sha(withoutDecisionRules),
+    sha(withoutApprovedRules),
     "341ac588e8347cfa93867406dd0c02e081ec56ef38efa1f5fd81cce85bb6dfb9",
   );
   const decisionRules = between(
@@ -45,7 +61,7 @@ test("the stylesheet is exactly Datahike plus Datomic permission-decision rules"
     "2558a71d874afeffba820e267829eb70a62776648d78f73135dd258d19c4e4b8",
   );
   if (existsSync(resolve(datahikeSource, "styles.css"))) {
-    assert.equal(withoutDecisionRules, file(resolve(datahikeSource, "styles.css")));
+    assert.equal(withoutApprovedRules, file(resolve(datahikeSource, "styles.css")));
   }
   if (existsSync(resolve(datomicSource, "styles.css"))) {
     const datomic = file(resolve(datomicSource, "styles.css"));

@@ -35,7 +35,7 @@ export function ProfileSelector(props: {
               <div class="consistency-selection__options">
                 <For each={props.backends}>
                   {(backend) => (
-                    <label class="consistency-radio">
+                    <label class="consistency-radio profile-selector__option">
                       <input
                         type="radio"
                         name="explorer-backend"
@@ -57,7 +57,7 @@ export function ProfileSelector(props: {
                 <For each={props.storages}>
                   {(storage) => (
                     <label
-                      class={`consistency-radio ${storage.selectable ? "" : "consistency-radio--disabled"}`}
+                      class={`consistency-radio profile-selector__option ${storage.selectable ? "" : "consistency-radio--disabled"}`}
                       title={storage.reason ?? storage.label}
                     >
                       <input

@@ -1330,6 +1330,11 @@ button {
   accent-color: var(--accent);
 }
 
+.profile-selector__option {
+  padding: 7px 12px;
+  font-size: 1rem;
+}
+
 .selected-basis {
   color: var(--muted);
   font-family: "IBM Plex Mono", monospace;
@@ -1388,6 +1393,12 @@ button {
 .basis-info__note--segment,
 .exact-date-control .basis-info__note {
   max-width: none;
+  text-align: left;
+}
+
+.basis-info__note--consistency {
+  max-width: none;
+  font-size: 0.84rem;
   text-align: left;
 }
 
