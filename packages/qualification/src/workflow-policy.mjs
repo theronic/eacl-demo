@@ -99,8 +99,7 @@ export function assertManualAssuranceWorkflows({ fullQualification, explorerQual
   }
   requirePattern(fullQualification, /npm run qualify:http-profile/u, "full qualification workflow must execute the complete HTTP harness");
   for (const variable of ["EACL_PROFILE_ID", "EACL_DEMO_SHA", "EACL_CORE_SHA", "EACL_ARTIFACT_SHA256", "EACL_DEPLOYMENT_ID", "EACL_DATA_MANIFEST_SHA256"]) requirePattern(fullQualification, new RegExp(`\\b${variable}:`, "u"), `full qualification omits ${variable}`);
-  requirePattern(fullQualification, /EACL_QUALIFICATION_TARGET_KIND:\s*staged-cloudfront/u, "full qualification must use staged CloudFront");
-  requirePattern(fullQualification, /EACL_EXPECTED_STAGED_ORIGIN:\s*\$\{\{ vars\.STAGED_CLOUDFRONT_ORIGIN \}\}/u, "full qualification is not bound to the trusted staged distribution");
+  requirePattern(fullQualification, /EACL_QUALIFICATION_TARGET_KIND:\s*direct-function-url/u, "full qualification must use the direct Function URL");
   requirePattern(explorerQualification, /npm run qualify:explorer/u, "browser workflow must execute explorer qualification");
   requirePattern(explorerQualification, /npm run build:static-site/u, "browser workflow must build the complete main and DataScript site");
   requirePattern(explorerQualification, /npm run qualify:datascript-browser/u, "browser workflow omits the direct DataScript runtime exercise");

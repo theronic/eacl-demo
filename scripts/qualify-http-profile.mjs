@@ -6,7 +6,7 @@ import { commonQualificationCases } from "../packages/qualification/src/cases.mj
 import { writeQualificationReports } from "../packages/qualification/src/reports.mjs";
 import { runQualification } from "../packages/qualification/src/runner.mjs";
 import {
-  assertTrustedCloudFrontOrigin,
+  assertTrustedFunctionUrlOrigin,
   createHttpQualificationTransport,
   qualificationTarget
 } from "../packages/qualification/src/targets.mjs";
@@ -24,16 +24,30 @@ const input = closedEnvironment({
   outputDirectory: "EACL_QUALIFICATION_OUTPUT"
 });
 
-if (!new Set(["local", "staged-cloudfront"]).has(input.targetKind)) {
-  throw new Error("HTTP qualification supports only local or staged-cloudfront targets");
+if (!new Set(["local", "direct-function-url"]).has(input.targetKind)) {
+  throw new Error("HTTP qualification supports only local or direct-function-url targets");
 }
 const target = qualificationTarget({
   kind: input.targetKind,
   baseUrl: input.baseUrl,
   profileId: input.profileId
 });
-if (input.targetKind === "staged-cloudfront") assertTrustedCloudFrontOrigin(target, requiredEnvironment("EACL_EXPECTED_STAGED_ORIGIN"));
-const exemplars = JSON.parse(await readFile(path.join(root, "fixtures/exemplars.v1.json"), "utf8"));
+if (input.targetKind === "direct-function-url") {
+  const definitions = JSON.parse(await readFile(path.join(root, "packages/contracts/profiles.v1.json"), "utf8"));
+  const definition = definitions.profiles.find(({ id }) => id === input.profileId);
+  if (!definition?.apiOrigin) throw new Error("profile has no deployed Function URL origin in the closed catalog");
+  assertTrustedFunctionUrlOrigin(target, definition.apiOrigin);
+}
+const exemplarCatalogs = new Map(await Promise.all([
+  "exemplars.v1.json",
+  "legacy-datahike-s3-exemplars.v1.json"
+].map(async (name) => {
+  const catalog = JSON.parse(await readFile(path.join(root, "fixtures", name), "utf8"));
+  if (typeof catalog.fixtureId !== "string" || !Array.isArray(catalog.cases)) {
+    throw new Error(`invalid qualification exemplar catalog: ${name}`);
+  }
+  return [catalog.fixtureId, catalog];
+})));
 const expectedIdentity = {
   profileId: input.profileId,
   demoSha: input.demoSha,
@@ -45,7 +59,15 @@ const expectedIdentity = {
 const qualification = await runQualification({
   target,
   expectedIdentity,
-  cases: commonQualificationCases(exemplars),
+  cases: (descriptor) => {
+    const fixtureId = descriptor.dataset?.fixtureId;
+    const exemplars = exemplarCatalogs.get(fixtureId);
+    if (!exemplars) throw new Error(`no qualification exemplars are registered for fixture ${fixtureId ?? "unknown"}`);
+    if (descriptor.dataset.manifestSha256 !== expectedIdentity.dataManifestSha256) {
+      throw new Error("descriptor dataset identity differs from the immutable deployment");
+    }
+    return commonQualificationCases(exemplars);
+  },
   createTransport: (value) => createHttpQualificationTransport(value)
 });
 const outputDirectory = path.resolve(root, input.outputDirectory);
@@ -77,10 +99,4 @@ function closedEnvironment(mapping) {
     throw new Error("EACL_QUALIFICATION_OUTPUT is invalid");
   }
   return values;
-}
-
-function requiredEnvironment(name) {
-  const value = process.env[name];
-  if (typeof value !== "string" || value.length === 0 || value.length > 2048 || /[\r\n]/u.test(value)) throw new Error(`${name} is required and bounded`);
-  return value;
 }

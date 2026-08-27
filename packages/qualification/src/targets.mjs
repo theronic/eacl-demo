@@ -2,18 +2,20 @@ import { jsonPayloadSha256, readBoundedJsonResponse } from "../../contracts/src/
 
 const PROFILE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
+const FUNCTION_URL_HOST = /^[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws$/u;
 export const SERVER_PROFILE_IDS = Object.freeze([
   "datahike-s3", "datahike-dynamodb", "datomic-dynamodb",
   "datalevin-memory", "jank-memory"
 ]);
 
 export function qualificationTarget({ kind, baseUrl, profileId, authorize = null }) {
-  if (!new Set(["local", "staged-origin", "staged-cloudfront", "production-cloudfront"]).has(kind)) throw new TypeError("qualification target kind is invalid");
+  if (!new Set(["local", "direct-function-url", "staged-origin", "staged-cloudfront", "production-cloudfront"]).has(kind)) throw new TypeError("qualification target kind is invalid");
   if (typeof profileId !== "string" || !PROFILE.test(profileId) || !SERVER_PROFILE_IDS.includes(profileId)) throw new TypeError("qualification profile ID is not a registered server profile");
   const url = new URL(baseUrl);
   if (url.username || url.password || url.search || url.hash) throw new Error("qualification URL cannot contain credentials, query, or fragment");
   if (kind === "local" && (!LOOPBACK.has(url.hostname) || !new Set(["http:", "https:"]).has(url.protocol))) throw new Error("local qualification is restricted to loopback");
   if (kind !== "local" && url.protocol !== "https:") throw new Error("staged qualification requires HTTPS");
+  if (kind === "direct-function-url" && (!FUNCTION_URL_HOST.test(url.hostname) || url.port)) throw new Error("direct qualification requires an exact Lambda Function URL host");
   if (kind === "staged-origin" && typeof authorize !== "function") throw new Error("a staged origin requires a request authorization provider");
   if (kind !== "staged-origin" && authorize !== null) throw new Error("authorization providers are restricted to staged origins");
   if (url.pathname.replace(/\/$/u, "") !== `/api/v1/${profileId}`) throw new Error("qualification URL path does not match the exact profile route");
@@ -37,7 +39,7 @@ export function createHttpQualificationTransport(target, { fetchImpl = globalThi
         "x-eacl-request-id": requestId,
         ...(method === "POST" ? {
           "content-type": "application/json; charset=utf-8",
-          "x-amz-content-sha256": await jsonPayloadSha256(body)
+          ...(target.kind === "staged-origin" ? { "x-amz-content-sha256": await jsonPayloadSha256(body) } : {})
         } : {})
       };
       const authorization = target.authorize ? await target.authorize({ method, url, headers: { ...headers }, body }) : {};
@@ -65,7 +67,7 @@ export function createHttpQualificationTransport(target, { fetchImpl = globalThi
       }
       const headers = {
         ...probe.headers,
-        ...(probe.body === null ? {} : { "x-amz-content-sha256": await jsonPayloadSha256(probe.body) })
+        ...(probe.body === null || target.kind !== "staged-origin" ? {} : { "x-amz-content-sha256": await jsonPayloadSha256(probe.body) })
       };
       const response = await fetchImpl(probe.url, { method: probe.method, headers, ...(probe.body === null ? {} : { body: probe.body }), signal: AbortSignal.timeout(requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
       const envelope = await readBoundedJsonResponse(response);
@@ -130,5 +132,16 @@ export function assertTrustedCloudFrontOrigin(target, expectedOrigin) {
   if (expected.protocol !== "https:" || expected.username || expected.password || expected.pathname !== "/" || expected.search || expected.hash || expected.port) throw new Error("trusted CloudFront origin is invalid");
   const actual = new URL(target.baseUrl ?? target.origin);
   if (actual.origin !== expected.origin) throw new Error("qualification target does not match the trusted CloudFront origin");
+  return true;
+}
+
+export function assertTrustedFunctionUrlOrigin(target, expectedOrigin) {
+  if (!target || target.kind !== "direct-function-url") throw new TypeError("trusted-origin binding requires a direct Function URL target");
+  const expected = new URL(expectedOrigin);
+  if (expected.protocol !== "https:" || expected.username || expected.password || expected.pathname !== "/" || expected.search || expected.hash || expected.port || !FUNCTION_URL_HOST.test(expected.hostname)) {
+    throw new Error("trusted Function URL origin is invalid");
+  }
+  const actual = new URL(target.baseUrl ?? target.origin);
+  if (actual.origin !== expected.origin) throw new Error("qualification target does not match the trusted Function URL origin");
   return true;
 }

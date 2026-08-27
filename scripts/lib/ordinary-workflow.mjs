@@ -108,6 +108,25 @@ export function eligibleOrdinaryTargets(buildUnits) {
   return eligible;
 }
 
+export function assertLiveOrdinaryTargetPairs(source, profileDefinitions) {
+  if (typeof source !== "string" || source.length < 1) throw new TypeError("ordinary workflow source is required");
+  if (!profileDefinitions || !Array.isArray(profileDefinitions.profiles)) throw new TypeError("profile definitions are required");
+  const expected = [
+    "static",
+    ...profileDefinitions.profiles
+      .filter(({ apiOrigin }) => typeof apiOrigin === "string" && apiOrigin.length > 0)
+      .map(({ id }) => id)
+  ].sort();
+  const observed = [...source.matchAll(/^  (build|deploy)-([a-z0-9]+(?:-[a-z0-9]+)*):\s*$/gmu)]
+    .map(([, phase, target]) => `${phase}:${target}`)
+    .sort();
+  const required = expected.flatMap((target) => [`build:${target}`, `deploy:${target}`]).sort();
+  if (JSON.stringify(observed) !== JSON.stringify(required)) {
+    throw new Error("ordinary workflow targets differ from the public direct-profile catalog");
+  }
+  return expected;
+}
+
 export function renderOrdinaryWorkflow(buildUnits, { deployEntrypointAvailable = true, implementedTargets = null } = {}) {
   const eligible = eligibleOrdinaryTargets(buildUnits);
   if (eligible.length === 0) return null;

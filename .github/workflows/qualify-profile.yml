@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       base_url:
-        description: Exact staged CloudFront profile URL ending at /api/v1/<profile>
+        description: Exact alias-qualified Lambda Function URL ending at /api/v1/<profile>
         required: true
         type: string
       demo_sha:
@@ -49,13 +49,12 @@ jobs:
           cache: npm
       - run: npm install --global npm@11.17.0
       - run: npm ci
-      - name: Run full staged contract qualification
+      - name: Run full direct Function URL contract qualification
         run: npm run qualify:http-profile
         env:
           EACL_PROFILE_ID: ${{ inputs.profile_id }}
           EACL_QUALIFICATION_BASE_URL: ${{ inputs.base_url }}
-          EACL_QUALIFICATION_TARGET_KIND: staged-cloudfront
-          EACL_EXPECTED_STAGED_ORIGIN: ${{ vars.STAGED_CLOUDFRONT_ORIGIN }}
+          EACL_QUALIFICATION_TARGET_KIND: direct-function-url
           EACL_DEMO_SHA: ${{ inputs.demo_sha }}
           EACL_CORE_SHA: ${{ inputs.eacl_sha }}
           EACL_ARTIFACT_SHA256: ${{ inputs.artifact_sha256 }}
