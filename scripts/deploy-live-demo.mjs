@@ -121,8 +121,7 @@ async function deployProfile(profileId, profile) {
     if (!/^[1-9][0-9]*$/.test(update.Version)) throw new Error("Lambda did not publish a version");
     aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
     if (profile.snapStart) {
-      aws(["lambda", "wait", "published-version-active", "--function-name",
-           profile.functionName, "--qualifier", update.Version]);
+      waitForPublishedVersion(profile.functionName, update.Version);
       const published = awsJson(["lambda", "get-function-configuration",
         "--function-name", profile.functionName, "--qualifier", update.Version]);
       if (published.SnapStart?.ApplyOn !== "PublishedVersions" ||
@@ -197,6 +196,18 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
     if (response.statusCode !== 200 || !("data" in response.envelope) ||
         "error" in response.envelope ||
         response.envelope.data?.allowed !== expected) {
+      process.stderr.write(
+        `authorization smoke failed: ${JSON.stringify({
+          profileId,
+          qualifier,
+          expectedAllowed: expected,
+          statusCode: response.statusCode,
+          actualAllowed: response.envelope.data?.allowed ?? null,
+          errorCode: response.envelope.error?.code ?? null,
+          operation: response.envelope.meta?.operation ?? null,
+          wallMs: response.wallMs
+        })}\n`
+      );
       throw new Error(`${profileId} ${expected ? "allow" : "deny"} smoke failed`);
     }
     decisions.push(response);
@@ -364,6 +375,43 @@ function assertMutableConfiguration(profile) {
       configuration.SnapStart?.ApplyOn !==
         (profile.snapStart ? "PublishedVersions" : "None")) {
     throw new Error(`${profile.functionName} mutable configuration violates the production runtime policy`);
+  }
+}
+
+function waitForPublishedVersion(functionName, version) {
+  try {
+    aws(["lambda", "wait", "published-version-active", "--function-name",
+         functionName, "--qualifier", version]);
+  } catch (waitError) {
+    // The waiter reports only that `State` became `Failed`. Preserve the
+    // Lambda-owned, non-secret failure classification in Actions output so a
+    // failed SnapStart image can be diagnosed without console access.
+    let diagnostic = {};
+    try {
+      const configuration = awsJson(["lambda", "get-function-configuration",
+        "--function-name", functionName, "--qualifier", version]);
+      diagnostic = {
+        functionName,
+        version,
+        state: configuration.State ?? null,
+        stateReasonCode: configuration.StateReasonCode ?? null,
+        stateReason: configuration.StateReason ?? null,
+        lastUpdateStatus: configuration.LastUpdateStatus ?? null,
+        lastUpdateStatusReasonCode: configuration.LastUpdateStatusReasonCode ?? null,
+        lastUpdateStatusReason: configuration.LastUpdateStatusReason ?? null,
+        snapStart: configuration.SnapStart ?? null
+      };
+    } catch (diagnosticError) {
+      diagnostic = {
+        functionName,
+        version,
+        diagnosticError: diagnosticError instanceof Error
+          ? diagnosticError.message
+          : String(diagnosticError)
+      };
+    }
+    process.stderr.write(`published version failed: ${JSON.stringify(diagnostic)}\n`);
+    throw waitError;
   }
 }
 
