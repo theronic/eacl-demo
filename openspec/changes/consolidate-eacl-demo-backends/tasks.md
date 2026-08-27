@@ -187,8 +187,8 @@ decision as well as the existing qualification evidence.
 
 - [ ] 12.1 Implement independently deployable foundation, static, per-profile runtime, per-profile data, seed compute, observability, and legacy compatibility stacks.
 - [x] 12.2 Configure a private versioned static S3 bucket with public-access block, AWS-owned encryption, lifecycle policy, and CloudFront origin access control.
-- [ ] 12.3 Configure demo.eacl.dev CloudFront with only the private static S3 origin and static main/DataScript entries; remove every Lambda/API origin, behavior, request/cache policy, OAC, and invoke permission.
-- [ ] 12.4 Configure each enabled alias Function URL for direct public read-only invocation with exact demo.eacl.dev CORS and prove preflight, direct identity, allow, deny, and mutation rejection live.
+- [x] 12.3 Configure demo.eacl.dev CloudFront with only the private static S3 origin and static main/DataScript entries; remove every Lambda/API origin, behavior, request/cache policy, OAC, and invoke permission.
+- [x] 12.4 Configure each enabled alias Function URL for direct public read-only invocation with exact demo.eacl.dev CORS and prove preflight, direct identity, allow, deny, and mutation rejection live.
 - [x] 12.5 Add infrastructure and client checks for exact direct Function URL catalog binding, CSP allowlisting, no same-origin API requests, no CloudFront signing hash, no wildcard CORS, HTTPS, and descriptor identity.
 - [x] 12.6 Create per-profile least-privilege serving roles and separate stateful maintenance roles with automated wildcard and cross-profile denial checks.
 - [x] 12.7 Use AWS-owned DynamoDB encryption and avoid customer-managed KMS keys unless a later explicit requirement justifies their cost.

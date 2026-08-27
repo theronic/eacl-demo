@@ -11,8 +11,8 @@ const tasks = parseTaskChecklist(taskSource);
 
 test("completion ledger covers every and only open OpenSpec task", () => {
   assert.deepEqual(validateChangeReadiness(ledger, tasks), {
-    completed: 146,
-    open: 59,
+    completed: 148,
+    open: 57,
     total: 205,
     gateGroups: 11
   });
