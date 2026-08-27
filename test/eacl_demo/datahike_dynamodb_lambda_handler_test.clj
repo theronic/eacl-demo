@@ -106,3 +106,36 @@
     (is (= "demo-test" (get-in body [:meta :revision])))
     (is (= #{:error :meta} (set (keys body))))
     (is (not (.contains ^String (:body response) "secret")))))
+
+(deftest snapstart-primes-the-first-admin-resource-page-test
+  (let [captured (atom [])
+        running {:runtime :datahike-dynamodb}]
+    (with-redefs [handler/handle-event
+                  (fn [actual event remaining-ms]
+                    (swap! captured conj {:runtime actual
+                                          :event event
+                                          :remaining-ms remaining-ms})
+                    {:statusCode 200
+                     :body (json/write-str
+                            {:data {:items (mapv (fn [index] {:id (str index)})
+                                                (range 10))}
+                             :meta {:cacheStatus "hit"}})})]
+      (is (= running (handler/prime-runtime! running))))
+    (is (= 256 (count @captured)))
+    (is (every? #(= running (:runtime %)) @captured))
+    (is (every? #(= 30000 (:remaining-ms %)) @captured))
+    (is (every? #(= "/lookup-resources" (get-in % [:event :rawPath]))
+                @captured))
+    (is (= "snapstart-prime-lookup-resources"
+           (get-in (first @captured)
+                   [:event :requestContext :requestId])))
+    (is (= {:subjectType "user"
+            :subjectId "user-1"
+            :resourceType "server"
+            :permission "admin"
+            :pageSize 10
+            :cache true
+            :populateCache true
+            :consistency "minimize"}
+           (json/read-str (get-in (first @captured) [:event :body])
+                          :key-fn keyword)))))
