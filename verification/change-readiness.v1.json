@@ -4,8 +4,8 @@
   "change": "consolidate-eacl-demo-backends",
   "sourceTaskFile": "openspec/changes/consolidate-eacl-demo-backends/tasks.md",
   "expected": {
-    "completed": 146,
-    "open": 59,
+    "completed": 148,
+    "open": 57,
     "total": 205
   },
   "freeze": {
@@ -17,7 +17,7 @@
     {
       "id": "live-profile-qualification",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["7.1", "8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.8", "11.10", "11.11", "11.12", "12.4", "15.5"],
+      "taskIds": ["7.1", "8.4", "8.11", "8.15", "8.16", "8.17", "9.12", "9.13", "10.6", "10.8", "11.10", "11.11", "11.12", "15.5"],
       "condition": "These tasks require production-path storage, Lambda, CloudFront, memory, restore, benchmark, origin-denial, or promotion evidence that local definitions cannot supply.",
       "requiredEvidence": [
         "Content-addressed reports from the exact staged or production topology",
@@ -77,7 +77,7 @@
     {
       "id": "stack-and-rollback-coordinates",
       "disposition": "blocked-by-live-evidence",
-      "taskIds": ["12.1", "12.3", "12.10", "15.7", "15.8", "16.7"],
+      "taskIds": ["12.1", "12.10", "15.7", "15.8", "16.7"],
       "condition": "The local stack boundaries exist, but legacy compatibility, live reversibility, and retirement reporting require exact healthy targets, certificates, hosted-zone records, deployed coordinates, and recovery evidence.",
       "requiredEvidence": [
         "Exact healthy legacy fallback target and certificate coverage",

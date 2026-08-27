@@ -1,0 +1,88 @@
+{
+  "schema": "eacl-demo.direct-function-url-cutover.v1",
+  "checkedAt": "2026-08-27T09:11:29Z",
+  "region": "us-east-1",
+  "demoSha": "c31dd870ba056c3edf89104ff444c80bfc76496c",
+  "githubActionsRun": "https://github.com/theronic/eacl-demo/actions/runs/33056805906",
+  "staticDelivery": {
+    "stack": "eacl-demo-static-live",
+    "stackStatus": "UPDATE_COMPLETE",
+    "distributionId": "E1BIWUU7H35MWG",
+    "origins": [
+      {
+        "id": "static",
+        "domain": "eacl-demo-foundation-staticbucket-af4yqivd185n.s3.us-east-1.amazonaws.com"
+      }
+    ],
+    "orderedBehaviors": [
+      {
+        "path": "datascript/*",
+        "origin": "static"
+      }
+    ],
+    "defaultOrigin": "static",
+    "formerSameOriginApiProbe": {
+      "url": "https://demo.eacl.dev/api/v1/datahike-s3/health",
+      "status": 403,
+      "contentType": "application/xml",
+      "cloudFrontResult": "Error from cloudfront"
+    }
+  },
+  "profiles": [
+    {
+      "id": "datahike-s3",
+      "apiOrigin": "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws",
+      "healthStatus": 200,
+      "ready": true,
+      "allow": true,
+      "deny": true,
+      "mutationStatus": 404,
+      "mutationCode": "route-not-found"
+    },
+    {
+      "id": "datomic-dynamodb",
+      "apiOrigin": "https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws",
+      "healthStatus": 200,
+      "ready": true,
+      "allow": true,
+      "deny": true,
+      "mutationStatus": 404,
+      "mutationCode": "route-not-found"
+    },
+    {
+      "id": "datalevin-memory",
+      "apiOrigin": "https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws",
+      "healthStatus": 200,
+      "ready": true,
+      "allow": true,
+      "deny": true,
+      "mutationStatus": 404,
+      "mutationCode": "route-not-found"
+    }
+  ],
+  "cors": {
+    "allowOrigin": "https://demo.eacl.dev",
+    "allowMethods": ["GET", "POST"],
+    "allowHeaders": ["accept", "content-type", "x-eacl-request-id"],
+    "maxAgeSeconds": 86400,
+    "allPreflightsPassed": true
+  },
+  "functionUrlPolicies": {
+    "allProfilesMatched": true,
+    "statementIds": [
+      "eacl-demo-public-function-url",
+      "eacl-demo-public-function-url-invoke"
+    ],
+    "cloudFrontStatementsPresent": false
+  },
+  "browser": {
+    "serverApiRequestCount": 10,
+    "directFunctionUrlHostCount": 3,
+    "sameOriginApiRequestCount": 0,
+    "serverConsoleErrorCount": 0,
+    "datascriptApiRequestCount": 0,
+    "datascriptWorkerCount": 0,
+    "datascriptConsoleErrorCount": 0
+  },
+  "result": "passed"
+}

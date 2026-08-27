@@ -14,7 +14,7 @@ npm run verify:change-readiness
 The verifier parses the authoritative OpenSpec task file and requires the
 ledger to cover every unchecked task exactly once. It fails if a task is
 omitted, duplicated, prematurely checked, or left in the ledger after
-completion; if the 146/59/205 counts drift; or if the external-mutation freeze
+completion; if the 148/57/205 counts drift; or if the external-mutation freeze
 state is internally inconsistent. Each gate records the
 evidence needed to close it and the safe action while it remains open.
 
