@@ -17,6 +17,9 @@ Browser -- GET demo.eacl.dev ----------------> CloudFront
    +-- Datahike / S3 ----------> Lambda Function URL -> Java 25 arm64, 4,096 MiB
    |                                                     -> adopted S3 store
    |
+   +-- Datahike / DynamoDB ----> Lambda Function URL -> Java 25 arm64, 4,096 MiB
+   |                                                     -> immutable DynamoDB store
+   |
    +-- Datomic / DynamoDB -----> Lambda Function URL -> Java 25 x86_64, 3,072 MiB
    |                                                     -> read-only Peer
    |                                                     -> DynamoDB table
@@ -30,7 +33,7 @@ Browser -- GET demo.eacl.dev ----------------> CloudFront
                                      -> no Lambda and no Worker
 ```
 
-The three server Function URLs are `AuthType: NONE` because browsers cannot
+The four server Function URLs are `AuthType: NONE` because browsers cannot
 hold AWS credentials. Each URL is bound to the `candidate` alias, accepts only
 the exact `https://demo.eacl.dev` CORS origin and the demo's GET/POST headers,
 and exposes a closed read-only route table. CORS controls which browsers may
@@ -40,14 +43,40 @@ and maintenance operations.
 
 CloudFront has one origin: the private static S3 bucket. Its only additional
 cache behavior is the separate `/datascript/*` static artifact. The content
-security policy permits connections to the three exact Function URL origins,
+security policy permits connections to the four exact Function URL origins,
 not a wildcard Lambda domain.
 
+The exact serving resources inspected on 2026-08-27 are:
+
+- static site: S3 bucket `eacl-demo-foundation-staticbucket-af4yqivd185n`
+  through CloudFront distribution `E1BIWUU7H35MWG`;
+- deployment artifacts only (never a public serving origin): versioned S3
+  bucket `eacl-demo-foundation-artifactbucket-xxzglw0b0v6t`;
+- Datahike/S3: Function URL
+  `https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws`,
+  bucket `demo-eacl-datahike-v2-843761893873-us-east-1`, store
+  `4e67bb31-5480-4734-bb55-9c33e35953bf`;
+- Datahike/DynamoDB: Function URL
+  `https://cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws`,
+  table `eacl-demo-datahike-fixture-v1-green`, store
+  `2d692f8e-0778-49bf-aed7-241e93d63b2f`;
+- Datomic/DynamoDB: Function URL
+  `https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws`,
+  table `eacl-demo-datomic-fixture-v1-green`;
+- Datalevin/memory: Function URL
+  `https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws`;
+- DataScript/browser memory: the `/datascript/` static artifact, with no
+  server-side storage.
+
 No active EC2 machine serves this architecture. The stopped legacy Datahike
-instance is a separately retained fallback and is not on the request path.
+instance `i-04761ff3afba454ab` (`t4g.large`, retained Elastic IP
+`54.163.189.23`) is a separately retained fallback and is not on the request
+path. The temporary Datahike/DynamoDB seed machine and all of its temporary
+network, role, volume, and address resources were removed after the verified
+seed and backup completed.
 
 The listed sizes are a live AWS inspection captured on 2026-08-27. The exact
-Lambda configuration remains authoritative: Datahike has a 30-second timeout;
-Datomic and Datalevin have 60-second timeouts; each has 512 MiB ephemeral
-storage. The current Datalevin `candidate` version has SnapStart optimization
-on, while Datahike and Datomic have SnapStart off.
+Lambda configuration remains authoritative: both Datahike functions have a
+30-second timeout; Datomic and Datalevin have 60-second timeouts; each has 512
+MiB ephemeral storage. The current Datalevin `candidate` version has SnapStart
+optimization on, while Datahike and Datomic have SnapStart off.

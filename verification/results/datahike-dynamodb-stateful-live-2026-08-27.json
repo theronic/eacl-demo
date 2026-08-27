@@ -1,0 +1,83 @@
+{
+  "schema": "eacl-demo.datahike-dynamodb-stateful-live.v1",
+  "checkedAt": "2026-08-27T15:25:33Z",
+  "accountId": "843761893873",
+  "region": "us-east-1",
+  "table": {
+    "name": "eacl-demo-datahike-fixture-v1-green",
+    "stack": "eacl-demo-datahike-fixture-v1-green",
+    "status": "ACTIVE",
+    "billingMode": "PAY_PER_REQUEST",
+    "awsOwnedEncryption": true,
+    "kmsKeyArn": null,
+    "deletionProtection": true,
+    "pointInTimeRecovery": "ENABLED",
+    "maxReadRequestUnits": 250,
+    "maxWriteRequestUnits": 1,
+    "publicationPhase": "serving",
+    "fixtureDigest": "sha256:718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+  },
+  "seed": {
+    "evidenceBucket": "eacl-demo-foundation-artifactbucket-xxzglw0b0v6t",
+    "evidenceKey": "evidence/datahike-dynamodb/fixture-v1-green/seed-evidence.jsonl",
+    "evidenceVersionId": "LFUsnWjbXKdZjUcceiGaAGKB8G2__6cc",
+    "manifestSha256": "718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
+    "storeId": "2d692f8e-0778-49bf-aed7-241e93d63b2f",
+    "contentBasisT": 536873916,
+    "publicationBasisT": 536873918,
+    "logicalResourceCount": 1000000,
+    "serverCount": 998417,
+    "objectCount": 1001585,
+    "subjectCount": 1585,
+    "relationshipCount": 3872112,
+    "recordCount": 4873697,
+    "archiveVersionId": "3VycRTBg88NTfAfhDouowl6krMEN.Qj5",
+    "archiveSha256": "c8cd1c67ed2122f529a774740e644347a46c96183b815d26b93d93444c1f7287",
+    "dynamodbObjectCount": 132939,
+    "dynamodbStoreDigest": "sha256:52030492b436abde78d5c59f12d7e47078f386cf0ccf287ccac55440bf25a57f"
+  },
+  "backup": {
+    "arn": "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datahike-fixture-v1-green/backup/01787843001322-2adc6a57",
+    "name": "eacl-demo-datahike-fixture-v1-green-20260827-1502",
+    "status": "AVAILABLE"
+  },
+  "servingAlarms": {
+    "stack": "eacl-demo-datahike-fixture-v1-green-alarms",
+    "phase": "serving",
+    "count": 9,
+    "allOk": true,
+    "allActionsEnabled": true,
+    "allActionsTargetCanonicalTopic": true,
+    "perAlarmOkActionsPresent": false,
+    "unexpectedServingWriteAlarmPresent": true,
+    "postTransitionWriteUnits": 0
+  },
+  "temporaryCompute": {
+    "instanceId": "i-0b9969ca92626a765",
+    "state": "terminated",
+    "temporarySeedStackPresent": false,
+    "temporaryNetworkStackPresent": false,
+    "temporaryRolePresent": false,
+    "temporaryInstanceProfilePresent": false,
+    "attachedOrRetainedVolumes": [],
+    "allocatedAddresses": []
+  },
+  "publication": {
+    "functionName": "eacl-demo-datahike-dynamodb-live",
+    "alias": "candidate",
+    "version": "2",
+    "functionUrl": "https://cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws/",
+    "authType": "NONE",
+    "demoSha": "be640c5214a120aee300817c109d0db101321161",
+    "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "artifactSha256": "6d9e64f49a7de1cbfcf56bc4cf54ff7b24eefe6832c4989baddf2716229b3326",
+    "coldHealthWallMs": 9962,
+    "directHealthReady": true,
+    "allowAndDenyPassed": true,
+    "mutationDenied": true,
+    "browserPage4Passed": true,
+    "browserConsoleErrors": 0,
+    "browserSameOriginApiRequests": 0
+  },
+  "result": "passed"
+}

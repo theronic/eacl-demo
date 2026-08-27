@@ -124,11 +124,11 @@
 - [x] 8.10 Exclude destructive store deletion and all write or administration paths from the serving artifact.
 - [x] 8.11 Qualify the repaired adapter first with DynamoDB Local and then with a disposable real AWS table covering publication, consistency, throttling, IAM denial, partial batches, missing or corrupt nodes, cancellation, and concurrency.
 - [x] 8.12 Provision a dedicated blue-green production Datahike DynamoDB table with AWS-owned encryption, on-demand billing, deletion protection, point-in-time recovery, tags, and separate serving and seed roles.
-- [ ] 8.13 Seed and verify the immutable one-million-resource Datahike fixture through the explicit stateful workflow after alarms and request caps are active.
+- [x] 8.13 Seed and verify the immutable one-million-resource Datahike fixture through the explicit stateful workflow after alarms and request caps are active.
 - [ ] 8.14 Obtain separate explicit authorization, then provision, seed, verify, and publish a distinct canonical one-million-resource Datahike/S3 blue-green generation without mutating or relabeling the adopted store.
 - [ ] 8.15 Sweep Datahike S3 and DynamoDB Lambda memory independently, then use the larger independently passing minimum as the shared comparison/production memory while a speed claim is active; start with SnapStart disabled on both.
 - [ ] 8.16 Run the comparable storage benchmark only after both profiles bind the exact canonical fixture, then make the evidenced fastest qualified Datahike storage the default.
-- [ ] 8.17 Publish and enable Datahike/DynamoDB only after adapter, real-AWS, IAM, cost-control, seed, runtime, and staged checks pass; until comparable S3 exists, use the deterministic qualified fallback with no speed claim.
+- [x] 8.17 Publish and enable Datahike/DynamoDB only after adapter, real-AWS, IAM, cost-control, seed, runtime, and staged checks pass; until comparable S3 exists, use the deterministic qualified fallback with no speed claim.
 
 ## 9. Datomic DynamoDB current-snapshot profile
 
@@ -210,7 +210,7 @@ decision as well as the existing qualification evidence.
 - [x] 13.10 Encode the user's authorization for initial DynamoDB seeding and temporary seed, transactor, or Jank-build EC2, while retaining exact-target previews and noninteractive cleanup checks.
 - [x] 13.11 Add expiry-tag enforcement and a watchdog that emits a critical Telegram notification and terminates overdue temporary seed, transactor, or build compute.
 - [x] 13.12 Verify after every temporary-compute run that applicable tables respect caps and alarms, temporary roles are no longer active, EC2 is terminated, and no orphan volume or address remains.
-- [ ] 13.13 Transition from seed-phase write alarms and caps to immutable-serving write alarms and caps without suppressing unexpected writes after publication.
+- [x] 13.13 Transition from seed-phase write alarms and caps to immutable-serving write alarms and caps without suppressing unexpected writes after publication.
 
 ## 14. GitHub settings, OIDC, and maximum-parallel deployment
 
@@ -233,7 +233,7 @@ decision as well as the existing qualification evidence.
 - [x] 15.1 Reauthenticate the petrus-prod AWS profile and verify exact account and region before making AWS changes.
 - [x] 15.2 Deploy non-stateful foundation and observability first, then verify static delivery, origin restriction, security headers, route isolation, and synthetic checks.
 - [x] 15.3 Create cost controls and verify Telegram notification before provisioning or seeding Datahike or Datomic DynamoDB.
-- [ ] 15.4 Execute the approved stateful workflows to create, seed, verify, back up, and publish immutable Datahike and Datomic data generations.
+- [x] 15.4 Execute the approved stateful workflows to create, seed, verify, back up, and publish immutable Datahike and Datomic data generations.
 - [x] 15.5 Qualify and deploy each profile independently; leave any failing profile disabled without blocking healthy profiles.
 - [ ] 15.6 Publish the main explorer, DataScript entry, and current profile registry to staging and verify two-step selection, mixed-generation handling, and bundle isolation.
 - [ ] 15.7 Rehearse static rollback, each enabled Lambda alias rollback, data-generation selection rollback, and DNS fallback without deleting state.
