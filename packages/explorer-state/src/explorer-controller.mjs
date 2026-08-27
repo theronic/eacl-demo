@@ -360,7 +360,7 @@ function initialState(preferences) {
 }
 
 function startupKind(descriptor) {
-  if (descriptor.runtime.execution === "browser-worker") return "worker-initialization";
+  if (descriptor.runtime.execution === "browser") return "browser-initialization";
   return descriptor.runtime.snapStart === "enabled" ? "cold-or-restore" : "cold-start";
 }
 

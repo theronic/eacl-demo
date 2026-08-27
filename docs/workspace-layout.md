@@ -13,7 +13,7 @@ verification ──> public contracts and deployed transports
 ```
 
 - `apps/explorer-main` owns the canonical Explorer component tree, exact stylesheet, and server-profile static entry.
-- `apps/explorer-datascript` owns only the separate DataScript build entry, verified transport wiring, and worker; it imports the canonical main components and stylesheet, while its worker dependency graph cannot be reached from the main entry.
+- `apps/explorer-datascript` owns only the separate DataScript build entry and direct browser-runtime wiring; it imports the canonical main components and stylesheet, while its ClojureScript/DataScript dependency graph cannot be reached from the main entry.
 - `packages/contracts` owns closed `explorer.v1` transport/logical shapes and validation.
 - `packages/explorer-state` owns selector, URL, request epoch, cancellation, and mixed-generation state.
 - `packages/ui` retains backend-neutral contract-era components and tests, but no deployed Explorer entry imports it; the one canonical deployed presentation lives under `apps/explorer-main/src`.

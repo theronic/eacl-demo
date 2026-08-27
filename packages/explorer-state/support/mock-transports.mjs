@@ -18,8 +18,8 @@ export const mockCapabilityScenarios = Object.freeze([
   scenario("jank-memory", "jank", "memory", tenThousand(), lambda("provided.al2023", "x86_64", "disabled"), {
     consistencyModes: ["current", "minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "lifecycle-rebuild"]
   }),
-  scenario("datascript-browser-memory", "datascript", "browser-memory", tenThousand(), { execution: "browser-worker", name: "clojurescript", architecture: "javascript", snapStart: "not-applicable" }, {
-    consistencyModes: ["current", "minimize"], snapshotBehavior: "worker-lifecycle", cacheBehavior: "browser-worker-local", mutationLocality: "browser-worker-initialization", limitations: ["browser-local", "ephemeral", "no-durability", "unequal-dataset-scale", "unsupported-consistency"]
+  scenario("datascript-browser-memory", "datascript", "browser-memory", tenThousand(), { execution: "browser", name: "clojurescript", architecture: "javascript", snapStart: "not-applicable" }, {
+    consistencyModes: ["current", "minimize"], snapshotBehavior: "page-lifecycle", cacheBehavior: "browser-page-local", mutationLocality: "browser-initialization", limitations: ["browser-local", "ephemeral", "no-durability", "unequal-dataset-scale", "unsupported-consistency"]
   })
 ]);
 
@@ -87,7 +87,7 @@ function enabledProfile(selected) {
     deployment: {
       demoSha: descriptor.identity.demoSha,
       eaclSha: descriptor.identity.eaclSha,
-      artifact: { kind: descriptor.profile.backend === "datascript" ? "browser-worker" : "lambda-version", sha256: descriptor.identity.artifactSha256, version: "mock" },
+      artifact: { kind: descriptor.profile.backend === "datascript" ? "static" : "lambda-version", sha256: descriptor.identity.artifactSha256, version: "mock" },
       deploymentId: descriptor.identity.deploymentId,
       dataManifestSha256: descriptor.identity.dataManifestSha256,
       deployedAt: "2026-08-25T12:00:00Z"

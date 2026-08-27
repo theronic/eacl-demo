@@ -102,7 +102,7 @@ function validateProfileAndDeployment(profile, deployment) {
   invariant(SHA256.test(deployment.dataManifestSha256), "deployment data manifest identity is invalid");
   timestamp(deployment.deployedAt, "deployment time");
   invariant(deployment.artifact && typeof deployment.artifact === "object", "deployment artifact is missing");
-  invariant(new Set(["static", "lambda-version", "browser-worker"]).has(deployment.artifact.kind), "deployment artifact kind is invalid");
+  invariant(new Set(["static", "lambda-version"]).has(deployment.artifact.kind), "deployment artifact kind is invalid");
   invariant(SHA256.test(deployment.artifact.sha256) && typeof deployment.artifact.version === "string" && deployment.artifact.version.length > 0,
     "deployment artifact identity is invalid");
 }

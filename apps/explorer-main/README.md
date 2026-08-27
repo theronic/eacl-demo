@@ -1,3 +1,3 @@
 # Main explorer entry
 
-SolidJS entry for server-backed profiles. DataScript, ClojureScript, browser database, and worker dependencies are forbidden from this build graph.
+SolidJS entry for server-backed profiles. DataScript, ClojureScript, and browser-database dependencies are forbidden from this build graph.

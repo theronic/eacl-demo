@@ -12,9 +12,9 @@ for (const alias of leanServerAliases) {
     `${alias} includes the ClojureScript/Closure compiler toolchain`);
 }
 
-const workerEntries = classpath("datascript-worker");
-assert.ok(workerEntries.some((entry) => /clojurescript-1\.12\.42\.jar$/u.test(entry)),
-  "DataScript worker lacks its exact ClojureScript compiler");
+const browserEntries = classpath("datascript-runtime");
+assert.ok(browserEntries.some((entry) => /clojurescript-1\.12\.42\.jar$/u.test(entry)),
+  "DataScript runtime lacks its exact ClojureScript compiler");
 console.log("Datomic/Datalevin server and DataScript browser dependency isolation audit passed; Datahike's upstream cross-platform closure remains an artifact-pruning gate");
 
 function classpath(alias) {

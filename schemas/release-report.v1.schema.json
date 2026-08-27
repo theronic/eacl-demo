@@ -190,7 +190,7 @@
           "type": "object", "additionalProperties": false,
           "required": ["kind", "sha256", "version"],
           "properties": {
-            "kind": {"enum": ["static", "lambda-version", "browser-worker"]},
+            "kind": {"enum": ["static", "lambda-version"]},
             "sha256": {"$ref": "#/$defs/sha256"},
             "version": {"type": "string", "minLength": 1, "maxLength": 1024}
           }

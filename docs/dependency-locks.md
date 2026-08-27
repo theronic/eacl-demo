@@ -9,7 +9,7 @@ Dependency resolution is isolated by ecosystem:
 
 `node scripts/verify-locks.mjs` checks the cross-file invariants. Any service-specific dependency added later must enter the appropriate isolated lock and clean-build evidence; local Maven checkouts, npm links, editable Python installs, Homebrew paths, and mutable version selectors are forbidden release inputs.
 
-ClojureScript belongs only to the `datascript-worker` root alias. Datomic and
+ClojureScript belongs only to the `datascript-runtime` root alias. Datomic and
 Datalevin server classpaths are audited to exclude the ClojureScript and Closure
 Compiler toolchain. Datahike's upstream cross-platform graph declares browser
 compiler dependencies, so both serving aliases exclude ClojureScript at their

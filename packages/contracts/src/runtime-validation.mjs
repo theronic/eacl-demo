@@ -3,8 +3,6 @@ import * as generatedValidators from "./generated/runtime-validators.mjs";
 const validatorIds = Object.freeze({
   client: "https://demo.eacl.dev/schemas/explorer-client-request.v1.schema.json",
   server: "https://demo.eacl.dev/schemas/explorer-response.v1.schema.json",
-  worker: "https://demo.eacl.dev/schemas/explorer-worker-message.v1.schema.json",
-  workerEvent: "https://demo.eacl.dev/schemas/explorer-worker-event.v1.schema.json",
   fixture: "https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json",
   descriptor: "https://demo.eacl.dev/schemas/explorer-descriptor.v1.schema.json",
   registry: "https://demo.eacl.dev/schemas/profile-registry.v1.schema.json",

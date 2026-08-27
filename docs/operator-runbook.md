@@ -62,7 +62,7 @@ Full qualification is manual and independent of ordinary merge deployment.
 
 - `.github/workflows/qualify-explorer.yml` runs the principal browser and
   accessibility suite against a local build or the trusted staged CloudFront
-  origin, then exercises the DataScript worker and proves the main entry makes
+  origin, then exercises the direct DataScript runtime and proves the main entry makes
   no DataScript network request.
 - `.github/workflows/qualify-profile.yml` runs the full HTTP profile suite only
   when supplied the exact profile, source pair, artifact, deployment, data

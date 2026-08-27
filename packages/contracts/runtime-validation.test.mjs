@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createRuntimeBoundaryValidator, createRuntimeValidators } from "./src/runtime-validation.mjs";
 
-const names = ["artifact-digests.v1", "error-codes.v1", "explorer.v1", "explorer-client-request.v1", "explorer-response.v1", "explorer-worker-message.v1", "explorer-worker-event.v1", "explorer-descriptor.v1", "fixture-manifest-boundary.v1", "profile-registry.v1", "profile-publication.v1", "benchmark-evidence-index.v1", "fastest-storage-evidence.v1", "release-manifest.v1"];
+const names = ["artifact-digests.v1", "error-codes.v1", "explorer.v1", "explorer-client-request.v1", "explorer-response.v1", "explorer-descriptor.v1", "fixture-manifest-boundary.v1", "profile-registry.v1", "profile-publication.v1", "benchmark-evidence-index.v1", "fastest-storage-evidence.v1", "release-manifest.v1"];
 const schemas = Object.fromEntries(await Promise.all(names.map(async (name) => [name, JSON.parse(await readFile(new URL(`../../schemas/${name}.schema.json`, import.meta.url), "utf8"))])));
 const validate = createRuntimeValidators(schemas);
 const sha1 = "a".repeat(40);
@@ -22,11 +22,6 @@ test("all runtime boundaries accept canonical values", async () => {
   assert.equal(validate.client({ contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "r1", operation: "authorize", input: {} }).requestId, "r1");
   assert.equal(validate.server({ meta: { revision: "basis-1", requestId: "r1" }, data: { object: { type: "server", id: "server-1", displayName: null, attributes: [] } } }).data.object.id, "server-1");
   assert.equal(validate.server({ meta: { revision: "datomic:fixture:42", requestId: "r2", elapsedMs: 0.8, cacheStatus: "hit" }, data: { allowed: true } }).data.allowed, true);
-  assert.equal(validate.worker({ type: "request", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "r1", clientEpoch: 1, operation: "authorize", input: {} }).profileId, "datascript-browser-memory");
-  const workerIdentity = { ...identity, profileId: "datascript-browser-memory" };
-  assert.equal(validate.worker({ type: "initialize", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "init-1", clientEpoch: 1, identity: workerIdentity }).type, "initialize");
-  assert.equal(validate.workerEvent({ type: "initialized", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "init-1", clientEpoch: 1, identity: workerIdentity }).type, "initialized");
-  assert.equal(validate.workerEvent({ type: "progress", contractVersion: "explorer.v1", profileId: "datascript-browser-memory", requestId: "r1", clientEpoch: 1, phase: "fixture-seed", completed: 64, total: 10000, message: "Seeding browser memory." }).type, "progress");
   assert.equal(validate.fixture({ schema: "eacl-demo.fixture-manifest.v1", fixtureId: "canonical-v1-10000", algorithmVersion: "fixture-v1", seed: "eacl-demo", cutPoint: 10000, logicalResourceCount: 10000, schemaSha256: sha256, manifestSha256: sha256 }).cutPoint, 10000);
   assert.equal(validate.descriptor(descriptor).identity.profileId, "datahike-s3");
   const registry = JSON.parse(await readFile(new URL("../../registry/profile-registry.v1.json", import.meta.url), "utf8"));

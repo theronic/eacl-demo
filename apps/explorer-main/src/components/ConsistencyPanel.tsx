@@ -56,7 +56,7 @@ export function ConsistencyPanel(): JSX.Element {
               controls="read-basis-content"
               onClick={() => app.toggleExpanded(expansionKey)}
             >
-              <span class="group-card__title">Read Basis</span>
+              <span class="group-card__title">Consistency Semantics</span>
             </DisclosureButton>
           </h2>
           <div class="consistency-panel__actions">
@@ -87,10 +87,7 @@ export function ConsistencyPanel(): JSX.Element {
         <Show when={expanded()}>
           <div id="read-basis-content" class="consistency-panel__content">
             <div class="consistency-selection-row">
-              <fieldset class="consistency-selection" disabled={!ready()}>
-                <legend class="consistency-selection__label">
-                  Consistency Semantics:
-                </legend>
+              <fieldset class="consistency-selection" aria-label="Consistency semantics" disabled={!ready()}>
                 <div class="consistency-selection__options">
                   <For each={consistencyModeOrder}>
                     {(mode) => {

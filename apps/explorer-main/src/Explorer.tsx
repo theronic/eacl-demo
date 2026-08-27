@@ -1,4 +1,4 @@
-import { Show, type Accessor, type JSX } from "solid-js";
+import { Show, type JSX } from "solid-js";
 import { CachePanel } from "./components/CachePanel";
 import { ConsistencyPanel } from "./components/ConsistencyPanel";
 import { DetailPanel } from "./components/DetailPanel";
@@ -46,22 +46,25 @@ export function Explorer(props: {
   backendLabel: string;
   storageLabel: string;
   profileSelector: JSX.Element;
-  startupMessage?: Accessor<string | null>;
+  execution: "lambda" | "browser";
 }): JSX.Element {
   const app = useAppState();
   const hasBootstrap = () => Boolean(app.bootstrapData());
   const startupSeconds = () => (app.healthElapsedMs() / 1000).toFixed(1);
   return (
     <div class="app-shell" data-theme={app.theme()}>
-      <Header backendLabel={props.backendLabel} storageLabel={props.storageLabel} />
+      <Header />
       {props.profileSelector}
       <Show when={app.health.loading && !hasBootstrap()}>
         <main class="loading-grid">
           <section class="startup-status" role="status" aria-live="polite">
             <span class="button-spinner" aria-hidden="true" />
             <div class="startup-status__copy">
-              <strong>Starting {props.startupMessage ? "DataScript" : props.backendLabel}</strong>
-              <span>{props.startupMessage?.() ?? "Waiting for a direct health check"} · {startupSeconds()}s</span>
+              <strong>
+                {props.execution === "lambda"
+                  ? `Waiting for ${props.backendLabel} Lambda to start... ${startupSeconds()}s`
+                  : `Loading ${props.backendLabel}... ${startupSeconds()}s`}
+              </strong>
             </div>
           </section>
         </main>
@@ -69,7 +72,7 @@ export function Explorer(props: {
       <Show when={app.health.error && !hasBootstrap()}>
         <main class="loading-grid">
           <ErrorBlock
-            label="Lambda reader health check failed"
+            label={`${props.backendLabel} startup failed`}
             error={app.health.error}
             retry={app.refetchHealth}
           />
@@ -131,15 +134,20 @@ export function Explorer(props: {
           </section>
         </main>
       </Show>
-      <footer class="app-footer">
-        <p class="app-footer__copy">
-          EACL authorization runs on {props.backendLabel}; the explorer receives
-          only bounded results.
-        </p>
-        <Show when={!app.permission()}>
-          <EmptyState>No permission is available in the active schema.</EmptyState>
-        </Show>
-      </footer>
+      <Show when={!app.permission()}>
+        <EmptyState>No permission is available in the active schema.</EmptyState>
+      </Show>
+      <ExplorerFooter />
     </div>
+  );
+}
+
+export function ExplorerFooter(): JSX.Element {
+  return (
+    <footer class="app-footer">
+      <p class="app-footer__copy">
+        EACL is <a href="https://github.com/theronic/eacl">open source</a> under EPL 2.0. EACL Explorer ©️ 2026 <a href="https://petrustheron.com/">Petrus Theron</a>.
+      </p>
+    </footer>
   );
 }

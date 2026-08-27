@@ -9,25 +9,25 @@ const readJson = (url: string) => readFile(new URL(url, import.meta.url), "utf8"
 const [baseRegistry, profileDefinitions, artifact] = await Promise.all([
   readJson("../../registry/profile-registry.v1.json"),
   readJson("../../packages/contracts/profiles.v1.json"),
-  readJson("../../dist/datascript-worker/artifact.json")
+  readJson("../../dist/datascript-runtime/artifact.json")
 ]);
 const demoSha = "a".repeat(40);
 const dataManifestSha256 = "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a";
 
-test("fixture initialization and authorization stay in the browser worker", async ({ page }, testInfo) => {
+test("fixture initialization and authorization stay in the direct browser runtime", async ({ page }, testInfo) => {
   const requests: Array<{ url: string; method: string; body: string | null }> = [];
   const browserErrors: string[] = [];
   page.on("request", (request) => requests.push({ url: request.url(), method: request.method(), body: request.postData() }));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
   page.on("pageerror", (error) => browserErrors.push(`${error.name}: ${error.message}`));
   await page.addInitScript(() => {
+    (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount = 0;
     const NativeWorker = globalThis.Worker;
     globalThis.Worker = new Proxy(NativeWorker, {
-      construct(Target, argumentsList) {
-        const worker = Reflect.construct(Target, argumentsList) as Worker;
-        (globalThis as typeof globalThis & { __eaclWorker?: Worker }).__eaclWorker = worker;
-        return worker;
-      }
+      construct() {
+        (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount! += 1;
+        throw new Error("DataScript must not create a Web Worker.");
+      },
     });
   });
   const publishedAt = new Date();
@@ -37,7 +37,7 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   const deployment = {
     demoSha,
     eaclSha: artifact.eaclCoreSha,
-    artifact: { kind: "browser-worker", sha256: artifact.artifact.sha256, version: "browser-qualification" },
+    artifact: { kind: "static", sha256: artifact.artifact.sha256, version: "browser-qualification" },
     deploymentId: "datascript:browser-qualification",
     dataManifestSha256,
     deployedAt
@@ -45,7 +45,7 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   const publication = await createProfilePublication({
     profile: {
       ...structuredClone(baseline), state: "enabled", reason: null, deployment,
-      lastOutcome: { outcome: "succeeded", attemptedDemoSha: demoSha, attemptedEaclSha: artifact.eaclCoreSha, artifactSha256: artifact.artifact.sha256, at: deployedAt, message: "The browser worker is enabled only inside this qualification fixture." }
+      lastOutcome: { outcome: "succeeded", attemptedDemoSha: demoSha, attemptedEaclSha: artifact.eaclCoreSha, artifactSha256: artifact.artifact.sha256, at: deployedAt, message: "The direct browser runtime is enabled only inside this qualification fixture." }
     },
     definition,
     publishedAt: publishedAt.toISOString(),
@@ -82,46 +82,26 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
   await expect(page.getByRole("radio", { name: "Browser memory", exact: true })).toBeChecked();
-  await expect(page.getByRole("button", { name: "Read Basis" })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("button", { name: "Consistency Semantics" })).toBeVisible({ timeout: 60_000 });
   const startupElapsedMs = Date.now() - startupStartedAt;
   await testInfo.attach("datascript-startup.json", {
     body: JSON.stringify({ startupElapsedMs }),
     contentType: "application/json",
   });
-  expect(startupElapsedMs).toBeLessThan(15_000);
+  expect(startupElapsedMs).toBeLessThan(10_000);
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".metadata-list")).toHaveCount(0);
   expect(requests.some(({ url }) => url.endsWith(`/registry/profiles/datascript-browser-memory.json`))).toBe(true);
-  expect(requests.some(({ url }) => url.endsWith(`/datascript/assets/datascript-worker-${artifact.artifact.sha256}.js`))).toBe(true);
+  expect(requests.some(({ url }) => url.endsWith(`/datascript/assets/datascript-runtime-${artifact.artifact.sha256}.js`))).toBe(true);
+  expect(await page.evaluate(() => (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount)).toBe(0);
+  await expect(page.getByText(/Starting DataScript|10,000 resources/iu)).toHaveCount(0);
 
   const defaults = await page.evaluate(async () => {
-    const worker = (globalThis as typeof globalThis & { __eaclWorker?: Worker }).__eaclWorker;
-    if (!worker) throw new Error("The verified DataScript worker was not captured.");
+    const runtime = (globalThis as typeof globalThis & { EaclDataScriptRuntime?: { request: (operation: string, input: Record<string, unknown>, requestId: string) => Promise<any> } }).EaclDataScriptRuntime;
+    if (!runtime) throw new Error("The direct DataScript runtime was not loaded.");
     let sequence = 0;
-    const request = (operation: string, input: Record<string, unknown>) => new Promise<any>((resolve, reject) => {
-      const requestId = `browser-defaults-${++sequence}`;
-      const timeout = setTimeout(() => {
-        worker.removeEventListener("message", onMessage);
-        reject(new Error(`Timed out waiting for ${operation}.`));
-      }, 10_000);
-      const onMessage = (event: MessageEvent) => {
-        if (event.data?.requestId !== requestId || !["response", "protocol-error"].includes(event.data?.type)) return;
-        clearTimeout(timeout);
-        worker.removeEventListener("message", onMessage);
-        if (event.data.type === "protocol-error") reject(new Error(`${operation}: ${event.data.error?.code}`));
-        else resolve(event.data.response);
-      };
-      worker.addEventListener("message", onMessage);
-      worker.postMessage({
-        type: "request",
-        contractVersion: "explorer.v1",
-        profileId: "datascript-browser-memory",
-        requestId,
-        clientEpoch: 1,
-        operation,
-        input
-      });
-    });
+    const request = (operation: string, input: Record<string, unknown>) =>
+      runtime.request(operation, input, `browser-defaults-${++sequence}`);
     return {
       object: await request("get-object", { type: "account", id: "account-0" }),
       subjects: await request("list-subjects", {}),
@@ -187,7 +167,7 @@ test("fixture initialization and authorization stay in the browser worker", asyn
   expect(Object.keys(defaults.unsupportedConsistency.meta).sort()).toEqual(["elapsedMs", "requestId", "revision"]);
 
   requests.length = 0;
-  await expect(page.getByRole("heading", { name: "Subjects & permissions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Subjects" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Resources" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Detail" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Schema" })).toBeVisible();

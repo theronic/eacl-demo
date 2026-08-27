@@ -9,6 +9,6 @@ test("the main server-profile entry does not load DataScript assets", async ({ p
   const loadedResources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
   for (const url of [...requests, ...loadedResources]) {
     expect(url).not.toMatch(/\/datascript\//u);
-    expect(url).not.toMatch(/datascript-worker|EaclKernel\.browser/iu);
+    expect(url).not.toMatch(/datascript-runtime|EaclKernel\.browser/iu);
   }
 });

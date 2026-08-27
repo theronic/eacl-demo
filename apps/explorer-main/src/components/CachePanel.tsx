@@ -1,7 +1,6 @@
 import {
   createEffect,
   createSignal,
-  on,
   onCleanup,
   Show,
   type JSX,
@@ -32,6 +31,7 @@ export function CachePanel(): JSX.Element {
   const [snapshot, setSnapshot] = createSignal<CapturedSnapshot>();
   const [refreshing, setRefreshing] = createSignal(false);
   const [refreshError, setRefreshError] = createSignal<unknown>();
+  const [capturedOnFirstOpen, setCapturedOnFirstOpen] = createSignal(false);
   const [evicting, setEvicting] = createSignal(false);
   const [evictError, setEvictError] = createSignal<unknown>();
 
@@ -72,18 +72,11 @@ export function CachePanel(): JSX.Element {
     }
   };
 
-  createEffect(
-    on(
-      () => [app.basisGeneration(), app.queryGeneration()] as const,
-      () => {
-        // A cache capture is a displayed query result once the user has opted
-        // into it. Keep the initial capture manual, then rerun it with every
-        // other standing query when the selected basis semantics change.
-        if (snapshot()) void refreshCache();
-      },
-      { defer: true },
-    ),
-  );
+  createEffect(() => {
+    if (!expanded() || capturedOnFirstOpen()) return;
+    setCapturedOnFirstOpen(true);
+    void refreshCache();
+  });
 
   onCleanup(() => {
     refreshRequest.abort();

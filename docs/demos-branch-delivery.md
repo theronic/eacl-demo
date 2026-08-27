@@ -34,7 +34,7 @@ Static publication uploads only the files enumerated by the assembled static
 site manifest. It never uses a bucket-wide `s3 sync`, `--delete`, or a role
 capable of deleting/overwriting server-owned `registry/profiles/*` keys.
 Content-addressed static assets are append-only within their retention window:
-the uploader must not remove a DataScript worker or entry asset while any live
+the uploader must not remove a DataScript runtime or entry asset while any live
 or rollback-eligible profile publication or HTML version can still reference
 that digest. Revalidation documents may be replaced; immutable digest paths
 are retained and lifecycle-expired only by a separate evidence-based policy.

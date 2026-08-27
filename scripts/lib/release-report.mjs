@@ -79,7 +79,7 @@ const PROFILE_INPUT = Object.freeze({
     backend: "datascript",
     storage: "browser-memory",
     route: "/datascript/",
-    buildUnits: ["explorer-main", "datascript-entry", "datascript-worker"],
+    buildUnits: ["explorer-main", "datascript-entry", "datascript-runtime"],
     fixtureResources: 10000,
     runtimeDefinition: null,
     runtime: "browser-javascript",
@@ -681,7 +681,7 @@ function validateDeployment(deployment, profileId) {
   invariant(SHA1.test(deployment.demoSha) && SHA1.test(deployment.eaclSha) && SHA256.test(deployment.artifact.sha256)
     && SHA256.test(deployment.dataManifestSha256) && nonempty(deployment.artifact.version) && nonempty(deployment.deploymentId)
     && validTimestamp(deployment.deployedAt), "profile deployment identity is invalid");
-  if (profileId === "datascript-browser-memory") invariant(deployment.artifact.kind === "browser-worker", "DataScript deployment artifact kind is invalid");
+  if (profileId === "datascript-browser-memory") invariant(deployment.artifact.kind === "static", "DataScript deployment artifact kind is invalid");
   else invariant(deployment.artifact.kind === "lambda-version" && /^[1-9][0-9]*$/u.test(deployment.artifact.version),
     "server deployment must use an immutable numbered Lambda version");
 }

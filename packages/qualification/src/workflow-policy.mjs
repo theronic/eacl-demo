@@ -103,7 +103,7 @@ export function assertManualAssuranceWorkflows({ fullQualification, explorerQual
   requirePattern(fullQualification, /EACL_EXPECTED_STAGED_ORIGIN:\s*\$\{\{ vars\.STAGED_CLOUDFRONT_ORIGIN \}\}/u, "full qualification is not bound to the trusted staged distribution");
   requirePattern(explorerQualification, /npm run qualify:explorer/u, "browser workflow must execute explorer qualification");
   requirePattern(explorerQualification, /npm run build:static-site/u, "browser workflow must build the complete main and DataScript site");
-  requirePattern(explorerQualification, /npm run qualify:datascript-browser/u, "browser workflow omits the DataScript worker exercise");
+  requirePattern(explorerQualification, /npm run qualify:datascript-browser/u, "browser workflow omits the direct DataScript runtime exercise");
   requirePattern(explorerQualification, /npm run qualify:main-network-isolation/u, "browser workflow omits main-bundle network isolation");
   requirePattern(explorerQualification, /EXPECTED_STAGED_ORIGIN:\s*\$\{\{ vars\.STAGED_CLOUDFRONT_ORIGIN \}\}/u, "browser workflow is not bound to the trusted staged distribution");
   for (const browser of ["chromium", "firefox", "webkit"]) requirePattern(explorerQualification, new RegExp(`\\b${browser}\\b`, "u"), `browser workflow omits ${browser}`);

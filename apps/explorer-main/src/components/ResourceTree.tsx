@@ -721,6 +721,10 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
 
 export function ResourceTreePanel(): JSX.Element {
   const app = useAppState();
+  const permissions = createMemo(() => {
+    const byType = app.bootstrapData()?.data.schema.permissionsByType ?? {};
+    return [...new Set(Object.values(byType).flat())].sort();
+  });
   return (
     <div class="panel-card resources-panel">
       <h2 class="panel-kicker">Resources</h2>
@@ -731,6 +735,25 @@ export function ResourceTreePanel(): JSX.Element {
         </span>
         <span class="panel-summary__value">:{app.permission()}</span>
       </div>
+      <section class="panel-section" aria-labelledby="resource-permission-heading">
+        <div class="section-header">
+          <p id="resource-permission-heading" class="panel-label">Permission</p>
+        </div>
+        <div class="chip-row">
+          <For each={permissions()} fallback={<EmptyState>No permissions defined.</EmptyState>}>
+            {(permission) => (
+              <button
+                type="button"
+                class={`chip ${app.permission() === permission ? "chip--active" : ""}`}
+                aria-pressed={app.permission() === permission}
+                onClick={() => app.setPermission(permission)}
+              >
+                :{permission}
+              </button>
+            )}
+          </For>
+        </div>
+      </section>
       <For
         each={app.bootstrapData()?.data.schema.resourceTypes ?? []}
         fallback={<EmptyState>No queryable resource types.</EmptyState>}

@@ -77,11 +77,11 @@ Every profile SHALL expose advertised common components for subject selection, r
 - **THEN** each advertised permission SHALL run as an independent bounded operation and one failure SHALL not fabricate or overwrite another decision
 
 ### Requirement: Separate DataScript entry and payload
-`https://demo.eacl.dev/datascript/` SHALL be a distinct static entry that reuses shared explorer source while loading EACL v8, the DataScript adapter, DataScript, and its worker only from DataScript-specific artifacts. The main entry's initial/server dependency graphs MUST NOT contain those browser database artifacts.
+`https://demo.eacl.dev/datascript/` SHALL be a distinct static entry that reuses the exact shared explorer source while loading EACL v8, the DataScript adapter, DataScript, and its direct browser runtime only from DataScript-specific artifacts. The main entry's initial/server dependency graphs MUST NOT contain those browser database artifacts.
 
 #### Scenario: Main explorer loads
 - **WHEN** a user loads `/` and uses only server profiles
-- **THEN** no DataScript, EACL DataScript adapter, ClojureScript runtime, Rum, or worker artifact SHALL be downloaded from the main build graph
+- **THEN** no DataScript, EACL DataScript adapter, ClojureScript runtime, Rum, or DataScript runtime artifact SHALL be downloaded from the main build graph
 
 #### Scenario: DataScript is selected
 - **WHEN** the user selects DataScript

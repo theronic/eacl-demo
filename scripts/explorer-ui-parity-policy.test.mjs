@@ -11,12 +11,8 @@ const datahikeSource = resolve(repository, "../eacl-datahike-demo/client/src");
 const datomicSource = resolve(repository, "../eacl-datomic-solidjs/client/src");
 
 const exactDatahikeFiles = new Map([
-  ["components/CachePanel.tsx", "adf3234cabdde70c1f4298f483859afd5c980f38074daf4a098132f5056e25c8"],
   ["components/Common.tsx", "d80701afde3816fd76eee67400b6e83c909ff959aa07633aa2ba142dea6306d1"],
-  ["components/ResourceTree.tsx", "8fd77cc8d24d1d6b808f9b5b5c9b9ac86deacd5c4d5db8770cdaf24963c2ea2a"],
   ["components/SchemaGraph.tsx", "98709de62da77c47dbf35999b9bd69c5ba6f716ec178690f54a0ecbb64aa0c00"],
-  ["components/SchemaPanel.tsx", "810d04b29c479d8403a6b02ed0f6494c3870e1cb9940fc45eb86a2382bae3abe"],
-  ["components/SubjectsPanel.tsx", "33aa1e21caf18f0b678307d533ee1199f3a90590c581c3c0f13f0ac368c3e630"],
   ["format.ts", "f0bfe6aa90b3708ecb82647f3977481bc6db23844f21a0f292b6ef10359445d0"],
   ["preferences.ts", "edb035663ef3cbd0c8e3f7a13d72b6af3aa03e721f8bef48f7b860930cd98632"],
 ]);
@@ -63,7 +59,7 @@ test("the stylesheet is exactly Datahike plus Datomic permission-decision rules"
 test("canonical layout order is unchanged except for the profile selector", () => {
   const explorer = file(resolve(demoSource, "Explorer.tsx"));
   assertOrdered(explorer, [
-    "<Header backendLabel={props.backendLabel} storageLabel={props.storageLabel} />",
+    "<Header />",
     "{props.profileSelector}",
     "<SchemaPanel />",
     "<CachePanel />",
@@ -80,6 +76,18 @@ test("canonical layout order is unchanged except for the profile selector", () =
   assert.equal((selector.match(/type="radio"/gu) ?? []).length, 2);
   assert.doesNotMatch(selector, /<select|<option/iu);
   assert.match(selector, /Backend &amp; Storage/u);
+});
+
+test("requested copy and control moves are the only component deltas", () => {
+  const cache = file(resolve(demoSource, "components/CachePanel.tsx"));
+  assert.match(cache, /capturedOnFirstOpen/u);
+  const schema = file(resolve(demoSource, "components/SchemaPanel.tsx"));
+  assert.doesNotMatch(schema, /SPICE SCHEMA/u);
+  const subjects = file(resolve(demoSource, "components/SubjectsPanel.tsx"));
+  assert.match(subjects, />Subjects</u);
+  assert.doesNotMatch(subjects, /Active subject|Subjects &amp; Permissions/u);
+  const resources = file(resolve(demoSource, "components/ResourceTree.tsx"));
+  assert.match(resources, />Permission</u);
 });
 
 test("consistency controls retain the original Explorer vocabulary", () => {

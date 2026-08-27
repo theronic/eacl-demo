@@ -63,16 +63,16 @@ async function deployStatic() {
   }
   aws(["cloudfront", "create-invalidation", "--distribution-id", distribution,
        "--paths", "/index.html", "/datascript/index.html"]);
-  const workerPath = manifest.entries.datascriptWorker;
-  const worker = manifest.files.find((file) => file.path === workerPath);
-  if (!worker) throw new Error("DataScript worker is absent from the static manifest");
+  const runtimePath = manifest.entries.datascriptRuntime;
+  const runtime = manifest.files.find((file) => file.path === runtimePath);
+  if (!runtime) throw new Error("DataScript runtime is absent from the static manifest");
   await publishProfile({
     profileId: "datascript-browser-memory",
-    artifactKind: "browser-worker",
-    artifactSha: worker.sha256,
-    artifactVersion: worker.path,
+    artifactKind: "static",
+    artifactSha: runtime.sha256,
+    artifactVersion: runtime.path,
     dataManifestSha: "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a",
-    evidence: worker.sha256
+    evidence: runtime.sha256
   });
   process.stdout.write(`deployed static ${demoSha()}\n`);
 }

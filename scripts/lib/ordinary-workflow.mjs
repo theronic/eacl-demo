@@ -8,7 +8,7 @@ export const ordinaryTargetOrder = Object.freeze([
 
 export const ordinaryTargetDefinitions = Object.freeze({
   static: target({
-    units: ["explorer-main", "datascript-entry", "datascript-worker", "fixtures"],
+    units: ["explorer-main", "datascript-entry", "datascript-runtime", "fixtures"],
     environment: "demo-production-static",
     authorityId: "deploy-static",
     roleVariable: "AWS_STATIC_DEPLOY_ROLE_ARN",

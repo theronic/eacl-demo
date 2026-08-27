@@ -10,7 +10,7 @@ if (generated.code !== 0) throw new Error(`runtime validator verification failed
 const builds = [
   [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-main/vite.config.ts"]],
   [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-datascript/vite.config.ts"]],
-  [node, ["scripts/build-datascript-worker.mjs"]]
+  [node, ["scripts/build-datascript-runtime.mjs"]]
 ];
 
 const outcomes = await Promise.all(builds.map(([command, args]) => run(command, args)));
@@ -20,9 +20,9 @@ if (failed) throw new Error(`static constituent build failed with exit ${failed.
 const target = path.join(root, "dist", "static-site");
 const main = path.join(root, "dist", "explorer-main", "static");
 const datascript = path.join(root, "dist", "datascript-entry", "static");
-const worker = path.join(root, "dist", "datascript-worker", "datascript-worker.js");
-const workerArtifact = JSON.parse(await readFile(path.join(root, "dist", "datascript-worker", "artifact.json"), "utf8"));
-const workerRelative = `datascript/assets/datascript-worker-${workerArtifact.artifact.sha256}.js`;
+const runtime = path.join(root, "dist", "datascript-runtime", "datascript-runtime.js");
+const runtimeArtifact = JSON.parse(await readFile(path.join(root, "dist", "datascript-runtime", "artifact.json"), "utf8"));
+const runtimeRelative = `datascript/assets/datascript-runtime-${runtimeArtifact.artifact.sha256}.js`;
 const [mainManifest, datascriptManifest] = await Promise.all([
   readFile(path.join(main, ".vite", "manifest.json"), "utf8").then(JSON.parse),
   readFile(path.join(datascript, ".vite", "manifest.json"), "utf8").then(JSON.parse),
@@ -42,7 +42,14 @@ if (!mainCssBytes.equals(datascriptCssBytes)) {
 await rm(target, { recursive: true, force: true });
 await cp(main, target, { recursive: true, errorOnExist: true, force: false });
 await cp(datascript, path.join(target, "datascript"), { recursive: true, errorOnExist: true, force: false });
-await copyFile(worker, path.join(target, workerRelative));
+await copyFile(runtime, path.join(target, runtimeRelative));
+const datascriptIndex = path.join(target, "datascript", "index.html");
+const datascriptHtml = await readFile(datascriptIndex, "utf8");
+if (!datascriptHtml.includes('<script type="module"')) throw new Error("DataScript entry has no module script");
+await writeFile(
+  datascriptIndex,
+  datascriptHtml.replace('<script type="module"', `<script defer src="/${runtimeRelative}"></script>\n    <script type="module"`),
+);
 await rm(path.join(target, ".vite"), { recursive: true, force: true });
 await rm(path.join(target, "datascript", ".vite"), { recursive: true, force: true });
 
@@ -61,19 +68,19 @@ for (const file of files) {
     if (/\b(?:eval|Function)\s*\(/u.test(source)) throw new Error(`static JavaScript requires dynamic code generation forbidden by the production CSP: ${file.path}`);
   }
 }
-const assembledWorker = files.find(({ path: relative }) => relative === workerRelative);
-if (!assembledWorker || assembledWorker.sha256 !== workerArtifact.artifact.sha256) throw new Error("assembled DataScript worker digest mismatch");
+const assembledRuntime = files.find(({ path: relative }) => relative === runtimeRelative);
+if (!assembledRuntime || assembledRuntime.sha256 !== runtimeArtifact.artifact.sha256) throw new Error("assembled DataScript runtime digest mismatch");
 
 const manifest = {
   schema: "eacl-demo.static-site.v1",
   result: "assembled",
   uploadRoot: "dist/static-site",
-  entries: { main: "index.html", datascript: "datascript/index.html", datascriptWorker: workerRelative },
-  sourceBuilds: ["explorer-main", "datascript-entry", "datascript-worker"],
+  entries: { main: "index.html", datascript: "datascript/index.html", datascriptRuntime: runtimeRelative },
+  sourceBuilds: ["explorer-main", "datascript-entry", "datascript-runtime"],
   files
 };
 await writeFile(path.join(target, "site-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`static-site\t${files.length} files\tmain + /datascript/ + worker\tone upload root`);
+console.log(`static-site\t${files.length} files\tmain + direct /datascript/ runtime\tone upload root`);
 
 function run(command, args) {
   return new Promise((resolve, reject) => {

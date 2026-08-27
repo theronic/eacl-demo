@@ -23,7 +23,7 @@ const CONSISTENCY_PRESENTATION = Object.freeze({
 const SNAPSHOT_PRESENTATION = Object.freeze({
   "fixed-environment": notice("fixed-environment", "Fixed for this environment", "One database value is captured during initialization and remains fixed until the serving environment is replaced."),
   "request-snapshot": notice("request-snapshot", "Snapshot per request", "Each admitted operation owns a bounded immutable request snapshot."),
-  "worker-lifecycle": notice("worker-lifecycle", "Browser worker lifecycle", "The database, cursors, and cache belong to the current browser worker epoch."),
+  "page-lifecycle": notice("page-lifecycle", "Browser page lifecycle", "The database, cursors, and cache belong to the current browser page."),
   "rebuild-lifecycle": notice("rebuild-lifecycle", "Rebuilt environment", "The immutable dataset is rebuilt and verified before each serving lifecycle becomes ready.")
 });
 
@@ -31,7 +31,7 @@ const CACHE_PRESENTATION = Object.freeze({
   none: notice("none", "No authorization cache", "The profile advertises no reusable authorization cache."),
   "request-local": notice("request-local", "Request-local cache", "Cached values exist only inside one admitted operation."),
   "environment-local": notice("environment-local", "Environment-local cache", "Cached values may be reused only within the current isolated serving environment."),
-  "browser-worker-local": notice("browser-worker-local", "Browser-worker cache", "Cached values remain inside the current browser worker and are discarded with it."),
+  "browser-page-local": notice("browser-page-local", "Browser-page cache", "Cached values remain inside the current browser page and are discarded with it."),
   "shared-read-through": notice("shared-read-through", "Shared read-through cache", "The profile may reuse qualified read-through entries under its advertised identity and invalidation rules.")
 });
 
@@ -39,7 +39,7 @@ const MUTATION_PRESENTATION = Object.freeze({
   none: notice("none", "No data mutation", "Neither public requests nor initialization mutate the dataset."),
   "private-seed-workflow": notice("private-seed-workflow", "Private publication workflow", "Dataset creation and publication happen only in a separate privileged workflow; the public explorer is read-only."),
   "initialization-before-ready": notice("initialization-before-ready", "Initialization before readiness", "The environment creates and verifies its private fixture before public read operations become ready."),
-  "browser-worker-initialization": notice("browser-worker-initialization", "Browser-local initialization", "Fixture initialization affects only the current browser worker and never a shared server dataset.")
+  "browser-initialization": notice("browser-initialization", "Browser-local initialization", "Fixture initialization affects only the current browser page and never a shared server dataset.")
 });
 
 const LIMITATION_PRESENTATION = Object.freeze({
@@ -48,7 +48,7 @@ const LIMITATION_PRESENTATION = Object.freeze({
   "no-synchronization": notice("no-synchronization", "No synchronization", "Requests cannot wait for a newer backend basis or trigger synchronization."),
   "no-history-api": notice("no-history-api", "No public history selection", "Retained storage history is not exposed by this read-only profile."),
   ephemeral: notice("ephemeral", "Ephemeral dataset", "The serving dataset belongs to an isolated runtime lifecycle and can be rebuilt after replacement."),
-  "browser-local": notice("browser-local", "Browser-local execution", "Authorization inputs, fixture data, and results remain in the browser worker."),
+  "browser-local": notice("browser-local", "Browser-local execution", "Authorization inputs, fixture data, and results remain in the browser page."),
   "no-durability": notice("no-durability", "No durability claim", "This profile does not promise durable application data across runtime replacement."),
   "datomic-like-not-datomic-pro": notice("datomic-like-not-datomic-pro", "Bundled in-memory Datomic-like conformance store", "The in-memory store demonstrates the accepted semantics but is not Datomic Pro and makes no Datomic service claim."),
   "no-datalog-api": notice("no-datalog-api", "No Datalog API", "This conformance store implements the bounded EACL access paths only; it does not expose or claim a general Datalog query API."),
@@ -57,7 +57,7 @@ const LIMITATION_PRESENTATION = Object.freeze({
   "unequal-dataset-scale": notice("unequal-dataset-scale", "Smaller fixture", "This profile uses the canonical ten-thousand-resource prefix and must not be compared as if it served the million-resource dataset."),
   "no-snapstart": notice("no-snapstart", "SnapStart is not used", "Startup relies on the profile runtime; no SnapStart support or performance claim is made."),
   "eventual-storage-read": notice("eventual-storage-read", "Storage visibility limits", "Fresh storage publication may be eventually visible; only qualified snapshot semantics are advertised."),
-  "lifecycle-rebuild": notice("lifecycle-rebuild", "Lifecycle rebuild", "Environment or worker replacement discards owned database, cursor, and cache state and rebuilds from the accepted fixture."),
+  "lifecycle-rebuild": notice("lifecycle-rebuild", "Lifecycle rebuild", "Environment or page replacement discards owned database, cursor, and cache state and rebuilds from the accepted fixture."),
   "unsupported-consistency": notice("unsupported-consistency", "Some consistency modes are unavailable", "Only the modes listed for this profile are executable; other requests fail instead of silently weakening consistency.")
 });
 

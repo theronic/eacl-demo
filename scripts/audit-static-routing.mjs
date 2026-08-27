@@ -18,7 +18,7 @@ assert.match(template, /QueryStringBehavior: all/u);
 assert.match(template, /request\.headers\['x-amz-content-sha256'\]/u);
 assert.match(template, /transportError:/u);
 assert.match(template, /Headers:\s*\n\s+- content-type\s*\n\s+- x-eacl-request-id/u);
-assert.match(template, /worker-src 'self' blob:/u);
+assert.match(template, /worker-src 'none'/u);
 assert.doesNotMatch(template, /unsafe-eval/u);
 assert.equal((template.match(/OriginProtocolPolicy: https-only/gu) ?? []).length, 5);
 assert.equal((template.match(/ViewerProtocolPolicy: redirect-to-https/gu) ?? []).length, 7);
@@ -31,7 +31,8 @@ assert.match(qualification, /"x-amz-content-sha256": await jsonPayloadSha256\(bo
 assert.match(functionUrl, /maximum-request-body-bytes 65536/u);
 assert.match(functionUrl, /maximum-response-body-bytes 1048576/u);
 assert.match(functionUrl, /not-empty \(:rawQueryString event\)/u);
-assert.match(functionUrl, /get headers "x-eacl-request-id"/u);
+assert.match(functionUrl, /defn event-request-id/u);
+assert.match(functionUrl, /= "x-eacl-request-id"/u);
 assert.doesNotMatch(template, /route-not-found|method-not-allowed|unsupported-media-type/u);
 assert.match(identity, /artifactSha256/u);
 assert.match(identity, /dataManifestSha256/u);
