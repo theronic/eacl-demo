@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { summarizeDemoSmoke } from "./lib/demo-smoke-result.mjs";
+import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 
 const manifest = "a".repeat(64);
 const response = (data) => ({ statusCode: 200, envelope: { data, meta: { revision: "basis-1", requestId: "smoke-1" } } });
@@ -72,4 +72,21 @@ test("rejects a runtime deployment identity that differs from the candidate", ()
     decisions: [],
     mutation: {}
   }), /bootstrap deployment identity differs from the candidate/u);
+});
+
+test("the dependency-free smoke boundary accepts only the simple response envelopes", () => {
+  const success = response({ allowed: true }).envelope;
+  const failure = {
+    meta: { revision: "basis-1", requestId: "smoke-2", elapsedMs: 0, cacheStatus: "disabled" },
+    error: { code: "route-not-found", message: "Unknown route" }
+  };
+  assert.equal(validateDemoSmokeEnvelope(success), success);
+  assert.equal(validateDemoSmokeEnvelope(failure), failure);
+  for (const invalid of [
+    { ...success, extra: true },
+    { meta: success.meta, data: {}, error: failure.error },
+    { meta: { ...success.meta, unexpected: true }, data: {} },
+    { meta: { ...success.meta, elapsedMs: -1 }, data: {} },
+    { meta: success.meta, error: { ...failure.error, detail: "noise" } }
+  ]) assert.throws(() => validateDemoSmokeEnvelope(invalid), /demo smoke/u);
 });

@@ -6,17 +6,10 @@ import path from "node:path";
 import process from "node:process";
 import baseRegistry from "../registry/profile-registry.v1.json" with { type: "json" };
 import profileDefinitions from "../packages/contracts/profiles.v1.json" with { type: "json" };
-import responseSchema from "../schemas/explorer-response.v1.schema.json" with { type: "json" };
-import { createRuntimeBoundaryValidator } from "../packages/contracts/src/runtime-validation.mjs";
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
-import { summarizeDemoSmoke } from "./lib/demo-smoke-result.mjs";
+import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
-const validateLiveResponse = createRuntimeBoundaryValidator(
-  { responseSchema },
-  "https://demo.eacl.dev/schemas/explorer-response.v1.schema.json",
-  "liveDeploymentResponse"
-);
 const target = process.argv[2];
 const profiles = {
   "datahike-s3": {
@@ -204,7 +197,7 @@ async function invokeProfile({ profileId, functionName, temporary,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
   return { statusCode: response.statusCode,
-    envelope: validateLiveResponse(JSON.parse(response.body)),
+    envelope: validateDemoSmokeEnvelope(JSON.parse(response.body)),
     wallMs: Date.now() - started };
 }
 
