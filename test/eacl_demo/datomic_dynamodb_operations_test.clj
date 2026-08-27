@@ -53,7 +53,7 @@
           (eacl/create-relationship!
            client (eacl/spice-object :user "user-1") :owner
            (eacl/spice-object :account "account-0"))
-          (let [snapshot (datomic-eacl/snapshot client (d/db connection))
+          (let [snapshot (eacl/snapshot client)
                 handlers (operations/create-handlers
                           {:descriptor descriptor
                            :cursor-key cursor-key

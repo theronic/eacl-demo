@@ -62,7 +62,7 @@ for (const relative of maps) {
 
 const runtimeBytes = await readFile(runtimePath);
 const runtimeText = runtimeBytes.toString("utf8");
-for (const marker of ["dev.eacl/eacl-datascript", "cljs.core", "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"]) {
+for (const marker of ["dev.eacl/eacl-datascript", "cljs.core", "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85"]) {
   if (!runtimeText.includes(marker)) throw new Error(`dedicated DataScript runtime is missing expected isolation witness: ${marker}`);
 }
 
@@ -84,7 +84,7 @@ const evidence = {
     path: "dist/datascript-runtime/datascript-runtime.js",
     bytes: runtimeBytes.length,
     sha256: sha256(runtimeBytes),
-    witnesses: ["dev.eacl/eacl-datascript", "cljs.core", "8dc3b16498788dd822b68e1c4fe25b37a8e8879f"]
+    witnesses: ["dev.eacl/eacl-datascript", "cljs.core", "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85"]
   }
 };
 await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);

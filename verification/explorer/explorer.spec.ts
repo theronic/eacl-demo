@@ -92,7 +92,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    eaclSha: "4d781c4d9437e381d3dcb7f43db8c5fbcd1ffb85",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)
@@ -135,7 +135,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(baselinePublications.get(id)) });
     }
   });
-  await page.route("**/*", async (route) => {
+  await page.route("https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws/**", async (route) => {
     const request = route.request();
     const operation = new URL(request.url()).pathname.split("/").at(-1)!;
     const requestId = request.headers()["x-eacl-request-id"] ?? null;
