@@ -28,7 +28,7 @@ for (const apiOrigin of enabledOrigins) {
 }
 assert.match(transport, /const path = `\/\$\{operation\}`;[\s\S]*new URL\(path, apiOrigin\)/u);
 assert.doesNotMatch(transport, /api\/v1|\$\{profile\.id\}|\$\{profile\.backend\}/u);
-assert.match(transport, /requires a direct HTTPS Lambda Function URL/u);
+assert.match(transport, /requires an approved HTTPS deployment origin/u);
 assert.doesNotMatch(transport, /x-amz-content-sha256|jsonPayloadSha256/u);
 assert.match(functionUrl, /maximum-request-body-bytes 65536/u);
 assert.match(functionUrl, /maximum-response-body-bytes 1048576/u);

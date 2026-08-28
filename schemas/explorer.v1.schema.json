@@ -118,7 +118,7 @@
         "runtime": {
           "type": "object", "additionalProperties": false, "required": ["execution", "name", "architecture", "snapStart"],
           "properties": {
-            "execution": {"enum": ["lambda", "browser"]},
+            "execution": {"enum": ["lambda", "ec2", "browser"]},
             "name": {"type": "string", "minLength": 1, "maxLength": 64},
             "architecture": {"enum": ["arm64", "x86_64", "wasm32", "javascript"]},
             "snapStart": {"enum": ["enabled", "disabled", "not-applicable"]}

@@ -121,8 +121,8 @@ test("startup requires ready health and the same exact basis as bootstrap", asyn
 });
 
 test("insecure, noncanonical, released, redirected, and non-JSON transports are rejected", async () => {
-  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: "https://demo.eacl.dev" } }), /Function URL/u);
-  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: null } }), /requires a direct/u);
+  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: "https://demo.eacl.dev" } }), /approved HTTPS/u);
+  assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, apiOrigin: null } }), /requires a deployment/u);
   assert.throws(() => createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)), { profile: { ...profile, route: "/extra" } }), /canonical/u);
   const redirected = createTransport(async (url) => {
     const operation = new URL(url).pathname.split("/").at(-1);
@@ -135,6 +135,17 @@ test("insecure, noncanonical, released, redirected, and non-JSON transports are 
   const released = createTransport(async () => response(success("bootstrap", "browser-0-1", descriptor)));
   await released.release();
   await assert.rejects(released.bootstrap(), (error) => error.code === "cancelled");
+});
+
+test("the exact Datomic EC2 origin is allowed without permitting arbitrary hosts", async () => {
+  const ec2Profile = { ...profile, apiOrigin: "https://datomic.demo.eacl.dev" };
+  const transport = createTransport(async (url, init) => response(success(
+    "check-permission", init.headers["x-eacl-request-id"], { allowed: true }
+  )), { profile: ec2Profile });
+  assert.equal((await transport.request("check-permission", {}, { requestId: "ec2-1" })).data.allowed, true);
+  assert.throws(() => createTransport(async () => response({}), {
+    profile: { ...profile, apiOrigin: "https://attacker.example" }
+  }), /approved HTTPS/u);
 });
 
 function createTransport(fetchImpl, overrides = {}) {

@@ -1,4 +1,5 @@
 import { initialSelection } from "./selection.mjs";
+import { normalizePlatform } from "./platforms.mjs";
 
 const MAX_SEARCH_BYTES = 2048;
 const FIELDS = [
@@ -13,7 +14,7 @@ const FIELDS = [
   field("cache", "cacheEnabled", 3, /^(?:on|off)$/u, (value) => value === "on", (value) => value ? "on" : "off"),
   field("consistency", "consistencyMode", 15, /^(?:minimize|authoritative|at-least|exact|historical-date)$/u)
 ];
-const ALLOWED = new Set(["backend", "storage", ...FIELDS.map(({ parameter }) => parameter)]);
+const ALLOWED = new Set(["backend", "storage", "platform", ...FIELDS.map(({ parameter }) => parameter)]);
 const FORBIDDEN = /(?:cursor|token|basis|revision|request|secret|password|credential|seed|cache-state|page)/iu;
 
 export function parseCanonicalUrl(search, catalog) {
@@ -21,7 +22,7 @@ export function parseCanonicalUrl(search, catalog) {
   const searchText = search.startsWith("?") ? search.slice(1) : search;
   if (byteLength(searchText) > MAX_SEARCH_BYTES) {
     const selection = initialSelection(catalog, new URLSearchParams());
-    const state = { ...selection };
+    const state = { ...selection, platform: normalizePlatform(selection, null) };
     return { state, issues: [{ code: "url-too-large", field: null }], canonicalSearch: serializeCanonicalUrl(state, catalog) };
   }
 
@@ -36,9 +37,12 @@ export function parseCanonicalUrl(search, catalog) {
   const requestedBackend = parameters.get("backend");
   const requestedStorage = parameters.get("storage");
   const selection = initialSelection(catalog, parameters);
+  const requestedPlatform = parameters.get("platform");
+  const platform = normalizePlatform(selection, requestedPlatform);
   if (requestedBackend !== null && requestedBackend !== selection.backend) issues.push({ code: "invalid-backend", field: "backend" });
   if (requestedStorage !== null && requestedStorage !== selection.storage) issues.push({ code: "invalid-storage", field: "storage" });
-  const state = { ...selection };
+  if (requestedPlatform !== null && requestedPlatform !== platform) issues.push({ code: "invalid-platform", field: "platform" });
+  const state = { ...selection, platform };
   for (const { parameter, property, maxBytes, pattern, decode } of FIELDS) {
     const values = parameters.getAll(parameter);
     if (values.length === 0) continue;
@@ -54,6 +58,7 @@ export function serializeCanonicalUrl(state, catalog) {
   const parameters = new URLSearchParams();
   parameters.set("backend", selection.backend);
   parameters.set("storage", selection.storage);
+  parameters.set("platform", normalizePlatform(selection, state.platform));
   for (const { parameter, property, maxBytes, pattern, encode } of FIELDS) {
     const value = state[property];
     if (value === undefined || value === null) continue;

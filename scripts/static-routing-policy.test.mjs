@@ -15,6 +15,8 @@ const directOrigins = [
   "nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws",
   "cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws",
   "kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws",
+  "7um6u6hb6wq6yfl46ukjkxcpuy0gexer.lambda-url.us-east-1.on.aws",
+  "datomic.demo.eacl.dev",
   "n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws",
 ];
 
@@ -35,7 +37,7 @@ test("static route rewrites preserve the two canonical entries only", () => {
   assert.deepEqual(context.handler(api), api.request);
 });
 
-test("the static CSP admits only the exact direct Function URL origins", () => {
+test("the static CSP admits only the exact deployed API origins", () => {
   for (const origin of directOrigins) assert.ok(template.includes(`https://${origin}`));
   assert.match(template, /connect-src 'self'[^;]+lambda-url\.us-east-1\.on\.aws/u);
   assert.match(template, /worker-src 'none'/u);

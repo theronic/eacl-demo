@@ -12,19 +12,21 @@
     "get-cache-info" "count-objects"})
 
 (defn descriptor
-  [{:keys [identity basis memory-mib admission-concurrency]}]
+  [{:keys [identity basis memory-mib admission-concurrency execution]
+    :or {execution "lambda"}}]
   (when-not (and (= data-manifest-sha256 (:dataManifestSha256 identity))
                  (= "fixed-environment" (:behavior basis))
                  (true? (:fixedForEnvironment basis))
                  (string? (:id basis)) (not-empty (:id basis))
                  (string? (:capturedAt basis)) (not-empty (:capturedAt basis))
                  (pos-int? memory-mib)
-                 (pos-int? admission-concurrency))
+                 (pos-int? admission-concurrency)
+                 (contains? #{"lambda" "ec2"} execution))
     (throw (ex-info "Invalid Datomic/DynamoDB profile descriptor input."
                     {:type :eacl-demo/invalid-profile-descriptor})))
   (boundary/descriptor
    {:identity identity
-    :runtime {:execution "lambda" :name "java25" :architecture "x86_64"
+    :runtime {:execution execution :name "java25" :architecture "x86_64"
               :snapStart "disabled"}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 1000000
