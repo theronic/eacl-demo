@@ -54,6 +54,10 @@ export function Explorer(props: {
   const app = useAppState();
   const hasBootstrap = () => Boolean(app.bootstrapData());
   const startupSeconds = () => (app.healthElapsedMs() / 1000).toFixed(1);
+  const healthyEaclSha = () =>
+    app.health.loading || app.health.error
+      ? undefined
+      : app.health()?.data.identity.eaclSha;
   const canRequest = new LatestRequest();
   const canDefaults = (): CanPermissionQuery => {
     const schema = app.bootstrapData()!.data.schema;
@@ -182,7 +186,7 @@ export function Explorer(props: {
           })}
         />
       </Show>
-      <ExplorerFooter eaclSha={app.health()?.data.identity.eaclSha} />
+      <ExplorerFooter eaclSha={healthyEaclSha()} />
     </div>
   );
 }
