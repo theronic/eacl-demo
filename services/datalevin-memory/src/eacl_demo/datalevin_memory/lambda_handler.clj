@@ -1,6 +1,7 @@
 (ns eacl-demo.datalevin-memory.lambda-handler
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datalevin-memory.boundary :as boundary]
@@ -9,9 +10,6 @@
             [eacl-demo.datalevin-memory.reader :as reader])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]))
-
-(def ^:private pinned-eacl-sha
-  "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
 
 (declare initialize)
 
@@ -37,9 +35,11 @@
 
 (defn parse-environment
   [environment]
-  (let [identity {:profileId "datalevin-memory"
+  (let [baked-eacl-sha (build-identity/eacl-sha)
+        declared-eacl-sha (get environment "EACL_CORE_SHA")
+        identity {:profileId "datalevin-memory"
                   :demoSha (get environment "EACL_DEMO_SHA")
-                  :eaclSha (get environment "EACL_CORE_SHA")
+                  :eaclSha baked-eacl-sha
                   :artifactSha256 (get environment "EACL_ARTIFACT_SHA256")
                   :deploymentId (get environment "EACL_DEPLOYMENT_ID")
                   :dataManifestSha256 profile/data-manifest-sha256}
@@ -47,7 +47,8 @@
         memory-mib (positive-int
                     (get environment "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"))]
     (when-not (and (re-matches #"[0-9a-f]{40}" (or (:demoSha identity) ""))
-                   (= pinned-eacl-sha (:eaclSha identity))
+                   (or (nil? declared-eacl-sha)
+                       (= baked-eacl-sha declared-eacl-sha))
                    (re-matches #"[0-9a-f]{64}"
                                (or (:artifactSha256 identity) ""))
                    (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}"

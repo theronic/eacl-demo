@@ -62,6 +62,26 @@
    "^test(?:/.*)?$"
    ".*\\.(?:cljs|js|mjs|html)$"])
 
+(defn- generate-build-identity!
+  [class-dir]
+  (let [{:keys [exit]}
+        (b/process {:command-args ["node"
+                                   "scripts/generate-jvm-build-identity.mjs"
+                                   class-dir]})]
+    (when-not (zero? exit)
+      (throw (ex-info "JVM build identity generation failed."
+                      {:class-dir class-dir :exit exit})))))
+
+(defn- verify-build-identity!
+  [uber-file]
+  (let [{:keys [exit]}
+        (b/process {:command-args ["node"
+                                   "scripts/verify-jvm-build-identity.mjs"
+                                   uber-file]})]
+    (when-not (zero? exit)
+      (throw (ex-info "JVM build identity verification failed."
+                      {:uber-file uber-file :exit exit})))))
+
 (defn- compile-service!
   [basis class-dir source-dirs]
   ;; Lambda cold starts must not spend tens of seconds compiling application
@@ -85,6 +105,7 @@
                 :aliases [:datahike-s3 :lambda-jvm]})]
     (b/delete {:path datahike-s3-class-dir})
     (b/delete {:path datahike-s3-uber-file})
+    (generate-build-identity! datahike-s3-class-dir)
     (b/copy-dir {:src-dirs (conj datahike-s3-source-dirs
                                   datomic-generated-classes-dir)
                  :target-dir datahike-s3-class-dir})
@@ -111,6 +132,7 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic Datahike/S3 JAR normalization failed."
                         {:exit exit}))))
+    (verify-build-identity! datahike-s3-uber-file)
     (println datahike-s3-uber-file)))
 
 (defn datahike-dynamodb-lambda
@@ -125,6 +147,7 @@
                 :aliases [:datahike-dynamodb :lambda-jvm]})]
     (b/delete {:path datahike-dynamodb-class-dir})
     (b/delete {:path datahike-dynamodb-uber-file})
+    (generate-build-identity! datahike-dynamodb-class-dir)
     (b/copy-dir {:src-dirs (conj datahike-dynamodb-source-dirs
                                   datomic-generated-classes-dir)
                  :target-dir datahike-dynamodb-class-dir})
@@ -153,6 +176,7 @@
         (throw (ex-info
                 "Deterministic Datahike/DynamoDB JAR normalization failed."
                 {:exit exit}))))
+    (verify-build-identity! datahike-dynamodb-uber-file)
     (println datahike-dynamodb-uber-file)))
 
 (defn datahike-dynamodb-seed
@@ -208,6 +232,7 @@
                 :aliases [:datomic-dynamodb :lambda-jvm]})]
     (b/delete {:path datomic-class-dir})
     (b/delete {:path datomic-uber-file})
+    (generate-build-identity! datomic-class-dir)
     (b/copy-dir {:src-dirs (conj datomic-source-dirs
                                   datomic-generated-classes-dir)
                  :target-dir datomic-class-dir})
@@ -230,6 +255,7 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic JAR normalization failed."
                         {:exit exit}))))
+    (verify-build-identity! datomic-uber-file)
     (println datomic-uber-file)))
 
 (defn datomic-seed
@@ -279,6 +305,7 @@
   (b/delete {:path datalevin-memory-work-dir})
   (b/delete {:path datalevin-memory-class-dir})
   (b/delete {:path datalevin-memory-uber-file})
+  (generate-build-identity! datalevin-memory-class-dir)
   (doseq [command [["node" "scripts/prepare-eacl-core.mjs"]
                    ["clojure" "-X:deps" "prep" ":aliases"
                     "[:datalevin-memory :lambda-jvm]"]
@@ -327,4 +354,5 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic Datalevin JAR normalization failed."
                         {:exit exit}))))
+    (verify-build-identity! datalevin-memory-uber-file)
     (println datalevin-memory-uber-file)))

@@ -120,6 +120,7 @@
     "test:infrastructure-lifecycle-policy": "node --test scripts/infrastructure-lifecycle-policy.test.mjs",
     "test:iam-boundaries": "node --test scripts/iam-boundary-policy.test.mjs",
     "test:runtime-template-policy": "node --test scripts/runtime-template-policy.test.mjs",
+    "test:jvm-build-identity": "node --test scripts/jvm-build-identity.test.mjs",
     "test:datomic-serving-policy": "node --test scripts/datomic-serving-policy.test.mjs",
     "test:datomic-runtime-policy": "node --test scripts/datomic-runtime-policy.test.mjs",
     "test:datomic-table-policy": "node --test scripts/datomic-table-policy.test.mjs",
