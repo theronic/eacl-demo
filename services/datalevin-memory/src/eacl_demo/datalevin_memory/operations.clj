@@ -30,7 +30,18 @@
       (catch clojure.lang.ExceptionInfo error
         (if (:code (ex-data error))
           (throw error)
-          (fail! "internal-error"))))))
+          (let [type (:type (ex-data error))]
+            (fail!
+             (cond
+               (contains? #{:eacl.pagination/invalid-cursor
+                            :eacl.cursor/invalid
+                            :eacl.format/invalid} type)
+               "cursor-invalid"
+
+               (= :eacl.pagination/cursor-expired type) "cursor-expired"
+               (= :eacl.pagination/cursor-scope-mismatch type)
+               "cursor-scope-mismatch"
+               :else "internal-error"))))))))
 
 (defn- wire-object
   [type id]
