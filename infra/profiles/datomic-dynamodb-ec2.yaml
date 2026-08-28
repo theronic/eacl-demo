@@ -155,10 +155,6 @@ Resources:
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8080
-          ToPort: 8080
-          SourcePrefixListId: !Ref CloudFrontPrefixListId
-        - IpProtocol: tcp
-          FromPort: 8081
           ToPort: 8081
           SourcePrefixListId: !Ref CloudFrontPrefixListId
       SecurityGroupEgress:

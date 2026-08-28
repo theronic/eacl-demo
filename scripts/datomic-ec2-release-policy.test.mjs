@@ -18,3 +18,10 @@ test("the SSM release association and runtime command both verify the artifact b
   assert.match(source, /DatalevinRuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*MemoryMax=384M[\s\S]*systemctl enable --now eacl-demo-datalevin\.service/u);
   assert.match(source, /DatalevinViewerCertificate[\s\S]*HTTPPort: 8081[\s\S]*DatalevinViewerRecord/u);
 });
+
+test("one CloudFront prefix-list rule admits both shared-host adapters", () => {
+  const ingress = /SecurityGroupIngress:[\s\S]*?(?=\n\s{6}SecurityGroupEgress:)/u.exec(source)?.[0];
+  assert.ok(ingress);
+  assert.equal((ingress.match(/SourcePrefixListId:/gu) ?? []).length, 1);
+  assert.match(ingress, /FromPort: 8080[\s\S]*ToPort: 8081/u);
+});
