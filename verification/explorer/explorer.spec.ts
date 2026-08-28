@@ -68,6 +68,109 @@ test("the landing page defaults to the first, zero-Lambda DataScript option", as
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
 });
 
+test("a Datomic EC2 health identity mismatch replaces the startup indicator with a retryable error", async ({ page }) => {
+  const deployedAt = new Date().toISOString();
+  const identity = {
+    profileId: "datomic-dynamodb",
+    demoSha: "a".repeat(40),
+    eaclSha: "b".repeat(40),
+    artifactSha256: "c".repeat(64),
+    deploymentId: "datomic-dynamodb:browser-test-1",
+    dataManifestSha256: "d".repeat(64),
+  };
+  const profile = {
+    id: identity.profileId,
+    backend: "datomic",
+    storage: "dynamodb",
+    state: "enabled" as const,
+    reason: null,
+    route: "/",
+    deployment: {
+      demoSha: identity.demoSha,
+      eaclSha: identity.eaclSha,
+      artifact: { kind: "lambda-version" as const, sha256: identity.artifactSha256, version: "1" },
+      deploymentId: identity.deploymentId,
+      dataManifestSha256: identity.dataManifestSha256,
+      deployedAt,
+    },
+    lastOutcome: {
+      outcome: "succeeded" as const,
+      attemptedDemoSha: identity.demoSha,
+      attemptedEaclSha: identity.eaclSha,
+      artifactSha256: identity.artifactSha256,
+      at: deployedAt,
+      message: "The browser-test candidate passed its qualification gate.",
+    },
+  };
+  const publication = await createProfilePublication({
+    profile,
+    definition: { id: profile.id, backend: profile.backend, storage: profile.storage },
+    publishedAt: deployedAt,
+    gate: { kind: "merge-smoke", evidenceId: `sha256:${"e".repeat(64)}` },
+  });
+  const basis = {
+    behavior: "fixed-environment",
+    id: "datomic:eacl-demo:test",
+    capturedAt: deployedAt,
+    fixedForEnvironment: true,
+  };
+  const descriptor = {
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 2, minimumClientRevision: 1 },
+    identity,
+    profile: { backend: profile.backend, storage: profile.storage },
+    runtime: { execution: "ec2", name: "java25", architecture: "arm64", snapStart: "not-applicable" },
+    capabilities: {
+      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
+      consistencyModes: ["minimize"],
+      snapshotBehavior: "fixed-environment",
+      cacheBehavior: "environment-local",
+      mutationLocality: "none",
+      limitations: ["read-only"],
+    },
+    limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
+    dataset: {
+      fixtureId: "eacl-demo-fixture-v1",
+      logicalResourceCount: 10_000,
+      serverCount: 10_000,
+      manifestSha256: identity.dataManifestSha256,
+    },
+    basis,
+  };
+  let healthRequests = 0;
+
+  await page.route("**/registry/profiles/datomic-dynamodb.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(publication),
+  }));
+  await page.route("https://datomic.demo.eacl.dev/**", async (route) => {
+    const operation = new URL(route.request().url()).pathname.slice(1);
+    const requestId = route.request().headers()["x-eacl-request-id"];
+    if (operation === "health") healthRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        meta: { requestId, revision: basis.id, elapsedMs: 1 },
+        data: operation === "health"
+          ? { status: "ready", ready: true, identity: { ...identity, demoSha: "f".repeat(40) }, basis }
+          : descriptor,
+      }),
+    });
+  });
+
+  await page.goto("/?backend=datomic&storage=dynamodb&platform=ec2");
+  const alert = page.getByRole("alert");
+  await expect(alert).toContainText("Datomic startup failed");
+  await expect(alert).toContainText("health identity does not match registry");
+  await expect(page.getByText(/Connecting to Datomic EC2/iu)).toHaveCount(0);
+  await expect(alert.getByRole("button", { name: "Retry" })).toBeVisible();
+  const initialHealthRequests = healthRequests;
+  await alert.getByRole("button", { name: "Retry" }).click();
+  await expect.poll(() => healthRequests).toBeGreaterThan(initialHealthRequests);
+  await expect(alert).toContainText("health identity does not match registry");
+});
+
 test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ page }) => {
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(results.violations).toEqual([]);
