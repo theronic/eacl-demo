@@ -13,8 +13,9 @@ const [template, telemetrySchema, lifecycleSource, runtimeSource, readerSource, 
   readFile(new URL("../services/datalevin-memory/java/eacl_demo/datalevin_memory/LambdaHandler.java", import.meta.url), "utf8"),
   readFile(new URL("../scripts/deploy-live-demo.mjs", import.meta.url), "utf8")
 ]);
+const buildSource = await readFile(new URL("../build.clj", import.meta.url), "utf8");
 
-test("Datalevin live target is a preinitialized managed Java 25 arm64 SnapStart version", () => {
+test("Datalevin Lambda target is a preinitialized managed Java 25 arm64 SnapStart version", () => {
   assert.match(template, /^\s{6}Runtime: java25$/mu);
   assert.match(template, /^\s{6}Architectures:\s*\n\s{8}- arm64$/mu);
   assert.match(template, /^\s{6}SnapStart:\s*\n\s{8}ApplyOn: PublishedVersions$/mu);
@@ -26,6 +27,11 @@ test("Datalevin live target is a preinitialized managed Java 25 arm64 SnapStart 
   assert.match(deploySource, /published-version-active/u);
   assert.match(deploySource, /OptimizationStatus !== "On"/u);
   assert.match(deploySource, /runtime\?\.snapStart !==/u);
+});
+
+test("one exact artifact carries only the two deployed Linux native architectures", () => {
+  assert.match(buildSource, /datalevin\/dtlvnative\/\(\?:macosx-arm64\|windows-x86_64\)/u);
+  assert.doesNotMatch(buildSource, /macosx-arm64\|windows-x86_64\|linux-x86_64/u);
 });
 
 test("Datalevin uses true in-memory topology without remote or filesystem serving", () => {

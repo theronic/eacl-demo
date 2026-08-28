@@ -55,6 +55,10 @@ Mappings:
 Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
   IsDatomicProfile: !Equals [!Ref ProfileId, datomic-dynamodb]
+  IsDatalevinProfile: !Equals [!Ref ProfileId, datalevin-memory]
+  UsesSharedEc2: !Or
+    - !Condition IsDatomicProfile
+    - !Condition IsDatalevinProfile
   HasComparisonPlatform: !Not [!Equals [!Ref ProfileId, datalevin-memory]]
 
 Resources:
@@ -133,8 +137,8 @@ Resources:
                     - ComparisonFunctionName: !FindInMap [Profiles, !Ref ProfileId, ComparisonFunction]
                 - !Ref AWS::NoValue
               - !If
-                - IsDatomicProfile
-                - Sid: ReconcileExactDatomicEc2Runtime
+                - UsesSharedEc2
+                - Sid: ReconcileExactSharedEc2Runtime
                   Effect: Allow
                   Action: ssm:SendCommand
                   Resource:

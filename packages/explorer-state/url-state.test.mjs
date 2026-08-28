@@ -49,4 +49,7 @@ test("platform links fail closed to the supported deployment matrix", () => {
   const unsupported = parseCanonicalUrl("?backend=datahike&storage=dynamodb&platform=ec2", catalog);
   assert.equal(unsupported.state.platform, "lambda-1024");
   assert.deepEqual(unsupported.issues, [{ code: "invalid-platform", field: "platform" }]);
+  const datalevin = parseCanonicalUrl("?backend=datalevin&storage=memory&platform=ec2", catalog);
+  assert.equal(datalevin.state.platform, "ec2");
+  assert.deepEqual(datalevin.issues, []);
 });

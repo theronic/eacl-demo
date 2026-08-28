@@ -347,7 +347,7 @@
       :basis basis
       :exclude
       [#"(?i)^META-INF/(?:[^/]+\.(?:SF|RSA|DSA)|INDEX\.LIST)$"
-       #"^datalevin/dtlvnative/(?:macosx-arm64|windows-x86_64|linux-x86_64)(?:/.*)?$"]})
+       #"^datalevin/dtlvnative/(?:macosx-arm64|windows-x86_64)(?:/.*)?$"]})
     (let [{:keys [exit]}
           (b/process {:command-args ["python3" "scripts/normalize-zip.py"
                                      datalevin-memory-uber-file]})]

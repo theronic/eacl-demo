@@ -72,7 +72,10 @@ export const ordinaryTargetDefinitions = Object.freeze({
     environment: "demo-production-datalevin-memory",
     authorityId: "deploy-datalevin-memory",
     roleVariable: "AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN",
-    deployVariables: serverDeployVariables("DATALEVIN_MEMORY_FUNCTION_NAME"),
+    deployVariables: {
+      ...serverDeployVariables("DATALEVIN_MEMORY_FUNCTION_NAME"),
+      SHARED_EC2_INSTANCE_ID: "DATOMIC_DYNAMODB_EC2_INSTANCE_ID"
+    },
     payloadPath: "dist/datalevin-memory/function.jar",
     deploymentImplemented: false,
     buildKind: "jvm",

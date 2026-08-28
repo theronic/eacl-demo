@@ -8,7 +8,7 @@ import {
   profileForPlatform
 } from "./src/platforms.mjs";
 
-test("Datomic and Datahike expose larger Lambdas while EC2 remains Datomic-only", () => {
+test("Datomic and Datalevin share EC2 while Datahike exposes only Lambda sizes", () => {
   const datomic = { backend: "datomic", storage: "dynamodb" };
   assert.deepEqual(platformOptions(datomic).map(({ id, selectable }) => [id, selectable]), [
     ["lambda-1024", true], ["lambda-4096", true], ["ec2", true]
@@ -18,6 +18,10 @@ test("Datomic and Datahike expose larger Lambdas while EC2 remains Datomic-only"
     ["lambda-1024", true], ["lambda-4096", true], ["ec2", false]
   ]);
   assert.equal(normalizePlatform({ backend: "datahike", storage: "s3" }, "ec2"), "lambda-1024");
+  assert.deepEqual(platformOptions({ backend: "datalevin", storage: "memory" })
+    .map(({ id, selectable }) => [id, selectable]), [
+    ["lambda-1024", true], ["lambda-4096", false], ["ec2", true]
+  ]);
 });
 
 test("each Datahike storage maps its 4 GiB option to a distinct deployed origin", () => {
@@ -34,6 +38,8 @@ test("platform selection changes only the deployment origin and execution label"
   assert.equal(profileForPlatform(profile, "lambda-1024").apiOrigin, profile.apiOrigin);
   assert.match(profileForPlatform(profile, "lambda-4096").apiOrigin, /lambda-url/u);
   assert.equal(profileForPlatform(profile, "ec2").apiOrigin, "https://datomic.demo.eacl.dev");
+  assert.equal(profileForPlatform({ backend: "datalevin", storage: "memory", apiOrigin: "https://small.example" }, "ec2").apiOrigin,
+    "https://datalevin.demo.eacl.dev");
   assert.equal(executionForPlatform("lambda-4096"), "lambda");
   assert.equal(executionForPlatform("ec2"), "ec2");
 });

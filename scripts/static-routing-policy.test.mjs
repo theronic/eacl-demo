@@ -20,6 +20,7 @@ const directOrigins = [
   "7um6u6hb6wq6yfl46ukjkxcpuy0gexer.lambda-url.us-east-1.on.aws",
   "datomic.demo.eacl.dev",
   "n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws",
+  "datalevin.demo.eacl.dev",
 ];
 
 test("CloudFront serves only the two static Explorer entries", () => {

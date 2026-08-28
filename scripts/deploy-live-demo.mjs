@@ -69,6 +69,7 @@ if (target === "static") await deployStatic();
 else if (target === "datahike-s3") await deployDatahikePlatforms("datahike-s3");
 else if (target === "datahike-dynamodb") await deployDatahikePlatforms("datahike-dynamodb");
 else if (target === "datomic-dynamodb") await deployDatomicPlatforms();
+else if (target === "datalevin-memory") await deployDatalevinPlatforms();
 else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
 else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
 
@@ -89,6 +90,15 @@ async function deployDatahikePlatforms(profileId) {
   const largeId = `${profileId}-large`;
   await deployProfile(profileId, profiles[largeId], largeId);
   await deployProfile(profileId, profiles[profileId], profileId);
+}
+
+async function deployDatalevinPlatforms() {
+  await deployProfile(
+    "datalevin-memory",
+    profiles["datalevin-memory"],
+    "datalevin-memory",
+    { beforePublish: deployDatalevinEc2 }
+  );
 }
 
 async function deployStatic() {
@@ -128,7 +138,8 @@ async function deployStatic() {
   process.stdout.write(`deployed static ${demoSha()}\n`);
 }
 
-async function deployProfile(profileId, profile, targetId = profileId) {
+async function deployProfile(profileId, profile, targetId = profileId,
+  { beforePublish = null } = {}) {
   const artifactBucket = required("ARTIFACT_BUCKET");
   const artifactPath = path.join(root, profile.artifact);
   const artifactSha = createHash("sha256").update(await readFile(artifactPath)).digest("hex");
@@ -202,6 +213,15 @@ async function deployProfile(profileId, profile, targetId = profileId) {
     try {
       await smokeFunctionUrl(profileId, profile.apiOrigin ?? definitionFor(profileId).apiOrigin,
         expectedIdentityFor(profileId, artifactSha, deploymentId));
+      if (beforePublish !== null) {
+        if (typeof beforePublish !== "function") throw new TypeError("beforePublish must be a function");
+        await beforePublish({
+          artifactKey: key,
+          artifactSha256: artifactSha,
+          artifactVersion: uploaded.VersionId,
+          deploymentId
+        });
+      }
       if (profile.publishRegistry !== false) {
         await publishProfile({
           profileId,
@@ -229,10 +249,7 @@ async function deployProfile(profileId, profile, targetId = profileId) {
 }
 
 async function deployDatomicEc2(release) {
-  const instanceId = required("DATOMIC_DYNAMODB_EC2_INSTANCE_ID");
-  if (!/^i-[0-9a-f]{8,17}$/u.test(instanceId)) {
-    throw new Error("DATOMIC_DYNAMODB_EC2_INSTANCE_ID is invalid");
-  }
+  const instanceId = sharedEc2InstanceId();
   const bucket = required("ARTIFACT_BUCKET");
   const region = required("AWS_REGION");
   const script = [
@@ -272,6 +289,53 @@ async function deployDatomicEc2(release) {
       { attempts: 30 }
     );
     process.stdout.write(`deployed datomic-dynamodb-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+}
+
+async function deployDatalevinEc2(release) {
+  const instanceId = sharedEc2InstanceId();
+  const bucket = required("ARTIFACT_BUCKET");
+  const region = required("AWS_REGION");
+  const script = [
+    "set -euo pipefail",
+    "test -s /etc/eacl-demo-datalevin.env",
+    "test -s /etc/systemd/system/eacl-demo-datalevin.service",
+    `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/datalevin.jar.next`,
+    `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/datalevin.jar.next`)} | sha256sum --check --strict`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datalevin.env > /etc/eacl-demo-datalevin.env.next`,
+    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=")} /etc/eacl-demo-datalevin.env.next)" -eq 5`,
+    "install -m 0600 /etc/eacl-demo-datalevin.env.next /etc/eacl-demo-datalevin.env",
+    "install -m 0644 /opt/eacl-demo/datalevin.jar.next /opt/eacl-demo/datalevin.jar",
+    "systemctl restart eacl-demo-datalevin.service",
+    "for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-release-health' http://127.0.0.1:8081/health >/dev/null && exit 0; sleep 2; done",
+    "systemctl status eacl-demo-datalevin.service --no-pager",
+    "exit 1"
+  ].join("\n");
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-datalevin-ec2-release-"));
+  try {
+    const parametersFile = path.join(temporary, "parameters.json");
+    await writeFile(parametersFile, `${JSON.stringify({ commands: [`bash -ceu ${shellQuote(script)}`] })}\n`, { mode: 0o600 });
+    const response = awsJson([
+      "ssm", "send-command",
+      "--document-name", "AWS-RunShellScript",
+      "--instance-ids", instanceId,
+      "--timeout-seconds", "900",
+      "--comment", `Datalevin ${demoSha().slice(0, 12)} ${release.artifactSha256.slice(0, 12)}`,
+      "--parameters", `file://${parametersFile}`
+    ]);
+    const commandId = response.Command?.CommandId;
+    if (!/^[0-9a-f-]{36}$/u.test(commandId ?? "")) {
+      throw new Error("SSM did not accept the Datalevin EC2 release command");
+    }
+    await smokeFunctionUrl(
+      "datalevin-memory",
+      "https://datalevin.demo.eacl.dev",
+      expectedIdentityFor("datalevin-memory", release.artifactSha256, release.deploymentId),
+      { attempts: 60 }
+    );
+    process.stdout.write(`deployed datalevin-memory-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
@@ -545,6 +609,15 @@ function required(name) {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required`);
   return value;
+}
+
+function sharedEc2InstanceId() {
+  const instanceId = process.env.SHARED_EC2_INSTANCE_ID ??
+    process.env.DATOMIC_DYNAMODB_EC2_INSTANCE_ID;
+  if (!/^i-[0-9a-f]{8,17}$/u.test(instanceId ?? "")) {
+    throw new Error("SHARED_EC2_INSTANCE_ID is invalid");
+  }
+  return instanceId;
 }
 
 function shellQuote(value) {

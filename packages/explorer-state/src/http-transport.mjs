@@ -11,7 +11,10 @@ const OPERATIONS = new Set([
 const GET_OPERATIONS = new Set(["health", "bootstrap"]);
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 const FUNCTION_URL_HOST = /^[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws$/u;
-const APPROVED_HTTPS_HOST = new Set(["datomic.demo.eacl.dev"]);
+const APPROVED_HTTPS_HOST = new Set([
+  "datomic.demo.eacl.dev",
+  "datalevin.demo.eacl.dev"
+]);
 const PROFILE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
