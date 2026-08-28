@@ -124,6 +124,7 @@ async function deployStatic() {
   }
   aws(["cloudfront", "create-invalidation", "--distribution-id", distribution,
        "--paths", "/index.html", "/datascript/index.html"]);
+  await smokeStaticSecurityHeaders("https://demo.eacl.dev");
   const runtimePath = manifest.entries.datascriptRuntime;
   const runtime = manifest.files.find((file) => file.path === runtimePath);
   if (!runtime) throw new Error("DataScript runtime is absent from the static manifest");
@@ -136,6 +137,36 @@ async function deployStatic() {
     evidence: runtime.sha256
   });
   process.stdout.write(`deployed static ${demoSha()}\n`);
+}
+
+async function smokeStaticSecurityHeaders(origin) {
+  const template = await readFile(path.join(root, "infra/static/template.yaml"), "utf8");
+  const expected = template.match(/^\s+ContentSecurityPolicy: "([^"]+)"$/mu)?.[1];
+  if (!expected) throw new Error("static template CSP is absent or ambiguous");
+  let observed = null;
+  for (let attempt = 1; attempt <= 15; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(new URL(`/?static-policy=${demoSha()}-${attempt}`, origin), {
+        method: "HEAD",
+        headers: { "cache-control": "no-cache" },
+        redirect: "manual",
+        signal: controller.signal
+      });
+      observed = response.headers.get("content-security-policy");
+      if (response.status === 200 && observed === expected) return;
+    } catch (error) {
+      observed = error instanceof Error ? error.message : String(error);
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (attempt < 15) await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error(`live static CSP differs from infra/static/template.yaml: ${JSON.stringify({
+    expectedLength: expected.length,
+    observedLength: typeof observed === "string" ? observed.length : null
+  })}`);
 }
 
 async function deployProfile(profileId, profile, targetId = profileId,
