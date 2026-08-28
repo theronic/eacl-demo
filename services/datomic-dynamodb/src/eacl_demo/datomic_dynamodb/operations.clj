@@ -281,6 +281,8 @@
       "authoritative" consistency/minimize-latency
       "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))
       "exact" (consistency/at-exact-snapshot (eacl/basis-token snapshot))
+      "historical-date" (consistency/at-exact-snapshot
+                           (eacl/basis-token snapshot))
       consistency/minimize-latency)))
 
 (defn- relationship-query

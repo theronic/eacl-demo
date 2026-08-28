@@ -34,7 +34,16 @@ export function ConsistencyPanel(): JSX.Element {
     consistency()?.fullyConsistentReason?.trim() ?? "";
   const exactDateSupported = () =>
     Boolean(consistency()?.atExactSnapshotDateSelection);
-  const exactDateValue = () => basis()?.capturedAt ?? "";
+  const setExactDate = (value: string) => {
+    if (!value) {
+      app.setAtExactSnapshotAt("");
+      return;
+    }
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      app.setAtExactSnapshotAt(date.toISOString());
+    }
+  };
   const expansionKey = "segment:read-basis";
   const expanded = () => app.isExpanded(expansionKey);
 
@@ -235,12 +244,20 @@ export function ConsistencyPanel(): JSX.Element {
                       aria-label="at-exact-snapshot date"
                       aria-describedby="exact-date-selection-reason"
                       disabled={!exactDateSupported()}
-                      value={localDateTimeValue(exactDateValue())}
+                      value={localDateTimeValue(app.atExactSnapshotAt())}
+                      onInput={(event) => setExactDate(event.currentTarget.value)}
+                      onChange={(event) => setExactDate(event.currentTarget.value)}
                     />
                   </label>
                   <Show when={!exactDateSupported()}>
                     <p id="exact-date-selection-reason" class="basis-info__note">
                       {consistency()?.atExactSnapshotDateSelectionReason}
+                    </p>
+                  </Show>
+                  <Show when={exactDateSupported()}>
+                    <p id="exact-date-selection-reason" class="basis-info__note">
+                      Selects the latest available immutable snapshot at or before
+                      this datetime.
                     </p>
                   </Show>
                 </div>

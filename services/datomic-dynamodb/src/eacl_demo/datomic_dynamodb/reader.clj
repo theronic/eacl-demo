@@ -1,12 +1,15 @@
 (ns eacl-demo.datomic-dynamodb.reader
   "Read-only Datomic/DynamoDB reader fixed to one initialization DB value."
   (:require [datomic.api :as d]
+            [eacl.causal-token :as causal-token]
             [eacl.core :as eacl]
             [eacl.datomic.core :as datomic-eacl]
+            [eacl.secure-format :as secure]
             [eacl.spicedb.consistency :as consistency])
   (:import [java.nio.charset StandardCharsets]
            [java.security MessageDigest]
-           [java.time Instant]))
+           [java.time Instant]
+           [java.util Date]))
 
 (def ^:private fixture-schema-sha256
   "7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c")
@@ -52,6 +55,41 @@
    :capturedAt (str captured-at)
    :fixedForEnvironment true})
 
+(defn historical-public-basis
+  [{:keys [table database]} revision captured-at]
+  {:behavior "request-snapshot"
+   :id (str "datomic:" table ":" database ":" revision)
+   :capturedAt (str captured-at)
+   :fixedForEnvironment false})
+
+(defn- token-format-options
+  [security-key]
+  {:current-kid :default
+   :keyring {:default (secure/normalize-key security-key)}})
+
+(defn- decode-token
+  [format-options token]
+  (causal-token/token-data format-options token))
+
+(defn- issue-exact-token
+  [format-options token-scope revision]
+  (causal-token/issue
+   format-options
+   (-> token-scope
+       (assoc :revision revision :exact-locator revision)
+       (dissoc :issued-at :expires-at))))
+
+(defn- resolve-as-of
+  [database instant]
+  (let [historical-db (d/as-of database (Date/from instant))
+        revision (or (.asOfT ^datomic.Database historical-db)
+                     (d/basis-t historical-db))
+        captured-at (some-> (d/entity historical-db (d/t->tx revision))
+                            :db/txInstant
+                            (.toInstant))]
+    {:revision revision
+     :captured-at captured-at}))
+
 (defn open-reader!
   "Connects without a transactor, retains exactly one current DB value, and
   creates request-scoped EACL snapshots selected by its authenticated exact
@@ -69,6 +107,9 @@
        (eacl/snapshot client (consistency/at-exact-snapshot token)))
      :snapshot-db datomic-eacl/db
      :snapshot-token eacl/basis-token
+     :resolve-as-of resolve-as-of
+     :decode-token decode-token
+     :issue-exact-token issue-exact-token
      :release-snapshot eacl/release!
      :release-connection d/release
      :read-schema-source (fn [database]
@@ -77,11 +118,13 @@
      :clock #(Instant/now)}))
   ([config {:keys [connect current-db basis-t make-client
                    select-current-snapshot select-exact-snapshot snapshot-db
-                   snapshot-token release-snapshot release-connection
+                   snapshot-token resolve-as-of decode-token issue-exact-token
+                   release-snapshot release-connection
                    read-schema-source clock]}]
    (when-not (every? fn? [connect current-db basis-t make-client
                           select-current-snapshot select-exact-snapshot
-                          snapshot-db snapshot-token release-snapshot
+                          snapshot-db snapshot-token resolve-as-of decode-token
+                          issue-exact-token release-snapshot
                           release-connection read-schema-source clock])
      (throw (ex-info "Invalid Datomic/DynamoDB reader operations."
                      {:type :eacl-demo/invalid-reader-operations})))
@@ -122,6 +165,8 @@
                  (snapshot-token initial-snapshot))
                (finally
                  (release-snapshot initial-snapshot)))
+             format-options (token-format-options (:security-key config))
+             fixed-token-scope (decode-token format-options fixed-token)
              fixed-basis (public-basis config fixed-revision (clock))]
          {:config config
           :connection connection
@@ -130,11 +175,31 @@
           :basis fixed-basis
           :release-connection release-connection
           :capture-snapshot
-          (fn []
-            (let [snapshot (select-exact-snapshot client fixed-token)]
-              {:value snapshot
-               :basis fixed-basis
-               :release! #(release-snapshot snapshot)}))})
+          (fn capture-snapshot
+            ([] (capture-snapshot {}))
+            ([input]
+             (let [[token basis]
+                   (if (= "historical-date" (:consistency input))
+                     (let [instant (Instant/parse (:atExactSnapshotAt input))
+                           {:keys [revision captured-at]}
+                           (resolve-as-of fixed-db instant)]
+                       (when-not (and (integer? revision)
+                                      (not (neg? revision))
+                                      (instance? Instant captured-at))
+                         (throw
+                          (ex-info
+                           "Datomic historical basis could not be resolved."
+                           {:type :eacl-demo/historical-basis-unavailable})))
+                       [(issue-exact-token format-options fixed-token-scope
+                                           revision)
+                        (historical-public-basis config revision captured-at)])
+                     [(issue-exact-token format-options fixed-token-scope
+                                         fixed-revision)
+                      fixed-basis])
+                   snapshot (select-exact-snapshot client token)]
+               {:value snapshot
+                :basis basis
+                :release! #(release-snapshot snapshot)})))})
        (catch Throwable error
          (release-connection connection)
          (throw error))))))

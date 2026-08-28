@@ -3,18 +3,19 @@ import { parseApiRoute } from "./routes.mjs";
 
 const CONSISTENCY = new Set(["minimize", "authoritative", "at-least", "exact", "historical-date"]);
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]*$/u;
+const CONSISTENCY_FIELDS = ["consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt", "atExactSnapshotAt"];
 const BODY_FIELDS = Object.freeze({
   "list-subjects": { optional: ["type", "pageSize", "cursor"] },
-  "get-object": { required: ["type", "id"], optional: ["consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
-  "get-schema": { optional: ["consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] },
+  "get-object": { required: ["type", "id"], optional: CONSISTENCY_FIELDS },
+  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "get-schema": { optional: CONSISTENCY_FIELDS },
   "get-cache-info": { optional: [] },
-  "count-objects": { required: ["kind"], optional: ["type", "ceiling", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId", "atLeastAsFreshBasisCapturedAt"] }
+  "count-objects": { required: ["kind"], optional: ["type", "ceiling", ...CONSISTENCY_FIELDS] }
 });
 
 export function validateHttpRequest(request) {
@@ -41,6 +42,8 @@ export function validateHttpRequest(request) {
   if (("atLeastAsFreshAs" in input || "atLeastAsFreshBasisId" in input || "atLeastAsFreshBasisCapturedAt" in input) && input.consistency !== "at-least") return rejected("validation-error");
   if ("atLeastAsFreshBasisId" in input && !("atLeastAsFreshAs" in input)) return rejected("validation-error");
   if ("atLeastAsFreshBasisCapturedAt" in input && (!("atLeastAsFreshAs" in input) || !("atLeastAsFreshBasisId" in input))) return rejected("validation-error");
+  if ("atExactSnapshotAt" in input && input.consistency !== "historical-date") return rejected("validation-error");
+  if (input.consistency === "historical-date" && !("atExactSnapshotAt" in input)) return rejected("validation-error");
   return { ...route, requestId, input };
 }
 
@@ -57,8 +60,8 @@ function validValues(input) {
     if (key === "cursor" && (typeof value !== "string" || byteLength(value) > limits.cursorBytes)) return false;
     if (["cache", "populateCache"].includes(key) && typeof value !== "boolean") return false;
     if (key === "consistency" && !CONSISTENCY.has(value)) return false;
-    if (["atLeastAsFreshAs", "atLeastAsFreshBasisCapturedAt"].includes(key) && (typeof value !== "string" || value.length > 64 || !Number.isFinite(Date.parse(value)))) return false;
-    if (!["pageSize", "ceiling", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisCapturedAt"].includes(key) && (typeof value !== "string" || byteLength(value) > limits.identifierBytes || !IDENTIFIER.test(value))) return false;
+    if (["atLeastAsFreshAs", "atLeastAsFreshBasisCapturedAt", "atExactSnapshotAt"].includes(key) && (typeof value !== "string" || value.length > 64 || !Number.isFinite(Date.parse(value)))) return false;
+    if (!["pageSize", "ceiling", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisCapturedAt", "atExactSnapshotAt"].includes(key) && (typeof value !== "string" || byteLength(value) > limits.identifierBytes || !IDENTIFIER.test(value))) return false;
   }
   return true;
 }

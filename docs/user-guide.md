@@ -56,13 +56,12 @@ silently upgrades `current` into exact or historical behavior.
 - Datahike captures an immutable request snapshot. Its qualified descriptor
   states the available current/minimize/exact-style modes and whether its
   shared read-through cache was used.
-- Datomic Lambda opens a read-only Peer connection, captures one current
-  `d/db` during environment initialization, and serves that fixed value until
-  the Lambda environment is replaced. `current` and `minimize` refer to that
-  retained value. The profile does not synchronize and exposes no exact,
-  as-of, historical-date, or history API. The underlying database is seeded
-  without `:db/noHistory true` so a future, separate non-read-only EC2 demo can
-  use retained history; that does not broaden this Lambda.
+- Datomic opens a read-only Peer connection and captures one current `d/db`
+  during environment initialization. Lambda serves that fixed value until the
+  environment is replaced. The EC2 profile additionally resolves an editable
+  `at-exact-snapshot` datetime against Datomic's retained history and pins the
+  request to the resulting authenticated native transaction basis. Neither
+  deployment synchronizes with a writer during a request.
 - Datalevin and Jank rebuild bounded in-memory state for a runtime lifecycle.
   Their caches are environment-local and their data is not durable.
 - DataScript owns its fixture, authorization state, cache, and snapshots in the

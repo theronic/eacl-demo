@@ -12,6 +12,8 @@
 
 (def descriptor
   {:identity profile-identity
+   :capabilities {:consistencyModes ["minimize" "authoritative" "at-least"
+                                     "exact"]}
    :basis {:behavior "fixed-environment"
    :id "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
            :capturedAt "2026-08-25T12:00:00Z"
@@ -45,7 +47,7 @@
          {:descriptor descriptor
           :maximum-concurrency 1
           :clock (constantly 1000)
-          :capture-snapshot (fn []
+          :capture-snapshot (fn [_]
                               (swap! captures inc)
                               {:value :fixed-snapshot
                                :basis (:basis descriptor)
@@ -74,19 +76,21 @@
         profile
         (boundary/create-boundary
          {:descriptor descriptor
-          :capture-snapshot (fn []
+          :capture-snapshot (fn [_]
                               (swap! captures inc)
                               {:value :forbidden
                                :basis (:basis descriptor)
                                :release! (fn [])})
           :handlers rejecting-handlers})]
-    (doseq [consistency ["historical-date" "fully-consistent" "live-refresh"
-                         "future-sync-mode"]]
+    (doseq [consistency ["fully-consistent" "live-refresh" "future-sync-mode"]]
       (let [response (boundary/invoke! profile (request consistency))]
         (is (contains? response :error))
         (is (not (contains? response :data)))
         (is (= "unsupported-consistency" (get-in response [:error :code])))
         (is (= #{:revision :requestId} (set (keys (:meta response)))))))
+    (is (= "validation-error"
+           (get-in (boundary/invoke! profile (request "historical-date"))
+                   [:error :code])))
     (is (zero? @captures))
     (is (zero? @handler-calls))))
 
@@ -94,7 +98,7 @@
   (let [captures (atom 0)
         profile (boundary/create-boundary
                  {:descriptor descriptor
-                  :capture-snapshot (fn [] (swap! captures inc))
+                  :capture-snapshot (fn [_] (swap! captures inc))
                   :handlers handlers})
         response (boundary/invoke!
                   profile
@@ -106,7 +110,7 @@
   (let [captures (atom 0)
         profile (boundary/create-boundary
                  {:descriptor descriptor
-                  :capture-snapshot (fn [] (swap! captures inc))
+                  :capture-snapshot (fn [_] (swap! captures inc))
                   :handlers handlers})
         base (:input (request nil))]
     (doseq [input [(dissoc base :permission)
@@ -126,7 +130,7 @@
                   :maximum-concurrency 1
                   :clock (constantly 1000)
                   :capture-snapshot
-                  (fn []
+                  (fn [_]
                     (swap! captures inc)
                     {:value :fixed-snapshot
                      :basis (:basis descriptor)
@@ -139,3 +143,34 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
                           (boundary/invoke! profile (request "minimize"))))
     (is (= 2 @captures))))
+
+(deftest ec2-historical-date-selects-a-request-basis-test
+  (let [captured-input (atom nil)
+        historical-basis {:behavior "request-snapshot"
+                          :id "datomic:eacl-demo-datomic-generation-test:eacl-demo:400"
+                          :capturedAt "2026-08-24T09:30:00Z"
+                          :fixedForEnvironment false}
+        profile
+        (boundary/create-boundary
+         {:descriptor (assoc-in descriptor [:capabilities :consistencyModes]
+                                ["minimize" "authoritative" "at-least"
+                                 "exact" "historical-date"])
+          :clock (constantly 1000)
+          :capture-snapshot
+          (fn [input]
+            (reset! captured-input input)
+            {:value :historical-snapshot
+             :basis historical-basis
+             :release! (fn [])})
+          :handlers handlers})
+        response
+        (boundary/invoke!
+         profile
+         (assoc (request "historical-date")
+                :input (assoc (:input (request "historical-date"))
+                              :atExactSnapshotAt
+                              "2026-08-24T10:00:00Z")))]
+    (is (= "historical-date" (:consistency @captured-input)))
+    (is (= "2026-08-24T10:00:00Z" (:atExactSnapshotAt @captured-input)))
+    (is (= :historical-snapshot (get-in response [:data :snapshot])))
+    (is (= (:id historical-basis) (get-in response [:meta :revision])))))

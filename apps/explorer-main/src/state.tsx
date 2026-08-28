@@ -66,6 +66,8 @@ interface AppStateValue {
   setFreshnessFloorMode: (value: FreshnessFloorMode) => void;
   atLeastSecondsAgo: Accessor<number>;
   setAtLeastSecondsAgo: (value: number) => void;
+  atExactSnapshotAt: Accessor<string>;
+  setAtExactSnapshotAt: (value: string) => void;
   refreshSnapshot: () => Promise<void>;
   snapshotRefreshing: Accessor<boolean>;
   snapshotError: Accessor<unknown>;
@@ -144,6 +146,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     createSignal<FreshnessFloorMode>("relative");
   const [atLeastSecondsAgo, setAtLeastSecondsAgoSignal] = createSignal(60);
   const [absoluteFreshnessAt, setAbsoluteFreshnessAt] = createSignal("");
+  const [atExactSnapshotAt, setAtExactSnapshotAtSignal] = createSignal("");
   const selectedSnapshotCapturedAt = createMemo(
     () => bootstrapData()?.meta.basis?.capturedAt ?? "",
   );
@@ -172,6 +175,9 @@ export const AppStateProvider: ParentComponent = (props) => {
                   : {}),
               }),
         }
+      : {}),
+    ...(consistencyMode() === "at-exact-snapshot" && atExactSnapshotAt()
+      ? { atExactSnapshotAt: atExactSnapshotAt() }
       : {}),
   }));
   const [snapshotRefreshing, setSnapshotRefreshing] = createSignal(false);
@@ -237,6 +243,10 @@ export const AppStateProvider: ParentComponent = (props) => {
     if (!Number.isFinite(normalized) || normalized === atLeastSecondsAgo()) return;
     setAtLeastSecondsAgoSignal(normalized);
   };
+  const setAtExactSnapshotAt = (value: string) => {
+    if (value === atExactSnapshotAt()) return;
+    setAtExactSnapshotAtSignal(value);
+  };
   const remember = (
     setter: (updater: (current: readonly EaclObject[]) => readonly EaclObject[]) => void,
     values: readonly EaclObject[],
@@ -277,6 +287,9 @@ export const AppStateProvider: ParentComponent = (props) => {
       setSeedProgress(envelope.data.seed);
       if ((refreshed || !absoluteFreshnessAt()) && envelope.meta.basis?.capturedAt) {
         setAbsoluteFreshnessAt(envelope.meta.basis.capturedAt);
+      }
+      if ((refreshed || !atExactSnapshotAt()) && envelope.meta.basis?.capturedAt) {
+        setAtExactSnapshotAtSignal(envelope.meta.basis.capturedAt);
       }
       rememberSubjects(envelope.data.quickSubjects.map(({ id }) => ({ type: "user", id })));
       const permissions = Object.values(
@@ -437,6 +450,8 @@ export const AppStateProvider: ParentComponent = (props) => {
     setFreshnessFloorMode,
     atLeastSecondsAgo,
     setAtLeastSecondsAgo,
+    atExactSnapshotAt,
+    setAtExactSnapshotAt,
     refreshSnapshot,
     snapshotRefreshing,
     snapshotError,

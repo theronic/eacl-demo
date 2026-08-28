@@ -1,5 +1,5 @@
 (ns eacl-demo.datomic-dynamodb.profile
-  "Truthful descriptor for the fixed-current Datomic/DynamoDB candidate."
+  "Truthful descriptor for the Datomic/DynamoDB serving candidate."
   (:require [eacl-demo.datomic-dynamodb.boundary :as boundary]))
 
 (def data-manifest-sha256
@@ -35,12 +35,14 @@
     :basis basis
     :capabilities
     {:operations (vec (sort closed-operations))
-     :consistencyModes ["minimize" "authoritative" "at-least" "exact"]
+     :consistencyModes (cond-> ["minimize" "authoritative" "at-least" "exact"]
+                         (= "ec2" execution) (conj "historical-date"))
      :snapshotBehavior "fixed-environment"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only" "fixed-current-snapshot" "no-history-api"
-                   "no-synchronization"]}
+     :limitations (cond-> ["read-only" "fixed-current-snapshot"
+                           "no-synchronization"]
+                    (= "lambda" execution) (conj "no-history-api"))}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value admission-concurrency}
              {:name "responseBodyBytes" :value 1048576}

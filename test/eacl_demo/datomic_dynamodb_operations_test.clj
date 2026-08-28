@@ -47,7 +47,11 @@
       (is (= (consistency/at-exact-snapshot "basis-token")
              (#'operations/eacl-consistency
               {:eacl-demo/snapshot snapshot :consistency "exact"})))
-      (is (= 1 @calls)))))
+      (is (= (consistency/at-exact-snapshot "basis-token")
+             (#'operations/eacl-consistency
+              {:eacl-demo/snapshot snapshot
+               :consistency "historical-date"})))
+      (is (= 2 @calls)))))
 
 (deftest same-basis-identity-satisfies-cross-environment-freshness-floor-test
   (let [input {:eacl-demo/snapshot ::snapshot

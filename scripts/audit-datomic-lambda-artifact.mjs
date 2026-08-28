@@ -143,6 +143,19 @@ const fixedReaderSmoke = output("java", [
           (fn [snapshot]
             (swap! calls conj [:snapshot-token snapshot])
             "fixed-authenticated-token")
+          :resolve-as-of
+          (fn [_ _]
+            {:revision 400
+             :captured-at (java.time.Instant/parse "2026-08-24T09:30:00Z")})
+          :decode-token (fn [_ token]
+                          (swap! calls conj [:decode-token token])
+                          :fixed-token-scope)
+          :issue-exact-token
+          (fn [_ token-scope revision]
+            (swap! calls conj [:issue-exact-token token-scope revision])
+            (if (= 400 revision)
+              "historical-authenticated-token"
+              "fixed-authenticated-token"))
           :release-snapshot (fn [snapshot]
                               (swap! releases conj [:snapshot snapshot]))
           :release-connection (fn [connection]
@@ -152,14 +165,29 @@ const fixedReaderSmoke = output("java", [
                                 (slurp "fixtures/schema.v1.zed"))
           :clock (constantly (java.time.Instant/parse "2026-08-25T12:00:00Z"))})
         snapshots (mapv (fn [_] ((:capture-snapshot opened))) (range 3))
+        historical
+        ((:capture-snapshot opened)
+         {:consistency "historical-date"
+          :atExactSnapshotAt "2026-08-24T10:00:00Z"})
         exact-calls (filterv #(= :select-exact-snapshot (first %)) @calls)
         client-options (nth (first (filter #(= :make-client (first %)) @calls)) 2)]
     (assert (= 1 (count (filter #(= :current-db (first %)) @calls))))
     (assert (= [[:select-current-snapshot :read-only-client]]
                (filterv #(= :select-current-snapshot (first %)) @calls)))
-    (assert (= 3 (count exact-calls)))
-    (assert (every? #(= "fixed-authenticated-token" (nth % 2)) exact-calls))
+    (assert (= 4 (count exact-calls)))
+    (assert (= ["fixed-authenticated-token" "fixed-authenticated-token"
+                "fixed-authenticated-token" "historical-authenticated-token"]
+               (mapv #(nth % 2) exact-calls)))
+    (assert (= 1 (count (filter #(= :decode-token (first %)) @calls))))
+    (assert (= [424242 424242 424242 400]
+               (mapv last
+                     (filter #(= :issue-exact-token (first %)) @calls))))
     (assert (every? #(= (:basis opened) (:basis %)) snapshots))
+    (assert (= {:behavior "request-snapshot"
+                :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:400"
+                :capturedAt "2026-08-24T09:30:00Z"
+                :fixedForEnvironment false}
+               (:basis historical)))
     (assert (= {:behavior "fixed-environment"
                 :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:424242"
                 :capturedAt "2026-08-25T12:00:00Z"
@@ -167,8 +195,9 @@ const fixedReaderSmoke = output("java", [
                (:basis opened)))
     (assert (= true (:read-only? client-options)))
     (doseq [snapshot snapshots] ((:release! snapshot)))
+    ((:release! historical))
     (reader/close-reader! opened)
-    (assert (= 4 (count (filter #(= :snapshot (first %)) @releases))))
+    (assert (= 5 (count (filter #(= :snapshot (first %)) @releases))))
     (assert (= [[:connection :read-only-connection]]
                (filterv #(= :connection (first %)) @releases)))
     (println :datomic-packaged-fixed-reader-pass)))`

@@ -60,14 +60,18 @@
                  :admission-concurrency 1}))))
 
 (deftest descriptor-reports-the-actual-compute-platform-test
-  (is (= "ec2"
-         (get-in (profile/descriptor
-                  {:identity profile-identity
-                   :basis basis
-                   :memory-mib 1024
-                   :admission-concurrency 1
-                   :execution "ec2"})
-                 [:runtime :execution])))
+  (let [descriptor (profile/descriptor
+                    {:identity profile-identity
+                     :basis basis
+                     :memory-mib 1024
+                     :admission-concurrency 1
+                     :execution "ec2"})]
+    (is (= "ec2" (get-in descriptor [:runtime :execution])))
+    (is (= ["minimize" "authoritative" "at-least" "exact"
+            "historical-date"]
+           (get-in descriptor [:capabilities :consistencyModes])))
+    (is (not-any? #{"no-history-api"}
+                  (get-in descriptor [:capabilities :limitations]))))
   (is (= "disabled"
          (get-in (profile/descriptor
                   {:identity profile-identity

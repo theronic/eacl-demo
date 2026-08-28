@@ -128,7 +128,7 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
     runtime: { execution: "ec2", name: "java25", architecture: "arm64", snapStart: "not-applicable" },
     capabilities: {
       operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
-      consistencyModes: ["minimize"],
+      consistencyModes: ["minimize", "exact", "historical-date"],
       snapshotBehavior: "fixed-environment",
       cacheBehavior: "environment-local",
       mutationLocality: "none",
@@ -144,6 +144,7 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
     basis,
   };
   let healthRequests = 0;
+  const apiInputs: Array<{ operation: string; input: Record<string, unknown> }> = [];
 
   await page.route("**/registry/profiles/datomic-dynamodb.json", (route) => route.fulfill({
     status: 200,
@@ -156,6 +157,7 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
     const input = route.request().method() === "POST"
       ? route.request().postDataJSON() as Record<string, unknown>
       : {};
+    apiInputs.push({ operation, input });
     if (operation === "health") healthRequests += 1;
     const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 20 };
     const object = { type: input.resourceType ?? input.type ?? "server", id: input.resourceId ?? input.id ?? "server-1", displayName: "Server one", attributes: [] };
@@ -193,6 +195,23 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
   await expect(page.getByText("Datomic startup failed")).toHaveCount(0);
   await expect(page.getByText(/Connecting to Datomic EC2/iu)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
+  await page.getByRole("button", { name: "Consistency Semantics" }).click();
+  await page.getByRole("radio", { name: "at-exact-snapshot", exact: true }).check();
+  const exactDate = page.getByLabel("at-exact-snapshot date");
+  await expect(exactDate).toBeEnabled();
+  await exactDate.fill("2026-08-24T10:00");
+  await expect(exactDate).toHaveValue("2026-08-24T10:00");
+  await page.getByRole("button", { name: "Query", exact: true }).click();
+  const expectedExactDate = await page.evaluate(
+    () => new Date("2026-08-24T10:00:00").toISOString(),
+  );
+  await expect(page.getByLabel("Arbitrary EACL permission check")).toBeVisible();
+  await expect.poll(() => apiInputs
+    .filter(({ operation }) => operation === "check-permission")
+    .map(({ input }) => input)).toContainEqual(expect.objectContaining({
+      consistency: "historical-date",
+      atExactSnapshotAt: expectedExactDate,
+    }));
   expect(healthRequests).toBeGreaterThan(0);
 });
 

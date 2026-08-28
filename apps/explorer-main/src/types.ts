@@ -14,6 +14,7 @@ export interface ConsistencyRequest {
   atLeastAsFreshAs?: string;
   atLeastAsFreshBasisId?: string;
   atLeastAsFreshBasisCapturedAt?: string;
+  atExactSnapshotAt?: string;
 }
 
 export interface BasisInfo {
