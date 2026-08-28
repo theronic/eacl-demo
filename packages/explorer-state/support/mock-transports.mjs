@@ -1,5 +1,5 @@
 const OPERATIONS = Object.freeze(["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "get-schema", "get-cache-info", "count-objects"]);
-const SHA = Object.freeze({ demo: "a".repeat(40), eacl: "e06e429d1cf6ed686fc294924241312379b3bb3e", artifact: "b".repeat(64), data: "c".repeat(64), schema: "d".repeat(64) });
+const SHA = Object.freeze({ demo: "a".repeat(40), eacl: "11114f59fa57fe87c5b7ab412b3123a9c8a1a862", artifact: "b".repeat(64), data: "c".repeat(64), schema: "d".repeat(64) });
 
 /** UI qualification fixtures only. They never appear in the public registry. */
 export const mockCapabilityScenarios = Object.freeze([

@@ -24,7 +24,7 @@
                      :admission-concurrency 1})]
     (is (= {:backend "datomic" :storage "dynamodb"} (:profile descriptor)))
     (is (= {:execution "lambda" :name "java25" :architecture "x86_64"
-            :snapStart "enabled"}
+            :snapStart "disabled"}
            (:runtime descriptor)))
     (is (= ["minimize" "authoritative" "at-least" "exact"]
            (get-in descriptor [:capabilities :consistencyModes])))
@@ -40,6 +40,8 @@
     (is (some #{"no-history-api"}
               (get-in descriptor [:capabilities :limitations])))
     (is (some #{"no-synchronization"}
+              (get-in descriptor [:capabilities :limitations])))
+    (is (some #{"no-snapstart"}
               (get-in descriptor [:capabilities :limitations])))))
 
 (deftest descriptor-rejects-invented-history-and-unbound-data-test

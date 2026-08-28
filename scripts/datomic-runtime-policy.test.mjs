@@ -8,10 +8,11 @@ const [template, handlerSource, javaHandlerSource] = await Promise.all([
   readFile(new URL("../services/datomic-dynamodb/java/eacl_demo/datomic_dynamodb/LambdaHandler.java", import.meta.url), "utf8")
 ]);
 
-test("Datomic candidate uses managed Java 25 published-version SnapStart", () => {
+test("Datomic candidate uses managed Java 25 without checkpointing Peer credentials", () => {
   assert.match(template, /Runtime: java25/u);
   assert.match(template, /Architectures:\s*\n\s*- x86_64/u);
-  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
+  assert.match(template, /SnapStartPolicy: disabled-datomic-peer-credentials-must-not-be-checkpointed/u);
+  assert.match(template, /SnapStart:\s*\n\s*ApplyOn: None/u);
   assert.match(handlerSource, /defn initialize-runtime!/u);
   assert.match(javaHandlerSource, /INITIALIZE\.invoke\(\)/u);
   assert.doesNotMatch(template, /ProvisionedConcurrency|java17(?:\s|$)|provided\./u);

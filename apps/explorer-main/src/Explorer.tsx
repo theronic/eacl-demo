@@ -137,17 +137,24 @@ export function Explorer(props: {
       <Show when={!app.permission()}>
         <EmptyState>No permission is available in the active schema.</EmptyState>
       </Show>
-      <ExplorerFooter />
+      <ExplorerFooter eaclSha={app.health()?.data.identity.eaclSha} />
     </div>
   );
 }
 
-export function ExplorerFooter(): JSX.Element {
+export function ExplorerFooter(props: { eaclSha?: string }): JSX.Element {
   return (
     <footer class="app-footer">
       <p class="app-footer__copy">
         EACL is <a href="https://github.com/theronic/eacl">open source</a> under EPL 2.0. EACL Explorer ©️ 2026 <a href="https://petrustheron.com/">Petrus Theron</a>.
       </p>
+      <Show when={props.eaclSha}>
+        {(sha) => (
+          <p class="app-footer__copy app-footer__version">
+            EACL library Git SHA: <a href={`https://github.com/theronic/eacl/commit/${sha()}`}><code>{sha()}</code></a>
+          </p>
+        )}
+      </Show>
     </footer>
   );
 }

@@ -92,7 +92,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "e06e429d1cf6ed686fc294924241312379b3bb3e",
+    eaclSha: "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)
@@ -192,6 +192,12 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".resources-panel").getByText("Permission", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "open source" })).toHaveAttribute("href", "https://github.com/theronic/eacl");
   await expect(page.getByRole("link", { name: "Petrus Theron" })).toHaveAttribute("href", "https://petrustheron.com/");
+  const eaclVersion = page.locator(".app-footer__version");
+  await expect(eaclVersion).toContainText(`EACL library Git SHA: ${identity.eaclSha}`);
+  await expect(eaclVersion.getByRole("link")).toHaveAttribute(
+    "href",
+    `https://github.com/theronic/eacl/commit/${identity.eaclSha}`,
+  );
   await expect(page.getByText(/independent profile status records/u)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
   await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);

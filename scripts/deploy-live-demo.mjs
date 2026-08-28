@@ -28,7 +28,7 @@ const profiles = {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-live",
     memorySize: 1024,
-    snapStart: true
+    snapStart: false
   },
   "datalevin-memory": {
     artifact: "dist/datalevin-memory/function.jar",

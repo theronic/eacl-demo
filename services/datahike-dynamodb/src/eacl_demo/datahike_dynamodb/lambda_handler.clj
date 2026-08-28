@@ -13,7 +13,7 @@
            [java.util UUID]))
 
 (def ^:private pinned-eacl-sha
-  "e06e429d1cf6ed686fc294924241312379b3bb3e")
+  "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
 (def ^:private sha1-pattern #"[0-9a-f]{40}")
 (def ^:private sha256-pattern #"[0-9a-f]{64}")
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")

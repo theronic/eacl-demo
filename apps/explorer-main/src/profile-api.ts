@@ -44,7 +44,14 @@ export interface ExplorerProfile {
 }
 
 interface ProfileDescriptor {
-  identity: ExplorerProfile["deployment"] & { profileId: string; artifactSha256: string };
+  identity: {
+    profileId: string;
+    demoSha: string;
+    eaclSha: string;
+    artifactSha256: string;
+    deploymentId: string;
+    dataManifestSha256: string;
+  };
   profile: { backend: string; storage: string };
   capabilities: {
     operations: string[];
@@ -195,11 +202,12 @@ export function createProfileApi(
 
     if (url.pathname === "/health") {
       const active = await loadDescriptor(signal);
-      return envelope({ status: "ready", datahike: {
-        revision: active.basis.id,
-        storeBackend: profile.storage,
-        freshness: active.capabilities.snapshotBehavior,
-      }} as ReaderHealth, "bootstrap-health", active.basis) as ApiSuccess<T>;
+      return envelope({
+        status: "ready",
+        ready: true,
+        identity: active.identity,
+        basis: active.basis,
+      } as ReaderHealth, "bootstrap-health", active.basis) as ApiSuccess<T>;
     }
 
     if (url.pathname === "/bootstrap" || url.pathname === "/refresh-snapshot") {

@@ -14,17 +14,17 @@ not proxy, sign, cache, or otherwise mediate API requests.
                                                     |
 Browser -- GET demo.eacl.dev ----------------> CloudFront
    |
-   +-- Datahike / S3 ----------> Lambda Function URL -> Java 25 arm64, 4,096 MiB
+   +-- Datahike / S3 ----------> Lambda Function URL -> Java 25 arm64, 1,024 MiB
    |                                                     -> adopted S3 store
    |
-   +-- Datahike / DynamoDB ----> Lambda Function URL -> Java 25 arm64, 4,096 MiB
+   +-- Datahike / DynamoDB ----> Lambda Function URL -> Java 25 arm64, 1,024 MiB
    |                                                     -> immutable DynamoDB store
    |
-   +-- Datomic / DynamoDB -----> Lambda Function URL -> Java 25 x86_64, 3,072 MiB
+   +-- Datomic / DynamoDB -----> Lambda Function URL -> Java 25 x86_64, 1,024 MiB
    |                                                     -> read-only Peer
    |                                                     -> DynamoDB table
    |
-   +-- Datalevin / memory -----> Lambda Function URL -> Java 25 arm64, 6,144 MiB
+   +-- Datalevin / memory -----> Lambda Function URL -> Java 25 arm64, 1,024 MiB
    |                                                     -> SnapStart
    |                                                     -> in-memory LMDB
    |
@@ -78,5 +78,8 @@ seed and backup completed.
 The listed sizes are a live AWS inspection captured on 2026-08-27. The exact
 Lambda configuration remains authoritative: both Datahike functions have a
 30-second timeout; Datomic and Datalevin have 60-second timeouts; each has 512
-MiB ephemeral storage. The current Datalevin `candidate` version has SnapStart
-optimization on, while Datahike and Datomic have SnapStart off.
+MiB ephemeral storage. The Datahike and Datalevin `candidate` versions use
+SnapStart. Datomic deliberately does not: restoring Datomic Peer AWS credential
+state can leave a warm environment with expired credentials. A normal cold
+initialization keeps the credential provider refreshable while preserving fast
+warm reads.
