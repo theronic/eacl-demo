@@ -139,7 +139,12 @@ export const AppStateProvider: ParentComponent = (props) => {
   const consistency = createMemo<ConsistencyRequest>(() => ({
     mode: consistencyMode(),
     ...(consistencyMode() === "at-least-as-fresh" && atLeastAsFreshAs()
-      ? { atLeastAsFreshAs: atLeastAsFreshAs() }
+      ? {
+          atLeastAsFreshAs: atLeastAsFreshAs(),
+          ...(activeQueryBasis() === "pending"
+            ? {}
+            : { atLeastAsFreshBasisId: activeQueryBasis() }),
+        }
       : {}),
   }));
   const [snapshotRefreshing, setSnapshotRefreshing] = createSignal(false);

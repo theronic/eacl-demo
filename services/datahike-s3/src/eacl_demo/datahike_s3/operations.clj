@@ -3,6 +3,7 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datahike.api :as d]
+            [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
@@ -339,11 +340,9 @@
 (defn- eacl-consistency
   [input]
   (let [snapshot (:eacl-demo/snapshot input)
-        public-basis (:eacl-demo/public-basis input)
-        requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
-        captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
+        public-basis (:eacl-demo/public-basis input)]
     (when-not snapshot (fail! "internal-error"))
-    (when (and requested-at captured-at (.isAfter requested-at captured-at))
+    (when-not (http/freshness-floor-available? input public-basis)
       (fail! "freshness-unavailable"))
     (case (:consistency input)
       "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))

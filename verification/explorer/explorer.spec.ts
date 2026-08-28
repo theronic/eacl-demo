@@ -115,7 +115,7 @@ test("a Datomic EC2 health identity mismatch replaces the startup indicator with
     fixedForEnvironment: true,
   };
   const descriptor = {
-    contract: { name: "explorer.v1", routeMajor: 1, revision: 2, minimumClientRevision: 1 },
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 3, minimumClientRevision: 1 },
     identity,
     profile: { backend: profile.backend, storage: profile.storage },
     runtime: { execution: "ec2", name: "java25", architecture: "arm64", snapStart: "not-applicable" },
@@ -227,7 +227,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const basis = { behavior: "request-snapshot", id: "datahike:test-basis-7", capturedAt: deployedAt, fixedForEnvironment: false };
   let healthCaptures = 0;
   const descriptor = {
-    contract: { name: "explorer.v1", routeMajor: 1, revision: 2, minimumClientRevision: 1 }, identity,
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 3, minimumClientRevision: 1 }, identity,
     profile: { backend: "datahike", storage: "s3" },
     runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
     capabilities: {
@@ -237,7 +237,13 @@ test("an enabled publication opens the schema-validated server explorer over the
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
     dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
   };
-  const apiRequests: Array<{ operation: string; requestId: string | null; origin: string; payloadHash: string | null }> = [];
+  const apiRequests: Array<{
+    operation: string;
+    requestId: string | null;
+    origin: string;
+    payloadHash: string | null;
+    input: Record<string, unknown>;
+  }> = [];
 
   await page.route("**/registry/profiles/*.json", async (route) => {
     const url = new URL(route.request().url());
@@ -252,8 +258,10 @@ test("an enabled publication opens the schema-validated server explorer over the
     const operation = new URL(request.url()).pathname.split("/").at(-1)!;
     const requestId = request.headers()["x-eacl-request-id"] ?? null;
     const payloadHash = request.headers()["x-amz-content-sha256"] ?? null;
-    apiRequests.push({ operation, requestId, origin: new URL(request.url()).origin, payloadHash });
-    const input = request.method() === "POST" ? request.postDataJSON() : {};
+    const input = request.method() === "POST"
+      ? request.postDataJSON() as Record<string, unknown>
+      : {};
+    apiRequests.push({ operation, requestId, origin: new URL(request.url()).origin, payloadHash, input });
     const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
     const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? "server-1", displayName: "Server one", attributes: [] };
     const healthBasis = operation === "health"
@@ -360,6 +368,12 @@ test("an enabled publication opens the schema-validated server explorer over the
   await canFooter.getByRole("button", { name: "Query" }).click();
   await expect.poll(() => apiRequests.filter(({ operation }) => operation === "check-permission").length)
     .toBeGreaterThan(canRequestsBefore);
+  const atLeastRequests = apiRequests.filter(({ input }) => input.consistency === "at-least");
+  expect(atLeastRequests.length).toBeGreaterThan(0);
+  expect(atLeastRequests.every(({ input }) =>
+    input.atLeastAsFreshBasisId === basis.id
+    && typeof input.atLeastAsFreshAs === "string"
+  )).toBe(true);
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "check-permission", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);

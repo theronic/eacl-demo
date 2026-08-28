@@ -222,7 +222,7 @@ export function createProfileApi(
     const consistencyInput = {
       consistency,
       ...(selectedConsistency === "at-least-as-fresh"
-        ? atLeastAsFreshAs(body.consistency)
+        ? freshnessFloor(body.consistency)
         : {}),
     };
 
@@ -536,12 +536,25 @@ function consistencyMode(value: unknown): ConsistencyMode {
   return "minimize-latency";
 }
 
-function atLeastAsFreshAs(value: unknown): { atLeastAsFreshAs?: string } {
-  if (!value || typeof value !== "object" || !("atLeastAsFreshAs" in value)) return {};
-  const instant = (value as { atLeastAsFreshAs?: unknown }).atLeastAsFreshAs;
-  return typeof instant === "string" && instant.length > 0
-    ? { atLeastAsFreshAs: instant }
-    : {};
+function freshnessFloor(value: unknown): {
+  atLeastAsFreshAs?: string;
+  atLeastAsFreshBasisId?: string;
+} {
+  if (!value || typeof value !== "object") return {};
+  const candidate = value as {
+    atLeastAsFreshAs?: unknown;
+    atLeastAsFreshBasisId?: unknown;
+  };
+  const instant = candidate.atLeastAsFreshAs;
+  const basisId = candidate.atLeastAsFreshBasisId;
+  return {
+    ...(typeof instant === "string" && instant.length > 0
+      ? { atLeastAsFreshAs: instant }
+      : {}),
+    ...(typeof basisId === "string" && basisId.length > 0
+      ? { atLeastAsFreshBasisId: basisId }
+      : {}),
+  };
 }
 
 function preferredConsistency(descriptor: ProfileDescriptor, mode: ConsistencyMode): string {
