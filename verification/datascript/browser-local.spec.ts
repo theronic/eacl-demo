@@ -86,7 +86,13 @@ test("fixture initialization and authorization stay in the direct browser runtim
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
   await expect(page.getByRole("radio", { name: "Browser memory", exact: true })).toBeChecked();
-  await expect(page.getByRole("button", { name: "Consistency Semantics" })).toBeVisible({ timeout: 60_000 });
+  const consistencyDisclosure = page.getByRole("button", { name: "Consistency Semantics" });
+  await expect(consistencyDisclosure).toBeVisible({ timeout: 60_000 });
+  if (await consistencyDisclosure.getAttribute("aria-expanded") !== "true") {
+    await consistencyDisclosure.click();
+  }
+  await expect(page.locator(".basis-info__note--consistency")).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "fully-consistent", exact: true })).toBeDisabled();
   const startupElapsedMs = Date.now() - startupStartedAt;
   await testInfo.attach("datascript-startup.json", {
     body: JSON.stringify({ startupElapsedMs }),

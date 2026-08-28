@@ -440,6 +440,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
 }
 
 function fullyConsistentReason(descriptor: ProfileDescriptor): string {
+  if (descriptor.profile.backend === "datascript") return "";
   if (descriptor.profile.backend === "datahike") {
     const storage = descriptor.profile.storage === "s3" ? "S3 GETs" : "DynamoDB reads";
     return `Fully consistent is disabled in this cost-controlled demo because refreshing Datahike for every query may issue ${storage}. Use Refresh Snapshot when you need a newer basis.`;
