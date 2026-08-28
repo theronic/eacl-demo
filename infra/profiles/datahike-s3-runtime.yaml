@@ -64,9 +64,9 @@ Parameters:
     MaxValue: 100000
   MemorySize:
     Type: Number
-    Default: 1024
-    AllowedValues: [1024, 4096]
-    Description: Selects the cost-efficient default or the comparison Lambda with proportionally more CPU.
+    Default: 1769
+    AllowedValues: [1769, 4096]
+    Description: Selects the one-vCPU cost-efficient default or the comparison Lambda with proportionally more CPU.
   CandidateAliasName:
     Type: String
     Default: candidate

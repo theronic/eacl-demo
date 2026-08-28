@@ -7,7 +7,7 @@ storage is embedded LMDB, and the public descriptor reports
 
 ## Deployed topology
 
-- Lambda runs Java 25 on arm64 with 1 GiB memory and 512 MiB ephemeral storage.
+- Lambda runs Java 25 on arm64 with 1,769 MiB memory (one vCPU) and 512 MiB ephemeral storage.
   It creates LMDB under `/tmp/eacl-demo-datalevin` during published-version
   initialization. Lambda SnapStart captures the initialized process and the
   `/tmp` files, so restored environments do not reload the fixture.

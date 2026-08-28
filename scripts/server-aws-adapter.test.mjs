@@ -102,7 +102,7 @@ function foundationRunAws({ driftOriginRequestPolicy = false } = {}) {
       Handler: "eacl_demo.datahike_s3.LambdaHandler::handleRequest",
       PackageType: "Zip",
       Architectures: ["arm64"],
-      MemorySize: 1024,
+      MemorySize: 1769,
       State: "Active",
       LastUpdateStatus: "Successful",
       SnapStart: { ApplyOn: "PublishedVersions" },

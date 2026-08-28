@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:1f0a1678b981740b9bc167eeede39553a47d39eb242ff6f1567b10a2238beaa2",
+  "reportId": "sha256:d4a79f4a67e629f41c830fd9f03e5bbf2dacd3790fc719f1777a0c1129ec61bb",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -127,12 +127,12 @@
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 1024,
+        "configuredMiB": 1769,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "6f48059c078820afc2c6525632460671f02a38735f3a385567308a470c045be2"
+          "sha256": "8d27daf08b1f8a123def87a95bcd5e1d5db5dc3fb99871d17b4cd04c2f732f2e"
         }
       },
       "alarms": {
@@ -186,12 +186,12 @@
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 1024,
+        "configuredMiB": 1769,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "17343954a940ebdce3374ae0f25ca1be6f10431453f0557a2a0359e216cc2718"
+          "sha256": "d49cc204a1429fa8184d632c43f589c7a77258a65bece3bf8aec3af2f9e6cebf"
         }
       },
       "alarms": {
@@ -245,12 +245,12 @@
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 1024,
+        "configuredMiB": 1769,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "448b3a5e9c055419c42be1f0ed6260d35e635bac75a9f230baabb1121c1ad4f3"
+          "sha256": "88e2648e3d46fab7b1bc8da64883f25e8203b9a9719b13df63f02b94e440eef9"
         }
       },
       "alarms": {
@@ -304,12 +304,12 @@
       },
       "memory": {
         "status": "candidate-unqualified",
-        "configuredMiB": 1024,
+        "configuredMiB": 1769,
         "qualifiedMiB": null,
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "f3e96f3365d371e37e202eb2e8564d50bb87126085b7a82edf29322fd8a25462"
+          "sha256": "d6ef9a50661b1f72a60e4e03d8c8ce724e97693899b904a15bc935e49b115c63"
         }
       },
       "alarms": {

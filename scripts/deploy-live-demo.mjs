@@ -15,7 +15,7 @@ const profiles = {
   "datahike-s3": {
     artifact: "dist/datahike-s3/function.jar",
     functionName: "eacl-demo-datahike-s3-live",
-    memorySize: 1024,
+    memorySize: 1769,
     snapStart: true
   },
   "datahike-s3-large": {
@@ -30,7 +30,7 @@ const profiles = {
   "datahike-dynamodb": {
     artifact: "dist/datahike-dynamodb/function.jar",
     functionName: "eacl-demo-datahike-dynamodb-live",
-    memorySize: 1024,
+    memorySize: 1769,
     snapStart: true
   },
   "datahike-dynamodb-large": {
@@ -45,7 +45,7 @@ const profiles = {
   "datomic-dynamodb": {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-live",
-    memorySize: 1024,
+    memorySize: 1769,
     snapStart: true
   },
   "datomic-dynamodb-large": {
@@ -60,7 +60,7 @@ const profiles = {
   "datalevin-memory": {
     artifact: "dist/datalevin-memory/function.jar",
     functionName: "eacl-demo-datalevin-memory-live",
-    memorySize: 1024,
+    memorySize: 1769,
     snapStart: true
   }
 };

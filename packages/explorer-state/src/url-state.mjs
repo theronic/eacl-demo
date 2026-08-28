@@ -41,7 +41,8 @@ export function parseCanonicalUrl(search, catalog) {
   const platform = normalizePlatform(selection, requestedPlatform);
   if (requestedBackend !== null && requestedBackend !== selection.backend) issues.push({ code: "invalid-backend", field: "backend" });
   if (requestedStorage !== null && requestedStorage !== selection.storage) issues.push({ code: "invalid-storage", field: "storage" });
-  if (requestedPlatform !== null && requestedPlatform !== platform) issues.push({ code: "invalid-platform", field: "platform" });
+  const legacySmallLambda = requestedPlatform === "lambda-1024" && platform === "lambda-1769";
+  if (requestedPlatform !== null && requestedPlatform !== platform && !legacySmallLambda) issues.push({ code: "invalid-platform", field: "platform" });
   const state = { ...selection, platform };
   for (const { parameter, property, maxBytes, pattern, decode } of FIELDS) {
     const values = parameters.getAll(parameter);

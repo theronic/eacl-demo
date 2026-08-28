@@ -54,8 +54,8 @@ Parameters:
     AllowedPattern: "^[ -~]{32,256}$"
   MemorySize:
     Type: Number
-    Default: 1024
-    AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
+    Default: 1769
+    AllowedValues: [1769, 2048, 3072, 4096, 5120, 6144]
     Description: Memory and CPU size; published versions are restore-qualified before alias promotion.
   CandidateAliasName:
     Type: String

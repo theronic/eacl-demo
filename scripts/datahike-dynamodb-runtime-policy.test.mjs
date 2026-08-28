@@ -11,11 +11,11 @@ const table = await readFile(
   "utf8",
 );
 
-test("Datahike DynamoDB offers preinitialized 1 GiB and 4 GiB SnapStart runtimes", () => {
+test("Datahike DynamoDB offers preinitialized 1 vCPU and 4 GiB SnapStart runtimes", () => {
   assert.match(template, /Runtime: java25/u);
   assert.match(template, /Architectures:\s*\n\s*- arm64/u);
   assert.match(template, /SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
-  assert.match(template, /MemorySize:\s*\n\s*Type: Number\s*\n\s*Default: 1024\s*\n\s*AllowedValues: \[1024, 4096\]/u);
+  assert.match(template, /MemorySize:\s*\n\s*Type: Number\s*\n\s*Default: 1769\s*\n\s*AllowedValues: \[1769, 4096\]/u);
   assert.doesNotMatch(template, /ReservedConcurrentExecutions/u);
   assert.match(template, /EACL_MAXIMUM_CONCURRENCY: "1"/u);
   assert.doesNotMatch(template,

@@ -1,4 +1,5 @@
-const DEFAULT_LAMBDA = "lambda-1024";
+const DEFAULT_LAMBDA = "lambda-1769";
+const LEGACY_DEFAULT_LAMBDA = "lambda-1024";
 const LARGE_LAMBDA = "lambda-4096";
 const DATOMIC_PLATFORMS = new Set([DEFAULT_LAMBDA, LARGE_LAMBDA, "ec2"]);
 const DATAHIKE_PLATFORMS = new Set([DEFAULT_LAMBDA, LARGE_LAMBDA]);
@@ -20,7 +21,7 @@ const DATAHIKE_ORIGINS = Object.freeze({
   })
 });
 const SERVER_OPTIONS = Object.freeze([
-  Object.freeze({ id: DEFAULT_LAMBDA, label: "1 GiB Lambda" }),
+  Object.freeze({ id: DEFAULT_LAMBDA, label: "1,769 MiB Lambda (1 vCPU)" }),
   Object.freeze({ id: LARGE_LAMBDA, label: "4 GiB Lambda" }),
   Object.freeze({ id: "ec2", label: "EC2 t3.micro (1 GiB)" })
 ]);
@@ -30,8 +31,9 @@ export function defaultPlatform(selection) {
 }
 
 export function normalizePlatform(selection, requested) {
-  return supportedPlatform(selection, requested)
-    ? requested
+  const canonical = requested === LEGACY_DEFAULT_LAMBDA ? DEFAULT_LAMBDA : requested;
+  return supportedPlatform(selection, canonical)
+    ? canonical
     : defaultPlatform(selection);
 }
 

@@ -46,9 +46,9 @@ Parameters:
     AllowedPattern: "^[ -~]{32,256}$"
   MemorySize:
     Type: Number
-    Default: 1024
-    AllowedValues: [1024]
-    Description: Production is fixed at 1024 MB; optimize fixture realization rather than increasing memory.
+    Default: 1769
+    AllowedValues: [1769]
+    Description: Production is fixed at 1769 MB to provide one full vCPU without paying for excess memory.
   CandidateAliasName:
     Type: String
     Default: candidate
