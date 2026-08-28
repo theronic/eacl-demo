@@ -233,11 +233,7 @@ export function createProfileApi(
 
     if (url.pathname === "/get-cache-info") {
       const result = await wire<Record<string, unknown>>("get-cache-info", {}, signal);
-      const snapshot: CacheSnapshot = {
-        provider: result.data!,
-        operations: {},
-        capturedAt: new Date().toISOString(),
-      };
+      const snapshot = presentCacheSnapshot(result.data!);
       return wireEnvelope(snapshot, result) as ApiSuccess<T>;
     }
 
@@ -597,6 +593,25 @@ function parseBody(value: BodyInit | null | undefined): Record<string, unknown> 
   const parsed = JSON.parse(value) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new TypeError("Explorer request body must be an object.");
   return parsed as Record<string, unknown>;
+}
+
+function presentCacheSnapshot(value: Record<string, unknown>): CacheSnapshot {
+  const provider = value.provider;
+  const operations = value.operations;
+  const capturedAt = value.capturedAt;
+  if (provider && typeof provider === "object" && !Array.isArray(provider)
+    && operations && typeof operations === "object" && !Array.isArray(operations)
+    && typeof capturedAt === "string" && capturedAt.length > 0) {
+    return {
+      provider: provider as Record<string, unknown>,
+      operations: operations as Record<string, unknown>,
+      capturedAt,
+    };
+  }
+
+  // During a rolling deployment the static client can briefly reach an older
+  // profile version. Preserve its summary instead of failing the whole panel.
+  return { provider: value, operations: {}, capturedAt: new Date().toISOString() };
 }
 
 function nestedIdentifier(value: Record<string, unknown>, key: string, child: string): string {

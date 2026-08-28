@@ -3,12 +3,14 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [eacl-demo.contracts.build-identity :as build-identity]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datahike-s3.boundary :as boundary]
             [eacl-demo.datahike-s3.operations :as operations]
             [eacl-demo.datahike-s3.profile :as profile]
-            [eacl-demo.datahike-s3.reader :as reader])
+            [eacl-demo.datahike-s3.reader :as reader]
+            [eacl.datahike.core :as datahike-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]
            [java.util UUID]))
@@ -77,12 +79,17 @@
                    :basis (:basis initial)
                    :operations profile/closed-operations
                    :memory-mib memory-mib})
+                 operation-metrics (cache-metrics/create-operation-metrics)
                  handlers (operations/create-handlers
                            {:descriptor descriptor
                             :cursor-key (:security-key reader-config)
-                            :refresh-snapshot! (:refresh-snapshot! opened)})]
+                            :refresh-snapshot! (:refresh-snapshot! opened)
+                            :cache-stats #(datahike-eacl/cache-stats
+                                           (:client opened))
+                            :operation-metrics operation-metrics})]
              {:reader opened
               :descriptor descriptor
+              :operation-metrics operation-metrics
               :boundary (boundary/create-boundary
                          {:descriptor descriptor
                           :capture-snapshot (:capture-snapshot opened)
@@ -97,7 +104,8 @@
 
 (defn handle-event
   [runtime event remaining-time-ms]
-  (let [normalized (function-url/normalize-event event)
+  (let [started-nanos (System/nanoTime)
+        normalized (function-url/normalize-event event)
         descriptor (:descriptor runtime)]
     (if-not (:ok? normalized)
       (function-url/create-response
@@ -114,8 +122,12 @@
                       (:boundary runtime)
                       (assoc request
                              :deadline-ms deadline
-                             :cancelled? (constantly false)))]
-        (function-url/create-response envelope)))))
+                             :cancelled? (constantly false)))
+            response (function-url/create-response envelope)]
+        (cache-metrics/record-response!
+         (:operation-metrics runtime) (subs (:path request) 1)
+         started-nanos response envelope)
+        response))))
 
 (defn prime-runtime!
   "Exercises and populates the exact first admin server page before SnapStart.

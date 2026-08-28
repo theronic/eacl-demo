@@ -287,7 +287,24 @@ test("an enabled publication opens the schema-validated server explorer over the
       "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
       "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
       "get-schema": { sha256: "d".repeat(64), types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
-      "get-cache-info": { behavior: "environment-local", hit: null, scope: "datahike-s3", entries: null, limitations: [] },
+      "get-cache-info": {
+        provider: {
+          "exact-hits": 9,
+          misses: 2,
+          tiers: { answer: { entries: 4, weight: 12, "max-weight": 1_000 } },
+        },
+        operations: {
+          "lookup-resources": {
+            count: 3,
+            totalMs: 7.5,
+            maxMs: 4.0,
+            averageMs: 2.5,
+            responseBytes: 900,
+            cacheStatus: { hit: 2, miss: 1 },
+          },
+        },
+        capturedAt: deployedAt,
+      },
       "count-objects": { kind: input.kind, value: input.ceiling, exact: false, ceiling: input.ceiling }
     };
     await route.fulfill({
@@ -358,6 +375,8 @@ test("an enabled publication opens the schema-validated server explorer over the
   expect(apiRequests.filter(({ operation }) => operation === "get-cache-info")).toHaveLength(0);
   await cacheButton.click();
   await expect.poll(() => apiRequests.filter(({ operation }) => operation === "get-cache-info").length).toBe(1);
+  await expect(page.locator(".cache-metrics__code")).toContainText('"exact-hits": 9');
+  await expect(page.locator(".cache-metrics__code")).toContainText('"lookup-resources"');
   await cacheButton.click();
   await cacheButton.click();
   await page.waitForTimeout(100);

@@ -44,7 +44,14 @@ function fixtureTransport() {
         if (input.cursor && !cursors.has(input.cursor)) return failure(meta, "cursor-invalid");
         return { meta, data: { items: [{ type: "user", id: input.cursor ? "user-2" : "user-1", displayName: null, attributes: [] }], pageInfo: { hasNextPage: !input.cursor, endCursor: input.cursor ? null : "cursor-1", pageSize: 1 } } };
       }
-      if (operation === "get-cache-info") return { meta, data: { behavior: "environment-local", hit: null, scope: "profile", entries: 1, limitations: [] } };
+      if (operation === "get-cache-info") return {
+        meta,
+        data: {
+          provider: { "exact-hits": 1, "exact-entries": 1 },
+          operations: {},
+          capturedAt: "2026-08-26T00:00:00Z",
+        },
+      };
       throw new Error(`unexpected operation ${operation}`);
     },
     async release() { return true; }

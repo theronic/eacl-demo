@@ -86,8 +86,16 @@ function cacheCase(exemplar) {
       const second = successfulData(await transport.request("check-permission", input), "check-permission");
       if (first.allowed !== second.allowed) throw new Error("cached and uncached authorization semantics differ");
       const cache = successfulData(await transport.request("get-cache-info", {}), "get-cache-info");
-      if (cache.behavior !== descriptor.capabilities.cacheBehavior) throw new Error("cache behavior differs from descriptor");
-      return { behavior: cache.behavior, stableDecision: first.allowed };
+      if (!cache.provider || typeof cache.provider !== "object" || Array.isArray(cache.provider)
+        || !cache.operations || typeof cache.operations !== "object" || Array.isArray(cache.operations)
+        || typeof cache.capturedAt !== "string" || !Number.isFinite(Date.parse(cache.capturedAt))) {
+        throw new Error("cache metrics payload is incomplete");
+      }
+      return {
+        providerMetrics: Object.keys(cache.provider).length,
+        measuredOperations: Object.keys(cache.operations).length,
+        stableDecision: first.allowed,
+      };
     })
   };
 }

@@ -116,7 +116,11 @@ assert.match(sources.errors, /defn classify/u);
 assert.match(sources.retry, /full-jitter-delay-ms/u);
 assert.match(sources.retry, /\(<= 1 \(:max-attempts value\) 8\)/u);
 assert.match(sources.operations,
-  /:keys \[descriptor cursor-key clock refresh-snapshot!\]/u);
+  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics\]/u);
+assert.match(sources.operations,
+  /cache-metrics\/snapshot \(cache-stats\) operation-metrics/u);
+assert.match(sources.lambda_handler, /datahike-eacl\/cache-stats/u);
+assert.match(sources.lambda_handler, /cache-metrics\/record-response!/u);
 assert.match(sources.operations, /\(:basis \(refresh-snapshot!\)\)/u);
 assert.match(sources.reader, /active \(atom \(create-snapshot\)\)/u);
 assert.match(sources.reader, /\(assoc current :release! \(fn \[\]\)\)/u);

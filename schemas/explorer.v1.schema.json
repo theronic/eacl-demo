@@ -71,13 +71,49 @@
       "type": "object", "additionalProperties": false, "required": ["sha256", "types"],
       "properties": {"sha256": {"$ref": "#/$defs/sha256"}, "types": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/schemaType"}}}
     },
-    "cacheInfo": {
-      "type": "object", "additionalProperties": false, "required": ["behavior", "hit", "scope", "entries", "limitations"],
+    "cacheMetricValue": {
+      "anyOf": [
+        {"type": "string", "maxLength": 1024},
+        {"type": ["number", "boolean", "null"]},
+        {"type": "array", "maxItems": 4096, "items": {"$ref": "#/$defs/cacheMetricValue"}},
+        {"type": "object", "maxProperties": 512, "additionalProperties": {"$ref": "#/$defs/cacheMetricValue"}}
+      ]
+    },
+    "operationCacheStatus": {
+      "type": "object", "additionalProperties": false,
       "properties": {
-        "behavior": {"enum": ["none", "request-local", "environment-local", "browser-page-local", "shared-read-through"]},
-        "hit": {"type": ["boolean", "null"]}, "scope": {"type": "string", "minLength": 1, "maxLength": 128},
-        "entries": {"type": ["integer", "null"], "minimum": 0},
-        "limitations": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "maxLength": 256}}
+        "hit": {"type": "integer", "minimum": 0},
+        "miss": {"type": "integer", "minimum": 0},
+        "disabled": {"type": "integer", "minimum": 0}
+      }
+    },
+    "operationCacheMetric": {
+      "type": "object", "additionalProperties": false,
+      "required": ["count", "totalMs", "maxMs", "responseBytes", "averageMs"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 1},
+        "totalMs": {"type": "number", "minimum": 0},
+        "maxMs": {"type": "number", "minimum": 0},
+        "responseBytes": {"type": "integer", "minimum": 0},
+        "averageMs": {"type": "number", "minimum": 0},
+        "cacheStatus": {"$ref": "#/$defs/operationCacheStatus"},
+        "errors": {"type": "integer", "minimum": 1}
+      }
+    },
+    "cacheInfo": {
+      "type": "object", "additionalProperties": false,
+      "required": ["provider", "operations", "capturedAt"],
+      "properties": {
+        "provider": {
+          "type": "object", "minProperties": 1, "maxProperties": 512,
+          "additionalProperties": {"$ref": "#/$defs/cacheMetricValue"}
+        },
+        "operations": {
+          "type": "object", "maxProperties": 32,
+          "propertyNames": {"pattern": "^[a-z][a-z0-9-]{0,63}$"},
+          "additionalProperties": {"$ref": "#/$defs/operationCacheMetric"}
+        },
+        "capturedAt": {"type": "string", "format": "date-time"}
       }
     },
     "basis": {

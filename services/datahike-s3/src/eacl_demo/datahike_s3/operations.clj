@@ -3,6 +3,7 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datahike.api :as d]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
@@ -99,13 +100,18 @@
                     {:type :eacl-demo/missing-wire-schema}))))
 
 (defn create-handlers
-  [{:keys [descriptor cursor-key clock refresh-snapshot!]
-    :or {clock #(System/currentTimeMillis)}}]
+  [{:keys [descriptor cursor-key clock refresh-snapshot! cache-stats
+           operation-metrics]
+    :or {clock #(System/currentTimeMillis)
+         cache-stats (constantly {:unavailable true})
+         operation-metrics (cache-metrics/create-operation-metrics)}}]
   (when-not (and (map? descriptor)
                  (= "datahike-s3" (get-in descriptor [:identity :profileId]))
                  (string? cursor-key)
                  (<= 32 (count (.getBytes ^String cursor-key "UTF-8")))
-                 (fn? clock))
+                 (fn? clock)
+                 (fn? cache-stats)
+                 (some? operation-metrics))
     (throw (ex-info "Invalid Datahike/S3 operation configuration."
                     {:type :eacl-demo/invalid-operation-config})))
   (let [wire-schema (load-wire-schema)
@@ -306,11 +312,7 @@
 
      "get-cache-info"
      (fn [_]
-       {:behavior "environment-local"
-        :hit nil
-        :scope "datahike-s3"
-        :entries nil
-        :limitations ["read-only-store" "request-snapshot"]})
+       (cache-metrics/snapshot (cache-stats) operation-metrics))
 
      "count-objects"
      (guarded
