@@ -151,7 +151,7 @@ Resources:
   OriginSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: CloudFront-only ingress to the two EACL demo HTTP adapters.
+      GroupDescription: CloudFront-only ingress to the Datomic demo HTTP adapter.
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8080
@@ -298,7 +298,7 @@ Resources:
             echo "EACL_DEPLOYMENT_ID=${DeploymentId}"
             echo "EACL_HTTP_PORT=8080"
             echo "EACL_HTTP_WORKERS=4"
-            echo "EACL_MAXIMUM_CONCURRENCY=4"
+            echo "EACL_MAXIMUM_CONCURRENCY=1"
             echo "EACL_RUNTIME_EXECUTION=ec2"
             echo "EACL_RUNTIME_MEMORY_MIB=1024"
           } > /etc/eacl-demo-datomic.env
