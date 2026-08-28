@@ -1,102 +1,72 @@
 # `datalevin-memory`
 
-Managed Java 25 arm64 Lambda with one ephemeral Datalevin in-memory environment.
-The demo uses true native in-memory LMDB and preinitializes its immutable reader
-before Lambda snapshots each published SnapStart version. CI publishes the
-profile only after the optimized restored candidate passes bounded live smoke.
+`datalevin-memory` is the stable deployment profile ID for the read-only
+Datalevin demo. The name is retained for rollout continuity; the deployed
+storage is embedded LMDB, and the public descriptor reports
+`datalevin/embedded` ("Embedded disk").
 
-`dependencies/datalevin-memory.v1.json` records the exact maintained-fork
-candidate and its current blockers. The branch exposes an explicit owned
-read-snapshot API, platform-thread confinement, idempotent close, and genuine
-LMDB `MDB_INMEMORY` mode. Those source properties are necessary but not a
-release: the candidate commit has no tag, the reserved
-`dev.eacl/datalevin-embedded-eacl` coordinate returns no artifact metadata, and
-the EACL adapter still names that fork through a development-only local root.
-The release gate was rechecked on 2026-08-26: the branch still resolves to the
-recorded commit, that commit still has no tag, and both reserved-coordinate
-metadata endpoints still return 404. The native repository still publishes
-0.18.8 as its latest Linux arm64 version, so no newer candidate can silently
-replace the recorded ABI evidence.
+## Deployed topology
 
-The published `org.clojars.huahaiy/dtlvnative-linux-arm64:0.18.8` JAR is
-AArch64, but each of its three shared libraries imports `GLIBC_2.38`. Lambda
-`java25` uses Amazon Linux 2023, whose glibc baseline is 2.34, so those
-published bytes remain incompatible. A separate, qualification-only
-`0.18.8-eacl.al2023.1` candidate is now built from the exact upstream commit
-and submodules in a digest-pinned AL2023 arm64 image. Its native closure tops
-out at `GLIBC_2.34`, has no absolute runtime path, loads on Corretto 25 in the
-exact pinned Lambda Java 25 arm64 image, and passes a write/read round trip
-through null-path `MDB_INMEMORY` mode. The
-builder and exact evidence are recorded in
-`dependencies/datalevin-native-al2023-builder.v1.json`.
+- Lambda runs Java 25 on arm64 with 1 GiB memory and 512 MiB ephemeral storage.
+  It creates LMDB under `/tmp/eacl-demo-datalevin` during published-version
+  initialization. Lambda SnapStart captures the initialized process and the
+  `/tmp` files, so restored environments do not reload the fixture.
+- EC2 runs the same artifact on the shared `t3.micro` Datomic comparison host.
+  Its x86_64 LMDB lives at `/var/lib/eacl-demo/datalevin` on the encrypted EBS
+  root volume and survives service and instance restarts.
+- Both platforms expose the same closed HTTP boundary and immutable 10,000
+  logical-resource fixture. They have no public writer or remote Datalevin
+  server.
 
-That local candidate is not a release and must not overwrite upstream 0.18.8.
-It still needs a new immutable maintained coordinate and a clean remote
-consumer test before the Datalevin service may depend on it. No x86_64,
-macOS, container-only, EFS, or durable-LMDB substitute may replace the
-declared managed-Java arm64 topology.
+The universal deployment JAR contains only the two deployed Linux native
+closures: AL2023-compatible arm64 for Lambda and x86_64 for EC2. The arm64
+closure is built from the exact maintained Datalevin fork recorded in
+`dependencies/datalevin-native-al2023-builder.v1.json` and is rejected if it
+requires glibc newer than AL2023's 2.34 baseline.
 
-Run `npm run plan:datalevin-native-al2023` to inspect the locked local build,
-or `npm run build:datalevin-native-al2023 -- --no-cache` to rebuild it. Run
-`npm run qualify:datalevin-native -- --artifact /exact/artifact.jar
---expectations dependencies/datalevin-native-al2023-builder.v1.json` on the
-result. The audit admits only the three closed Linux arm64 shared-library
-paths, verifies their byte digests and AArch64 ELF format, records each
-`DT_NEEDED` and runtime-path closure, and fails unless the maximum imported
-glibc version is at most 2.34. `--report-only` exists solely to capture
-evidence for a known incompatible artifact and must never make that artifact
-deployment-eligible.
+## Embedded bootstrap
 
-After those dependency gates pass, implementation still has to prove the
-deployment-bound source watermark, one local in-memory environment per Lambda
-environment, acquiring-thread snapshot ownership/release, both pre-checkpoint
-and after-restore strategies, native/RSS/handle telemetry, memory headroom, and
-the staged production route. Until then the profile registry must remain
-non-enabled and `build-units.json` must remain `deploymentEligible: false`.
+The reader streams fixture records in bounded batches rather than retaining
+the entire NDJSON data set in the JVM heap. It verifies the immutable header,
+10,080 object records, and 38,613 relationship records. The final transaction
+writes `:demo/data-manifest-sha256` to the Datalevin metadata entity.
 
-The source-only lifecycle boundary now lives in
-`src/eacl_demo/datalevin_memory/lifecycle.clj`. It validates the closed
-versioned metadata object and its digest, binds the exact bucket/key/version
-and the exact demo SHA, EACL SHA, artifact digest, deployment ID, runtime,
-architecture, topology, snapshot strategy, and source identity to immutable
-Lambda configuration. Concurrent environments and restores must use the exact
-same record. Rebuilds and deployments rotate the deployment, lifecycle, and
-native-source identities. Rollback can select one exact prior record or create
-a new rotated deployment over that exact prior source, but cannot regress a
-watermark under an unchanged lifecycle. Its EACL watermark callback can
-acknowledge only the already-published final revision and rereads the exact
-immutable object on every acknowledgement instead of trusting process-local
-state. Readiness
-additionally requires the exact 10,000-resource identity,
-memory topology, frozen schema/relations, no public writer, and zero active
-read snapshots.
+On reopen:
 
-`src/eacl_demo/datalevin_memory/runtime.clj` is the dependency-independent
-request boundary for the eventual service assembly. It admits one platform
-thread, acquires one injected owned snapshot, checks deadline and cancellation
-throughout the scope, copies only bounded closed transport values before
-release, and releases once on success or any post-acquisition failure. Its
-closed telemetry separates controller ownership, native reader state, heap,
-non-heap, direct buffers, mapped memory, RSS, native mapping, file descriptors,
-native handles, and every immutable deployment/lifecycle identity. Callback
-failures are typed and redacted; release failures remain visible as active
-ownership instead of being hidden by a request error.
+- an exact manifest marker skips fixture seeding and reuses the existing LMDB;
+- an absent marker retries the idempotent seed, covering interrupted startup;
+- a different marker fails closed and never deletes or replaces unknown data.
 
-These pure tests advance the lifecycle and ownership implementation but inject
-fake Datalevin operations. They do not constitute a Datalevin build, native
-snapshot test, SnapStart restore test, memory sweep, or production
-qualification.
+The EACL schema is still reconciled before the marker check. The manifest-
+derived Datalevin source UUID and revision are therefore stable across Lambda
+restores, Lambda execution environments, and EC2 restarts, which also keeps
+pagination cursors scoped correctly.
 
-`infra/profiles/datalevin-memory-runtime.yaml` now fixes the eventual Lambda
-boundary without relaxing those blockers. It has no Datalevin directory,
-remote service, EFS, VPC, durable-store permission, provisioned concurrency,
-or customer-managed KMS surface. The role can read only one exact version of a
-small SSE-S3 lifecycle-metadata object plus write the exact function log group.
-That object conforms to `schemas/datalevin-lifecycle-state.v1.schema.json` and
-binds the data manifest, bootstrap plan, externally retained lifecycle,
-deterministic native source UUID, and final revision watermark. A rebuilt
-environment must reach those values before constructing the EACL client; the
-runtime cannot advance or overwrite the record. This avoids process-local
-watermarks and cross-environment bootstrap races without describing S3 as the
-Datalevin data store. The published-version SnapStart candidate remains
-visibly tagged `blocked-until-native-release-and-lifecycle-evidence`.
+## SnapStart and lifecycle
+
+`LambdaHandler` realizes the reader in its static initializer. CloudFormation
+publishes an immutable version with `SnapStart: PublishedVersions`, waits for
+`OptimizationStatus: On`, smoke-tests the restored version, and only then
+promotes the `candidate` alias. The embedded native connection is exercised
+after restore; a restore that cannot use the captured LMDB fails the health
+gate instead of being promoted.
+
+The Lambda directory remains execution/version-local and is rebuilt only when
+a new published version is initialized. EC2 is the durable comparison path.
+Neither platform permits runtime mutation through the demo API.
+
+## Verification
+
+Useful checks are:
+
+```sh
+npm run test:datalevin-runtime-policy
+npm run build:datalevin-memory-lambda
+npm run build:static-site
+```
+
+The Clojure reader tests use an actual temporary embedded LMDB, close it,
+reopen the same directory, assert that the revision did not advance, and then
+exercise page-two EACL pagination. Production health responses bind the demo
+Git SHA, baked EACL Git SHA, artifact SHA-256, data manifest, and current
+Datalevin basis.
