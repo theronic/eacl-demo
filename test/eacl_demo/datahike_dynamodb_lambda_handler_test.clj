@@ -118,7 +118,7 @@
     (is (= #{:error :meta} (set (keys body))))
     (is (not (.contains ^String (:body response) "secret")))))
 
-(deftest snapstart-primes-the-first-admin-resource-page-test
+(deftest snapstart-primes-the-first-subject-and-admin-resource-pages-test
   (let [captured (atom [])
         running {:runtime :datahike-dynamodb}]
     (with-redefs [handler/handle-event
@@ -126,21 +126,32 @@
                     (swap! captured conj {:runtime actual
                                           :event event
                                           :remaining-ms remaining-ms})
-                    {:statusCode 200
-                     :body (json/write-str
-                            {:data {:items (mapv (fn [index] {:id (str index)})
-                                                (range 10))}
-                             :meta {:cacheStatus (if (= 1 (count @captured))
-                                                   "miss"
-                                                   "hit")}})})]
+                    (let [subjects? (= "/list-subjects" (:rawPath event))]
+                      {:statusCode 200
+                       :body (json/write-str
+                              {:data {:items
+                                      (mapv (fn [index] {:id (str index)})
+                                            (range (if subjects? 25 10)))}
+                               :meta (when-not subjects?
+                                       {:cacheStatus "hit"})})}))]
       (is (= running (handler/prime-runtime! running))))
-    (is (= 256 (count @captured)))
+    (is (= 272 (count @captured)))
     (is (every? #(= running (:runtime %)) @captured))
     (is (every? #(= 30000 (:remaining-ms %)) @captured))
-    (is (every? #(= "/lookup-resources" (get-in % [:event :rawPath]))
-                @captured))
-    (is (= "snapstart-prime-lookup-resources"
+    (is (= 16 (count (filter #(= "/list-subjects"
+                                 (get-in % [:event :rawPath]))
+                             @captured))))
+    (is (= 256 (count (filter #(= "/lookup-resources"
+                                  (get-in % [:event :rawPath]))
+                              @captured))))
+    (is (= "snapstart-prime-list-subjects"
            (get-in (first @captured)
+                   [:event :requestContext :requestId])))
+    (is (= {:type "user" :pageSize 25}
+           (json/read-str (get-in (first @captured) [:event :body])
+                          :key-fn keyword)))
+    (is (= "snapstart-prime-lookup-resources"
+           (get-in (nth @captured 16)
                    [:event :requestContext :requestId])))
     (is (= {:subjectType "user"
             :subjectId "user-1"
@@ -150,17 +161,20 @@
             :cache true
             :populateCache true
             :consistency "minimize"}
-           (json/read-str (get-in (first @captured) [:event :body])
+           (json/read-str (get-in (nth @captured 16) [:event :body])
                           :key-fn keyword)))))
 
 (deftest snapstart-prime-requires-the-cache-to-converge-test
   (with-redefs [handler/handle-event
-                (fn [_ _ _]
-                  {:statusCode 200
-                   :body (json/write-str
-                          {:data {:items (mapv (fn [index] {:id (str index)})
-                                              (range 10))}
-                           :meta {:cacheStatus "miss"}})})]
+                (fn [_ event _]
+                  (let [subjects? (= "/list-subjects" (:rawPath event))]
+                    {:statusCode 200
+                     :body (json/write-str
+                            {:data {:items
+                                    (mapv (fn [index] {:id (str index)})
+                                          (range (if subjects? 25 10)))}
+                             :meta (when-not subjects?
+                                     {:cacheStatus "miss"})})}))]
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
          #"cache did not converge"

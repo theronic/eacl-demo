@@ -176,6 +176,21 @@
                                  (catch clojure.lang.ExceptionInfo error
                                    error))))))))
 
+            (with-redefs [d/q (fn [& _]
+                                (throw (ex-info "list-subjects scanned via Datalog"
+                                                {})))]
+              (let [first-page (invoke handlers "list-subjects" snapshot
+                                       {:pageSize 2})
+                    second-page (invoke handlers "list-subjects" snapshot
+                                        {:pageSize 2
+                                         :cursor (get-in first-page
+                                                         [:pageInfo :endCursor])})]
+                (is (= ["account-0" "user-1"]
+                       (mapv :id (:items first-page))))
+                (is (true? (get-in first-page [:pageInfo :hasNextPage])))
+                (is (= ["user-2"] (mapv :id (:items second-page))))
+                (is (false? (get-in second-page [:pageInfo :hasNextPage])))))
+
             (is (= "account-0"
                    (get-in (invoke handlers "get-object" snapshot
                                    {:type "account" :id "account-0"})

@@ -24,7 +24,7 @@
 (declare handle-event initialize parse-bounded-int parse-environment parse-nonnegative-int
          parse-positive-int prime-runtime!)
 
-(def ^:private snapstart-prime-event
+(def ^:private snapstart-lookup-prime-event
   {:version "2.0"
    :routeKey "$default"
    :rawPath "/lookup-resources"
@@ -44,7 +44,20 @@
            :populateCache true
            :consistency "minimize"})
    :cookies nil})
-(def ^:private snapstart-prime-repetitions 256)
+(def ^:private snapstart-lookup-prime-repetitions 256)
+(def ^:private snapstart-subject-prime-event
+  {:version "2.0"
+   :routeKey "$default"
+   :rawPath "/list-subjects"
+   :rawQueryString ""
+   :headers {"content-type" "application/json"}
+   :requestContext
+   {:requestId "snapstart-prime-list-subjects"
+    :http {:method "POST"}}
+   :isBase64Encoded false
+   :body (json/write-str {:type "user" :pageSize 25})
+   :cookies nil})
+(def ^:private snapstart-subject-prime-repetitions 16)
 
 (defonce ^:private runtime
   (delay
@@ -129,15 +142,24 @@
         response))))
 
 (defn prime-runtime!
-  "Populates and compiles the exact first server explorer page before SnapStart.
+  "Populates and compiles the exact first explorer pages before SnapStart.
 
-  This keeps the restored function's first warm read on the completed-cache
-  path and moves Clojure/JVM route, pagination, and JSON warm-up into version
+  This keeps the restored function's first resource read on the completed-cache
+  path and moves both subject-index and EACL query/JIT warm-up into version
   publication."
   [running]
+  (dotimes [_ snapstart-subject-prime-repetitions]
+    (let [response (handle-event running snapstart-subject-prime-event 30000)
+          envelope (json/read-str (:body response) :key-fn keyword)]
+      (when-not (and (= 200 (:statusCode response))
+                     (= 25 (count (get-in envelope [:data :items]))))
+        (throw (ex-info "Datahike/DynamoDB SnapStart subject priming failed."
+                        {:type :eacl-demo/snapstart-prime-failed
+                         :status (:statusCode response)
+                         :error-code (get-in envelope [:error :code])})))))
   (let [final-cache-status (volatile! nil)]
-    (dotimes [_ snapstart-prime-repetitions]
-      (let [response (handle-event running snapstart-prime-event 30000)
+    (dotimes [_ snapstart-lookup-prime-repetitions]
+      (let [response (handle-event running snapstart-lookup-prime-event 30000)
             envelope (json/read-str (:body response) :key-fn keyword)]
         (vreset! final-cache-status (get-in envelope [:meta :cacheStatus]))
         (when-not (and (= 200 (:statusCode response))
