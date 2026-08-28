@@ -48,8 +48,22 @@ const profiles = {
 };
 
 if (target === "static") await deployStatic();
+else if (target === "datomic-dynamodb") await deployDatomicPlatforms();
 else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
 else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
+
+async function deployDatomicPlatforms() {
+  // Comparisons must be ready before the primary deployment publishes the new
+  // registry identity. Otherwise the explorer would advertise stale targets
+  // or briefly accept unlike artifacts as a valid performance comparison.
+  const comparison = await deployProfile(
+    "datomic-dynamodb",
+    profiles["datomic-dynamodb-large"],
+    "datomic-dynamodb-large"
+  );
+  await deployDatomicEc2(comparison);
+  await deployProfile("datomic-dynamodb", profiles["datomic-dynamodb"], "datomic-dynamodb");
+}
 
 async function deployStatic() {
   const bucket = required("STATIC_BUCKET");
@@ -177,6 +191,61 @@ async function deployProfile(profileId, profile, targetId = profileId) {
       throw error;
     }
     process.stdout.write(`deployed ${targetId} version ${update.Version} sha256:${artifactSha}\n`);
+    return {
+      artifactKey: key,
+      artifactSha256: artifactSha,
+      artifactVersion: uploaded.VersionId,
+      deploymentId
+    };
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+}
+
+async function deployDatomicEc2(release) {
+  const instanceId = required("DATOMIC_DYNAMODB_EC2_INSTANCE_ID");
+  if (!/^i-[0-9a-f]{8,17}$/u.test(instanceId)) {
+    throw new Error("DATOMIC_DYNAMODB_EC2_INSTANCE_ID is invalid");
+  }
+  const bucket = required("ARTIFACT_BUCKET");
+  const region = required("AWS_REGION");
+  const script = [
+    "set -euo pipefail",
+    "install -d -m 0755 /opt/eacl-demo",
+    `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
+    `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID)=") } /etc/eacl-demo-datomic.env.next)" -eq 4`,
+    "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
+    "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
+    "systemctl restart eacl-demo-datomic.service",
+    "for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-release-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done",
+    "systemctl status eacl-demo-datomic.service --no-pager",
+    "exit 1"
+  ].join("\n");
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-ec2-release-"));
+  try {
+    const parametersFile = path.join(temporary, "parameters.json");
+    await writeFile(parametersFile, `${JSON.stringify({ commands: [`bash -ceu ${shellQuote(script)}`] })}\n`, { mode: 0o600 });
+    const response = awsJson([
+      "ssm", "send-command",
+      "--document-name", "AWS-RunShellScript",
+      "--instance-ids", instanceId,
+      "--timeout-seconds", "900",
+      "--comment", `EACL ${demoSha().slice(0, 12)} ${release.artifactSha256.slice(0, 12)}`,
+      "--parameters", `file://${parametersFile}`
+    ]);
+    const commandId = response.Command?.CommandId;
+    if (!/^[0-9a-f-]{36}$/u.test(commandId ?? "")) {
+      throw new Error("SSM did not accept the Datomic EC2 release command");
+    }
+    await smokeFunctionUrl(
+      "datomic-dynamodb",
+      "https://datomic.demo.eacl.dev",
+      expectedIdentityFor("datomic-dynamodb", release.artifactSha256, release.deploymentId),
+      { attempts: 30 }
+    );
+    process.stdout.write(`deployed datomic-dynamodb-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
@@ -256,10 +325,10 @@ async function invokeProfile({ profileId, functionName, temporary, qualifier,
     wallMs: Date.now() - started };
 }
 
-async function smokeFunctionUrl(profileId, origin, expectedIdentity) {
+async function smokeFunctionUrl(profileId, origin, expectedIdentity, { attempts = 15 } = {}) {
   const url = new URL("/health", origin);
   let observed = null;
-  for (let attempt = 1; attempt <= 15; attempt += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
     try {
@@ -287,9 +356,9 @@ async function smokeFunctionUrl(profileId, origin, expectedIdentity) {
     } finally {
       clearTimeout(timeout);
     }
-    if (attempt < 15) await new Promise((resolve) => setTimeout(resolve, 2_000));
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 2_000));
   }
-  throw new Error(`${profileId} direct Function URL smoke failed after alias propagation: ${JSON.stringify(observed)}`);
+  throw new Error(`${profileId} public origin smoke failed after deployment propagation: ${JSON.stringify(observed)}`);
 }
 
 function rollbackAlias(functionName, promoted, prior) {
@@ -450,6 +519,10 @@ function required(name) {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required`);
   return value;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", `'"'"'`)}'`;
 }
 
 function contentType(file) {
