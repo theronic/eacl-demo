@@ -3,6 +3,7 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datomic.api :as d]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
@@ -32,12 +33,16 @@
                     {:type :eacl-demo/missing-wire-schema}))))
 
 (defn create-handlers
-  [{:keys [descriptor cursor-key clock]
-    :or {clock #(System/currentTimeMillis)}}]
+  [{:keys [descriptor cursor-key clock cache-stats operation-metrics]
+    :or {clock #(System/currentTimeMillis)
+         cache-stats (constantly {:unavailable true})
+         operation-metrics (cache-metrics/create-operation-metrics)}}]
   (when-not (and (map? descriptor)
                  (string? cursor-key)
                  (<= 32 (count (.getBytes ^String cursor-key "UTF-8")))
-                 (fn? clock))
+                 (fn? clock)
+                 (fn? cache-stats)
+                 (some? operation-metrics))
     (throw (ex-info "Invalid Datomic operation configuration."
                     {:type :eacl-demo/invalid-operation-config})))
   (let [wire-schema (load-wire-schema)
@@ -237,12 +242,7 @@
 
      "get-cache-info"
      (fn [_]
-       {:behavior "environment-local"
-        :hit nil
-        :scope "datomic-dynamodb"
-        :entries nil
-        :limitations ["fixed-current-snapshot" "no-history-api"
-                      "no-synchronization"]})
+       (cache-metrics/snapshot (cache-stats) operation-metrics))
 
      "count-objects"
      (guarded

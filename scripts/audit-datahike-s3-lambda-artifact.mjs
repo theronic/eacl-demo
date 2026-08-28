@@ -121,7 +121,12 @@ assert.doesNotMatch(konserveSource,
 assert.match(writerSource, /denied!/u);
 assert.match(writerSource, /defmethod writer\/create-database[\s\S]*?denied!/u);
 assert.match(writerSource, /defmethod writer\/delete-database[\s\S]*?denied!/u);
-assert.match(operationsSource, /:keys \[descriptor cursor-key clock refresh-snapshot!\]/u);
+assert.match(operationsSource,
+  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics\]/u);
+assert.match(operationsSource,
+  /cache-metrics\/snapshot \(cache-stats\) operation-metrics/u);
+assert.match(handlerSource, /datahike-eacl\/cache-stats/u);
+assert.match(handlerSource, /cache-metrics\/record-response!/u);
 assert.match(operationsSource, /\(:basis \(refresh-snapshot!\)\)/u);
 assert.match(readerSource, /active \(atom \(create-snapshot\)\)/u);
 assert.match(readerSource, /\(assoc current :release! \(fn \[\]\)\)/u);

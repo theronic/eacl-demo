@@ -5,6 +5,7 @@
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
             [eacl.spicedb.consistency :as consistency]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.datahike-s3.operations :as operations]))
 
 (def cursor-key (apply str (repeat 32 "k")))
@@ -87,6 +88,19 @@
     (is (= {:kind "objects" :value 1000000 :exact true :ceiling 1000000}
            (invoke handlers "count-objects" ::unusable-snapshot
                    {:kind "objects" :type "server" :ceiling 1000000})))))
+
+(deftest cache-info-exposes-provider-and-operation-metrics-test
+  (let [metrics (cache-metrics/create-operation-metrics)
+        provider {:exact-hits 11 :misses 2 :tiers {:answer {:entries 8}}}
+        handlers (operations/create-handlers
+                  {:descriptor descriptor
+                   :cursor-key cursor-key
+                   :cache-stats (constantly provider)
+                   :operation-metrics metrics})
+        result (invoke handlers "get-cache-info" ::unused {})]
+    (is (= provider (:provider result)))
+    (is (= {} (:operations result)))
+    (is (string? (:capturedAt result)))))
 
 (deftest bootstrap-explicitly-advances-the-retained-snapshot-test
   (let [later (assoc public-basis :id "datahike:test:test:43"

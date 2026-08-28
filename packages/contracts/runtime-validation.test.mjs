@@ -22,6 +22,17 @@ test("all runtime boundaries accept canonical values", async () => {
   assert.equal(validate.client({ contractVersion: "explorer.v1", profileId: "datahike-s3", requestId: "r1", operation: "check-permission", input: {} }).requestId, "r1");
   assert.equal(validate.server({ meta: { revision: "basis-1", requestId: "r1" }, data: { object: { type: "server", id: "server-1", displayName: null, attributes: [] } } }).data.object.id, "server-1");
   assert.equal(validate.server({ meta: { revision: "datomic:fixture:42", requestId: "r2", elapsedMs: 0.8, cacheStatus: "hit" }, data: { allowed: true } }).data.allowed, true);
+  const cache = validate.server({
+    meta: { revision: "datomic:fixture:42", requestId: "cache-1", elapsedMs: 0.2 },
+    data: {
+      provider: { "exact-hits": 7, tiers: { answer: { entries: 3, weight: 8 } } },
+      operations: {
+        "lookup-resources": { count: 2, totalMs: 3, maxMs: 2, averageMs: 1.5, responseBytes: 512, cacheStatus: { hit: 1, miss: 1 } },
+      },
+      capturedAt: "2026-08-25T12:00:00Z",
+    },
+  });
+  assert.equal(cache.data.provider["exact-hits"], 7);
   assert.equal(validate.fixture({ schema: "eacl-demo.fixture-manifest.v1", fixtureId: "canonical-v1-10000", algorithmVersion: "fixture-v1", seed: "eacl-demo", cutPoint: 10000, logicalResourceCount: 10000, schemaSha256: sha256, manifestSha256: sha256 }).cutPoint, 10000);
   assert.equal(validate.descriptor(descriptor).identity.profileId, "datahike-s3");
   const registry = JSON.parse(await readFile(new URL("../../registry/profile-registry.v1.json", import.meta.url), "utf8"));

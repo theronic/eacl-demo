@@ -3,12 +3,14 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [eacl-demo.contracts.build-identity :as build-identity]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datomic-dynamodb.boundary :as boundary]
             [eacl-demo.datomic-dynamodb.operations :as operations]
             [eacl-demo.datomic-dynamodb.profile :as profile]
-            [eacl-demo.datomic-dynamodb.reader :as reader])
+            [eacl-demo.datomic-dynamodb.reader :as reader]
+            [eacl.datomic.core :as datomic-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]))
 
@@ -70,11 +72,15 @@
                       :memory-mib memory-mib
                       :execution execution
                       :admission-concurrency (:maximum-concurrency reader-config)})
+         operation-metrics (cache-metrics/create-operation-metrics)
          handlers (operations/create-handlers
                    {:descriptor descriptor
-                    :cursor-key (:security-key reader-config)})]
+                    :cursor-key (:security-key reader-config)
+                    :cache-stats #(datomic-eacl/cache-stats (:client opened))
+                    :operation-metrics operation-metrics})]
      {:reader opened
       :descriptor descriptor
+      :operation-metrics operation-metrics
       :boundary (boundary/create-boundary
                  {:descriptor descriptor
                   :capture-snapshot (:capture-snapshot opened)
@@ -83,7 +89,8 @@
 
 (defn handle-event
   [runtime event remaining-time-ms]
-  (let [normalized (function-url/normalize-event event)
+  (let [started-nanos (System/nanoTime)
+        normalized (function-url/normalize-event event)
         descriptor (:descriptor runtime)]
     (if-not (:ok? normalized)
       (function-url/create-response
@@ -100,8 +107,12 @@
                       (:boundary runtime)
                       (assoc request
                              :deadline-ms deadline
-                             :cancelled? (constantly false)))]
-        (function-url/create-response envelope)))))
+                             :cancelled? (constantly false)))
+            response (function-url/create-response envelope)]
+        (cache-metrics/record-response!
+         (:operation-metrics runtime) (subs (:path request) 1)
+         started-nanos response envelope)
+        response))))
 
 (defn prime-runtime!
   "Compile and populate the first server page before the SnapStart checkpoint."

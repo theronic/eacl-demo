@@ -67,6 +67,10 @@ assert.doesNotMatch(observabilitySource,
   /stack-trace|\.getMessage|Throwable->map|AWS_SECRET/iu);
 assert.match(servingSources, /\?read-only=true/u);
 assert.match(servingSources, /:read-only\? true/u);
+assert.match(servingSources, /datomic-eacl\/cache-stats/u);
+assert.match(servingSources,
+  /cache-metrics\/snapshot \(cache-stats\) operation-metrics/u);
+assert.match(servingSources, /cache-metrics\/record-response!/u);
 assert.doesNotMatch(servingSources,
   /\bd\/sync\b|\bd\/transact\b|create-database|delete-database|list-backups|read-only=false/u);
 

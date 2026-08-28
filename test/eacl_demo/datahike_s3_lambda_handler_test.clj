@@ -2,7 +2,8 @@
   (:require [clojure.data.json :as json]
             [clojure.test :refer [deftest is use-fixtures]]
             [eacl-demo.contracts.build-identity :as build-identity]
-            [eacl-demo.datahike-s3.lambda-handler :as handler]))
+            [eacl-demo.datahike-s3.lambda-handler :as handler]
+            [eacl.datahike.core :as datahike-eacl]))
 
 (def baked-eacl-sha "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
 (use-fixtures :each
@@ -94,6 +95,31 @@
     (is (= "route-not-found" (get-in denied-body [:error :code])))
     (is (= "demo-test" (get-in denied-body [:meta :revision])))
     (is (= #{:error :meta} (set (keys denied-body))))))
+
+(deftest cache-endpoint-reports-real-provider-and-encoded-operation-metrics-test
+  (let [provider {:exact-hits 8
+                  :misses 2
+                  :subproblems {:tiers {:answer {:entries 5 :weight 13}}}}]
+    (with-redefs [datahike-eacl/cache-stats
+                  (fn [client]
+                    (is (= ::client client))
+                    provider)]
+      (let [runtime (handler/initialize
+                     environment
+                     (fn [config]
+                       (assoc (fake-reader config) :client ::client)))
+            _ (handler/handle-event runtime (event "/health" "GET" nil) 10000)
+            _ (handler/handle-event runtime (event "/health" "GET" nil) 10000)
+            response (handler/handle-event
+                      runtime (event "/get-cache-info" "POST" "{}") 10000)
+            body (json/read-str (:body response) :key-fn keyword)
+            metric (get-in body [:data :operations :health])]
+        (is (= 200 (:statusCode response)))
+        (is (= provider (get-in body [:data :provider])))
+        (is (= 2 (:count metric)))
+        (is (pos? (:responseBytes metric)))
+        (is (<= 0.0 (:averageMs metric) (:maxMs metric)))
+        (is (string? (get-in body [:data :capturedAt])))))))
 
 (deftest malformed-function-url-events-return-a-redacted-envelope-test
   (let [runtime (handler/initialize environment fake-reader)

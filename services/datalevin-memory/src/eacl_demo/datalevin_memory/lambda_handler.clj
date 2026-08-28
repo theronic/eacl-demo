@@ -2,12 +2,14 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [eacl-demo.contracts.build-identity :as build-identity]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datalevin-memory.boundary :as boundary]
             [eacl-demo.datalevin-memory.operations :as operations]
             [eacl-demo.datalevin-memory.profile :as profile]
-            [eacl-demo.datalevin-memory.reader :as reader])
+            [eacl-demo.datalevin-memory.reader :as reader]
+            [eacl.datalevin.core :as datalevin-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]))
 
@@ -71,10 +73,16 @@
           (let [descriptor (profile/descriptor
                             {:identity identity :basis (:basis initial)
                              :memory-mib memory-mib})
+                operation-metrics (cache-metrics/create-operation-metrics)
                 handlers (operations/create-handlers
-                          {:descriptor descriptor :cursor-key cursor-key})]
+                          {:descriptor descriptor
+                           :cursor-key cursor-key
+                           :cache-stats #(datalevin-eacl/cache-stats
+                                          (:client opened))
+                           :operation-metrics operation-metrics})]
             {:reader opened
              :descriptor descriptor
+             :operation-metrics operation-metrics
              :boundary (boundary/create-boundary
                         {:descriptor descriptor
                          :capture-snapshot (:capture-snapshot opened)
@@ -87,7 +95,8 @@
 
 (defn handle-event
   [runtime-value event remaining-time-ms]
-  (let [normalized (function-url/normalize-event event)
+  (let [started-nanos (System/nanoTime)
+        normalized (function-url/normalize-event event)
         descriptor (:descriptor runtime-value)]
     (if-not (:ok? normalized)
       (function-url/create-response
@@ -100,9 +109,13 @@
             request (assoc (:request normalized)
                            :deadline-ms (+ (System/currentTimeMillis)
                                            (max 1 (- remaining 100)))
-                           :cancelled? (constantly false))]
-        (function-url/create-response
-         (boundary/invoke! (:boundary runtime-value) request))))))
+                           :cancelled? (constantly false))
+            envelope (boundary/invoke! (:boundary runtime-value) request)
+            response (function-url/create-response envelope)]
+        (cache-metrics/record-response!
+         (:operation-metrics runtime-value) (subs (:path request) 1)
+         started-nanos response envelope)
+        response))))
 
 (defn handle-request-stream
   [^InputStream input ^OutputStream output ^Context context]

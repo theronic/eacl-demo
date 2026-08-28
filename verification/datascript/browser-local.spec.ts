@@ -141,6 +141,7 @@ test("fixture initialization and authorization stay in the direct browser runtim
         subjectType: "user", subjectId: "user-1", resourceType: "account",
         resourceId: "account-0", permission: "admin", consistency: "exact"
       }),
+      cache: await request("get-cache-info", {}),
     };
   });
   expect(Object.keys(defaults.object).sort()).toEqual(["data", "meta"]);
@@ -175,6 +176,19 @@ test("fixture initialization and authorization stay in the direct browser runtim
   expect(Object.keys(defaults.unsupportedConsistency).sort()).toEqual(["error", "meta"]);
   expect(Object.keys(defaults.unsupportedConsistency.error).sort()).toEqual(["code", "message"]);
   expect(Object.keys(defaults.unsupportedConsistency.meta).sort()).toEqual(["elapsedMs", "requestId", "revision"]);
+  expect(defaults.cache.data.provider).toEqual(expect.objectContaining({
+    "exact-hits": expect.any(Number),
+    misses: expect.any(Number),
+    subproblems: expect.any(Object),
+  }));
+  expect(defaults.cache.data.operations["lookup-resources"]).toEqual(expect.objectContaining({
+    count: expect.any(Number),
+    totalMs: expect.any(Number),
+    maxMs: expect.any(Number),
+    averageMs: expect.any(Number),
+    responseBytes: expect.any(Number),
+  }));
+  expect(Date.parse(defaults.cache.data.capturedAt)).not.toBeNaN();
 
   requests.length = 0;
   await expect(page.getByRole("heading", { name: "Subjects" })).toBeVisible();

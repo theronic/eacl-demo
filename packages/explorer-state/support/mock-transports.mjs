@@ -108,7 +108,11 @@ function responseData(selected, operation, input) {
     "reverse-relationships": { items: [object], pageInfo },
     "check-permission": { allowed: true },
     "get-schema": { sha256: SHA.schema, types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
-    "get-cache-info": { behavior: selected.descriptor.capabilities.cacheBehavior, hit: null, scope: selected.profile.id, entries: null, limitations: [...selected.descriptor.capabilities.limitations] },
+    "get-cache-info": {
+      provider: { "exact-hits": 0, "exact-entries": 0 },
+      operations: {},
+      capturedAt: selected.descriptor.basis.capturedAt,
+    },
     "count-objects": { kind: "objects", value: Math.min(input.ceiling ?? selected.descriptor.dataset.logicalResourceCount, selected.descriptor.dataset.logicalResourceCount), exact: (input.ceiling ?? 1_000_000) >= selected.descriptor.dataset.logicalResourceCount, ceiling: input.ceiling ?? 1_000_000 }
   };
   return structuredClone(responses[operation]);

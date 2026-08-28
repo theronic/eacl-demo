@@ -2,6 +2,7 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datalevin.core :as d]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
             [eacl.datalevin.core :as datalevin-eacl]
@@ -113,8 +114,10 @@
       (recur (next remaining) (inc count)))))
 
 (defn create-handlers
-  [{:keys [descriptor cursor-key clock]
-    :or {clock #(System/currentTimeMillis)}}]
+  [{:keys [descriptor cursor-key clock cache-stats operation-metrics]
+    :or {clock #(System/currentTimeMillis)
+         cache-stats (constantly {:unavailable true})
+         operation-metrics (cache-metrics/create-operation-metrics)}}]
   (let [wire-schema (json/read-str
                      (slurp (or (io/resource "schema-wire.v1.json")
                                 (throw (ex-info "Wire schema is absent."
@@ -324,9 +327,7 @@
 
      "get-cache-info"
      (fn [_]
-       {:behavior "environment-local" :hit nil :scope "datalevin-memory"
-        :entries nil
-        :limitations ["read-only-public-api" "request-owned-native-snapshot"]})
+       (cache-metrics/snapshot (cache-stats) operation-metrics))
 
      "count-objects"
      (guarded

@@ -308,12 +308,43 @@
             :ceiling (:ceiling input)}
      :cache-status (cached-status result input)}))
 
-(defn- cache-data []
-  {:behavior "browser-page-local"
-   :hit nil
-   :scope "current-page-lifecycle"
-   :entries nil
-   :limitations ["Cache state is ephemeral and is discarded when this page is closed."]})
+(defn- operation-metrics-snapshot [runtime]
+  (into
+   (sorted-map)
+   (map
+    (fn [[operation {:keys [count totalMs] :as metric}]]
+      [operation
+       (assoc metric :averageMs
+              (if (pos? (or count 0)) (/ totalMs count) 0.0))]))
+   @(:operation-metrics runtime)))
+
+(defn- record-operation! [runtime request response]
+  (let [operation (:operation request)
+        elapsed-ms (max 0 (- (.now js/performance) (:startedAt request)))
+        encoded (.encode (js/TextEncoder.)
+                         (js/JSON.stringify (clj->js response)))
+        response-bytes (.-length encoded)
+        cache-status (get-in response [:meta :cacheStatus])
+        success? (and (contains? response :data)
+                      (not (contains? response :error)))]
+    (swap! (:operation-metrics runtime)
+           (fn [snapshot]
+             (-> snapshot
+                 (update-in [operation :count] (fnil inc 0))
+                 (update-in [operation :totalMs] (fnil + 0.0) elapsed-ms)
+                 (update-in [operation :maxMs] (fnil max 0.0) elapsed-ms)
+                 (update-in [operation :responseBytes] (fnil + 0) response-bytes)
+                 (cond-> cache-status
+                   (update-in [operation :cacheStatus cache-status]
+                              (fnil inc 0)))
+                 (cond-> (not success?)
+                   (update-in [operation :errors] (fnil inc 0)))))))
+  nil)
+
+(defn- cache-data [runtime]
+  {:provider (eacl-datascript/cache-stats (:client runtime))
+   :operations (operation-metrics-snapshot runtime)
+   :capturedAt (.toISOString (js/Date.))})
 
 (defn- dispatch [request runtime]
   (try
@@ -327,8 +358,8 @@
       "list-relationships" (success request runtime (relationships-data runtime (:input request)))
       "reverse-relationships" (success request runtime (reverse-data runtime (:input request)))
       "check-permission" (let [{:keys [data cache-status]}
-                        (authorization-data runtime (:input request))]
-                    (success request runtime data cache-status))
+                               (authorization-data runtime (:input request))]
+                           (success request runtime data cache-status))
       "lookup-resources" (let [{:keys [data cache-status]}
                                (lookup-resources-data runtime (:input request))]
                            (success request runtime data cache-status))
@@ -339,7 +370,7 @@
                               (count-resources-data runtime (:input request))]
                           (success request runtime data cache-status))
       "get-schema" (success request runtime fixture/wire-schema)
-      "get-cache-info" (success request runtime (cache-data))
+      "get-cache-info" (success request runtime (cache-data runtime))
       "count-objects" (success request runtime (count-data runtime (:input request)))
       (failure request runtime "validation-error"
                "This operation is outside the browser dispatcher."))
@@ -384,6 +415,7 @@
         runtime {:connection connection
                  :client client
                  :cursors (atom {:by-token {} :order []})
+                 :operation-metrics (atom {})
                  :captured-at (.toISOString (js/Date.))
                  :objects (:objects accumulator)
                  :subjects (:subjects accumulator)
@@ -604,7 +636,9 @@
       (let [request (update request :input #(normalize-operation-input (assoc request :input %)))]
         (-> (ensure-runtime!)
             (.then (fn [runtime]
-                     (clj->js (dispatch request runtime))))
+                     (let [response (dispatch request runtime)]
+                       (record-operation! runtime request response)
+                       (clj->js response))))
             (.catch (fn [_]
                       (clj->js
                        (failure request nil "internal-error"
