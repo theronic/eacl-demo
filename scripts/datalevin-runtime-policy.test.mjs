@@ -54,7 +54,7 @@ test("Datalevin runtime role can only write exact-function logs", () => {
 });
 
 test("Datalevin candidate has bounded compute and no paid warm-up feature", () => {
-  assert.match(template, /MemorySize:\s*\n\s*Type: Number\s*\n\s*Default: 1024\s*\n\s*AllowedValues: \[1024\]/u);
+  assert.match(template, /MemorySize:\s*\n\s*Type: Number\s*\n\s*Default: 1769\s*\n\s*AllowedValues: \[1769\]/u);
   assert.doesNotMatch(template, /ReservedConcurrentExecutions|6144/u);
   assert.match(template, /^\s{6}EphemeralStorage:\s*\n\s{8}Size: 512$/mu);
   assert.match(template, /^\s{6}Timeout: 60$/mu);

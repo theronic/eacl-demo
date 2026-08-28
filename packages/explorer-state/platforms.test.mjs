@@ -11,17 +11,18 @@ import {
 test("Datomic and Datalevin share EC2 while Datahike exposes only Lambda sizes", () => {
   const datomic = { backend: "datomic", storage: "dynamodb" };
   assert.deepEqual(platformOptions(datomic).map(({ id, selectable }) => [id, selectable]), [
-    ["lambda-1024", true], ["lambda-4096", true], ["ec2", true]
+    ["lambda-1769", true], ["lambda-4096", true], ["ec2", true]
   ]);
   assert.deepEqual(platformOptions({ backend: "datahike", storage: "dynamodb" })
     .map(({ id, selectable }) => [id, selectable]), [
-    ["lambda-1024", true], ["lambda-4096", true], ["ec2", false]
+    ["lambda-1769", true], ["lambda-4096", true], ["ec2", false]
   ]);
-  assert.equal(normalizePlatform({ backend: "datahike", storage: "s3" }, "ec2"), "lambda-1024");
+  assert.equal(normalizePlatform({ backend: "datahike", storage: "s3" }, "ec2"), "lambda-1769");
   assert.deepEqual(platformOptions({ backend: "datalevin", storage: "embedded" })
     .map(({ id, selectable }) => [id, selectable]), [
-    ["lambda-1024", true], ["lambda-4096", false], ["ec2", true]
+    ["lambda-1769", true], ["lambda-4096", false], ["ec2", true]
   ]);
+  assert.equal(normalizePlatform(datomic, "lambda-1024"), "lambda-1769");
 });
 
 test("each Datahike storage maps its 4 GiB option to a distinct deployed origin", () => {
@@ -35,7 +36,7 @@ test("each Datahike storage maps its 4 GiB option to a distinct deployed origin"
 
 test("platform selection changes only the deployment origin and execution label", () => {
   const profile = { backend: "datomic", storage: "dynamodb", apiOrigin: "https://small.example" };
-  assert.equal(profileForPlatform(profile, "lambda-1024").apiOrigin, profile.apiOrigin);
+  assert.equal(profileForPlatform(profile, "lambda-1769").apiOrigin, profile.apiOrigin);
   assert.match(profileForPlatform(profile, "lambda-4096").apiOrigin, /lambda-url/u);
   assert.equal(profileForPlatform(profile, "ec2").apiOrigin, "https://datomic.demo.eacl.dev");
   assert.equal(profileForPlatform({ backend: "datalevin", storage: "embedded", apiOrigin: "https://small.example" }, "ec2").apiOrigin,

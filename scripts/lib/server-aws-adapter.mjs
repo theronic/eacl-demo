@@ -29,10 +29,10 @@ const SHA256 = /^[0-9a-f]{64}$/u;
 const MAXIMUM_STATUS_BYTES = 65_536;
 const IDENTITY_ENVIRONMENT = Object.freeze(["EACL_ARTIFACT_SHA256", "EACL_CORE_SHA", "EACL_DEMO_SHA", "EACL_DEPLOYMENT_ID"]);
 const RUNTIMES = Object.freeze({
-  "datahike-s3": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datahike_s3.LambdaHandler::handleRequest", memorySize: 1024, snapStart: "PublishedVersions" },
-  "datahike-dynamodb": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datahike_dynamodb.LambdaHandler::handleRequest", memorySize: 1024, snapStart: "PublishedVersions" },
-  "datomic-dynamodb": { runtime: "java25", architecture: "x86_64", handler: "eacl_demo.datomic_dynamodb.LambdaHandler::handleRequest", memorySize: 1024, snapStart: "PublishedVersions" },
-  "datalevin-memory": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datalevin_memory.LambdaHandler::handleRequest", memorySize: 1024, snapStart: "PublishedVersions" }
+  "datahike-s3": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datahike_s3.LambdaHandler::handleRequest", memorySize: 1769, snapStart: "PublishedVersions" },
+  "datahike-dynamodb": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datahike_dynamodb.LambdaHandler::handleRequest", memorySize: 1769, snapStart: "PublishedVersions" },
+  "datomic-dynamodb": { runtime: "java25", architecture: "x86_64", handler: "eacl_demo.datomic_dynamodb.LambdaHandler::handleRequest", memorySize: 1769, snapStart: "PublishedVersions" },
+  "datalevin-memory": { runtime: "java25", architecture: "arm64", handler: "eacl_demo.datalevin_memory.LambdaHandler::handleRequest", memorySize: 1769, snapStart: "PublishedVersions" }
 });
 
 export function createServerAwsAdapter({

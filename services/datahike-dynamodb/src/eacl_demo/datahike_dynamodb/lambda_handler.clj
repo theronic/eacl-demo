@@ -55,7 +55,7 @@
 
 (defn initialize-runtime!
   "Realizes the immutable reader during published-version initialization so
-  SnapStart captures a ready Datahike database and EACL runtime at 1024 MB."
+  SnapStart captures a ready Datahike database and EACL runtime at 1769 MB."
   []
   (prime-runtime! @runtime)
   nil)
