@@ -25,9 +25,13 @@ test("unchanged Explorer components remain byte-identical to the current Datahik
   }
 });
 
-test("the stylesheet is exactly Datahike plus approved controls, decisions, and reusable can? footer rules", () => {
+test("the stylesheet is exactly Datahike plus approved controls, warnings, decisions, and reusable can? footer rules", () => {
   const demo = file(resolve(demoSource, "styles.css"));
-  const withoutCanFooter = demo.replace(
+  const withoutDeploymentWarning = demo.replace(
+    /\n\n\/\* DEPLOYMENT_WARNING_START \*\/[\s\S]*?\/\* DEPLOYMENT_WARNING_END \*\/\n/u,
+    "\n",
+  );
+  const withoutCanFooter = withoutDeploymentWarning.replace(
     /\n\n\/\* CAN_PERMISSION_FOOTER_START \*\/[\s\S]*?\/\* CAN_PERMISSION_FOOTER_END \*\/\n/u,
     "\n",
   );
@@ -46,11 +50,44 @@ test("the stylesheet is exactly Datahike plus approved controls, decisions, and 
   text-align: left;
 }
 `;
+  const approvedFreshnessFloorRules = `.freshness-floor-control {
+  display: grid;
+  gap: 0.65rem;
+  min-width: min(100%, 31rem);
+}
+
+.freshness-floor-control__modes {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.freshness-floor-control__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.freshness-floor-control .basis-info__note {
+  max-width: 48rem;
+  margin: -0.2rem 0 0;
+}
+`;
+  const approvedFreshnessSecondsRules = `.freshness-control__input--seconds {
+  width: 7rem;
+}
+`;
   assert.equal(withoutDecisionRules.includes(approvedPrimaryControlRules), true);
   assert.equal(withoutDecisionRules.includes(approvedConsistencyNoteRules), true);
+  assert.equal(withoutDecisionRules.includes(approvedFreshnessFloorRules), true);
+  assert.equal(withoutDecisionRules.includes(approvedFreshnessSecondsRules), true);
   const withoutApprovedRules = withoutDecisionRules
     .replace(`${approvedPrimaryControlRules}\n`, "")
-    .replace(`${approvedConsistencyNoteRules}\n`, "");
+    .replace(`${approvedConsistencyNoteRules}\n`, "")
+    .replace(`${approvedFreshnessFloorRules}\n`, "")
+    .replace(`${approvedFreshnessSecondsRules}\n`, "");
   assert.equal(
     sha(withoutApprovedRules),
     "341ac588e8347cfa93867406dd0c02e081ec56ef38efa1f5fd81cce85bb6dfb9",
@@ -116,6 +153,11 @@ test("the arbitrary permission console is one reusable schema-driven component",
 });
 
 test("requested copy and control moves are the only component deltas", () => {
+  const tagline = "ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.";
+  const header = file(resolve(demoSource, "components/Header.tsx"));
+  const app = file(resolve(demoSource, "App.tsx"));
+  assert.equal(header.includes(tagline), true);
+  assert.equal(app.includes(tagline), true);
   const cache = file(resolve(demoSource, "components/CachePanel.tsx"));
   assert.match(cache, /capturedOnFirstOpen/u);
   const schema = file(resolve(demoSource, "components/SchemaPanel.tsx"));

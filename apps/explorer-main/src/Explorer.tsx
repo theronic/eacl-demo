@@ -3,6 +3,7 @@ import { CachePanel } from "./components/CachePanel";
 import { CanPermissionFooter, type CanPermissionQuery } from "./components/CanPermissionFooter";
 import { ConsistencyPanel } from "./components/ConsistencyPanel";
 import { DetailPanel } from "./components/DetailPanel";
+import { DeploymentWarning } from "./components/DeploymentWarning";
 import { EmptyState, ErrorBlock, InlineLoading, LoadingBlock } from "./components/Common";
 import { Header } from "./components/Header";
 import { ResourceTreePanel } from "./components/ResourceTree";
@@ -82,6 +83,11 @@ export function Explorer(props: {
     <div class="app-shell" data-theme={app.theme()}>
       <Header />
       {props.profileSelector}
+      <Show when={app.health()?.data.identityWarning}>
+        {(warning) => (
+          <DeploymentWarning backendLabel={props.backendLabel} warning={warning()} />
+        )}
+      </Show>
       <Show when={app.health.loading && !hasBootstrap()}>
         <main class="loading-grid">
           <section class="startup-status" role="status" aria-live="polite">

@@ -34,14 +34,17 @@ export function createDataScriptProfileTransport({
     if (bootstrapResponse.error || healthResponse.error) {
       throw identityError("The DataScript browser runtime did not complete its descriptor handshake.");
     }
-    validateDescriptorHandshake({
+    const handshake = validateDescriptorHandshake({
       registryProfile: profile,
       route: "/datascript/",
       health: healthResponse.data,
       bootstrap: bootstrapResponse.data,
     });
     bootstrapped = true;
-    return bootstrapResponse.data;
+    return {
+      ...bootstrapResponse.data,
+      ...(handshake.identityWarning ? { identityWarning: handshake.identityWarning } : {})
+    };
   }
 
   async function request(operation, input = {}, { signal } = {}) {

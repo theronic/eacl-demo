@@ -1,6 +1,5 @@
 import { readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
 import { validateDescriptorHandshake } from "../../contracts/src/descriptor-handshake.mjs";
-import { assertDescriptorIdentity } from "./profile-controller.mjs";
 
 const OPERATIONS = new Set([
   "health", "bootstrap", "list-subjects", "get-object",
@@ -101,12 +100,15 @@ export function createServerProfileTransport({
         health = await request("health", {}, startupOptions);
         if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
       }
-      validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
-      assertDescriptorIdentity(profile, bootstrap.data);
+      const handshake = validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
       // The descriptor is immutable, but request-snapshot profiles capture a
       // fresh basis during the health half of this handshake. Preserve that
       // newly captured basis so Refresh Snapshot visibly advances the UI.
-      return { ...bootstrap.data, basis: health.data.basis };
+      return {
+        ...bootstrap.data,
+        basis: health.data.basis,
+        ...(handshake.identityWarning ? { identityWarning: handshake.identityWarning } : {})
+      };
     },
     request,
     cancel() { return false; },

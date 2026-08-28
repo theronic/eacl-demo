@@ -59,7 +59,7 @@ export function Header(): JSX.Element {
       <div class="app-header__intro">
         <h1 class="app-title">🦅 EACL Explorer</h1>
         <p class="app-subtitle">
-          Reactive authorization over explicit, inspectable HTTP queries.
+          ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.
         </p>
       </div>
       <div class="app-header__actions">

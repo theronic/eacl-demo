@@ -56,6 +56,28 @@ test("bootstrap returns the basis captured by the health handshake", async () =>
   assert.deepEqual((await transport.bootstrap()).basis, refreshedBasis);
 });
 
+test("a coherent service version drift remains usable and exposes registry detail", async () => {
+  const serviceIdentity = {
+    ...identity,
+    demoSha: "e".repeat(40),
+    eaclSha: "f".repeat(40),
+    artifactSha256: "9".repeat(64),
+    deploymentId: "deployment-6"
+  };
+  const serviceDescriptor = { ...descriptor, identity: serviceIdentity };
+  const transport = createTransport(async (url, init) => {
+    const operation = new URL(url).pathname.split("/").at(-1);
+    return operation === "health"
+      ? response(success("health", init.headers["x-eacl-request-id"], { status: "ready", ready: true, identity: serviceIdentity, basis }))
+      : response(success("bootstrap", init.headers["x-eacl-request-id"], serviceDescriptor));
+  });
+  const bootstrapped = await transport.bootstrap();
+  assert.equal(bootstrapped.identity.eaclSha, serviceIdentity.eaclSha);
+  assert.equal(bootstrapped.identityWarning.code, "deployment-identity-drift");
+  assert.equal(bootstrapped.identityWarning.expected.eaclSha, identity.eaclSha);
+  assert.equal(bootstrapped.identityWarning.actual.eaclSha, serviceIdentity.eaclSha);
+});
+
 test("server transport allows concurrent independent operations", async () => {
   let inFlight = 0;
   let maximumInFlight = 0;

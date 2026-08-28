@@ -747,6 +747,74 @@ button {
   margin-top: 18px;
 }
 
+/* DEPLOYMENT_WARNING_START */
+.deployment-warning {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  border: 1px solid rgba(181, 126, 17, 0.4);
+  border-radius: 14px;
+  background: rgba(220, 165, 42, 0.12);
+  padding: 16px 18px;
+}
+
+.deployment-warning__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.deployment-warning__copy p,
+.deployment-warning__details,
+.deployment-warning__details dd {
+  margin: 0;
+}
+
+.deployment-warning__copy p,
+.deployment-warning__details dd span {
+  color: var(--muted);
+}
+
+.deployment-warning__details {
+  display: grid;
+  gap: 10px;
+}
+
+.deployment-warning__difference {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.6fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 14px;
+  align-items: start;
+}
+
+.deployment-warning__difference dt {
+  font-weight: 700;
+}
+
+.deployment-warning__difference dd {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.deployment-warning__difference dd span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.deployment-warning__difference code {
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .deployment-warning__difference {
+    grid-template-columns: 1fr;
+  }
+}
+/* DEPLOYMENT_WARNING_END */
+
 .request-status-banner {
   display: flex;
   justify-content: center;
