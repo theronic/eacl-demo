@@ -1,6 +1,6 @@
 # EACL demo release report
 
-Report ID: `sha256:d2623eb413e1c75ac8561e12e2a85bdbee34575fe99fad5ea989a7b34512a5ca`
+Report ID: `sha256:faf335dfad842dc4fdc9e38c11811ecfa568a1195f210f6355c7914632ab0d44`
 
 Status: **pre-release**. This is an honest readiness report, not evidence that a production release exists. Local infrastructure definitions are never described as deployed or verified without live evidence.
 

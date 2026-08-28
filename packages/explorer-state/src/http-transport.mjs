@@ -90,13 +90,20 @@ export function createServerProfileTransport({
   return Object.freeze({
     async bootstrap(options = {}) {
       const { requestId: _ignoredRequestId, ...startupOptions } = options;
-      const health = await request("health", {}, startupOptions);
+      let health = await request("health", {}, startupOptions);
       if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
       const bootstrap = await request("bootstrap", {}, startupOptions);
       if (bootstrap.error) throw publicError(bootstrap.error.code, bootstrap.error.message, retryableError(bootstrap.error.code));
+      if (!sameBasis(health.data?.basis, bootstrap.data?.basis)) {
+        health = await request("health", {}, startupOptions);
+        if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
+      }
       validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
       assertDescriptorIdentity(profile, bootstrap.data);
-      return bootstrap.data;
+      // The descriptor is immutable, but request-snapshot profiles capture a
+      // fresh basis during the health half of this handshake. Preserve that
+      // newly captured basis so Refresh Snapshot visibly advances the UI.
+      return { ...bootstrap.data, basis: health.data.basis };
     },
     request,
     cancel() { return false; },
@@ -107,6 +114,10 @@ export function createServerProfileTransport({
       return true;
     }
   });
+}
+
+function sameBasis(left, right) {
+  return left?.id === right?.id && left?.capturedAt === right?.capturedAt;
 }
 
 export function validateEnvelopeBinding(envelope, requestId, status = null) {

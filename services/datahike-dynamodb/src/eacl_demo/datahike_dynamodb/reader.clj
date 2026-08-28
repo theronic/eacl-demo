@@ -99,27 +99,45 @@
                ;; open an existing database, but no EACL mutation path is
                ;; initialized or retained by this client.
                :read-only? true
-               :security-key (:security-key config)})]
+               :security-key (:security-key config)})
+             create-snapshot
+             (fn []
+               (let [immutable-snapshot (snapshot client)]
+                 (try
+                   {:value immutable-snapshot
+                    :basis (public-basis (basis immutable-snapshot))
+                    :release! #(release-snapshot immutable-snapshot)}
+                   (catch Throwable error
+                     (release-snapshot immutable-snapshot)
+                     (throw error)))))
+             active (atom (create-snapshot))
+             capture (fn []
+                       (if-let [current @active]
+                         (assoc current :release! (fn []))
+                         (throw (ex-info "Datahike/DynamoDB reader is closed."
+                                         {:type :eacl-demo/reader-closed}))))
+             refresh (fn []
+                       (let [next (create-snapshot)
+                             [previous _] (reset-vals! active next)]
+                         (when previous ((:release! previous)))
+                         (capture)))
+             release-active (fn []
+                              (let [[previous _] (reset-vals! active nil)]
+                                (when previous ((:release! previous)))))]
          {:config config
           :connection connection
           :client client
           :release-connection release-connection
-          :capture-snapshot
-          (fn []
-            (let [immutable-snapshot (snapshot client)]
-              (try
-                {:value immutable-snapshot
-                 :basis (public-basis (basis immutable-snapshot))
-                 :release! #(release-snapshot immutable-snapshot)}
-                (catch Throwable error
-                  (release-snapshot immutable-snapshot)
-                  (throw error)))))})
+          :capture-snapshot capture
+          :refresh-snapshot! refresh
+          :release-snapshot! release-active})
        (catch Throwable error
          (release-connection connection)
          (throw error))))))
 
 (defn close-reader!
-  [{:keys [connection release-connection]}]
+  [{:keys [connection release-connection release-snapshot!]}]
+  (when release-snapshot! (release-snapshot!))
   (when connection ((or release-connection d/release) connection)))
 
 (defn create-reader-boundary

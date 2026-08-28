@@ -51,7 +51,7 @@ const PROFILE_INPUT = Object.freeze({
     runtimeDefinition: "infra/profiles/datomic-dynamodb-runtime.yaml",
     runtime: "java25",
     architecture: "x86_64",
-    snapStart: "disabled"
+    snapStart: "enabled"
   },
   "datalevin-memory": {
     backend: "datalevin",

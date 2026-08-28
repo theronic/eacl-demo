@@ -55,6 +55,7 @@ export function SubjectsPanel(): JSX.Element {
     if (!envelope) return;
     setDisplayedSubjects(envelope);
     setDisplayedOffset(offset());
+    app.rememberSubjects(envelope.data.data);
   });
   createEffect(() => {
     if (!subjects.loading) setPendingAction(undefined);

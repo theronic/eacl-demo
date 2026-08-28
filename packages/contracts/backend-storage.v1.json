@@ -1,13 +1,13 @@
 {
   "$schema": "../../schemas/backend-storage.v1.schema.json",
   "schema": "eacl-demo.backend-storage.v1",
-  "defaultBackend": "datahike",
+  "defaultBackend": "datascript",
   "backends": [
+    {"id": "datascript", "label": "DataScript", "storages": ["browser-memory"]},
     {"id": "datahike", "label": "Datahike", "storages": ["s3", "dynamodb"]},
     {"id": "datomic", "label": "Datomic", "storages": ["dynamodb"]},
     {"id": "datalevin", "label": "Datalevin", "storages": ["memory"]},
-    {"id": "jank", "label": "Jank", "storages": ["memory"]},
-    {"id": "datascript", "label": "DataScript", "storages": ["browser-memory"]}
+    {"id": "jank", "label": "Jank", "storages": ["memory"]}
   ],
   "storages": [
     {"id": "s3", "label": "S3"},

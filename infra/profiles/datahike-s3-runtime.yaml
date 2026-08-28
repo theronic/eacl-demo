@@ -65,8 +65,8 @@ Parameters:
   MemorySize:
     Type: Number
     Default: 1024
-    AllowedValues: [1024]
-    Description: Production is fixed at 1024 MB; optimize the reader rather than increasing memory.
+    AllowedValues: [1024, 4096]
+    Description: Selects the cost-efficient default or the comparison Lambda with proportionally more CPU.
   CandidateAliasName:
     Type: String
     Default: candidate

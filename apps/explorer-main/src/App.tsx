@@ -106,6 +106,10 @@ export default function App(props: ExplorerAppProps): JSX.Element {
   let urlController: any;
 
   onMount(() => {
+    if (props.entry !== "datascript" && selection().backend === "datascript") {
+      window.location.replace(`/datascript/${window.location.search}`);
+      return;
+    }
     urlController = (createUrlStateController as any)({
       catalog,
       history: window.history,

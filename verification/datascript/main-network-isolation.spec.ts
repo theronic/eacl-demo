@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("the main server-profile entry does not load DataScript assets", async ({ page }) => {
+test("an explicit server-profile entry does not load DataScript assets", async ({ page }) => {
   const requests: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
-  await page.goto(process.env.EACL_MAIN_URL ?? "http://127.0.0.1:4175/");
+  const base = process.env.EACL_MAIN_URL ?? "http://127.0.0.1:4175/";
+  await page.goto(new URL("?backend=datahike&storage=s3&platform=lambda-1024", base).href);
   await expect(page.getByRole("heading", { name: /EACL Explorer/u })).toBeVisible();
 
   const loadedResources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));

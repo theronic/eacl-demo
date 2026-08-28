@@ -40,11 +40,11 @@ test("browser back and forward restore canonical backend/storage state", () => {
   controller.close();
 });
 
-test("oversized direct links normalize to the safe Datahike default", () => {
+test("oversized direct links normalize to the lowest-cost DataScript default", () => {
   const browser = fakeBrowser(`/?backend=jank&storage=memory&subject=${"a".repeat(2100)}`);
   const controller = createUrlStateController({ catalog, ...browser });
-  assert.deepEqual(controller.getState(), { backend: "datahike", storage: "s3", platform: "lambda-1024" });
-  assert.equal(browser.location.search, "?backend=datahike&storage=s3&platform=lambda-1024");
+  assert.deepEqual(controller.getState(), { backend: "datascript", storage: "browser-memory", platform: "browser" });
+  assert.equal(browser.location.search, "?backend=datascript&storage=browser-memory&platform=browser");
   controller.close();
 });
 

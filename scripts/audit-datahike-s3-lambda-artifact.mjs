@@ -121,8 +121,12 @@ assert.doesNotMatch(konserveSource,
 assert.match(writerSource, /denied!/u);
 assert.match(writerSource, /defmethod writer\/create-database[\s\S]*?denied!/u);
 assert.match(writerSource, /defmethod writer\/delete-database[\s\S]*?denied!/u);
-assert.match(operationsSource,
-  /"bootstrap" \(fn \[\{:keys \[basis\]\}\] \(assoc descriptor :basis basis\)\)/u);
+assert.match(operationsSource, /:keys \[descriptor cursor-key clock refresh-snapshot!\]/u);
+assert.match(operationsSource, /\(:basis \(refresh-snapshot!\)\)/u);
+assert.match(readerSource, /active \(atom \(create-snapshot\)\)/u);
+assert.match(readerSource, /\(assoc current :release! \(fn \[\]\)\)/u);
+assert.match(readerSource, /:refresh-snapshot! refresh/u);
+assert.match(readerSource, /:release-snapshot! release-active/u);
 assert.match(profileSource, /:snapStart "enabled"/u);
 assert.doesNotMatch(profileSource, /"no-snapstart"/u);
 assert.match(handlerSource, /defn initialize-runtime!/u);

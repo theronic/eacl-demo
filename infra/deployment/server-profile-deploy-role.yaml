@@ -15,10 +15,6 @@ Parameters:
   FunctionName:
     Type: String
     AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
-  DatomicComparisonFunctionName:
-    Type: String
-    Default: eacl-demo-datomic-dynamodb-large
-    AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
   DatomicEc2InstanceId:
     Type: String
     Default: i-01f2d07f50ad1cb5d
@@ -38,23 +34,28 @@ Mappings:
     datahike-s3:
       Environment: demo-production-datahike-s3
       RoleVariable: AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN
+      ComparisonFunction: eacl-demo-datahike-s3-large
       Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted
     datahike-dynamodb:
       Environment: demo-production-datahike-dynamodb
       RoleVariable: AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN
+      ComparisonFunction: eacl-demo-datahike-dynamodb-large
       Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted
     datomic-dynamodb:
       Environment: demo-production-datomic-dynamodb
       RoleVariable: AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN
+      ComparisonFunction: eacl-demo-datomic-dynamodb-large
       Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
     datalevin-memory:
       Environment: demo-production-datalevin-memory
       RoleVariable: AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN
+      ComparisonFunction: eacl-demo-datalevin-memory-live
       Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted
 
 Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
   IsDatomicProfile: !Equals [!Ref ProfileId, datomic-dynamodb]
+  HasComparisonPlatform: !Not [!Equals [!Ref ProfileId, datalevin-memory]]
 
 Resources:
   ServerDeployRole:
@@ -113,8 +114,8 @@ Resources:
                   - lambda:UpdateFunctionConfiguration
                 Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}*"
               - !If
-                - IsDatomicProfile
-                - Sid: DeployExactDatomicComparisonLambda
+                - HasComparisonPlatform
+                - Sid: DeployExactComparisonLambda
                   Effect: Allow
                   Action:
                     - lambda:GetAlias
@@ -127,7 +128,9 @@ Resources:
                     - lambda:UpdateAlias
                     - lambda:UpdateFunctionCode
                     - lambda:UpdateFunctionConfiguration
-                  Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${DatomicComparisonFunctionName}*"
+                  Resource: !Sub
+                    - "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${ComparisonFunctionName}*"
+                    - ComparisonFunctionName: !FindInMap [Profiles, !Ref ProfileId, ComparisonFunction]
                 - !Ref AWS::NoValue
               - !If
                 - IsDatomicProfile

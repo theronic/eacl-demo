@@ -24,7 +24,7 @@
                      :admission-concurrency 1})]
     (is (= {:backend "datomic" :storage "dynamodb"} (:profile descriptor)))
     (is (= {:execution "lambda" :name "java25" :architecture "x86_64"
-            :snapStart "disabled"}
+            :snapStart "enabled"}
            (:runtime descriptor)))
     (is (= ["minimize" "authoritative" "at-least" "exact"]
            (get-in descriptor [:capabilities :consistencyModes])))
@@ -41,8 +41,8 @@
               (get-in descriptor [:capabilities :limitations])))
     (is (some #{"no-synchronization"}
               (get-in descriptor [:capabilities :limitations])))
-    (is (some #{"no-snapstart"}
-              (get-in descriptor [:capabilities :limitations])))))
+    (is (not-any? #{"no-snapstart"}
+                  (get-in descriptor [:capabilities :limitations])))))
 
 (deftest descriptor-rejects-invented-history-and-unbound-data-test
   (is (thrown? clojure.lang.ExceptionInfo
@@ -68,6 +68,14 @@
                    :admission-concurrency 1
                    :execution "ec2"})
                  [:runtime :execution])))
+  (is (= "disabled"
+         (get-in (profile/descriptor
+                  {:identity profile-identity
+                   :basis basis
+                   :memory-mib 1024
+                   :admission-concurrency 4
+                   :execution "ec2"})
+                 [:runtime :snapStart])))
   (is (thrown? clojure.lang.ExceptionInfo
                (profile/descriptor
                 {:identity profile-identity

@@ -31,7 +31,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(baselinePublications.get(id)) });
   });
   await page.route("**/registry/benchmark-evidence/index.v1.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(emptyBenchmarkIndex) }));
-  await page.goto("/");
+  await page.goto("/?backend=datahike&storage=s3&platform=lambda-1024");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("EACL Explorer");
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
 });
@@ -58,6 +58,14 @@ test("DataScript navigates to its separate browser entry", async ({ page }) => {
     page.getByRole("radio", { name: "DataScript", exact: true }).click(),
   ]);
   await expect(page).toHaveURL(/\/datascript\//u);
+});
+
+test("the landing page defaults to the first, zero-Lambda DataScript option", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/datascript\/\?backend=datascript&storage=browser-memory&platform=browser/u);
+  const backends = page.locator('input[name="explorer-backend"]');
+  await expect(backends.first()).toHaveValue("datascript");
+  await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
 });
 
 test("WCAG 2.2 AA automated scan and responsive viewport checks pass", async ({ page }) => {
@@ -114,6 +122,7 @@ test("an enabled publication opens the schema-validated server explorer over the
     gate: { kind: "merge-smoke", evidenceId: `sha256:${"9".repeat(64)}` }
   });
   const basis = { behavior: "request-snapshot", id: "datahike:test-basis-7", capturedAt: deployedAt, fixedForEnvironment: false };
+  let healthCaptures = 0;
   const descriptor = {
     contract: { name: "explorer.v1", routeMajor: 1, revision: 2, minimumClientRevision: 1 }, identity,
     profile: { backend: "datahike", storage: "s3" },
@@ -144,8 +153,11 @@ test("an enabled publication opens the schema-validated server explorer over the
     const input = request.method() === "POST" ? request.postDataJSON() : {};
     const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
     const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? "server-1", displayName: "Server one", attributes: [] };
+    const healthBasis = operation === "health"
+      ? { ...basis, capturedAt: new Date(new Date(deployedAt).getTime() + healthCaptures++ * 1_000).toISOString() }
+      : basis;
     const data: Record<string, unknown> = {
-      health: { status: "ready", ready: true, identity, basis },
+      health: { status: "ready", ready: true, identity, basis: healthBasis },
       bootstrap: descriptor,
       "list-subjects": { items: [{ type: "user", id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
       "get-object": { object },
@@ -183,6 +195,10 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(atLeastDate).toBeDisabled();
   await expect(atLeastDate).not.toHaveValue("");
   await expect(page.getByText(/fixes the freshness floor to the selected basis/iu)).toBeVisible();
+  await expect(page.getByText(/refreshing Datahike for every query may issue S3 GETs/iu)).toBeVisible();
+  const initialFreshness = await atLeastDate.inputValue();
+  await page.getByRole("button", { name: "Refresh Snapshot" }).click();
+  await expect(atLeastDate).not.toHaveValue(initialFreshness);
   await expect(page.getByText("Consistency Semantics:", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/EACL v8 \+/iu)).toHaveCount(0);
   await expect(page.getByText("Spice Schema", { exact: true })).toHaveCount(0);
@@ -229,6 +245,18 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".permission-decision__status--allowed", { hasText: "Allowed" })).toBeVisible();
   await expect(page.locator(".cache-timing", { hasText: "1.25ms" }).first()).toBeVisible();
   await expect(page.locator(".cache-timing__status", { hasText: "hit" }).first()).toBeVisible();
+  const canFooter = page.getByLabel("Arbitrary EACL permission check");
+  await expect(canFooter).toBeVisible();
+  await expect(canFooter.getByLabel("can? subject type")).toHaveValue("user");
+  await expect(canFooter.getByLabel("can? subject ID")).toHaveValue("user-1");
+  await expect(canFooter.getByLabel("can? resource type")).toHaveValue("server");
+  await expect(canFooter.getByLabel("can? resource ID")).toHaveValue("server-1");
+  await expect(canFooter.getByLabel("can? permission")).toHaveValue("view");
+  await expect(canFooter).toContainText("=> true");
+  const canRequestsBefore = apiRequests.filter(({ operation }) => operation === "check-permission").length;
+  await canFooter.getByRole("button", { name: "Query" }).click();
+  await expect.poll(() => apiRequests.filter(({ operation }) => operation === "check-permission").length)
+    .toBeGreaterThan(canRequestsBefore);
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "check-permission", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);

@@ -98,7 +98,7 @@
                     {:type :eacl-demo/missing-wire-schema}))))
 
 (defn create-handlers
-  [{:keys [descriptor cursor-key clock]
+  [{:keys [descriptor cursor-key clock refresh-snapshot!]
     :or {clock #(System/currentTimeMillis)}}]
   (when-not (and (map? descriptor)
                  (= "datahike-s3" (get-in descriptor [:identity :profileId]))
@@ -121,7 +121,11 @@
         :identity (:identity descriptor)
         :basis basis})
 
-     "bootstrap" (fn [{:keys [basis]}] (assoc descriptor :basis basis))
+     "bootstrap" (fn [{:keys [basis]}]
+                   (assoc descriptor :basis
+                          (if refresh-snapshot!
+                            (:basis (refresh-snapshot!))
+                            basis)))
 
      "list-subjects"
      (guarded

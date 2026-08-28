@@ -34,9 +34,13 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
   assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:DeleteFunction(?:\s|$)|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
 });
 
-test("only the Datomic deployment authority may promote the exact comparison runtimes", () => {
+test("only profiles with deployed comparisons may promote their exact comparison runtimes", () => {
   assert.match(source, /IsDatomicProfile: !Equals \[!Ref ProfileId, datomic-dynamodb\]/u);
-  assert.match(source, /DeployExactDatomicComparisonLambda[\s\S]*function:\$\{DatomicComparisonFunctionName\}\*/u);
+  assert.match(source, /HasComparisonPlatform: !Not \[!Equals \[!Ref ProfileId, datalevin-memory\]\]/u);
+  assert.match(source, /DeployExactComparisonLambda[\s\S]*function:\$\{ComparisonFunctionName\}\*/u);
+  for (const name of ["eacl-demo-datahike-s3-large", "eacl-demo-datahike-dynamodb-large", "eacl-demo-datomic-dynamodb-large"]) {
+    assert.match(source, new RegExp(name, "u"));
+  }
   assert.match(source, /ReconcileExactDatomicEc2Runtime[\s\S]*Action: ssm:SendCommand[\s\S]*document\/AWS-RunShellScript[\s\S]*instance\/\$\{DatomicEc2InstanceId\}/u);
   assert.match(deploySource, /deployDatomicPlatforms[\s\S]*datomic-dynamodb-large[\s\S]*deployDatomicEc2[\s\S]*deployProfile\("datomic-dynamodb", profiles\["datomic-dynamodb"\]/u);
   assert.doesNotMatch(source, /ssm:(?:StartSession|GetParameter|PutParameter)|cloudformation:|iam:PassRole/u);

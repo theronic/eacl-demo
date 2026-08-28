@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:d2623eb413e1c75ac8561e12e2a85bdbee34575fe99fad5ea989a7b34512a5ca",
+  "reportId": "sha256:faf335dfad842dc4fdc9e38c11811ecfa568a1195f210f6355c7914632ab0d44",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -132,7 +132,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "f1745cb039313a7b7d0e88d4c2509a84a30bd9606c4b756560ea047f4e22620c"
+          "sha256": "6f48059c078820afc2c6525632460671f02a38735f3a385567308a470c045be2"
         }
       },
       "alarms": {
@@ -191,7 +191,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "deb5970382aac1eba11e1c1989ba774c973539c03c61ce2db0a305c64dbe2029"
+          "sha256": "17343954a940ebdce3374ae0f25ca1be6f10431453f0557a2a0359e216cc2718"
         }
       },
       "alarms": {
@@ -241,7 +241,7 @@
       "runtime": {
         "name": "java25",
         "architecture": "x86_64",
-        "snapStart": "disabled"
+        "snapStart": "enabled"
       },
       "memory": {
         "status": "candidate-unqualified",
@@ -250,7 +250,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "d4fc6592d6fc6085948b428a87ea38ae0aab2c511577929c00f76510be78b7a5"
+          "sha256": "448b3a5e9c055419c42be1f0ed6260d35e635bac75a9f230baabb1121c1ad4f3"
         }
       },
       "alarms": {

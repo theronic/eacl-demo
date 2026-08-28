@@ -116,7 +116,12 @@ assert.match(sources.errors, /defn classify/u);
 assert.match(sources.retry, /full-jitter-delay-ms/u);
 assert.match(sources.retry, /\(<= 1 \(:max-attempts value\) 8\)/u);
 assert.match(sources.operations,
-  /"bootstrap" \(fn \[\{:keys \[basis\]\}\] \(assoc descriptor :basis basis\)\)/u);
+  /:keys \[descriptor cursor-key clock refresh-snapshot!\]/u);
+assert.match(sources.operations, /\(:basis \(refresh-snapshot!\)\)/u);
+assert.match(sources.reader, /active \(atom \(create-snapshot\)\)/u);
+assert.match(sources.reader, /\(assoc current :release! \(fn \[\]\)\)/u);
+assert.match(sources.reader, /:refresh-snapshot! refresh/u);
+assert.match(sources.reader, /:release-snapshot! release-active/u);
 assert.match(sources.profile, /:snapStart "enabled"/u);
 assert.doesNotMatch(sources.profile, /"no-snapstart"/u);
 assert.match(sources.lambda_handler, /defn initialize-runtime!/u);

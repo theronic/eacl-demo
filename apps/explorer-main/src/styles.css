@@ -339,6 +339,117 @@ button {
   container: resources-panel / inline-size;
 }
 
+/* CAN_PERMISSION_FOOTER_START */
+.can-permission-footer {
+  position: sticky;
+  bottom: 10px;
+  z-index: 30;
+  margin-top: 22px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.can-permission-footer__query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.can-permission-footer__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.can-permission-footer select,
+.can-permission-footer input {
+  min-width: 8rem;
+  max-width: 15rem;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.can-permission-footer__label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.can-permission-footer__function,
+.can-permission-footer__decision {
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+}
+
+.can-permission-footer__decision {
+  min-width: 5.5rem;
+}
+
+.decision-allowed {
+  color: var(--accent-strong);
+}
+
+.decision-denied,
+.can-permission-footer__error {
+  color: #b42318;
+}
+
+.can-permission-footer__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.can-permission-footer__button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.can-permission-footer__error {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 720px) {
+  .can-permission-footer {
+    bottom: 4px;
+  }
+
+  .can-permission-footer__group,
+  .can-permission-footer select,
+  .can-permission-footer input,
+  .can-permission-footer__button {
+    width: 100%;
+    max-width: none;
+  }
+}
+/* CAN_PERMISSION_FOOTER_END */
+
 .app-footer {
   margin-top: 22px;
   padding: 10px 12px 0;

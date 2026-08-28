@@ -18,23 +18,41 @@ const profiles = {
     memorySize: 1024,
     snapStart: true
   },
+  "datahike-s3-large": {
+    artifact: "dist/datahike-s3/function.jar",
+    functionName: "eacl-demo-datahike-s3-large",
+    memorySize: 4096,
+    snapStart: true,
+    profileId: "datahike-s3",
+    apiOrigin: "https://y66owmoqebrcmzyfw6uturkaue0exoqe.lambda-url.us-east-1.on.aws",
+    publishRegistry: false
+  },
   "datahike-dynamodb": {
     artifact: "dist/datahike-dynamodb/function.jar",
     functionName: "eacl-demo-datahike-dynamodb-live",
     memorySize: 1024,
     snapStart: true
   },
+  "datahike-dynamodb-large": {
+    artifact: "dist/datahike-dynamodb/function.jar",
+    functionName: "eacl-demo-datahike-dynamodb-large",
+    memorySize: 4096,
+    snapStart: true,
+    profileId: "datahike-dynamodb",
+    apiOrigin: "https://ammics5svacgyu5eopgicnzz3y0lsryk.lambda-url.us-east-1.on.aws",
+    publishRegistry: false
+  },
   "datomic-dynamodb": {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-live",
     memorySize: 1024,
-    snapStart: false
+    snapStart: true
   },
   "datomic-dynamodb-large": {
     artifact: "dist/datomic-dynamodb/function.jar",
     functionName: "eacl-demo-datomic-dynamodb-large",
     memorySize: 4096,
-    snapStart: false,
+    snapStart: true,
     profileId: "datomic-dynamodb",
     apiOrigin: "https://7um6u6hb6wq6yfl46ukjkxcpuy0gexer.lambda-url.us-east-1.on.aws",
     publishRegistry: false
@@ -48,6 +66,8 @@ const profiles = {
 };
 
 if (target === "static") await deployStatic();
+else if (target === "datahike-s3") await deployDatahikePlatforms("datahike-s3");
+else if (target === "datahike-dynamodb") await deployDatahikePlatforms("datahike-dynamodb");
 else if (target === "datomic-dynamodb") await deployDatomicPlatforms();
 else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
 else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
@@ -63,6 +83,12 @@ async function deployDatomicPlatforms() {
   );
   await deployDatomicEc2(comparison);
   await deployProfile("datomic-dynamodb", profiles["datomic-dynamodb"], "datomic-dynamodb");
+}
+
+async function deployDatahikePlatforms(profileId) {
+  const largeId = `${profileId}-large`;
+  await deployProfile(profileId, profiles[largeId], largeId);
+  await deployProfile(profileId, profiles[profileId], profileId);
 }
 
 async function deployStatic() {
@@ -214,8 +240,8 @@ async function deployDatomicEc2(release) {
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
-    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
-    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID)=") } /etc/eacl-demo-datomic.env.next)" -eq 4`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
     "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
     "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
     "systemctl restart eacl-demo-datomic.service",

@@ -45,6 +45,17 @@ test("server transport validates health before bootstrap", async () => {
   assert.equal(await transport.release(), false);
 });
 
+test("bootstrap returns the basis captured by the health handshake", async () => {
+  const refreshedBasis = { ...basis, capturedAt: "2026-08-25T12:00:01Z" };
+  const transport = createTransport(async (url, init) => {
+    const operation = new URL(url).pathname.split("/").at(-1);
+    return operation === "health"
+      ? response(success("health", init.headers["x-eacl-request-id"], { status: "ready", ready: true, identity, basis: refreshedBasis }))
+      : response(success("bootstrap", init.headers["x-eacl-request-id"], descriptor));
+  });
+  assert.deepEqual((await transport.bootstrap()).basis, refreshedBasis);
+});
+
 test("server transport allows concurrent independent operations", async () => {
   let inFlight = 0;
   let maximumInFlight = 0;
@@ -111,11 +122,11 @@ test("request correlation and HTTP status drift still fail closed", async () => 
 });
 
 test("startup requires ready health and the same exact basis as bootstrap", async () => {
-  const transport = createTransport(async (url) => {
+  const transport = createTransport(async (url, init) => {
     const operation = new URL(url).pathname.split("/").at(-1);
     return operation === "health"
-      ? response(success("health", "browser-0-1", { status: "ready", ready: true, identity, basis: { ...basis, id: "other-basis" } }))
-      : response(success("bootstrap", "browser-0-2", descriptor));
+      ? response(success("health", init.headers["x-eacl-request-id"], { status: "ready", ready: true, identity, basis: { ...basis, id: "other-basis" } }))
+      : response(success("bootstrap", init.headers["x-eacl-request-id"], descriptor));
   });
   await assert.rejects(transport.bootstrap(), /basis identity mismatch/u);
 });
