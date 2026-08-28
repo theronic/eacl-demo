@@ -166,10 +166,20 @@ export interface Bootstrap {
 
 export interface ReaderHealth {
   status: "ready";
-  datahike: {
-    revision: string;
-    storeBackend: string;
-    freshness: string;
+  ready: true;
+  identity: {
+    profileId: string;
+    demoSha: string;
+    eaclSha: string;
+    artifactSha256: string;
+    deploymentId: string;
+    dataManifestSha256: string;
+  };
+  basis: {
+    behavior: string;
+    id: string;
+    capturedAt: string;
+    fixedForEnvironment: boolean;
   };
 }
 

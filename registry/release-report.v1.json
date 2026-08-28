@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:32f84b786a5080e4ed8f985cbca0cdb0baa434ecd85d8761e00db5f83edc0add",
+  "reportId": "sha256:d2623eb413e1c75ac8561e12e2a85bdbee34575fe99fad5ea989a7b34512a5ca",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -14,12 +14,12 @@
     },
     "eacl": {
       "repository": "https://github.com/theronic/eacl.git",
-      "sha": "e06e429d1cf6ed686fc294924241312379b3bb3e",
+      "sha": "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
       "status": "locked",
       "reason": null,
       "lock": {
         "path": "dependencies/eacl-core.lock.json",
-        "sha256": "3d221099c868a49bc86160d0327e0e64a51253a0cc9d56ea62d64aba9f2b6095"
+        "sha256": "ff7cbf4e06e353415ca6f576da20b0c9c09bb7b2c3a0496b0003028c6bfab6a7"
       }
     }
   },
@@ -132,7 +132,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-s3-runtime.yaml",
-          "sha256": "983191b72877339306003824f9c61b86d331f7a83e686adea7a85a085fed64e7"
+          "sha256": "f1745cb039313a7b7d0e88d4c2509a84a30bd9606c4b756560ea047f4e22620c"
         }
       },
       "alarms": {
@@ -191,7 +191,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datahike-dynamodb-runtime.yaml",
-          "sha256": "16a5ece0a2022e3e9c03fce743e022c1a81e244e20bc7417c78cf47ab41152b0"
+          "sha256": "deb5970382aac1eba11e1c1989ba774c973539c03c61ce2db0a305c64dbe2029"
         }
       },
       "alarms": {
@@ -241,7 +241,7 @@
       "runtime": {
         "name": "java25",
         "architecture": "x86_64",
-        "snapStart": "enabled"
+        "snapStart": "disabled"
       },
       "memory": {
         "status": "candidate-unqualified",
@@ -250,7 +250,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datomic-dynamodb-runtime.yaml",
-          "sha256": "ece1d7f92b1d994f97bb63249a37ac80b99027d31f20af159faab0fdcb82bd39"
+          "sha256": "d4fc6592d6fc6085948b428a87ea38ae0aab2c511577929c00f76510be78b7a5"
         }
       },
       "alarms": {
@@ -309,7 +309,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "31041a615b558dba6d679f49dc9c67a223840557d1d297e18dbe47da57490adc"
+          "sha256": "93f5b8087a88e1aa0bbfaa33ced8bbe2427cf9d222b195c177a0e2c3fa7f53f8"
         }
       },
       "alarms": {

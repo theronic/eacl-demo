@@ -10,7 +10,7 @@
    "EACL_MAXIMUM_CONCURRENCY" "2"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "e06e429d1cf6ed686fc294924241312379b3bb3e"
+   "EACL_CORE_SHA" "11114f59fa57fe87c5b7ab412b3123a9c8a1a862"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
@@ -67,6 +67,8 @@
         denied-body (json/read-str (:body denied) :key-fn keyword)]
     (is (= 200 (:statusCode health)))
     (is (= "ready" (get-in health-body [:data :status])))
+    (is (= (get environment "EACL_CORE_SHA")
+           (get-in health-body [:data :identity :eaclSha])))
     (is (= (:id basis) (get-in health-body [:meta :revision])))
     (is (= #{:data :meta} (set (keys health-body))))
     (is (= 404 (:statusCode denied)))

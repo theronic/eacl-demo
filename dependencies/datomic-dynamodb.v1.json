@@ -4,7 +4,7 @@
   "eacl": {
     "coordinate": "dev.eacl/eacl-datomic",
     "repository": "https://github.com/theronic/eacl.git",
-    "commit": "e06e429d1cf6ed686fc294924241312379b3bb3e",
+    "commit": "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
     "module": "modules/eacl-datomic"
   },
   "datomic": {
