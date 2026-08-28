@@ -22,8 +22,8 @@
 
 (declare bounded-scan-count decode-subject-cursor eacl-consistency encode-subject-cursor fail!
          guarded object-entities object-exists? relationship-datoms
-         relationship-query subject-entities wire-object wire-page-info
-         wire-relationship wire-relationship-page)
+         relationship-query subject-entities subject-page-rows wire-object
+         wire-page-info wire-relationship wire-relationship-page)
 
 (defn load-wire-schema
   []
@@ -76,22 +76,8 @@
               after (when-let [token (:cursor input)]
                       (decode-subject-cursor cursor-options token query
                                              (:id basis) (clock)))
-              rows (->> (d/q '[:find ?type ?id
-                               :where
-                               [?entity :eacl.demo/roles :subject]
-                               [?entity :eacl.demo/type ?type]
-                               [?entity :eacl/id ?id]]
-                             database)
-                        (filter (fn [[type _]]
-                                  (or (nil? (:type query))
-                                      (= (keyword (:type query)) type))))
-                        (sort-by (fn [[type id]] [(name type) id]))
-                        (drop-while (fn [[type id]]
-                                      (and after
-                                           (not (pos? (compare [(name type) id]
-                                                               after))))))
-                        (take (inc page-size))
-                        vec)
+              rows (subject-page-rows database query after page-size
+                                      check-active!)
               has-next? (> (count rows) page-size)
               page (subvec rows 0 (min page-size (count rows)))
               last-row (peek page)]
@@ -343,6 +329,64 @@
               (or (nil? type)
                   (= type (:eacl.demo/type (d/entity database entity-id)))))))
    (d/datoms database :avet :eacl.demo/roles :subject)))
+
+(defn- subject-page-rows
+  "Reads only enough of the indexed [type id] tuples to fill one page.
+
+  The previous Datalog query materialized every subject and globally sorted the
+  result before taking a page. That work is especially expensive in a newly
+  restored Lambda and could consume the entire 30-second request deadline. The
+  fixture's unique :eacl.demo/type+id tuple already has the required ordering,
+  so seek from the authenticated cursor and stop after page-size + 1 subjects."
+  [database query after page-size check-active!]
+  (let [requested-type (some-> (:type query) keyword)
+        start-tuple (cond
+                      after [(keyword (first after)) (second after)]
+                      requested-type [requested-type ""]
+                      :else nil)
+        candidates (if start-tuple
+                     (d/seek-datoms database :avet
+                                    :eacl.demo/type+id start-tuple)
+                     (d/datoms database :avet :eacl.demo/type+id))
+        remaining (seq candidates)
+        tuple-attribute (some-> (d/datoms database :avet
+                                         :eacl.demo/type+id)
+                                first :a)
+        wanted (inc page-size)]
+    (loop [datoms remaining
+           rows []
+           scanned 0]
+      (when (zero? (bit-and scanned 255)) (check-active!))
+      (if (or (nil? datoms) (= wanted (count rows)))
+        rows
+        (let [datom (first datoms)
+              tuple (:v datom)]
+          (if (not= tuple-attribute (:a datom))
+            rows
+            (if-not (and (vector? tuple)
+                         (= 2 (count tuple))
+                         (keyword? (first tuple))
+                         (string? (second tuple)))
+              ;; EACL's internal schema objects also carry a derived tuple with
+              ;; a nil public type. They sort before fixture objects and are
+              ;; deliberately skipped rather than terminating the index scan.
+              (recur (next datoms) rows (inc scanned))
+              (let [[type id] tuple
+                    row-key [(name type) id]]
+                (cond
+                  (and requested-type (not= requested-type type))
+                  rows
+
+                  (and after (not (pos? (compare row-key after))))
+                  (recur (next datoms) rows (inc scanned))
+
+                  (contains? (set (:eacl.demo/roles
+                                   (d/entity database (:e datom))))
+                             :subject)
+                  (recur (next datoms) (conj rows [type id]) (inc scanned))
+
+                  :else
+                  (recur (next datoms) rows (inc scanned)))))))))))
 
 (defn- object-entities
   [database type]

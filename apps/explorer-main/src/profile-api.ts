@@ -259,6 +259,7 @@ export function createProfileApi(
         throw new ApiError(400, { error: { code: "invalid-cursor", message: "Return to the first subjects page." } });
       }
       const result = await wire<WirePage<WireObject>>("list-subjects", {
+        type: "user",
         pageSize: limit,
         ...(cursor ? { cursor } : {}),
       }, signal);
