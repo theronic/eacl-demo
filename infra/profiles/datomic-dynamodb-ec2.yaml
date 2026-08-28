@@ -300,6 +300,34 @@ Resources:
           systemctl status eacl-demo-datomic.service --no-pager
           exit 1
 
+  RuntimeArtifactAssociation:
+    Type: AWS::SSM::Association
+    DependsOn: Instance
+    Properties:
+      AssociationName: eacl-demo-datomic-dynamodb-runtime-artifact
+      Name: AWS-RunShellScript
+      Targets:
+        - Key: InstanceIds
+          Values: [!Ref Instance]
+      WaitForSuccessTimeoutSeconds: 900
+      Parameters:
+        commands:
+          - >-
+            for attempt in $(seq 1 300); do test -s /etc/eacl-demo-datomic.env && test -s /etc/systemd/system/eacl-demo-datomic.service && break; sleep 2; done
+          - test -s /etc/eacl-demo-datomic.env && test -s /etc/systemd/system/eacl-demo-datomic.service
+          - !Sub "printf '%s\\n' 'ARTIFACT_BUCKET=${ArtifactBucket}' > /etc/eacl-demo-release.env"
+          - !Sub "printf '%s\\n' 'ARTIFACT_KEY=${ArtifactKey}' >> /etc/eacl-demo-release.env"
+          - !Sub "printf '%s\\n' 'ARTIFACT_VERSION=${ArtifactVersion}' >> /etc/eacl-demo-release.env"
+          - !Sub "printf '%s\\n' 'ARTIFACT_SHA256=${ArtifactSha256}' >> /etc/eacl-demo-release.env"
+          - >-
+            . /etc/eacl-demo-release.env; aws s3api get-object --region us-east-1 --bucket $ARTIFACT_BUCKET --key $ARTIFACT_KEY --version-id $ARTIFACT_VERSION /opt/eacl-demo/function.jar.next
+          - >-
+            . /etc/eacl-demo-release.env; echo "$ARTIFACT_SHA256  /opt/eacl-demo/function.jar.next" | sha256sum --check --strict
+          - install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar
+          - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
+          - >-
+            for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1
+
   ElasticIp:
     Type: AWS::EC2::EIP
     DependsOn: GatewayAttachment
