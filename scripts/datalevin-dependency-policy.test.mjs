@@ -112,6 +112,7 @@ test("the managed-Java demo does not relabel unpublished Datalevin dependencies 
     "src/eacl_demo",
     "src/eacl_demo/datalevin_memory",
     "src/eacl_demo/datalevin_memory/boundary.clj",
+    "src/eacl_demo/datalevin_memory/http_server.clj",
     "src/eacl_demo/datalevin_memory/lambda_handler.clj",
     "src/eacl_demo/datalevin_memory/lifecycle.clj",
     "src/eacl_demo/datalevin_memory/operations.clj",

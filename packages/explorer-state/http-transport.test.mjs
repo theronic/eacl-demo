@@ -148,12 +148,16 @@ test("insecure, noncanonical, released, redirected, and non-JSON transports are 
   await assert.rejects(released.bootstrap(), (error) => error.code === "cancelled");
 });
 
-test("the exact Datomic EC2 origin is allowed without permitting arbitrary hosts", async () => {
+test("the exact shared-host EC2 origins are allowed without permitting arbitrary hosts", async () => {
   const ec2Profile = { ...profile, apiOrigin: "https://datomic.demo.eacl.dev" };
   const transport = createTransport(async (url, init) => response(success(
     "check-permission", init.headers["x-eacl-request-id"], { allowed: true }
   )), { profile: ec2Profile });
   assert.equal((await transport.request("check-permission", {}, { requestId: "ec2-1" })).data.allowed, true);
+  const datalevin = createTransport(async (url, init) => response(success(
+    "check-permission", init.headers["x-eacl-request-id"], { allowed: false }
+  )), { profile: { ...profile, apiOrigin: "https://datalevin.demo.eacl.dev" } });
+  assert.equal((await datalevin.request("check-permission", {}, { requestId: "ec2-2" })).data.allowed, false);
   assert.throws(() => createTransport(async () => response({}), {
     profile: { ...profile, apiOrigin: "https://attacker.example" }
   }), /approved HTTPS/u);

@@ -14,7 +14,7 @@
         "properties": {
           "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
           "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
-          "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
+          "storage": {"enum": ["s3", "dynamodb", "embedded", "memory", "browser-memory"]},
           "apiOrigin": {
             "type": ["string", "null"],
             "pattern": "^https://[a-z0-9]+\\.lambda-url\\.[a-z0-9-]+\\.on\\.aws$"

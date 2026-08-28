@@ -191,7 +191,7 @@
                                     :failure :identity-reuse}))
   (require-expected-field! exact-natural? :revisionWatermark
                            (:revisionWatermark expected))
-  (when-not (= "memory" (:storageMode expected))
+  (when-not (= "embedded" (:storageMode expected))
     (fail! :invalid-expected-state {:field :storageMode}))
   (when-not (contains? allowed-snapshot-strategies
                        (:snapshotStrategy expected))
@@ -276,7 +276,7 @@
     (fail! :invalid-field {:field :runtime}))
   (when-not (= "arm64" (:architecture state))
     (fail! :invalid-field {:field :architecture}))
-  (when-not (= "memory" (:storageMode state))
+  (when-not (= "embedded" (:storageMode state))
     (fail! :invalid-field {:field :storageMode}))
   (when-not (contains? allowed-snapshot-strategies (:snapshotStrategy state))
     (fail! :invalid-field {:field :snapshotStrategy}))
@@ -439,7 +439,7 @@
           revision))}}))
 
 (defn bootstrap-ready!
-  "Prove the local in-memory store reached the exact externally published
+  "Prove the local embedded store reached the exact externally published
   identity and is quiescent/frozen before the EACL client can be exposed."
   [expected state observation read-state-bytes! decode-state]
   (validate-expected! expected)
@@ -449,16 +449,16 @@
   (doseq [field (conj immutable-binding-fields :logicalResourceCount)]
     (when-not (= (get state field) (get observation field))
       (fail! :bootstrap-binding-mismatch {:field field})))
-  (when-not (= "memory" (:storageMode observation))
+  (when-not (= "embedded" (:storageMode observation))
     (fail! :invalid-bootstrap-topology {:field :storageMode}))
-  (when-not (true? (:nativeInMemory observation))
+  (when-not (false? (:nativeInMemory observation))
     (fail! :invalid-bootstrap-topology {:field :nativeInMemory}))
   (when-not (= 1 (:localDatabaseCount observation))
     (fail! :invalid-bootstrap-topology {:field :localDatabaseCount}))
   (doseq [field [:remoteServer :haMode :wal :efsMounted]]
     (when-not (false? (get observation field))
       (fail! :invalid-bootstrap-topology {:field field})))
-  (when-not (nil? (:durableServingPath observation))
+  (when-not (= "/tmp/eacl-demo-datalevin" (:durableServingPath observation))
     (fail! :invalid-bootstrap-topology {:field :durableServingPath}))
   (when-not (true? (:schemaFrozen observation))
     (fail! :bootstrap-not-frozen {:field :schemaFrozen}))

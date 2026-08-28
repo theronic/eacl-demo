@@ -1,12 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Read-only public Datalevin in-memory Java Lambda demo.
+Description: Read-only public Datalevin embedded Java Lambda demo.
 
 Metadata:
   EaclDemo:
     Profile: datalevin-memory
     Runtime: java25
     Architecture: arm64
-    Storage: memory
+    Storage: embedded
     SnapshotBehavior: request-snapshot
     SnapStartPolicy: published-version-preinitialized-reader
 
@@ -111,6 +111,7 @@ Resources:
           EACL_ARTIFACT_SHA256: !Ref ArtifactSha256
           EACL_CORE_SHA: !Ref EaclSha
           EACL_CURSOR_KEY: !Ref CursorKey
+          EACL_DATALEVIN_DIRECTORY: /tmp/eacl-demo-datalevin
           EACL_DEMO_SHA: !Ref DemoSha
           EACL_DEPLOYMENT_ID: !Ref DeploymentId
           JAVA_TOOL_OPTIONS: "--enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
@@ -133,7 +134,7 @@ Resources:
         - Key: Profile
           Value: datalevin-memory
         - Key: Storage
-          Value: memory
+          Value: embedded
         - Key: EaclSha
           Value: !Ref EaclSha
         - Key: ArtifactSha256
@@ -201,6 +202,6 @@ Outputs:
   Architecture:
     Value: arm64
   Storage:
-    Value: memory
+    Value: embedded
   SnapStartEnabled:
     Value: "true"

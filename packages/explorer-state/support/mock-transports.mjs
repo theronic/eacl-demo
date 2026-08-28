@@ -12,7 +12,7 @@ export const mockCapabilityScenarios = Object.freeze([
   scenario("datomic-dynamodb", "datomic", "dynamodb", oneMillion(), lambda("java25", "x86_64", "enabled"), {
     consistencyModes: ["minimize", "authoritative", "at-least", "exact"], snapshotBehavior: "fixed-environment", cacheBehavior: "environment-local", mutationLocality: "private-seed-workflow", limitations: ["read-only", "fixed-current-snapshot", "no-synchronization"]
   }),
-  scenario("datalevin-memory", "datalevin", "memory", tenThousand(), lambda("java25", "arm64", "enabled"), {
+  scenario("datalevin-memory", "datalevin", "embedded", tenThousand(), lambda("java25", "arm64", "enabled"), {
     consistencyModes: ["minimize"], snapshotBehavior: "rebuild-lifecycle", cacheBehavior: "environment-local", mutationLocality: "initialization-before-ready", limitations: ["read-only", "ephemeral", "no-durability", "lifecycle-rebuild", "unequal-dataset-scale"]
   }),
   scenario("jank-memory", "jank", "memory", tenThousand(), lambda("provided.al2023", "x86_64", "disabled"), {

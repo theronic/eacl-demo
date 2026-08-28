@@ -5,7 +5,7 @@
     {"id": "datahike-s3", "backend": "datahike", "storage": "s3", "apiOrigin": "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws"},
     {"id": "datahike-dynamodb", "backend": "datahike", "storage": "dynamodb", "apiOrigin": "https://cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws"},
     {"id": "datomic-dynamodb", "backend": "datomic", "storage": "dynamodb", "apiOrigin": "https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws"},
-    {"id": "datalevin-memory", "backend": "datalevin", "storage": "memory", "apiOrigin": "https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws"},
+    {"id": "datalevin-memory", "backend": "datalevin", "storage": "embedded", "apiOrigin": "https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws"},
     {"id": "jank-memory", "backend": "jank", "storage": "memory", "apiOrigin": null},
     {"id": "datascript-browser-memory", "backend": "datascript", "storage": "browser-memory", "apiOrigin": null}
   ]

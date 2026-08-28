@@ -21,16 +21,39 @@
                     {:identity profile-identity
                      :basis request-basis
                      :memory-mib 3072})]
-    (is (= {:backend "datalevin" :storage "memory"}
+    (is (= {:backend "datalevin" :storage "embedded"}
            (:profile descriptor)))
     (is (= "request-snapshot"
            (get-in descriptor [:capabilities :snapshotBehavior])))
-    (is (= #{"read-only" "ephemeral" "no-durability"
+    (is (= #{"read-only" "ephemeral"
              "lifecycle-rebuild" "unequal-dataset-scale"
              "unsupported-consistency"}
            (set (get-in descriptor [:capabilities :limitations]))))
     (is (= "enabled" (get-in descriptor [:runtime :snapStart])))
     (is (= 9922 (get-in descriptor [:dataset :serverCount])))))
+
+(deftest descriptor-reports-the-actual-compute-platform-test
+  (let [descriptor (profile/descriptor
+                    {:identity profile-identity
+                     :basis request-basis
+                     :memory-mib 1024
+                     :admission-concurrency 1
+                     :execution "ec2"})]
+    (is (= {:execution "ec2" :name "java25" :architecture "x86_64"
+            :snapStart "disabled"}
+           (:runtime descriptor)))
+    (is (= 1 (->> (:limits descriptor)
+                  (some #(when (= "admissionConcurrency" (:name %))
+                           (:value %))))))
+    (is (= #{"read-only" "unequal-dataset-scale" "unsupported-consistency"}
+           (set (get-in descriptor [:capabilities :limitations])))))
+  (is (thrown? clojure.lang.ExceptionInfo
+               (profile/descriptor
+                {:identity profile-identity
+                 :basis request-basis
+                 :memory-mib 1024
+                 :admission-concurrency 1
+                 :execution "container"}))))
 
 (deftest descriptor-rejects-an-unbound-data-manifest-test
   (is (thrown? clojure.lang.ExceptionInfo

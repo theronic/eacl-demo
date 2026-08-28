@@ -7,7 +7,7 @@
   "properties": {
     "$schema": {"const": "../../schemas/backend-storage.v1.schema.json"},
     "schema": {"const": "eacl-demo.backend-storage.v1"},
-    "defaultBackend": {"const": "datahike"},
+    "defaultBackend": {"const": "datascript"},
     "backends": {
       "type": "array", "minItems": 5, "maxItems": 5,
       "items": {
@@ -15,15 +15,15 @@
         "properties": {
           "id": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
           "label": {"type": "string", "minLength": 1, "maxLength": 32},
-          "storages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}}
+          "storages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["s3", "dynamodb", "embedded", "memory", "browser-memory"]}}
         }
       }
     },
     "storages": {
-      "type": "array", "minItems": 4, "maxItems": 4,
+      "type": "array", "minItems": 5, "maxItems": 5,
       "items": {
         "type": "object", "additionalProperties": false, "required": ["id", "label"],
-        "properties": {"id": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}, "label": {"type": "string", "minLength": 1, "maxLength": 32}}
+        "properties": {"id": {"enum": ["s3", "dynamodb", "embedded", "memory", "browser-memory"]}, "label": {"type": "string", "minLength": 1, "maxLength": 32}}
       }
     }
   }

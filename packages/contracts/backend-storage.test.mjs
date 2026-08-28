@@ -7,13 +7,13 @@ const expected = new Map([
   ["datascript", ["browser-memory"]],
   ["datahike", ["s3", "dynamodb"]],
   ["datomic", ["dynamodb"]],
-  ["datalevin", ["memory"]],
+  ["datalevin", ["embedded"]],
   ["jank", ["memory"]]
 ]);
 
 test("backend and storage sets are closed and ordered", () => {
   assert.deepEqual(new Map(catalog.backends.map(({ id, storages }) => [id, storages])), expected);
-  assert.deepEqual(catalog.storages.map(({ id }) => id), ["s3", "dynamodb", "memory", "browser-memory"]);
+  assert.deepEqual(catalog.storages.map(({ id }) => id), ["s3", "dynamodb", "embedded", "memory", "browser-memory"]);
   assert.equal(catalog.defaultBackend, "datascript");
 });
 

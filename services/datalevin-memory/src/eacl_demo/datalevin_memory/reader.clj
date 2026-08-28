@@ -1,5 +1,5 @@
 (ns eacl-demo.datalevin-memory.reader
-  "Bootstraps one real LMDB in-memory Datalevin environment and exposes only
+  "Bootstraps one embedded LMDB Datalevin environment and exposes only
   request-owned EACL snapshots."
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
@@ -12,6 +12,7 @@
             [eacl.relationships.storage :as relationship-storage]
             [eacl.schema.model :as schema-model])
   (:import [java.nio.charset StandardCharsets]
+           [java.nio.file Files Path]
            [java.time Instant]
            [java.util UUID]))
 
@@ -21,9 +22,14 @@
                :db/index true}
    :demo/roles {:db/valueType :db.type/keyword
                 :db/cardinality :db.cardinality/many
-                :db/index true}})
+                :db/index true}
+   :demo/data-manifest-sha256 {:db/valueType :db.type/string
+                               :db/cardinality :db.cardinality/one
+                               :db/index true}})
 
 (def ^:private seed-batch-size 5000)
+(def ^:private expected-object-count 10080)
+(def ^:private expected-relationship-count 38613)
 
 (def fixture-source-id
   "The lineage shared by every replica of the exact immutable fixture.
@@ -61,33 +67,59 @@
            :eacl.datalevin/source-id fixture-source-id}])
         fixture-source-id))))
 
-(defn- fixture-records
-  []
+(defn- read-fixture-batches!
+  [kind consume!]
   (with-open [reader (io/reader (or (io/resource "fixture-10000.ndjson")
                                     (throw (ex-info "Fixture is absent."
                                                     {:type :eacl-demo/missing-fixture}))))]
-    (let [records (mapv #(json/read-str % :key-fn keyword) (line-seq reader))
-          header (first records)]
+    (let [lines (line-seq reader)
+          header (some-> (first lines) (json/read-str :key-fn keyword))]
       (when-not (and (= "fixture" (:kind header))
                      (= "eacl-demo-fixture-v1" (:fixtureId header))
                      (= 10000 (:cutPointResources header)))
         (throw (ex-info "Fixture identity mismatch."
                         {:type :eacl-demo/fixture-identity-mismatch})))
-      (subvec records 1))))
+      (loop [remaining (next lines)
+             batch []
+             matched 0]
+        (if-let [line (first remaining)]
+          (let [record (json/read-str line :key-fn keyword)
+                matching? (= kind (:kind record))
+                next-batch (if matching?
+                             (conj batch record)
+                             batch)
+                next-matched (if matching? (inc matched) matched)]
+            (if (= seed-batch-size (count next-batch))
+              (do
+                (consume! next-batch)
+                (recur (next remaining) [] next-matched))
+              (recur (next remaining) next-batch next-matched)))
+          (do
+            (when (seq batch)
+              (consume! batch))
+            matched))))))
 
 (defn- seed-objects!
-  [conn records]
-  (doseq [batch (partition-all seed-batch-size
-                               (filter #(= "object" (:kind %)) records))]
-    (d/transact!
-     conn
-     (map-indexed
-      (fn [index {:keys [object role]}]
-        {:db/id (- (inc index))
-         :eacl/id (:id object)
-         :demo/type (keyword (:type object))
-         :demo/roles #{(keyword role)}})
-      batch))))
+  [conn]
+  (let [actual
+        (read-fixture-batches!
+         "object"
+         (fn [batch]
+           (d/transact!
+            conn
+            (map-indexed
+             (fn [index {:keys [object role]}]
+               {:db/id (- (inc index))
+                :eacl/id (:id object)
+                :demo/type (keyword (:type object))
+                :demo/roles #{(keyword role)}})
+             batch))))]
+    (when-not (= expected-object-count actual)
+      (throw (ex-info "Fixture object count mismatch."
+                      {:type :eacl-demo/fixture-count-mismatch
+                       :kind "object"
+                       :expected expected-object-count
+                       :actual actual})))))
 
 (defn- entity-ids
   [database]
@@ -124,19 +156,60 @@
                                     subject-type subject-eid)]]}))
 
 (defn- seed-relationships!
-  [conn watermark write-token records]
-  (let [entity-ids (entity-ids (d/db conn))]
-    (doseq [batch (partition-all seed-batch-size
-                                 (filter #(= "relationship" (:kind %)) records))]
-      (let [physical (mapv #(physical-relationship entity-ids %) batch)
-            relation-stamps
-            (mapv (fn [relation-eid]
-                    [:db/add relation-eid
-                     :eacl.datalevin/relation-generation :db/current-tx])
-                  (distinct (map :relation-eid physical)))]
+  [conn watermark write-token]
+  (let [entity-ids (entity-ids (d/db conn))
+        actual
+        (read-fixture-batches!
+         "relationship"
+         (fn [batch]
+           (let [physical (mapv #(physical-relationship entity-ids %) batch)
+                 relation-stamps
+                 (mapv (fn [relation-eid]
+                         [:db/add relation-eid
+                          :eacl.datalevin/relation-generation :db/current-tx])
+                       (distinct (map :relation-eid physical)))]
+             (d/transact! conn
+                          (into relation-stamps (mapcat :tx-data physical))
+                          {:datalevin/write-token write-token})
+             (reset! watermark (:max-tx (d/db conn))))))]
+    (when-not (= expected-relationship-count actual)
+      (throw (ex-info "Fixture relationship count mismatch."
+                      {:type :eacl-demo/fixture-count-mismatch
+                       :kind "relationship"
+                       :expected expected-relationship-count
+                       :actual actual})))))
+
+(defn- installed-data-manifest
+  [conn]
+  (:demo/data-manifest-sha256
+   (d/entity (d/db conn) [:eacl/id "datalevin-metadata"])))
+
+(defn- install-fixture!
+  [conn watermark write-token]
+  (let [installed (installed-data-manifest conn)]
+    (cond
+      (= profile/data-manifest-sha256 installed)
+      (reset! watermark (:max-tx (d/db conn)))
+
+      (some? installed)
+      (throw
+       (ex-info
+        "Embedded Datalevin fixture conflicts with this artifact."
+        {:type :eacl-demo/datalevin-data-manifest-mismatch
+         :expected profile/data-manifest-sha256
+         :actual installed}))
+
+      :else
+      (do
+        (seed-objects! conn)
+        (seed-relationships! conn watermark write-token)
+        ;; The marker is deliberately the final transaction. A process killed
+        ;; during bootstrap retries the idempotent seed instead of accepting a
+        ;; partial database as ready.
         (d/transact! conn
-                     (into relation-stamps (mapcat :tx-data physical))
-                     {:datalevin/write-token write-token})
+                     [{:eacl/id "datalevin-metadata"
+                       :demo/data-manifest-sha256
+                       profile/data-manifest-sha256}])
         (reset! watermark (:max-tx (d/db conn)))))))
 
 (defn- public-basis
@@ -149,13 +222,17 @@
      :fixedForEnvironment false}))
 
 (defn open-reader!
-  [{:keys [security-key] :as config}]
-  (when-not (and (= #{:security-key} (set (keys config)))
+  [{:keys [security-key database-directory] :as config}]
+  (when-not (and (= #{:security-key :database-directory} (set (keys config)))
                  (string? security-key)
-                 (<= 32 (alength (.getBytes ^String security-key "UTF-8"))))
+                 (<= 32 (alength (.getBytes ^String security-key "UTF-8")))
+                 (instance? Path database-directory)
+                 (.isAbsolute ^Path database-directory))
     (throw (ex-info "Invalid Datalevin reader configuration."
                     {:type :eacl-demo/invalid-config})))
-  (let [conn (datalevin-eacl/create-conn nil physical-schema)
+  (Files/createDirectories ^Path database-directory
+                           (make-array java.nio.file.attribute.FileAttribute 0))
+  (let [conn (datalevin-eacl/create-conn (str database-directory) physical-schema)
         watermark (atom 0)]
     (try
       (install-fixture-source-identity! conn)
@@ -169,11 +246,9 @@
                      :security-key security-key})
             schema-source (slurp (or (io/resource "schema.v1.zed")
                                      (throw (ex-info "Schema is absent."
-                                                     {:type :eacl-demo/missing-schema}))))
-            records (fixture-records)]
+                                                     {:type :eacl-demo/missing-schema}))))]
         (eacl/write-schema! client schema-source)
-        (seed-objects! conn records)
-        (seed-relationships! conn watermark write-token records)
+        (install-fixture! conn watermark write-token)
         {:connection conn
          :client client
          :capture-snapshot

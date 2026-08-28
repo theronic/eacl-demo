@@ -13,8 +13,9 @@ const [template, telemetrySchema, lifecycleSource, runtimeSource, readerSource, 
   readFile(new URL("../services/datalevin-memory/java/eacl_demo/datalevin_memory/LambdaHandler.java", import.meta.url), "utf8"),
   readFile(new URL("../scripts/deploy-live-demo.mjs", import.meta.url), "utf8")
 ]);
+const buildSource = await readFile(new URL("../build.clj", import.meta.url), "utf8");
 
-test("Datalevin live target is a preinitialized managed Java 25 arm64 SnapStart version", () => {
+test("Datalevin Lambda target is a preinitialized managed Java 25 arm64 SnapStart version", () => {
   assert.match(template, /^\s{6}Runtime: java25$/mu);
   assert.match(template, /^\s{6}Architectures:\s*\n\s{8}- arm64$/mu);
   assert.match(template, /^\s{6}SnapStart:\s*\n\s{8}ApplyOn: PublishedVersions$/mu);
@@ -28,12 +29,19 @@ test("Datalevin live target is a preinitialized managed Java 25 arm64 SnapStart 
   assert.match(deploySource, /runtime\?\.snapStart !==/u);
 });
 
-test("Datalevin uses true in-memory topology without remote or filesystem serving", () => {
-  assert.match(template, /^\s{4}Storage: memory$/mu);
-  assert.match(readerSource, /datalevin-eacl\/create-conn nil physical-schema/u);
+test("one exact artifact carries only the two deployed Linux native architectures", () => {
+  assert.match(buildSource, /datalevin\/dtlvnative\/\(\?:macosx-arm64\|windows-x86_64\)/u);
+  assert.doesNotMatch(buildSource, /macosx-arm64\|windows-x86_64\|linux-x86_64/u);
+});
+
+test("Datalevin uses embedded LMDB captured by SnapStart without remote serving", () => {
+  assert.match(template, /^\s{4}Storage: embedded$/mu);
+  assert.match(template, /^\s{2}Storage:\s*\n\s{4}Value: embedded$/mu);
+  assert.match(readerSource, /datalevin-eacl\/create-conn \(str database-directory\) physical-schema/u);
   assert.match(readerSource, /fixture-10000\.ndjson/u);
-  assert.doesNotMatch(template, /FileSystemConfigs|VpcConfig|EFS|\/mnt\/|DynamoDB|DATALEVIN_(?:DIR|PATH)|remote|server|WAL/iu);
-  assert.doesNotMatch(readerSource, /get-conn\s+"|\/tmp|\/mnt|remote|server/iu);
+  assert.match(template, /EACL_DATALEVIN_DIRECTORY: \/tmp\/eacl-demo-datalevin/u);
+  assert.doesNotMatch(template, /FileSystemConfigs|VpcConfig|EFS|\/mnt\/|DynamoDB|remote|server|WAL/iu);
+  assert.doesNotMatch(readerSource, /get-conn\s+"|\/mnt|remote|server/iu);
 });
 
 test("Datalevin runtime role can only write exact-function logs", () => {
@@ -100,7 +108,7 @@ test("snapshot ownership boundary closes transport values and exposes complete t
     deploymentId: "datalevin-candidate-42",
     runtime: "java25",
     architecture: "arm64",
-    storageMode: "memory",
+    storageMode: "embedded",
     maximumConcurrency: 1,
     sourceLifecycle: "123e4567-e89b-42d3-a456-426614174000",
     nativeSourceId: "223e4567-e89b-42d3-a456-426614174000",

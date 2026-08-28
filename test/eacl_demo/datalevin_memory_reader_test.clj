@@ -1,12 +1,20 @@
 (ns eacl-demo.datalevin-memory-reader-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is testing]]
             [datalevin.core :as d]
             [eacl-demo.datalevin-memory.operations :as operations]
+            [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader]
             [eacl.core :as eacl])
-  (:import [java.util UUID]))
+  (:import [java.nio.file Files]
+           [java.util UUID]))
 
 (def security-key (apply str (repeat 32 "k")))
+
+(defn- delete-tree!
+  [directory]
+  (doseq [file (reverse (file-seq (.toFile directory)))]
+    (io/delete-file file true)))
 
 (defn- invoke
   [handlers snapshot basis input]
@@ -17,7 +25,11 @@
     :check-active! (fn [])}))
 
 (deftest immutable-fixture-has-stable-source-identity-and-pages-test
-  (let [opened (reader/open-reader! {:security-key security-key})]
+  (let [directory (Files/createTempDirectory
+                   "eacl-demo-datalevin-reader-"
+                   (make-array java.nio.file.attribute.FileAttribute 0))
+        opened (reader/open-reader! {:security-key security-key
+                                     :database-directory directory})]
     (try
       (let [stored-source-id
             (:eacl.datalevin/source-id
@@ -46,7 +58,7 @@
             (is (= (str reader/fixture-source-id)
                    (:source-id (eacl/basis snapshot)))))
           (testing "the reported revision and EACL cursor both continue page one"
-            (is (= "datalevin:16" (:id basis)))
+            (is (= "datalevin:17" (:id basis)))
             (let [page-1 (invoke handlers snapshot basis query)
                   page-2 (invoke handlers snapshot basis
                                  (assoc query :cursor
@@ -60,7 +72,34 @@
           (finally
             ((:release! captured)))))
       (finally
-        (reader/close-reader! opened)))))
+        (reader/close-reader! opened)
+        (delete-tree! directory)))))
+
+(deftest embedded-fixture-reopens-without-reseeding-test
+  (let [directory (Files/createTempDirectory
+                   "eacl-demo-datalevin-reopen-"
+                   (make-array java.nio.file.attribute.FileAttribute 0))]
+    (try
+      (let [first-reader (reader/open-reader! {:security-key security-key
+                                               :database-directory directory})
+            first-basis (try
+                          (let [owned ((:capture-snapshot first-reader))]
+                            (try (:basis owned)
+                                 (finally ((:release! owned)))))
+                          (finally (reader/close-reader! first-reader)))
+            second-reader (reader/open-reader! {:security-key security-key
+                                                :database-directory directory})]
+        (try
+          (let [owned ((:capture-snapshot second-reader))]
+            (try
+              (is (= (:id first-basis) (get-in owned [:basis :id])))
+              (is (= profile/data-manifest-sha256
+                     (:demo/data-manifest-sha256
+                      (d/entity (d/db (:connection second-reader))
+                                [:eacl/id "datalevin-metadata"]))))
+              (finally ((:release! owned)))))
+          (finally (reader/close-reader! second-reader))))
+      (finally (delete-tree! directory)))))
 
 (deftest eacl-cursor-errors-are-public-client-errors-test
   (let [guarded (#'operations/guarded

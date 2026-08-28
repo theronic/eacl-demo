@@ -55,7 +55,7 @@ const PROFILE_INPUT = Object.freeze({
   },
   "datalevin-memory": {
     backend: "datalevin",
-    storage: "memory",
+    storage: "embedded",
     route: "/",
     buildUnits: ["datalevin-memory"],
     fixtureResources: 10000,

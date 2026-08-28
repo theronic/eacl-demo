@@ -11,15 +11,19 @@
     "get-cache-info" "count-objects"})
 
 (defn descriptor
-  [{:keys [identity basis memory-mib]}]
+  [{:keys [identity basis memory-mib admission-concurrency execution]
+    :or {admission-concurrency 1 execution "lambda"}}]
   (when-not (and (= data-manifest-sha256 (:dataManifestSha256 identity))
-                 (map? basis) (pos-int? memory-mib))
+                 (map? basis) (pos-int? memory-mib)
+                 (pos-int? admission-concurrency)
+                 (contains? #{"lambda" "ec2"} execution))
     (throw (ex-info "Invalid Datalevin profile descriptor input."
                     {:type :eacl-demo/invalid-profile-descriptor})))
   (boundary/descriptor
    {:identity identity
-    :runtime {:execution "lambda" :name "java25" :architecture "arm64"
-              :snapStart "enabled"}
+    :runtime {:execution execution :name "java25"
+              :architecture (if (= "lambda" execution) "arm64" "x86_64")
+              :snapStart (if (= "lambda" execution) "enabled" "disabled")}
     :dataset {:fixtureId "eacl-demo-fixture-v1"
               :logicalResourceCount 10000
               :serverCount 9922
@@ -31,10 +35,11 @@
      :snapshotBehavior "request-snapshot"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only" "ephemeral" "no-durability"
-                   "lifecycle-rebuild" "unequal-dataset-scale"
-                   "unsupported-consistency"]}
+     :limitations (cond-> ["read-only" "unequal-dataset-scale"
+                            "unsupported-consistency"]
+                    (= "lambda" execution)
+                    (into ["ephemeral" "lifecycle-rebuild"]))}
     :limits [{:name "requestDeadlineMs" :value 30000}
-             {:name "admissionConcurrency" :value 1}
+             {:name "admissionConcurrency" :value admission-concurrency}
              {:name "responseBodyBytes" :value 1048576}
              {:name "memoryMiB" :value memory-mib}]}))

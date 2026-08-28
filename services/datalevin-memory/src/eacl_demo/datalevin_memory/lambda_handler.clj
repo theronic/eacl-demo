@@ -11,9 +11,10 @@
             [eacl-demo.datalevin-memory.reader :as reader]
             [eacl.datalevin.core :as datalevin-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
-           [java.io InputStream OutputStream]))
+           [java.io InputStream OutputStream]
+           [java.nio.file Path Paths]))
 
-(declare initialize)
+(declare initialize invoke-event!)
 
 (defonce ^:private runtime
   (delay
@@ -23,9 +24,8 @@
        #(initialize environment)))))
 
 (defn initialize-runtime!
-  "Realize the immutable in-memory reader during Lambda initialization so a
-  published SnapStart version captures the ready database rather than the
-  unrealized delay."
+  "Realize the embedded reader during Lambda initialization so a published
+  SnapStart version captures both the ready process and its LMDB files."
   []
   @runtime
   nil)
@@ -35,10 +35,22 @@
   (when (and (string? value) (re-matches #"[1-9][0-9]{0,8}" value))
     (try (Integer/parseInt value) (catch NumberFormatException _ nil))))
 
+(defn- absolute-normal-path
+  [value]
+  (when (and (string? value) (not (.contains ^String value "\u0000")))
+    (try
+      (let [path (.normalize (Paths/get value (make-array String 0)))]
+        (when (and (.isAbsolute path) (= value (str path))) path))
+      (catch Throwable _ nil))))
+
 (defn parse-environment
   [environment]
   (let [baked-eacl-sha (build-identity/eacl-sha)
         declared-eacl-sha (get environment "EACL_CORE_SHA")
+        execution (get environment "EACL_RUNTIME_EXECUTION" "lambda")
+        memory-key (if (= "ec2" execution)
+                     "EACL_RUNTIME_MEMORY_MIB"
+                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
         identity {:profileId "datalevin-memory"
                   :demoSha (get environment "EACL_DEMO_SHA")
                   :eaclSha baked-eacl-sha
@@ -46,8 +58,12 @@
                   :deploymentId (get environment "EACL_DEPLOYMENT_ID")
                   :dataManifestSha256 profile/data-manifest-sha256}
         cursor-key (get environment "EACL_CURSOR_KEY")
-        memory-mib (positive-int
-                    (get environment "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"))]
+        database-directory (absolute-normal-path
+                            (get environment "EACL_DATALEVIN_DIRECTORY"))
+        memory-mib (positive-int (get environment memory-key))
+        maximum-concurrency (or (positive-int
+                                 (get environment "EACL_MAXIMUM_CONCURRENCY"))
+                                (when (= "lambda" execution) 1))]
     (when-not (and (re-matches #"[0-9a-f]{40}" (or (:demoSha identity) ""))
                    (or (nil? declared-eacl-sha)
                        (= baked-eacl-sha declared-eacl-sha))
@@ -57,22 +73,34 @@
                                (or (:deploymentId identity) ""))
                    (string? cursor-key)
                    (<= 32 (alength (.getBytes ^String cursor-key "UTF-8")))
-                   (pos-int? memory-mib))
+                   (instance? Path database-directory)
+                   (pos-int? memory-mib)
+                   (pos-int? maximum-concurrency)
+                   (contains? #{"lambda" "ec2"} execution))
       (throw (ex-info "Lambda environment is incomplete or invalid."
                       {:type :eacl-demo/invalid-environment})))
-    {:identity identity :cursor-key cursor-key :memory-mib memory-mib}))
+    {:identity identity
+     :cursor-key cursor-key
+     :database-directory database-directory
+     :memory-mib memory-mib
+     :maximum-concurrency maximum-concurrency
+     :execution execution}))
 
 (defn initialize
   [environment]
-  (let [{:keys [identity cursor-key memory-mib]}
+  (let [{:keys [identity cursor-key database-directory memory-mib
+                maximum-concurrency execution]}
         (parse-environment environment)
-        opened (reader/open-reader! {:security-key cursor-key})]
+        opened (reader/open-reader! {:security-key cursor-key
+                                     :database-directory database-directory})]
     (try
       (let [initial ((:capture-snapshot opened))]
         (try
           (let [descriptor (profile/descriptor
                             {:identity identity :basis (:basis initial)
-                             :memory-mib memory-mib})
+                             :memory-mib memory-mib
+                             :admission-concurrency maximum-concurrency
+                             :execution execution})
                 operation-metrics (cache-metrics/create-operation-metrics)
                 handlers (operations/create-handlers
                           {:descriptor descriptor
@@ -87,7 +115,7 @@
                         {:descriptor descriptor
                          :capture-snapshot (:capture-snapshot opened)
                          :handlers handlers
-                         :maximum-concurrency 1})})
+                         :maximum-concurrency maximum-concurrency})})
           (finally ((:release! initial)))))
       (catch Throwable error
         (reader/close-reader! opened)
@@ -117,6 +145,22 @@
          started-nanos response envelope)
         response))))
 
+(defn invoke-event!
+  "Invoke one Function URL-shaped event against the process runtime. Lambda
+  and the EC2 HTTP adapter share this exact observable boundary."
+  [event remaining-time-ms]
+  (let [telemetry-context (observability/runtime-context
+                           "datalevin-memory" (into {} (System/getenv)))
+        started (System/nanoTime)]
+    (try
+      (let [response (handle-event @runtime event remaining-time-ms)]
+        (observability/observe-response! telemetry-context event response started)
+        response)
+      (catch Throwable error
+        (observability/observe-exception! telemetry-context event started error)
+        (function-url/internal-error-response
+         event (:deployment-id telemetry-context))))))
+
 (defn handle-request-stream
   [^InputStream input ^OutputStream output ^Context context]
   (let [writer (io/writer output :encoding "UTF-8")
@@ -128,10 +172,9 @@
       (let [event (json/read (io/reader input :encoding "UTF-8")
                              :key-fn keyword)
             _ (reset! event* event)
-            response (handle-event @runtime event
-                                   (when context
-                                     (.getRemainingTimeInMillis context)))]
-        (observability/observe-response! telemetry-context event response started)
+            response (invoke-event! event
+                                    (when context
+                                      (.getRemainingTimeInMillis context)))]
         (json/write response writer))
       (catch Throwable error
         (observability/observe-exception! telemetry-context @event* started error)
