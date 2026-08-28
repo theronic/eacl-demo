@@ -68,6 +68,10 @@ Parameters:
     Type: String
     Default: pl-3b927c52
     AllowedPattern: "^pl-[0-9a-f]{8,17}$"
+  AlarmTopicArn:
+    Type: String
+    Default: arn:aws:sns:us-east-1:843761893873:eacl-demo-alarms
+    AllowedPattern: "^arn:[a-z0-9-]+:sns:[a-z0-9-]+:[0-9]{12}:eacl-demo-alarms$"
 
 Resources:
   Vpc:
@@ -331,6 +335,62 @@ Resources:
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-
             for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1
+
+  InitializationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: The persistent Datomic EC2 reader failed to initialize.
+      AlarmName: eacl-demo-datomic-dynamodb-ec2-initialization
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - {Name: ProfileId, Value: datomic-dynamodb}
+        - {Name: FunctionName, Value: eacl-demo-datomic-dynamodb-ec2}
+        - {Name: AlarmClass, Value: initialization}
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  HealthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: A canonical health request failed for the persistent Datomic EC2 reader.
+      AlarmName: eacl-demo-datomic-dynamodb-ec2-health
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - {Name: ProfileId, Value: datomic-dynamodb}
+        - {Name: FunctionName, Value: eacl-demo-datomic-dynamodb-ec2}
+        - {Name: AlarmClass, Value: health}
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: EaclDemo/Runtime
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  InstanceStatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions: [!Ref AlarmTopicArn]
+      AlarmDescription: The persistent Datomic EC2 instance failed its system or instance status check.
+      AlarmName: eacl-demo-datomic-dynamodb-ec2-status
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - {Name: InstanceId, Value: !Ref Instance}
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 2
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
 
   ElasticIp:
     Type: AWS::EC2::EIP
