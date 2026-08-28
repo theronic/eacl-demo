@@ -98,7 +98,7 @@
     (is (= #{:error :meta} (set (keys body))))
     (is (not (.contains ^String (:body response) "secret")))))
 
-(deftest snapstart-primes-the-first-user-resource-page-test
+(deftest snapstart-primes-the-first-admin-resource-page-test
   (let [captured (atom [])
         running {:runtime :datahike-s3}]
     (with-redefs [handler/handle-event
@@ -109,7 +109,10 @@
                     {:statusCode 200
                      :body (json/write-str
                             {:data {:items (mapv (fn [index] {:id (str index)})
-                                                (range 20))}})})]
+                                                (range 10))}
+                             :meta {:cacheStatus (if (= 1 (count @captured))
+                                                   "miss"
+                                                   "hit")}})})]
       (is (= running (handler/prime-runtime! running))))
     (is (= 256 (count @captured)))
     (is (every? #(= running (:runtime %)) @captured))
@@ -122,9 +125,23 @@
     (is (= {:subjectType "user"
             :subjectId "user-1"
             :resourceType "server"
-            :permission "view"
-            :pageSize 20
+            :permission "admin"
+            :pageSize 10
             :cache true
-            :populateCache true}
+            :populateCache true
+            :consistency "minimize"}
            (json/read-str (get-in (first @captured) [:event :body])
                           :key-fn keyword)))))
+
+(deftest snapstart-prime-requires-the-cache-to-converge-test
+  (with-redefs [handler/handle-event
+                (fn [_ _ _]
+                  {:statusCode 200
+                   :body (json/write-str
+                          {:data {:items (mapv (fn [index] {:id (str index)})
+                                              (range 10))}
+                           :meta {:cacheStatus "miss"}})})]
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"cache did not converge"
+         (handler/prime-runtime! {:runtime :datahike-s3})))))

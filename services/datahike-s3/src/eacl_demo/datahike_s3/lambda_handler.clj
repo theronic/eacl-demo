@@ -38,10 +38,11 @@
           {:subjectType "user"
            :subjectId "user-1"
            :resourceType "server"
-           :permission "view"
-           :pageSize 20
+           :permission "admin"
+           :pageSize 10
            :cache true
-           :populateCache true})
+           :populateCache true
+           :consistency "minimize"})
    :cookies nil})
 (def ^:private snapstart-prime-repetitions 256)
 
@@ -117,21 +118,28 @@
         (function-url/create-response envelope)))))
 
 (defn prime-runtime!
-  "Exercises and populates the exact first explorer page before SnapStart.
+  "Exercises and populates the exact first admin server page before SnapStart.
 
   EACL cache hits alone are sub-millisecond; capturing the complete route,
   boundary, pagination, and JSON code path prevents every restored environment
   from paying the interpreter/JIT warm-up cost on its first resource page."
   [running]
-  (dotimes [_ snapstart-prime-repetitions]
-    (let [response (handle-event running snapstart-prime-event 30000)
-          envelope (json/read-str (:body response) :key-fn keyword)]
-      (when-not (and (= 200 (:statusCode response))
-                     (= 20 (count (get-in envelope [:data :items]))))
-        (throw (ex-info "Datahike/S3 SnapStart lookup priming failed."
-                        {:type :eacl-demo/snapstart-prime-failed
-                         :status (:statusCode response)
-                         :error-code (get-in envelope [:error :code])})))))
+  (let [final-cache-status (volatile! nil)]
+    (dotimes [_ snapstart-prime-repetitions]
+      (let [response (handle-event running snapstart-prime-event 30000)
+            envelope (json/read-str (:body response) :key-fn keyword)]
+        (vreset! final-cache-status (get-in envelope [:meta :cacheStatus]))
+        (when-not (and (= 200 (:statusCode response))
+                       (= 10 (count (get-in envelope [:data :items]))))
+          (throw (ex-info "Datahike/S3 SnapStart lookup priming failed."
+                          {:type :eacl-demo/snapstart-prime-failed
+                           :status (:statusCode response)
+                           :cache-status @final-cache-status
+                           :error-code (get-in envelope [:error :code])})))))
+    (when-not (= "hit" @final-cache-status)
+      (throw (ex-info "Datahike/S3 SnapStart cache did not converge."
+                      {:type :eacl-demo/snapstart-prime-failed
+                       :cache-status @final-cache-status}))))
   running)
 
 (defn handle-request-stream
