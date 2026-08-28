@@ -21,11 +21,11 @@
                     {:identity profile-identity
                      :basis request-basis
                      :memory-mib 3072})]
-    (is (= {:backend "datalevin" :storage "memory"}
+    (is (= {:backend "datalevin" :storage "embedded"}
            (:profile descriptor)))
     (is (= "request-snapshot"
            (get-in descriptor [:capabilities :snapshotBehavior])))
-    (is (= #{"read-only" "ephemeral" "no-durability"
+    (is (= #{"read-only" "ephemeral"
              "lifecycle-rebuild" "unequal-dataset-scale"
              "unsupported-consistency"}
            (set (get-in descriptor [:capabilities :limitations]))))
@@ -44,7 +44,9 @@
            (:runtime descriptor)))
     (is (= 1 (->> (:limits descriptor)
                   (some #(when (= "admissionConcurrency" (:name %))
-                           (:value %)))))))
+                           (:value %))))))
+    (is (= #{"read-only" "unequal-dataset-scale" "unsupported-consistency"}
+           (set (get-in descriptor [:capabilities :limitations])))))
   (is (thrown? clojure.lang.ExceptionInfo
                (profile/descriptor
                 {:identity profile-identity

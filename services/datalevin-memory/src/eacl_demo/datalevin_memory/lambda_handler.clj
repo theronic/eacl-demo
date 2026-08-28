@@ -11,7 +11,8 @@
             [eacl-demo.datalevin-memory.reader :as reader]
             [eacl.datalevin.core :as datalevin-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
-           [java.io InputStream OutputStream]))
+           [java.io InputStream OutputStream]
+           [java.nio.file Path Paths]))
 
 (declare initialize invoke-event!)
 
@@ -23,9 +24,8 @@
        #(initialize environment)))))
 
 (defn initialize-runtime!
-  "Realize the immutable in-memory reader during Lambda initialization so a
-  published SnapStart version captures the ready database rather than the
-  unrealized delay."
+  "Realize the embedded reader during Lambda initialization so a published
+  SnapStart version captures both the ready process and its LMDB files."
   []
   @runtime
   nil)
@@ -34,6 +34,14 @@
   [value]
   (when (and (string? value) (re-matches #"[1-9][0-9]{0,8}" value))
     (try (Integer/parseInt value) (catch NumberFormatException _ nil))))
+
+(defn- absolute-normal-path
+  [value]
+  (when (and (string? value) (not (.contains ^String value "\u0000")))
+    (try
+      (let [path (.normalize (Paths/get value (make-array String 0)))]
+        (when (and (.isAbsolute path) (= value (str path))) path))
+      (catch Throwable _ nil))))
 
 (defn parse-environment
   [environment]
@@ -50,6 +58,8 @@
                   :deploymentId (get environment "EACL_DEPLOYMENT_ID")
                   :dataManifestSha256 profile/data-manifest-sha256}
         cursor-key (get environment "EACL_CURSOR_KEY")
+        database-directory (absolute-normal-path
+                            (get environment "EACL_DATALEVIN_DIRECTORY"))
         memory-mib (positive-int (get environment memory-key))
         maximum-concurrency (or (positive-int
                                  (get environment "EACL_MAXIMUM_CONCURRENCY"))
@@ -63,6 +73,7 @@
                                (or (:deploymentId identity) ""))
                    (string? cursor-key)
                    (<= 32 (alength (.getBytes ^String cursor-key "UTF-8")))
+                   (instance? Path database-directory)
                    (pos-int? memory-mib)
                    (pos-int? maximum-concurrency)
                    (contains? #{"lambda" "ec2"} execution))
@@ -70,15 +81,18 @@
                       {:type :eacl-demo/invalid-environment})))
     {:identity identity
      :cursor-key cursor-key
+     :database-directory database-directory
      :memory-mib memory-mib
      :maximum-concurrency maximum-concurrency
      :execution execution}))
 
 (defn initialize
   [environment]
-  (let [{:keys [identity cursor-key memory-mib maximum-concurrency execution]}
+  (let [{:keys [identity cursor-key database-directory memory-mib
+                maximum-concurrency execution]}
         (parse-environment environment)
-        opened (reader/open-reader! {:security-key cursor-key})]
+        opened (reader/open-reader! {:security-key cursor-key
+                                     :database-directory database-directory})]
     (try
       (let [initial ((:capture-snapshot opened))]
         (try

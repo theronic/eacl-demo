@@ -38,7 +38,7 @@
     },
     "runtime": {"const": "java25"},
     "architecture": {"const": "arm64"},
-    "storageMode": {"const": "memory"},
+    "storageMode": {"const": "embedded"},
     "snapshotStrategy": {
       "enum": ["after-restore-rebuild", "pre-checkpoint-quiesced"]
     },

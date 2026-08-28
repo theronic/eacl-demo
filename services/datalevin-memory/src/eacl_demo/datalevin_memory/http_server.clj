@@ -114,7 +114,7 @@
     (.addShutdownHook
      (Runtime/getRuntime)
      (Thread. #(stop-server! running) "eacl-demo-datalevin-http-shutdown"))
-    (println (str "Datalevin/Memory EC2 reader listening on port "
+    (println (str "Datalevin/Embedded EC2 reader listening on port "
                   (:port running)))
     (flush)))
 

@@ -148,7 +148,7 @@
           "type": "object", "additionalProperties": false, "required": ["backend", "storage"],
           "properties": {
             "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
-            "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]}
+            "storage": {"enum": ["s3", "dynamodb", "embedded", "memory", "browser-memory"]}
           }
         },
         "runtime": {

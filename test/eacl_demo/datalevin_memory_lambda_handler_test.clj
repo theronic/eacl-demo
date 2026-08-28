@@ -20,6 +20,7 @@
    "EACL_CORE_SHA" baked-eacl-sha
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
+   "EACL_DATALEVIN_DIRECTORY" "/tmp/eacl-demo-datalevin-handler-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
 
 (deftest environment-distinguishes-lambda-and-ec2-test
@@ -31,6 +32,8 @@
                         "EACL_RUNTIME_MEMORY_MIB" "1024"
                         "EACL_MAXIMUM_CONCURRENCY" "1")))]
     (is (= "lambda" (:execution lambda)))
+    (is (= "/tmp/eacl-demo-datalevin-handler-test"
+           (str (:database-directory lambda))))
     (is (= 1 (:maximum-concurrency lambda)))
     (is (= "ec2" (:execution ec2)))
     (is (= 1 (:maximum-concurrency ec2)))

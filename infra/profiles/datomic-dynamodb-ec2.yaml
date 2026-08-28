@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Shared smallest-practical EC2 host for the read-only Datomic/DynamoDB and Datalevin/Memory demos.
+Description: Shared smallest-practical EC2 host for the read-only Datomic/DynamoDB and Datalevin/Embedded demos.
 
 Metadata:
   EaclDemo:
@@ -392,6 +392,7 @@ Resources:
               done
               test -s /etc/eacl-demo-datomic.env
               install -d -m 0755 /opt/eacl-demo /var/log/eacl-demo
+              install -d -m 0700 /var/lib/eacl-demo /var/lib/eacl-demo/datalevin
               aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${DatalevinArtifactKey} --version-id ${DatalevinArtifactVersion} /opt/eacl-demo/datalevin.jar.next
               echo "${DatalevinArtifactSha256}  /opt/eacl-demo/datalevin.jar.next" | sha256sum --check --strict
               install -m 0644 /opt/eacl-demo/datalevin.jar.next /opt/eacl-demo/datalevin.jar
@@ -407,6 +408,7 @@ Resources:
                 echo "EACL_CURSOR_KEY=$cursor_key"
                 echo "EACL_DEMO_SHA=${DatalevinDemoSha}"
                 echo "EACL_DEPLOYMENT_ID=${DatalevinDeploymentId}"
+                echo "EACL_DATALEVIN_DIRECTORY=/var/lib/eacl-demo/datalevin"
                 echo "EACL_HTTP_PORT=8081"
                 echo "EACL_HTTP_WORKERS=1"
                 echo "EACL_MAXIMUM_CONCURRENCY=1"
@@ -415,18 +417,19 @@ Resources:
               } > /etc/eacl-demo-datalevin.env
               cat > /etc/systemd/system/eacl-demo-datalevin.service <<'SERVICE'
               [Unit]
-              Description=EACL read-only Datalevin in-memory demo
+              Description=EACL read-only Datalevin embedded demo
               Wants=network-online.target
               After=network-online.target eacl-demo-datomic.service
 
               [Service]
               Type=simple
               EnvironmentFile=/etc/eacl-demo-datalevin.env
-              ExecStart=/usr/bin/java -Xms64m -Xmx256m -XX:MaxDirectMemorySize=64m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED -cp /opt/eacl-demo/datalevin.jar clojure.main -m eacl-demo.datalevin-memory.http-server
+              ExecStart=/usr/bin/java -Xms64m -Xmx224m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m -XX:+UseG1GC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:G1PeriodicGCInterval=10000 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED -cp /opt/eacl-demo/datalevin.jar clojure.main -m eacl-demo.datalevin-memory.http-server
               Restart=on-failure
               RestartSec=3
+              TimeoutStopSec=15
               MemoryHigh=320M
-              MemoryMax=384M
+              MemoryMax=352M
               TasksMax=128
               StandardOutput=append:/var/log/eacl-demo/datalevin.log
               StandardError=append:/var/log/eacl-demo/datalevin.log
@@ -672,7 +675,7 @@ Resources:
     Properties:
       DistributionConfig:
         Aliases: [!Ref DatalevinDomainName]
-        Comment: Persistent Datalevin/Memory comparison target on the shared host.
+        Comment: Persistent Datalevin/Embedded comparison target on the shared host.
         DefaultCacheBehavior:
           AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
           CachePolicyId: !Ref ApiCachePolicy

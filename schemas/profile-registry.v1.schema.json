@@ -55,7 +55,7 @@
       "properties": {
         "id": {"enum": ["datahike-s3", "datahike-dynamodb", "datomic-dynamodb", "datalevin-memory", "jank-memory", "datascript-browser-memory"]},
         "backend": {"enum": ["datahike", "datomic", "datalevin", "jank", "datascript"]},
-        "storage": {"enum": ["s3", "dynamodb", "memory", "browser-memory"]},
+        "storage": {"enum": ["s3", "dynamodb", "embedded", "memory", "browser-memory"]},
         "state": {"enum": ["enabled", "disabled", "qualifying", "unavailable"]},
         "reason": {"type": ["string", "null"]},
         "route": {"type": "string", "pattern": "^/(?:datascript/)?$"},

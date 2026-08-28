@@ -12,7 +12,7 @@
    :deploymentId "datalevin-candidate-42"
    :runtime "java25"
    :architecture "arm64"
-   :storageMode "memory"
+   :storageMode "embedded"
    :snapshotStrategy "after-restore-rebuild"
    :maximumConcurrency 1
    :dataManifestSha256 (apply str (repeat 64 "a"))

@@ -41,7 +41,7 @@ export function platformOptions(selection) {
   }
   const datomic = isDatomicDynamo(selection);
   const datahike = selection?.backend === "datahike";
-  const datalevin = isDatalevinMemory(selection);
+  const datalevin = isDatalevinEmbedded(selection);
   return SERVER_OPTIONS.map((option) => ({
     ...option,
     selectable: option.id === DEFAULT_LAMBDA || datomic ||
@@ -50,7 +50,7 @@ export function platformOptions(selection) {
       (datahike && option.id === LARGE_LAMBDA) || (datalevin && option.id === "ec2")
       ? null
       : option.id === "ec2"
-        ? "EC2 is currently deployed only for Datomic/DynamoDB and Datalevin/Memory."
+        ? "EC2 is currently deployed only for Datomic/DynamoDB and Datalevin/Embedded disk."
         : "This platform is not deployed for this backend."
   }));
 }
@@ -63,7 +63,7 @@ export function profileForPlatform(profile, platform) {
     ? profile.apiOrigin
     : isDatomicDynamo(profile)
       ? DATOMIC_ORIGINS[selected]
-      : isDatalevinMemory(profile)
+      : isDatalevinEmbedded(profile)
         ? DATALEVIN_ORIGINS[selected]
       : DATAHIKE_ORIGINS[profile.id]?.[selected];
   if (typeof apiOrigin !== "string" || apiOrigin.length === 0) {
@@ -82,7 +82,7 @@ function supportedPlatform(selection, platform) {
   if (selection?.backend === "datascript") return platform === BROWSER_PLATFORM;
   if (isDatomicDynamo(selection)) return DATOMIC_PLATFORMS.has(platform);
   if (selection?.backend === "datahike") return DATAHIKE_PLATFORMS.has(platform);
-  if (isDatalevinMemory(selection)) return DATALEVIN_PLATFORMS.has(platform);
+  if (isDatalevinEmbedded(selection)) return DATALEVIN_PLATFORMS.has(platform);
   return platform === DEFAULT_LAMBDA;
 }
 
@@ -90,6 +90,6 @@ function isDatomicDynamo(selection) {
   return selection?.backend === "datomic" && selection?.storage === "dynamodb";
 }
 
-function isDatalevinMemory(selection) {
-  return selection?.backend === "datalevin" && selection?.storage === "memory";
+function isDatalevinEmbedded(selection) {
+  return selection?.backend === "datalevin" && selection?.storage === "embedded";
 }

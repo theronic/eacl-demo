@@ -13,7 +13,7 @@
    :deploymentId "datalevin-candidate-42"
    :runtime "java25"
    :architecture "arm64"
-   :storageMode "memory"
+   :storageMode "embedded"
    :snapshotStrategy "after-restore-rebuild"
    :maximumConcurrency 1
    :dataManifestSha256 (apply str (repeat 64 "a"))
@@ -53,7 +53,7 @@
         (:dataManifestSha256 valid-state) "/"
         (:sourceLifecycle valid-state) ".json")
    "EACL_DATALEVIN_RUNTIME_STATE_VERSION" "exact-version-id"
-   "EACL_DATALEVIN_STORAGE_MODE" "memory"
+   "EACL_DATALEVIN_STORAGE_MODE" "embedded"
    "EACL_SNAPSHOT_STRATEGY" "after-restore-rebuild"
    "EACL_MAXIMUM_CONCURRENCY" "1"})
 
@@ -65,7 +65,7 @@
    :deploymentId (:deploymentId valid-state)
    :runtime "java25"
    :architecture "arm64"
-   :storageMode "memory"
+   :storageMode "embedded"
    :snapshotStrategy "after-restore-rebuild"
    :maximumConcurrency 1
    :dataManifestSha256 (:dataManifestSha256 valid-state)
@@ -78,13 +78,13 @@
    :relationsFrozen true
    :publicWriter false
    :activeReadSnapshots 0
-   :nativeInMemory true
+   :nativeInMemory false
    :localDatabaseCount 1
    :remoteServer false
    :haMode false
    :wal false
    :efsMounted false
-   :durableServingPath nil})
+   :durableServingPath "/tmp/eacl-demo-datalevin"})
 
 (def rebuilt-state
   (assoc valid-state
@@ -349,13 +349,13 @@
            [:relationsFrozen false :bootstrap-not-frozen]
            [:publicWriter true :public-writer-present]
            [:activeReadSnapshots 1 :bootstrap-not-quiescent]
-           [:nativeInMemory false :invalid-bootstrap-topology]
+           [:nativeInMemory true :invalid-bootstrap-topology]
            [:localDatabaseCount 2 :invalid-bootstrap-topology]
            [:remoteServer true :invalid-bootstrap-topology]
            [:haMode true :invalid-bootstrap-topology]
            [:wal true :invalid-bootstrap-topology]
            [:efsMounted true :invalid-bootstrap-topology]
-           [:durableServingPath "/tmp/datalevin" :invalid-bootstrap-topology]
+           [:durableServingPath nil :invalid-bootstrap-topology]
            [:artifactSha256 (apply str (repeat 64 "0"))
             :bootstrap-binding-mismatch]
            [:snapshotStrategy "pre-checkpoint-quiesced"

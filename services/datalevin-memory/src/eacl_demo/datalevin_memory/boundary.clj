@@ -1,5 +1,5 @@
 (ns eacl-demo.datalevin-memory.boundary
-  "Closed request boundary for the in-memory Datalevin demo."
+  "Closed request boundary for the embedded Datalevin demo."
   (:require [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta])
   (:import [java.util.concurrent Semaphore]))
@@ -45,7 +45,7 @@
   {:contract {:name "explorer.v1" :routeMajor 1 :revision 2
               :minimumClientRevision 1}
    :identity identity
-   :profile {:backend "datalevin" :storage "memory"}
+   :profile {:backend "datalevin" :storage "embedded"}
    :runtime runtime
    :dataset dataset
    :basis basis

@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:d32142e50b6260eba22e317d5761ad9d876a9a4f96d3c6687750cfc7ed84d76e",
+  "reportId": "sha256:1f0a1678b981740b9bc167eeede39553a47d39eb242ff6f1567b10a2238beaa2",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -275,10 +275,10 @@
     {
       "id": "datalevin-memory",
       "backend": "datalevin",
-      "storage": "memory",
+      "storage": "embedded",
       "route": "/",
       "availabilityState": "unavailable",
-      "availabilityReason": "A reproducible AL2023 arm64 native candidate now passes ABI and true in-memory smoke locally, but the maintained fork/native/EACL releases, clean remote-consumer install, Lambda service, and SnapStart lifecycle qualification remain incomplete.",
+      "availabilityReason": "A reproducible AL2023 arm64 native candidate now passes ABI and embedded LMDB smoke locally, but the maintained fork/native/EACL releases, clean remote-consumer install, Lambda service, and SnapStart lifecycle qualification remain incomplete.",
       "buildUnits": [
         "datalevin-memory"
       ],
@@ -309,7 +309,7 @@
         "evidenceId": null,
         "definition": {
           "path": "infra/profiles/datalevin-memory-runtime.yaml",
-          "sha256": "93f5b8087a88e1aa0bbfaa33ced8bbe2427cf9d222b195c177a0e2c3fa7f53f8"
+          "sha256": "f3e96f3365d371e37e202eb2e8564d50bb87126085b7a82edf29322fd8a25462"
         }
       },
       "alarms": {

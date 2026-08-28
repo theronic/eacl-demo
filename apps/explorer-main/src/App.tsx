@@ -36,7 +36,7 @@ import { readPreferences, writePreferences } from "./preferences";
 import { AppStateProvider } from "./state";
 
 type BackendId = "datahike" | "datomic" | "datalevin" | "jank" | "datascript";
-type StorageId = "s3" | "dynamodb" | "memory" | "browser-memory";
+type StorageId = "s3" | "dynamodb" | "embedded" | "memory" | "browser-memory";
 type PlatformId = "lambda-1024" | "lambda-4096" | "ec2" | "browser";
 type ProfileState = "enabled" | "disabled" | "qualifying" | "unavailable";
 

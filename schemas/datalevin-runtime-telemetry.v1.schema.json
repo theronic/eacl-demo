@@ -33,7 +33,7 @@
     "deploymentId": {"$ref": "#/$defs/deploymentId"},
     "runtime": {"const": "java25"},
     "architecture": {"const": "arm64"},
-    "storageMode": {"const": "memory"},
+    "storageMode": {"const": "embedded"},
     "maximumConcurrency": {"const": 1},
     "sourceLifecycle": {"$ref": "#/$defs/uuid"},
     "nativeSourceId": {"$ref": "#/$defs/uuid"},

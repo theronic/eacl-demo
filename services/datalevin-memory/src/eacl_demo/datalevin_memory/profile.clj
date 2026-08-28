@@ -35,9 +35,10 @@
      :snapshotBehavior "request-snapshot"
      :cacheBehavior "environment-local"
      :mutationLocality "none"
-     :limitations ["read-only" "ephemeral" "no-durability"
-                   "lifecycle-rebuild" "unequal-dataset-scale"
-                   "unsupported-consistency"]}
+     :limitations (cond-> ["read-only" "unequal-dataset-scale"
+                            "unsupported-consistency"]
+                    (= "lambda" execution)
+                    (into ["ephemeral" "lifecycle-rebuild"]))}
     :limits [{:name "requestDeadlineMs" :value 30000}
              {:name "admissionConcurrency" :value admission-concurrency}
              {:name "responseBodyBytes" :value 1048576}
