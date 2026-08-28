@@ -1,11 +1,18 @@
 (ns eacl-demo.datomic-dynamodb-lambda-handler-test
   (:require [clojure.data.json :as json]
-            [clojure.test :refer [deftest is]]
+            [clojure.test :refer [deftest is use-fixtures]]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datomic-dynamodb.http-server :as http-server]
             [eacl-demo.datomic-dynamodb.lambda-handler :as handler])
   (:import [java.net URI]
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
+
+(def baked-eacl-sha "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
+(use-fixtures :each
+  (fn [run]
+    (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
+      (run))))
 
 (def environment
   {"AWS_REGION" "us-east-1"
@@ -50,6 +57,10 @@
            (get-in parsed [:reader-config :table])))
     (is (= 2 (get-in parsed [:reader-config :maximum-concurrency])))
     (is (= "datomic-dynamodb" (get-in parsed [:identity :profileId])))
+    (is (= baked-eacl-sha (get-in parsed [:identity :eaclSha])))
+    (is (= baked-eacl-sha
+           (get-in (handler/parse-environment (dissoc environment "EACL_CORE_SHA"))
+                   [:identity :eaclSha])))
     (is (= "lambda" (:execution parsed))))
   (let [parsed (handler/parse-environment
                 (-> environment
@@ -80,7 +91,7 @@
         denied-body (json/read-str (:body denied) :key-fn keyword)]
     (is (= 200 (:statusCode health)))
     (is (= "ready" (get-in health-body [:data :status])))
-    (is (= (get environment "EACL_CORE_SHA")
+    (is (= baked-eacl-sha
            (get-in health-body [:data :identity :eaclSha])))
     (is (= (:id basis) (get-in health-body [:meta :revision])))
     (is (= #{:data :meta} (set (keys health-body))))

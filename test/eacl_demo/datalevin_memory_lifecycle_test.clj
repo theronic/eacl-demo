@@ -1,5 +1,6 @@
 (ns eacl-demo.datalevin-memory-lifecycle-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datalevin-memory.lifecycle :as lifecycle]))
 
 (def valid-state
@@ -22,6 +23,11 @@
    :revisionWatermark 42
    :logicalResourceCount 10000
    :mutationPolicy "immutable-after-publication"})
+
+(use-fixtures :each
+  (fn [run]
+    (with-redefs [build-identity/eacl-sha (constantly (:eaclSha valid-state))]
+      (run))))
 
 (def raw-state
   "{\"schema\":\"eacl-demo.datalevin-lifecycle-state.v1\"}")
@@ -282,11 +288,15 @@
 (deftest environment-contract-rejects-topology-and-identity-drift-test
   (is (= 42 (:revisionWatermark
              (lifecycle/expected-state-from-environment! valid-environment))))
+  (is (= (:eaclSha valid-state)
+         (:eaclSha (lifecycle/expected-state-from-environment!
+                    (dissoc valid-environment "EACL_CORE_SHA")))))
   (doseq [[field value]
           [["EACL_DATALEVIN_STORAGE_MODE" "disk"]
            ["EACL_RUNTIME" "provided.al2023"]
            ["EACL_ARCHITECTURE" "x86_64"]
            ["EACL_DEMO_SHA" (apply str (repeat 40 "g"))]
+           ["EACL_CORE_SHA" (apply str (repeat 40 "0"))]
            ["EACL_DEPLOYMENT_ID" "bad deployment"]
            ["EACL_MAXIMUM_CONCURRENCY" "2"]
            ["EACL_SNAPSHOT_STRATEGY" "unqualified"]

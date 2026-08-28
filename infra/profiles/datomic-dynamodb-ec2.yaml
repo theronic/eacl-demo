@@ -183,8 +183,8 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: s3:GetObjectVersion
-                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactKey}"
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/artifacts/datomic-dynamodb/*"
         - PolicyName: exact-runtime-log-delivery
           PolicyDocument:
             Version: "2012-10-17"

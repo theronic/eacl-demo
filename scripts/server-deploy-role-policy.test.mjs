@@ -34,6 +34,14 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
   assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:DeleteFunction(?:\s|$)|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
 });
 
+test("only the Datomic deployment authority may promote the exact comparison runtimes", () => {
+  assert.match(source, /IsDatomicProfile: !Equals \[!Ref ProfileId, datomic-dynamodb\]/u);
+  assert.match(source, /DeployExactDatomicComparisonLambda[\s\S]*function:\$\{DatomicComparisonFunctionName\}\*/u);
+  assert.match(source, /ReconcileExactDatomicEc2Runtime[\s\S]*Action: ssm:SendCommand[\s\S]*document\/AWS-RunShellScript[\s\S]*instance\/\$\{DatomicEc2InstanceId\}/u);
+  assert.match(deploySource, /deployDatomicPlatforms[\s\S]*datomic-dynamodb-large[\s\S]*deployDatomicEc2[\s\S]*deployProfile\("datomic-dynamodb", profiles\["datomic-dynamodb"\]/u);
+  assert.doesNotMatch(source, /ssm:(?:StartSession|GetParameter|PutParameter)|cloudformation:|iam:PassRole/u);
+});
+
 test("successful empty AWS JSON output represents an absent optional setting", () => {
   assert.match(deploySource, /const output = aws\(\[\.\.\.args, "--output", "json"\]\)\.trim\(\);/u);
   assert.match(deploySource, /return output === "" \? \{\} : JSON\.parse\(output\);/u);

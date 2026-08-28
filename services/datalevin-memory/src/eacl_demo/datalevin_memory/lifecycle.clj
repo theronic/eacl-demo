@@ -3,6 +3,7 @@
   Lambda. This namespace deliberately has no Datalevin dependency: the native
   runtime remains blocked until the maintained fork and AL2023 arm64 closure
   are published and qualified."
+  (:require [eacl-demo.contracts.build-identity :as build-identity])
   (:import (java.math BigInteger)
            (java.nio.charset StandardCharsets)
            (java.security MessageDigest)))
@@ -59,7 +60,6 @@
   {:schema "EACL_DATALEVIN_RUNTIME_STATE_SCHEMA"
    :objectSha256 "EACL_DATALEVIN_RUNTIME_STATE_SHA256"
    :demoSha "EACL_DEMO_SHA"
-   :eaclSha "EACL_CORE_SHA"
    :artifactSha256 "EACL_ARTIFACT_SHA256"
    :deploymentId "EACL_DEPLOYMENT_ID"
    :runtime "EACL_RUNTIME"
@@ -228,15 +228,22 @@
   [environment]
   (when-not (map? environment)
     (fail! :invalid-environment {:failure :not-a-map}))
-  (let [values
-        (into {}
-              (map
-               (fn [[field name]]
-                 (let [value (get environment name)]
-                   (when-not (string? value)
-                     (fail! :missing-environment {:field field}))
-                   [field value])))
-              required-environment)
+  (let [baked-eacl-sha (build-identity/eacl-sha)
+        declared-eacl-sha (get environment "EACL_CORE_SHA")
+        _ (when (and (some? declared-eacl-sha)
+                     (not= baked-eacl-sha declared-eacl-sha))
+            (fail! :invalid-environment {:field :eaclSha}))
+        values
+        (assoc
+         (into {}
+               (map
+                (fn [[field name]]
+                  (let [value (get environment name)]
+                    (when-not (string? value)
+                      (fail! :missing-environment {:field field}))
+                    [field value])))
+               required-environment)
+         :eaclSha baked-eacl-sha)
         expected
         (-> values
             (update :revisionWatermark

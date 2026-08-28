@@ -1,7 +1,14 @@
 (ns eacl-demo.datahike-dynamodb-lambda-handler-test
   (:require [clojure.data.json :as json]
-            [clojure.test :refer [deftest is]]
+            [clojure.test :refer [deftest is use-fixtures]]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datahike-dynamodb.lambda-handler :as handler]))
+
+(def baked-eacl-sha "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
+(use-fixtures :each
+  (fn [run]
+    (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
+      (run))))
 
 (def environment
   {"AWS_REGION" "us-east-1"
@@ -52,7 +59,11 @@
            (get-in parsed [:reader-config :table])))
     (is (= 0 (get-in parsed [:reader-config :search-cache-size])))
     (is (= 1 (get-in parsed [:reader-config :maximum-concurrency])))
-    (is (= "datahike-dynamodb" (get-in parsed [:identity :profileId]))))
+    (is (= "datahike-dynamodb" (get-in parsed [:identity :profileId])))
+    (is (= baked-eacl-sha (get-in parsed [:identity :eaclSha])))
+    (is (= baked-eacl-sha
+           (get-in (handler/parse-environment (dissoc environment "EACL_CORE_SHA"))
+                   [:identity :eaclSha]))))
   (doseq [changed [(dissoc environment "EACL_CURSOR_KEY")
                    (assoc environment "EACL_CURSOR_KEY" "too-short")
                    (assoc environment "EACL_CORE_SHA"

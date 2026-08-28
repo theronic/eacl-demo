@@ -58,7 +58,10 @@ export const ordinaryTargetDefinitions = Object.freeze({
     environment: "demo-production-datomic-dynamodb",
     authorityId: "deploy-datomic-dynamodb",
     roleVariable: "AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN",
-    deployVariables: serverDeployVariables("DATOMIC_DYNAMODB_FUNCTION_NAME"),
+    deployVariables: {
+      ...serverDeployVariables("DATOMIC_DYNAMODB_FUNCTION_NAME"),
+      DATOMIC_DYNAMODB_EC2_INSTANCE_ID: "DATOMIC_DYNAMODB_EC2_INSTANCE_ID"
+    },
     payloadPath: "dist/datomic-dynamodb/function.jar",
     deploymentImplemented: true,
     buildKind: "jvm",

@@ -2,6 +2,7 @@
   "AWS Lambda Function URL entrypoint for the fixed-current Datomic reader."
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datomic-dynamodb.boundary :as boundary]
@@ -11,8 +12,6 @@
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]))
 
-(def ^:private pinned-eacl-sha
-  "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
 (def ^:private sha1-pattern #"[0-9a-f]{40}")
 (def ^:private sha256-pattern #"[0-9a-f]{64}")
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
@@ -138,15 +137,17 @@
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
         required ["AWS_REGION" "EACL_DATOMIC_TABLE" "EACL_DATOMIC_DATABASE"
                   "EACL_MAXIMUM_CONCURRENCY" "EACL_CURSOR_KEY"
-                  "EACL_DEMO_SHA" "EACL_CORE_SHA" "EACL_ARTIFACT_SHA256"
+                  "EACL_DEMO_SHA" "EACL_ARTIFACT_SHA256"
                   "EACL_DEPLOYMENT_ID" memory-key]
         missing (filter #(not (string? (get environment %))) required)
         concurrency (parse-positive-int (get environment
                                              "EACL_MAXIMUM_CONCURRENCY"))
         memory-mib (parse-positive-int (get environment memory-key))
+        baked-eacl-sha (build-identity/eacl-sha)
+        declared-eacl-sha (get environment "EACL_CORE_SHA")
         identity {:profileId "datomic-dynamodb"
                   :demoSha (get environment "EACL_DEMO_SHA")
-                  :eaclSha (get environment "EACL_CORE_SHA")
+                  :eaclSha baked-eacl-sha
                   :artifactSha256 (get environment "EACL_ARTIFACT_SHA256")
                   :deploymentId (get environment "EACL_DEPLOYMENT_ID")
                   :dataManifestSha256 profile/data-manifest-sha256}]
@@ -154,7 +155,8 @@
               (nil? concurrency) (nil? memory-mib)
               (not (contains? #{"lambda" "ec2"} execution))
               (not (re-matches sha1-pattern (:demoSha identity)))
-              (not= pinned-eacl-sha (:eaclSha identity))
+              (and (some? declared-eacl-sha)
+                   (not= baked-eacl-sha declared-eacl-sha))
               (not (re-matches sha256-pattern (:artifactSha256 identity)))
               (not (re-matches deployment-pattern (:deploymentId identity))))
       (throw (ex-info "Lambda environment is incomplete or invalid."

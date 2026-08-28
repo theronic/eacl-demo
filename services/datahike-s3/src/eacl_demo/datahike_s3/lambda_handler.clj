@@ -2,6 +2,7 @@
   "AWS Lambda Function URL entrypoint for the adopted read-only S3 store."
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.contracts.function-url :as function-url]
             [eacl-demo.contracts.observability :as observability]
             [eacl-demo.datahike-s3.boundary :as boundary]
@@ -12,8 +13,6 @@
            [java.io InputStream OutputStream]
            [java.util UUID]))
 
-(def ^:private pinned-eacl-sha
-  "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
 (def ^:private sha1-pattern #"[0-9a-f]{40}")
 (def ^:private sha256-pattern #"[0-9a-f]{64}")
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
@@ -174,7 +173,7 @@
   (let [required ["AWS_REGION" "EACL_DATAHIKE_BUCKET"
                   "EACL_DATAHIKE_STORE_ID" "EACL_STORE_CACHE_SIZE"
                   "EACL_SEARCH_CACHE_SIZE" "EACL_MAXIMUM_CONCURRENCY"
-                  "EACL_CURSOR_KEY" "EACL_DEMO_SHA" "EACL_CORE_SHA"
+                  "EACL_CURSOR_KEY" "EACL_DEMO_SHA"
                   "EACL_ARTIFACT_SHA256" "EACL_DEPLOYMENT_ID"
                   "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"]
         missing (filter #(not (string? (get environment %))) required)
@@ -190,9 +189,11 @@
                    (UUID/fromString
                     (get environment "EACL_DATAHIKE_STORE_ID" ""))
                    (catch IllegalArgumentException _ nil))
+        baked-eacl-sha (build-identity/eacl-sha)
+        declared-eacl-sha (get environment "EACL_CORE_SHA")
         identity {:profileId "datahike-s3"
                   :demoSha (get environment "EACL_DEMO_SHA")
-                  :eaclSha (get environment "EACL_CORE_SHA")
+                  :eaclSha baked-eacl-sha
                   :artifactSha256 (get environment "EACL_ARTIFACT_SHA256")
                   :deploymentId (get environment "EACL_DEPLOYMENT_ID")
                   :dataManifestSha256 profile/data-manifest-sha256}
@@ -209,7 +210,8 @@
                         (<= 32 (count (.getBytes ^String cursor-key
                                                 "UTF-8")))))
               (not (re-matches sha1-pattern (:demoSha identity)))
-              (not= pinned-eacl-sha (:eaclSha identity))
+              (and (some? declared-eacl-sha)
+                   (not= baked-eacl-sha declared-eacl-sha))
               (not (re-matches sha256-pattern (:artifactSha256 identity)))
               (not (re-matches deployment-pattern (:deploymentId identity))))
       (throw (ex-info "Lambda environment is incomplete or invalid."

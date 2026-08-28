@@ -15,6 +15,14 @@ Parameters:
   FunctionName:
     Type: String
     AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
+  DatomicComparisonFunctionName:
+    Type: String
+    Default: eacl-demo-datomic-dynamodb-large
+    AllowedPattern: "^[A-Za-z0-9_-]{1,64}$"
+  DatomicEc2InstanceId:
+    Type: String
+    Default: i-01f2d07f50ad1cb5d
+    AllowedPattern: "^i-[0-9a-f]{8,17}$"
   ArtifactBucketName:
     Type: String
     AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
@@ -46,6 +54,7 @@ Mappings:
 
 Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
+  IsDatomicProfile: !Equals [!Ref ProfileId, datomic-dynamodb]
 
 Resources:
   ServerDeployRole:
@@ -103,6 +112,32 @@ Resources:
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
                 Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}*"
+              - !If
+                - IsDatomicProfile
+                - Sid: DeployExactDatomicComparisonLambda
+                  Effect: Allow
+                  Action:
+                    - lambda:GetAlias
+                    - lambda:GetFunction
+                    - lambda:GetFunctionConfiguration
+                    - lambda:GetFunctionConcurrency
+                    - lambda:InvokeFunction
+                    - lambda:DeleteFunctionConcurrency
+                    - lambda:PublishVersion
+                    - lambda:UpdateAlias
+                    - lambda:UpdateFunctionCode
+                    - lambda:UpdateFunctionConfiguration
+                  Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${DatomicComparisonFunctionName}*"
+                - !Ref AWS::NoValue
+              - !If
+                - IsDatomicProfile
+                - Sid: ReconcileExactDatomicEc2Runtime
+                  Effect: Allow
+                  Action: ssm:SendCommand
+                  Resource:
+                    - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
+                    - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DatomicEc2InstanceId}"
+                - !Ref AWS::NoValue
               - Sid: InvalidateExactProfileRegistry
                 Effect: Allow
                 Action:
