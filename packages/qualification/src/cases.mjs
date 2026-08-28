@@ -104,7 +104,13 @@ function consistencyCase(exemplar) {
   return operationCase("advertised-consistency-modes", "consistency", ["check-permission"], async ({ transport, descriptor }) => {
     const outcomes = [];
     for (const mode of descriptor.capabilities.consistencyModes) {
-      const decision = successfulData(await transport.request("check-permission", { ...demandInput(exemplar.demand, descriptor), consistency: mode }), "check-permission");
+      const decision = successfulData(await transport.request("check-permission", {
+        ...demandInput(exemplar.demand, descriptor),
+        consistency: mode,
+        ...(mode === "historical-date"
+          ? { atExactSnapshotAt: descriptor.basis.capturedAt }
+          : {}),
+      }), "check-permission");
       if (decision.allowed !== exemplar.expected.allowed) throw new Error(`advertised consistency ${mode} changed semantics`);
       outcomes.push(mode);
     }

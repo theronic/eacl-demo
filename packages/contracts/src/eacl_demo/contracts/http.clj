@@ -8,6 +8,10 @@
 (def ^:private maximum-page-size 1000)
 (def ^:private maximum-count-ceiling 1000000)
 
+(def ^:private consistency-fields
+  #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId
+    :atLeastAsFreshBasisCapturedAt :atExactSnapshotAt})
+
 (def ^:private identifier-pattern
   #"[A-Za-z0-9][A-Za-z0-9._:@/-]*")
 
@@ -15,29 +19,29 @@
   {"health" {:required #{} :optional #{}}
    "bootstrap" {:required #{} :optional #{}}
    "list-subjects" {:required #{} :optional #{:type :pageSize :cursor}}
-   "get-object" {:required #{:type :id} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+   "get-object" {:required #{:type :id} :optional consistency-fields}
    "list-relationships"
    {:required #{:resourceType :resourceId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:relation :pageSize :cursor :cache :populateCache} consistency-fields)}
    "reverse-relationships"
    {:required #{:subjectType :subjectId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:relation :pageSize :cursor :cache :populateCache} consistency-fields)}
    "check-permission"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
-    :optional #{:cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:cache :populateCache} consistency-fields)}
    "lookup-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:pageSize :cursor :cache :populateCache} consistency-fields)}
    "lookup-subjects"
    {:required #{:resourceType :resourceId :subjectType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:pageSize :cursor :cache :populateCache} consistency-fields)}
    "count-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:ceiling :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
-   "get-schema" {:required #{} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+    :optional (into #{:ceiling :cache :populateCache} consistency-fields)}
+   "get-schema" {:required #{} :optional consistency-fields}
    "get-cache-info" {:required #{} :optional #{}}
    "count-objects"
-   {:required #{:kind} :optional #{:type :ceiling :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}})
+   {:required #{:kind} :optional (into #{:type :ceiling} consistency-fields)}})
 
 (defn valid-request-id?
   [value]
@@ -128,6 +132,12 @@
                                            (not (and (contains? normalized :atLeastAsFreshAs)
                                                      (contains? normalized :atLeastAsFreshBasisId))))
                                   "validation-error")
+                                (when (and (contains? normalized :atExactSnapshotAt)
+                                           (not= "historical-date" (:consistency normalized)))
+                                  "validation-error")
+                                (when (and (= "historical-date" (:consistency normalized))
+                                           (not (contains? normalized :atExactSnapshotAt)))
+                                  "validation-error")
                                 (value-error normalized supported-consistency))]
                 {:ok? false :code code}
                 {:ok? true :input normalized}))))))))
@@ -162,7 +172,8 @@
          (not (contains? supported-consistency value)) "unsupported-consistency"
          :else nil)
 
-       (contains? #{:atLeastAsFreshAs :atLeastAsFreshBasisCapturedAt} key)
+       (contains? #{:atLeastAsFreshAs :atLeastAsFreshBasisCapturedAt
+                    :atExactSnapshotAt} key)
        (when-not (and (string? value)
                       (<= (alength (.getBytes ^String value StandardCharsets/UTF_8)) 64)
                       (try

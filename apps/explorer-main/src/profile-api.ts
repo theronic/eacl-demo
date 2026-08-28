@@ -221,12 +221,21 @@ export function createProfileApi(
 
     const active = await loadDescriptor(signal);
     const selectedConsistency = consistencyMode(body.consistency);
-    const consistency = preferredConsistency(active, selectedConsistency);
+    const exactSnapshotInput = selectedConsistency === "at-exact-snapshot"
+      && active.capabilities.consistencyModes.includes("historical-date")
+      ? exactSnapshot(body.consistency)
+      : {};
+    const consistency = preferredConsistency(
+      active,
+      selectedConsistency,
+      "atExactSnapshotAt" in exactSnapshotInput,
+    );
     const consistencyInput = {
       consistency,
       ...(selectedConsistency === "at-least-as-fresh"
         ? freshnessFloor(body.consistency)
         : {}),
+      ...exactSnapshotInput,
     };
 
     if (url.pathname === "/get-schema") {
@@ -562,13 +571,27 @@ function freshnessFloor(value: unknown): {
   };
 }
 
-function preferredConsistency(descriptor: ProfileDescriptor, mode: ConsistencyMode): string {
+function exactSnapshot(value: unknown): { atExactSnapshotAt?: string } {
+  if (!value || typeof value !== "object") return {};
+  const instant = (value as { atExactSnapshotAt?: unknown }).atExactSnapshotAt;
+  return typeof instant === "string" && instant.length > 0
+    ? { atExactSnapshotAt: instant }
+    : {};
+}
+
+function preferredConsistency(
+  descriptor: ProfileDescriptor,
+  mode: ConsistencyMode,
+  historicalDate = false,
+): string {
   const requested = mode === "minimize-latency"
     ? "minimize"
     : mode === "at-least-as-fresh"
       ? "at-least"
       : mode === "at-exact-snapshot"
-        ? "exact"
+        ? historicalDate && descriptor.capabilities.consistencyModes.includes("historical-date")
+          ? "historical-date"
+          : "exact"
         : "authoritative";
   return descriptor.capabilities.consistencyModes.includes(requested)
     ? requested

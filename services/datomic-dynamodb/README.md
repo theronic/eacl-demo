@@ -1,15 +1,19 @@
 # `datomic-dynamodb`
 
-Transactor-free read-only Peer Lambda that captures one current `d/db` during environment initialization. Provisioning/transactor/seed code belongs to private data workflows, not this service.
+Transactor-free read-only Peer service for Lambda and EC2. It captures one
+current `d/db` during environment initialization; provisioning, transactor, and
+seed code belong to private data workflows, not this service.
 
 The serving URI is constructed only as
 `datomic:ddb://REGION/TABLE/DATABASE?read-only=true`; callers cannot inject a
 protocol, endpoint, credentials, or query parameters. Each request receives an
-authenticated exact-basis EACL snapshot selected from the retained DB value.
-Only absent or `minimize` consistency inputs pass the public boundary. Its wire basis
-behavior is the contract term `fixed-environment`. Synchronized,
-exact, historical, and unknown future modes fail before snapshot construction.
+authenticated exact-basis EACL snapshot. The Lambda profile exposes its fixed
+startup basis. The EC2 profile additionally exposes `historical-date`: it
+resolves the requested instant against the retained Datomic history, issues an
+authenticated token for the resulting native transaction basis, and keeps the
+complete request—including cursor pages—on that exact basis. The initial wire
+basis remains `fixed-environment`; a selected historical basis is reported as
+`request-snapshot`.
 
-The underlying seeded database is required to retain normal Datomic history for
-a future, separately deployed non-read-only EC2 demo. That future deployment is
-out of scope here and does not broaden this Lambda's fixed-current capability.
+Neither profile synchronizes with a writer during a request. Unknown and
+unadvertised consistency modes fail before snapshot construction.

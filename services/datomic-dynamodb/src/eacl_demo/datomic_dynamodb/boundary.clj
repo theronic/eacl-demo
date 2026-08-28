@@ -20,9 +20,6 @@
    "get-cache-info" :post
    "count-objects" :post})
 
-(def ^:private supported-consistency
-  #{"minimize" "authoritative" "at-least" "exact"})
-
 (defn parse-route
   [{:keys [path method]}]
   (let [path (or path "")
@@ -68,6 +65,8 @@
   (let [{:keys [ok? operation code]} (parse-route request)
         operation (or operation "health")
         identity (:identity descriptor)
+        supported-consistency
+        (set (get-in descriptor [:capabilities :consistencyModes]))
         input-result (when ok?
                        (http/normalize-input operation (or input {})
                                              supported-consistency))
@@ -104,7 +103,7 @@
                   (throw (ex-info "deadline" {:code "deadline-exceeded"}))))]
           (try
             (check-active!)
-            (let [snapshot (capture-snapshot)]
+            (let [snapshot (capture-snapshot input)]
               ;; Retain the cleanup handle before validating the rest of the
               ;; internal shape so a malformed capture cannot leak resources.
               (reset! snapshot* snapshot)
