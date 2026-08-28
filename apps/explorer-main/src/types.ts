@@ -11,6 +11,7 @@ export type ConsistencyMode =
 export interface ConsistencyRequest {
   mode: ConsistencyMode;
   atLeastAsFreshAs?: string;
+  atLeastAsFreshBasisId?: string;
 }
 
 export interface BasisInfo {

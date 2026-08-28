@@ -142,7 +142,7 @@
 
 (defn descriptor
   [{:keys [identity runtime dataset basis capabilities limits]}]
-  {:contract {:name "explorer.v1" :routeMajor 1 :revision 2
+  {:contract {:name "explorer.v1" :routeMajor 1 :revision 3
               :minimumClientRevision 1}
    :identity identity
    :profile {:backend "datahike" :storage "s3"}

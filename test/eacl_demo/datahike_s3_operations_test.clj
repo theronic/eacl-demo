@@ -48,6 +48,23 @@
               {:eacl-demo/snapshot snapshot :consistency "exact"})))
       (is (= 1 @calls)))))
 
+(deftest same-basis-identity-satisfies-cross-environment-freshness-floor-test
+  (let [input {:eacl-demo/snapshot ::snapshot
+               :eacl-demo/public-basis public-basis
+               :consistency "at-least"
+               :atLeastAsFreshAs "2026-08-26T00:00:01Z"}]
+    (with-redefs [eacl/basis-token (constantly "basis-token")]
+      (is (= (consistency/at-least-as-fresh "basis-token")
+             (#'operations/eacl-consistency
+              (assoc input :atLeastAsFreshBasisId (:id public-basis)))))
+      (is (= "freshness-unavailable"
+             (:code
+              (ex-data
+               (try
+                 (#'operations/eacl-consistency
+                  (assoc input :atLeastAsFreshBasisId "datahike:test:test:41"))
+                 (catch clojure.lang.ExceptionInfo error error)))))))))
+
 (deftest fixed-server-count-does-not-open-the-database-test
   (let [handlers (operations/create-handlers
                   {:descriptor descriptor :cursor-key cursor-key})]

@@ -5,16 +5,16 @@ const CONSISTENCY = new Set(["minimize", "authoritative", "at-least", "exact", "
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]*$/u;
 const BODY_FIELDS = Object.freeze({
   "list-subjects": { optional: ["type", "pageSize", "cursor"] },
-  "get-object": { required: ["type", "id"], optional: ["consistency", "atLeastAsFreshAs"] },
-  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", "consistency", "atLeastAsFreshAs"] },
-  "get-schema": { optional: ["consistency", "atLeastAsFreshAs"] },
+  "get-object": { required: ["type", "id"], optional: ["consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
+  "get-schema": { optional: ["consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] },
   "get-cache-info": { optional: [] },
-  "count-objects": { required: ["kind"], optional: ["type", "ceiling", "consistency", "atLeastAsFreshAs"] }
+  "count-objects": { required: ["kind"], optional: ["type", "ceiling", "consistency", "atLeastAsFreshAs", "atLeastAsFreshBasisId"] }
 });
 
 export function validateHttpRequest(request) {
@@ -38,7 +38,8 @@ export function validateHttpRequest(request) {
   const fields = BODY_FIELDS[route.operation];
   if (!fields || !validKeys(input, fields.required ?? [], fields.optional)) return rejected("validation-error");
   if (!validValues(input)) return rejected("validation-error");
-  if ("atLeastAsFreshAs" in input && input.consistency !== "at-least") return rejected("validation-error");
+  if (("atLeastAsFreshAs" in input || "atLeastAsFreshBasisId" in input) && input.consistency !== "at-least") return rejected("validation-error");
+  if ("atLeastAsFreshBasisId" in input && !("atLeastAsFreshAs" in input)) return rejected("validation-error");
   return { ...route, requestId, input };
 }
 
