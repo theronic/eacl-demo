@@ -11,11 +11,12 @@ const OPERATIONS = new Set([
 const GET_OPERATIONS = new Set(["health", "bootstrap"]);
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 const FUNCTION_URL_HOST = /^[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws$/u;
+const APPROVED_HTTPS_HOST = new Set(["datomic.demo.eacl.dev"]);
 const PROFILE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
 /**
- * Direct Function URL browser transport for one immutable, enabled server profile.
+ * Browser transport for one immutable, enabled server profile deployment.
  * Every response is schema checked and correlated to its request. Profile
  * identity is established by the health/bootstrap handshake before ordinary
  * Explorer operations can run.
@@ -59,7 +60,7 @@ export function createServerProfileTransport({
       : { "x-eacl-request-id": requestId };
     const path = `/${operation}`;
     const url = new URL(path, apiOrigin);
-    if (url.origin !== apiOrigin || url.pathname !== path || url.search || url.hash) throw new Error("HTTP profile request escaped its direct Function URL route");
+    if (url.origin !== apiOrigin || url.pathname !== path || url.search || url.hash) throw new Error("HTTP profile request escaped its deployment route");
     const bounded = boundedSignal([lifecycle.signal, options.signal], timeoutMs);
     try {
       const response = await fetchImpl(url.href, {
@@ -128,12 +129,12 @@ function validateProfile(profile) {
 }
 
 function validateApiOrigin(value) {
-  if (typeof value !== "string" || value.length === 0) throw new Error("enabled server profile requires a direct Function URL origin");
+  if (typeof value !== "string" || value.length === 0) throw new Error("enabled server profile requires a deployment origin");
   const url = new URL(value);
   if (url.username || url.password || url.pathname !== "/" || url.search || url.hash || url.port) throw new Error("HTTP profile API origin must be an origin without credentials or a path");
   const loopback = LOOPBACK.has(url.hostname);
-  if (loopback ? !new Set(["http:", "https:"]).has(url.protocol) : url.protocol !== "https:" || !FUNCTION_URL_HOST.test(url.hostname)) {
-    throw new Error("HTTP profile transport requires a direct HTTPS Lambda Function URL or loopback origin");
+  if (loopback ? !new Set(["http:", "https:"]).has(url.protocol) : url.protocol !== "https:" || (!FUNCTION_URL_HOST.test(url.hostname) && !APPROVED_HTTPS_HOST.has(url.hostname))) {
+    throw new Error("HTTP profile transport requires an approved HTTPS deployment origin or loopback origin");
   }
   return url.origin;
 }

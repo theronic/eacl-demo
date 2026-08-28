@@ -46,7 +46,7 @@ export function Explorer(props: {
   backendLabel: string;
   storageLabel: string;
   profileSelector: JSX.Element;
-  execution: "lambda" | "browser";
+  execution: "lambda" | "ec2" | "browser";
 }): JSX.Element {
   const app = useAppState();
   const hasBootstrap = () => Boolean(app.bootstrapData());
@@ -63,6 +63,8 @@ export function Explorer(props: {
               <strong>
                 {props.execution === "lambda"
                   ? `Waiting for ${props.backendLabel} Lambda to start... ${startupSeconds()}s`
+                  : props.execution === "ec2"
+                    ? `Connecting to ${props.backendLabel} EC2... ${startupSeconds()}s`
                   : `Loading ${props.backendLabel}... ${startupSeconds()}s`}
               </strong>
             </div>

@@ -1,0 +1,426 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Smallest-practical persistent EC2 deployment for the read-only Datomic/DynamoDB demo.
+
+Metadata:
+  EaclDemo:
+    Profile: datomic-dynamodb
+    Platform: ec2
+    Runtime: java25
+    InstanceType: t3.micro
+
+Parameters:
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0332d564d76dbd8d6
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+  ArtifactBucket:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  ArtifactKey:
+    Type: String
+    AllowedPattern: "^artifacts/datomic-dynamodb/[0-9a-f]{40}/[0-9a-f]{64}\\.jar$"
+  ArtifactVersion:
+    Type: String
+    MinLength: 1
+    MaxLength: 1024
+  ArtifactSha256:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{64}$"
+  DemoSha:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{40}$"
+  EaclSha:
+    Type: String
+    Default: 11114f59fa57fe87c5b7ab412b3123a9c8a1a862
+    AllowedValues:
+      - 11114f59fa57fe87c5b7ab412b3123a9c8a1a862
+  DeploymentId:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+  TableName:
+    Type: String
+    Default: eacl-demo-datomic-fixture-v1-green
+    AllowedPattern: "^eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  TableArn:
+    Type: String
+    Default: arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v1-green
+    AllowedPattern: "^arn:[a-z0-9-]+:dynamodb:[a-z0-9-]+:[0-9]{12}:table/eacl-demo-datomic-[a-z0-9-]{3,80}$"
+  DatabaseName:
+    Type: String
+    Default: eacl-demo
+    AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+  HostedZoneId:
+    Type: String
+    Default: Z05228481ZHF8BAKXOZB2
+    AllowedPattern: "^[A-Z0-9]{1,32}$"
+  DomainName:
+    Type: String
+    Default: datomic.demo.eacl.dev
+    AllowedValues: [datomic.demo.eacl.dev]
+  OriginDomainName:
+    Type: String
+    Default: datomic-origin.demo.eacl.dev
+    AllowedValues: [datomic-origin.demo.eacl.dev]
+  CloudFrontPrefixListId:
+    Type: String
+    Default: pl-3b927c52
+    AllowedPattern: "^pl-[0-9a-f]{8,17}$"
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.81.0.0/24
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - {Key: Name, Value: eacl-demo-datomic-ec2}
+        - {Key: Project, Value: eacl-demo}
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 10.81.0.0/26
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref Vpc
+      Tags:
+        - {Key: Name, Value: eacl-demo-datomic-ec2-public}
+        - {Key: Project, Value: eacl-demo}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  OriginSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: CloudFront-only ingress to the Datomic demo HTTP adapter.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Corretto packages, S3 artifact, DynamoDB, and CloudWatch Logs.
+      VpcId: !Ref Vpc
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+
+  RuntimeLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: /aws/ec2/eacl-demo-datomic-dynamodb
+      RetentionInDays: 14
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: exact-datomic-generation-reads
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:BatchGetItem, dynamodb:GetItem, dynamodb:Query, dynamodb:Scan]
+                Resource: !Ref TableArn
+        - PolicyName: exact-runtime-artifact-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObjectVersion
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactKey}"
+        - PolicyName: exact-runtime-log-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:DescribeLogStreams, logs:PutLogEvents]
+                Resource: !Sub "${RuntimeLogGroup.Arn}:*"
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+        - {Key: Platform, Value: ec2}
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: PublicDefaultRoute
+    Properties:
+      AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            VolumeSize: 8
+            VolumeType: gp3
+      CreditSpecification:
+        CPUCredits: standard
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        InstanceMetadataTags: enabled
+      Monitoring: false
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeleteOnTermination: true
+          DeviceIndex: "0"
+          GroupSet: [!Ref OriginSecurityGroup]
+          SubnetId: !Ref PublicSubnet
+      Tags:
+        - {Key: Name, Value: eacl-demo-datomic-dynamodb-ec2}
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+        - {Key: Platform, Value: ec2}
+        - {Key: EaclSha, Value: !Ref EaclSha}
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          exec > >(tee /var/log/eacl-demo-bootstrap.log | logger -t eacl-demo-bootstrap -s 2>/dev/console) 2>&1
+          dnf install -y java-25-amazon-corretto-headless amazon-cloudwatch-agent awscli
+          install -d -m 0755 /opt/eacl-demo /var/log/eacl-demo
+          aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${ArtifactKey} --version-id ${ArtifactVersion} /opt/eacl-demo/function.jar
+          echo "${ArtifactSha256}  /opt/eacl-demo/function.jar" | sha256sum --check --strict
+          cursor_key=$(head -c 48 /dev/urandom | base64 | tr -d '\n')
+          install -m 0600 /dev/null /etc/eacl-demo-datomic.env
+          {
+            echo "AWS_REGION=${AWS::Region}"
+            echo "AWS_LAMBDA_FUNCTION_NAME=eacl-demo-datomic-dynamodb-ec2"
+            echo "EACL_ARTIFACT_SHA256=${ArtifactSha256}"
+            echo "EACL_CORE_SHA=${EaclSha}"
+            echo "EACL_CURSOR_KEY=$cursor_key"
+            echo "EACL_DATOMIC_DATABASE=${DatabaseName}"
+            echo "EACL_DATOMIC_TABLE=${TableName}"
+            echo "EACL_DEMO_SHA=${DemoSha}"
+            echo "EACL_DEPLOYMENT_ID=${DeploymentId}"
+            echo "EACL_HTTP_PORT=8080"
+            echo "EACL_HTTP_WORKERS=4"
+            echo "EACL_MAXIMUM_CONCURRENCY=1"
+            echo "EACL_RUNTIME_EXECUTION=ec2"
+            echo "EACL_RUNTIME_MEMORY_MIB=1024"
+          } > /etc/eacl-demo-datomic.env
+          cat > /etc/systemd/system/eacl-demo-datomic.service <<'SERVICE'
+          [Unit]
+          Description=EACL read-only Datomic DynamoDB demo
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          Type=simple
+          EnvironmentFile=/etc/eacl-demo-datomic.env
+          ExecStart=/usr/bin/java -Xms384m -Xmx640m -XX:+ExitOnOutOfMemoryError -cp /opt/eacl-demo/function.jar clojure.main -m eacl-demo.datomic-dynamodb.http-server
+          Restart=on-failure
+          RestartSec=3
+          StandardOutput=append:/var/log/eacl-demo/datomic.log
+          StandardError=append:/var/log/eacl-demo/datomic.log
+          NoNewPrivileges=true
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+          cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'AGENT'
+          {
+            "agent": {"metrics_collection_interval": 60},
+            "logs": {"logs_collected": {"files": {"collect_list": [
+              {"file_path": "/var/log/eacl-demo/datomic.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/runtime"},
+              {"file_path": "/var/log/eacl-demo-bootstrap.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/bootstrap"}
+            ]}}}
+          }
+          AGENT
+          /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          systemctl daemon-reload
+          systemctl enable --now eacl-demo-datomic.service
+          for attempt in $(seq 1 180); do
+            if curl --fail --silent --show-error -H 'x-eacl-request-id: ec2-bootstrap-health' http://127.0.0.1:8080/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          systemctl status eacl-demo-datomic.service --no-pager
+          exit 1
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+
+  ElasticIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ElasticIp.AllocationId
+      InstanceId: !Ref Instance
+
+  OriginRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ElasticIpAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref OriginDomainName
+      ResourceRecords: [!Ref ElasticIp]
+      TTL: "60"
+      Type: A
+
+  ViewerCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+      ValidationMethod: DNS
+
+  ApiCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Comment: Never cache EACL API responses at the CDN.
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        Name: !Sub "${AWS::StackName}-disabled"
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig: {CookieBehavior: none}
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig: {HeaderBehavior: none}
+          QueryStringsConfig: {QueryStringBehavior: none}
+
+  ApiOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Comment: Forward only the bounded Explorer API headers.
+        CookiesConfig: {CookieBehavior: none}
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [Accept, Access-Control-Request-Headers, Access-Control-Request-Method, Content-Type, Origin, X-Eacl-Request-Id]
+        Name: !Sub "${AWS::StackName}-api"
+        QueryStringsConfig: {QueryStringBehavior: none}
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: OriginRecord
+    Properties:
+      DistributionConfig:
+        Aliases: [!Ref DomainName]
+        Comment: Persistent Datomic/DynamoDB comparison target.
+        DefaultCacheBehavior:
+          AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+          CachePolicyId: !Ref ApiCachePolicy
+          Compress: true
+          OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
+          TargetOriginId: datomic-ec2
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - CustomOriginConfig:
+              HTTPPort: 8080
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 5
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+              OriginSSLProtocols: [TLSv1.2]
+            DomainName: !Ref OriginDomainName
+            Id: datomic-ec2
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ViewerCertificate
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+      Tags:
+        - {Key: Project, Value: eacl-demo}
+        - {Key: Profile, Value: datomic-dynamodb}
+        - {Key: Platform, Value: ec2}
+
+  ViewerRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt Distribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+
+Outputs:
+  ApiOrigin:
+    Value: !Sub "https://${DomainName}"
+  DistributionId:
+    Value: !Ref Distribution
+  InstanceId:
+    Value: !Ref Instance
+  InstanceType:
+    Value: !Ref InstanceType
+  OriginAddress:
+    Value: !Ref ElasticIp
+  RuntimeLogGroup:
+    Value: !Ref RuntimeLogGroup

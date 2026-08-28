@@ -30,6 +30,15 @@ const profiles = {
     memorySize: 1024,
     snapStart: false
   },
+  "datomic-dynamodb-large": {
+    artifact: "dist/datomic-dynamodb/function.jar",
+    functionName: "eacl-demo-datomic-dynamodb-large",
+    memorySize: 4096,
+    snapStart: false,
+    profileId: "datomic-dynamodb",
+    apiOrigin: "https://7um6u6hb6wq6yfl46ukjkxcpuy0gexer.lambda-url.us-east-1.on.aws",
+    publishRegistry: false
+  },
   "datalevin-memory": {
     artifact: "dist/datalevin-memory/function.jar",
     functionName: "eacl-demo-datalevin-memory-live",
@@ -39,7 +48,7 @@ const profiles = {
 };
 
 if (target === "static") await deployStatic();
-else if (profiles[target]) await deployProfile(target, profiles[target]);
+else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
 else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
 
 async function deployStatic() {
@@ -79,7 +88,7 @@ async function deployStatic() {
   process.stdout.write(`deployed static ${demoSha()}\n`);
 }
 
-async function deployProfile(profileId, profile) {
+async function deployProfile(profileId, profile, targetId = profileId) {
   const artifactBucket = required("ARTIFACT_BUCKET");
   const artifactPath = path.join(root, profile.artifact);
   const artifactSha = createHash("sha256").update(await readFile(artifactPath)).digest("hex");
@@ -151,21 +160,23 @@ async function deployProfile(profileId, profile) {
       "--description", `demos:${demoSha()}:${artifactSha}`,
       "--revision-id", priorAlias.RevisionId]);
     try {
-      await smokeFunctionUrl(profileId, definitionFor(profileId).apiOrigin,
+      await smokeFunctionUrl(profileId, profile.apiOrigin ?? definitionFor(profileId).apiOrigin,
         expectedIdentityFor(profileId, artifactSha, deploymentId));
-      await publishProfile({
-        profileId,
-        artifactKind: "lambda-version",
-        artifactSha,
-        artifactVersion: update.Version,
-        dataManifestSha: smoke.dataManifestSha,
-        evidence: createHash("sha256").update(smoke.evidence).digest("hex")
-      });
+      if (profile.publishRegistry !== false) {
+        await publishProfile({
+          profileId,
+          artifactKind: "lambda-version",
+          artifactSha,
+          artifactVersion: update.Version,
+          dataManifestSha: smoke.dataManifestSha,
+          evidence: createHash("sha256").update(smoke.evidence).digest("hex")
+        });
+      }
     } catch (error) {
       rollbackAlias(profile.functionName, promoted, priorAlias);
       throw error;
     }
-    process.stdout.write(`deployed ${profileId} version ${update.Version} sha256:${artifactSha}\n`);
+    process.stdout.write(`deployed ${targetId} version ${update.Version} sha256:${artifactSha}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

@@ -56,3 +56,9 @@ test("runtime validation is restricted to checked-in precompiled schema ids", ()
     /no precompiled runtime validator/u
   );
 });
+
+test("the descriptor contract accepts the deployed EC2 execution platform", () => {
+  const candidate = structuredClone(descriptor);
+  candidate.runtime.execution = "ec2";
+  assert.equal(validate.descriptor(candidate).runtime.execution, "ec2");
+});

@@ -69,7 +69,7 @@ Resources:
         Name: !Sub "${AWS::StackName}-security"
         SecurityHeadersConfig:
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws https://cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws; worker-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            ContentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws https://cjg7vmjzdhpomcjac3nxgp5ina0iwakt.lambda-url.us-east-1.on.aws https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws https://7um6u6hb6wq6yfl46ukjkxcpuy0gexer.lambda-url.us-east-1.on.aws https://datomic.demo.eacl.dev https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws; worker-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
             Override: true
           ContentTypeOptions:
             Override: true

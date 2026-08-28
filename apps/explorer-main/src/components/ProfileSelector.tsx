@@ -12,13 +12,23 @@ export interface StorageOption {
   reason?: string | null;
 }
 
+export interface PlatformOption {
+  id: string;
+  label: string;
+  selectable: boolean;
+  reason?: string | null;
+}
+
 export function ProfileSelector(props: {
   backends: BackendOption[];
   backend: string;
   storage: string;
   storages: StorageOption[];
+  platform: string;
+  platforms: PlatformOption[];
   onBackend: (backend: string) => void;
   onStorage: (storage: string) => void;
+  onPlatform: (platform: string) => void;
 }): JSX.Element {
   return (
     <section class="schema-shell consistency-shell" aria-labelledby="profile-selector-title">
@@ -69,6 +79,31 @@ export function ProfileSelector(props: {
                         onChange={() => props.onStorage(storage.id)}
                       />
                       <span>{storage.label}</span>
+                    </label>
+                  )}
+                </For>
+              </div>
+            </fieldset>
+          </div>
+          <div class="consistency-selection-row">
+            <fieldset class="consistency-selection">
+              <legend class="consistency-selection__label">Platform:</legend>
+              <div class="consistency-selection__options">
+                <For each={props.platforms}>
+                  {(platform) => (
+                    <label
+                      class={`consistency-radio profile-selector__option ${platform.selectable ? "" : "consistency-radio--disabled"}`}
+                      title={platform.reason ?? platform.label}
+                    >
+                      <input
+                        type="radio"
+                        name="explorer-platform"
+                        value={platform.id}
+                        checked={props.platform === platform.id}
+                        disabled={!platform.selectable}
+                        onChange={() => props.onPlatform(platform.id)}
+                      />
+                      <span>{platform.label}</span>
                     </label>
                   )}
                 </For>

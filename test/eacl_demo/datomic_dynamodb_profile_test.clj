@@ -58,3 +58,20 @@
                  :basis basis
                  :memory-mib 1024
                  :admission-concurrency 1}))))
+
+(deftest descriptor-reports-the-actual-compute-platform-test
+  (is (= "ec2"
+         (get-in (profile/descriptor
+                  {:identity profile-identity
+                   :basis basis
+                   :memory-mib 1024
+                   :admission-concurrency 1
+                   :execution "ec2"})
+                 [:runtime :execution])))
+  (is (thrown? clojure.lang.ExceptionInfo
+               (profile/descriptor
+                {:identity profile-identity
+                 :basis basis
+                 :memory-mib 1024
+                 :admission-concurrency 1
+                 :execution "container"}))))

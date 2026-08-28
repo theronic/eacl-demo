@@ -89,9 +89,10 @@ test("canonical layout order is unchanged except for the profile selector", () =
   assert.doesNotMatch(explorer, /dashboard|report|verified profile facts|storage stats/iu);
 
   const selector = file(resolve(demoSource, "components/ProfileSelector.tsx"));
-  assert.equal((selector.match(/type="radio"/gu) ?? []).length, 2);
+  assert.equal((selector.match(/type="radio"/gu) ?? []).length, 3);
   assert.doesNotMatch(selector, /<select|<option/iu);
   assert.match(selector, /Backend &amp; Storage/u);
+  assert.match(selector, /Platform:/u);
 });
 
 test("requested copy and control moves are the only component deltas", () => {

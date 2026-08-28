@@ -1,7 +1,11 @@
 (ns eacl-demo.datomic-dynamodb-lambda-handler-test
   (:require [clojure.data.json :as json]
             [clojure.test :refer [deftest is]]
-            [eacl-demo.datomic-dynamodb.lambda-handler :as handler]))
+            [eacl-demo.datomic-dynamodb.http-server :as http-server]
+            [eacl-demo.datomic-dynamodb.lambda-handler :as handler])
+  (:import [java.net URI]
+           [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
+            HttpResponse$BodyHandlers]))
 
 (def environment
   {"AWS_REGION" "us-east-1"
@@ -45,11 +49,20 @@
     (is (= "eacl-demo-datomic-fixture-v1-green"
            (get-in parsed [:reader-config :table])))
     (is (= 2 (get-in parsed [:reader-config :maximum-concurrency])))
-    (is (= "datomic-dynamodb" (get-in parsed [:identity :profileId]))))
+    (is (= "datomic-dynamodb" (get-in parsed [:identity :profileId])))
+    (is (= "lambda" (:execution parsed))))
+  (let [parsed (handler/parse-environment
+                (-> environment
+                    (dissoc "AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
+                    (assoc "EACL_RUNTIME_EXECUTION" "ec2"
+                           "EACL_RUNTIME_MEMORY_MIB" "1024")))]
+    (is (= "ec2" (:execution parsed)))
+    (is (= 1024 (:memory-mib parsed))))
   (doseq [changed [(dissoc environment "EACL_CURSOR_KEY")
                    (assoc environment "EACL_CORE_SHA" (apply str (repeat 40 "0")))
                    (assoc environment "EACL_MAXIMUM_CONCURRENCY" "0")
-                   (assoc environment "EACL_ARTIFACT_SHA256" "not-a-digest")]]
+                   (assoc environment "EACL_ARTIFACT_SHA256" "not-a-digest")
+                   (assoc environment "EACL_RUNTIME_EXECUTION" "container")]]
     (is (thrown? clojure.lang.ExceptionInfo
                  (handler/parse-environment changed)))))
 
@@ -89,3 +102,39 @@
     (is (= "demo-test" (get-in body [:meta :revision])))
     (is (= #{:error :meta} (set (keys body))))
     (is (not (.contains ^String (:body response) "secret")))))
+
+(deftest ec2-http-adapter-preserves-the-closed-boundary-and-cors-test
+  (let [seen (atom nil)
+        running
+        (http-server/start-server!
+         0
+         (fn [request _remaining-time-ms]
+           (reset! seen request)
+           {:statusCode 200
+            :headers {"content-type" "application/json; charset=utf-8"}
+            :body "{}"})
+         1)
+        client (HttpClient/newHttpClient)
+        origin (str "http://127.0.0.1:" (:port running))]
+    (try
+      (let [request (-> (HttpRequest/newBuilder
+                         (URI/create (str origin "/health")))
+                        (.header "x-eacl-request-id" "http-test")
+                        (.GET)
+                        (.build))
+            response (.send client request (HttpResponse$BodyHandlers/ofString))]
+        (is (= 200 (.statusCode response)))
+        (is (= "https://demo.eacl.dev"
+               (.orElse (.firstValue (.headers response)
+                                     "access-control-allow-origin")
+                        "missing")))
+        (is (= "/health" (:rawPath @seen)))
+        (is (= "GET" (get-in @seen [:requestContext :http :method]))))
+      (let [request (-> (HttpRequest/newBuilder
+                         (URI/create (str origin "/lookup-resources")))
+                        (.method "OPTIONS" (HttpRequest$BodyPublishers/noBody))
+                        (.build))
+            response (.send client request (HttpResponse$BodyHandlers/ofString))]
+        (is (= 204 (.statusCode response))))
+      (finally
+        (http-server/stop-server! running)))))

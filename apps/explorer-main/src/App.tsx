@@ -15,8 +15,14 @@ import {
   createFailClosedRegistry,
   loadProfilePublications,
 } from "../../../packages/explorer-state/src/profile-publication.mjs";
+import {
+  executionForPlatform,
+  normalizePlatform,
+  platformOptions,
+  profileForPlatform,
+} from "../../../packages/explorer-state/src/platforms.mjs";
 import { selectBackend as transitionBackend } from "../../../packages/explorer-state/src/selection.mjs";
-import { parseCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
+import { parseCanonicalUrl, serializeCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
 import { createUrlStateController } from "../../../packages/explorer-state/src/url-controller.mjs";
 import { ApiProvider } from "./api";
 import { ProfileSelector } from "./components/ProfileSelector";
@@ -31,11 +37,13 @@ import { AppStateProvider } from "./state";
 
 type BackendId = "datahike" | "datomic" | "datalevin" | "jank" | "datascript";
 type StorageId = "s3" | "dynamodb" | "memory" | "browser-memory";
+type PlatformId = "lambda-1024" | "lambda-4096" | "ec2" | "browser";
 type ProfileState = "enabled" | "disabled" | "qualifying" | "unavailable";
 
 interface Selection {
   backend: BackendId;
   storage: StorageId;
+  platform: PlatformId;
 }
 
 interface DeploymentIdentity {
@@ -88,7 +96,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
   const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
   const [selection, setSelection] = createSignal<Selection>(
     props.entry === "datascript"
-      ? { backend: "datascript", storage: "browser-memory" }
+      ? { backend: "datascript", storage: "browser-memory", platform: "browser" }
       : fromUrl,
   );
   const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
@@ -110,6 +118,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
         ...(parseCanonicalUrl(window.location.search, catalog).state as Selection),
         backend: "datascript" as const,
         storage: "browser-memory" as const,
+        platform: "browser" as const,
       };
       setSelection(next);
       urlController.navigate(next, { replace: true });
@@ -131,6 +140,11 @@ export default function App(props: ExplorerAppProps): JSX.Element {
   const selectedProfile = createMemo(() =>
     profileChoices().find((candidate) => candidate.storage === selection().storage),
   );
+  const configuredProfile = createMemo(() => {
+    const profile = selectedProfile();
+    return profile ? profileForPlatform(profile, selection().platform) as ExplorerProfile : undefined;
+  });
+  const availablePlatforms = createMemo(() => platformOptions(selection()));
   const storageLabel = createMemo(() =>
     catalog.storages.find(({ id }) => id === selection().storage)?.label ?? selection().storage,
   );
@@ -143,12 +157,14 @@ export default function App(props: ExplorerAppProps): JSX.Element {
       return;
     }
     if (backend !== "datascript" && props.entry === "datascript") {
-      const next = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend)) as Selection;
-      window.location.assign(`/?backend=${encodeURIComponent(next.backend)}&storage=${encodeURIComponent(next.storage)}`);
+      const product = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend));
+      const next = { ...product, platform: normalizePlatform(product, selection().platform) } as Selection;
+      window.location.assign(`/${serializeCanonicalUrl(next, catalog)}`);
       return;
     }
     shouldApplyRegistryDefault = false;
-    const next = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend)) as Selection;
+    const product = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend));
+    const next = { ...product, platform: normalizePlatform(product, selection().platform) } as Selection;
     setSelection(next);
     urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
     queueMicrotask(() => {
@@ -162,7 +178,16 @@ export default function App(props: ExplorerAppProps): JSX.Element {
     shouldApplyRegistryDefault = false;
     const choice = profileChoices().find((candidate) => candidate.storage === storage);
     if (!choice?.selectable) return;
-    const next = { ...selection(), storage: choice.storage };
+    const product = { ...selection(), storage: choice.storage };
+    const next = { ...product, platform: normalizePlatform(product, product.platform) } as Selection;
+    setSelection(next);
+    urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+  };
+
+  const selectPlatform = (platform: PlatformId) => {
+    const option = availablePlatforms().find((candidate) => candidate.id === platform);
+    if (!option?.selectable) return;
+    const next = { ...selection(), platform };
     setSelection(next);
     urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
   };
@@ -178,8 +203,11 @@ export default function App(props: ExplorerAppProps): JSX.Element {
         selectable: choice.selectable,
         reason: choice.reason,
       }))}
+      platform={selection().platform}
+      platforms={availablePlatforms()}
       onBackend={(backend) => selectBackend(backend as BackendId)}
       onStorage={(storage) => selectStorage(storage as StorageId)}
+      onPlatform={(platform) => selectPlatform(platform as PlatformId)}
     />
   );
 
@@ -202,7 +230,8 @@ export default function App(props: ExplorerAppProps): JSX.Element {
         shouldApplyRegistryDefault = false;
         const preferred = registryDefault(selection().backend);
         if (preferred && preferred !== selection().storage) {
-          const next = { ...selection(), storage: preferred };
+          const product = { ...selection(), storage: preferred };
+          const next = { ...product, platform: normalizePlatform(product, product.platform) } as Selection;
           setSelection(next);
           urlController?.navigate(
             { ...parseCanonicalUrl(window.location.search, catalog).state, ...next },
@@ -220,16 +249,17 @@ export default function App(props: ExplorerAppProps): JSX.Element {
   return (
     <Show
       keyed
-      when={selectedProfile()?.state === "enabled" && selectedProfile()?.deployment
+      when={configuredProfile()?.state === "enabled" && configuredProfile()?.deployment
         ? selection().backend === "datascript" && !props.createDataScriptTransport
           ? { kind: "datascript-link" as const }
-          : { kind: "explorer" as const, profile: selectedProfile() as ExplorerProfile }
+          : { kind: "explorer" as const, profile: configuredProfile() as ExplorerProfile }
         : null}
       fallback={
         <StandaloneExplorer
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
+          execution={executionForPlatform(selection().platform)}
           pending={!registryLoaded()}
         />
       }
@@ -239,12 +269,13 @@ export default function App(props: ExplorerAppProps): JSX.Element {
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
+          execution={executionForPlatform(selection().platform)}
           datascript
         />
       ) : (
         <ConfiguredExplorer
           profile={entry.profile}
-          execution={entry.profile.backend === "datascript" ? "browser" : "lambda"}
+          execution={executionForPlatform(selection().platform)}
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
@@ -259,7 +290,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
 
 function ConfiguredExplorer(props: {
   profile: ExplorerProfile;
-  execution: "lambda" | "browser";
+  execution: "lambda" | "ec2" | "browser";
   backendLabel: string;
   storageLabel: string;
   selector: JSX.Element;
@@ -285,6 +316,7 @@ function StandaloneExplorer(props: {
   backendLabel: string;
   storageLabel: string;
   selector: JSX.Element;
+  execution: "lambda" | "ec2" | "browser";
   datascript?: boolean;
   pending?: boolean;
 }): JSX.Element {
@@ -331,7 +363,13 @@ function StandaloneExplorer(props: {
             <section class="startup-status" role="status" aria-live="polite">
               <span class="button-spinner" aria-hidden="true" />
               <div class="startup-status__copy">
-                <strong>Waiting for {props.backendLabel} Lambda to start... 0.0s</strong>
+                <strong>
+                  {props.execution === "lambda"
+                    ? `Waiting for ${props.backendLabel} Lambda to start... 0.0s`
+                    : props.execution === "ec2"
+                      ? `Connecting to ${props.backendLabel} EC2... 0.0s`
+                      : `Loading ${props.backendLabel}... 0.0s`}
+                </strong>
               </div>
             </section>
           </Show>

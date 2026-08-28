@@ -10,9 +10,9 @@ test("direct links normalize malformed, duplicate, unknown, and incompatible fie
   const browser = fakeBrowser("/?storage=s3&backend=datomic&backend=datahike&unknown=x&subject=%00bad");
   const states = [];
   const controller = createUrlStateController({ catalog, ...browser, onState: (state, issues) => states.push({ state, issues }) });
-  assert.deepEqual(states[0].state, { backend: "datomic", storage: "dynamodb" });
+  assert.deepEqual(states[0].state, { backend: "datomic", storage: "dynamodb", platform: "lambda-1024" });
   assert.deepEqual(states[0].issues.map(({ code }) => code).sort(), ["duplicate-field", "invalid-storage", "invalid-value", "unknown-field"].sort());
-  assert.equal(browser.location.search, "?backend=datomic&storage=dynamodb");
+  assert.equal(browser.location.search, "?backend=datomic&storage=dynamodb&platform=lambda-1024");
   assert.equal(browser.history.replacements, 1);
   controller.close();
 });
@@ -22,7 +22,7 @@ test("backend replacement chooses compatible storage in one history entry", () =
   const controller = createUrlStateController({ catalog, ...browser });
   const nextSelection = selectBackend(catalog, controller.getState(), "jank");
   controller.navigate({ ...controller.getState(), ...nextSelection });
-  assert.equal(browser.location.search, "?backend=jank&storage=memory&subject=user%3Aalice");
+  assert.equal(browser.location.search, "?backend=jank&storage=memory&platform=lambda-1024&subject=user%3Aalice");
   assert.equal(browser.history.entries.length, 2);
   controller.close();
 });
@@ -43,8 +43,8 @@ test("browser back and forward restore canonical backend/storage state", () => {
 test("oversized direct links normalize to the safe Datahike default", () => {
   const browser = fakeBrowser(`/?backend=jank&storage=memory&subject=${"a".repeat(2100)}`);
   const controller = createUrlStateController({ catalog, ...browser });
-  assert.deepEqual(controller.getState(), { backend: "datahike", storage: "s3" });
-  assert.equal(browser.location.search, "?backend=datahike&storage=s3");
+  assert.deepEqual(controller.getState(), { backend: "datahike", storage: "s3", platform: "lambda-1024" });
+  assert.equal(browser.location.search, "?backend=datahike&storage=s3&platform=lambda-1024");
   controller.close();
 });
 
