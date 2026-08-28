@@ -4,13 +4,16 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datalevin.core :as d]
+            [eacl-demo.datalevin-memory.profile :as profile]
             [eacl.core :as eacl]
             [eacl.datalevin.core :as datalevin-eacl]
             [eacl.datalevin.schema :as datalevin-schema]
             [eacl.relationships.endpoint-pair :as endpoint-pair]
             [eacl.relationships.storage :as relationship-storage]
             [eacl.schema.model :as schema-model])
-  (:import [java.time Instant]))
+  (:import [java.nio.charset StandardCharsets]
+           [java.time Instant]
+           [java.util UUID]))
 
 (def ^:private physical-schema
   {:demo/type {:db/valueType :db.type/keyword
@@ -21,6 +24,42 @@
                 :db/index true}})
 
 (def ^:private seed-batch-size 5000)
+
+(def fixture-source-id
+  "The lineage shared by every replica of the exact immutable fixture.
+
+  Relay cursors commit to this identity. Deriving it from the fixture manifest
+  makes cursors portable across Lambda execution environments while rotating
+  the identity whenever the fixture changes."
+  (UUID/nameUUIDFromBytes
+   (.getBytes
+    (str "eacl-demo/datalevin-memory/fixture/"
+         profile/data-manifest-sha256)
+    StandardCharsets/UTF_8)))
+
+(defn- install-fixture-source-identity!
+  [conn]
+  (let [database (d/db conn)
+        metadata (d/entity database [:eacl/id "datalevin-metadata"])
+        existing (:eacl.datalevin/source-id metadata)]
+    (cond
+      (= fixture-source-id existing) fixture-source-id
+
+      (some? existing)
+      (throw
+       (ex-info
+        "Datalevin fixture source identity conflicts with the manifest."
+        {:type :eacl-demo/datalevin-source-identity-mismatch
+         :expected fixture-source-id
+         :actual existing}))
+
+      :else
+      (do
+        (d/transact!
+         conn
+         [{:eacl/id "datalevin-metadata"
+           :eacl.datalevin/source-id fixture-source-id}])
+        fixture-source-id))))
 
 (defn- fixture-records
   []
@@ -119,6 +158,7 @@
   (let [conn (datalevin-eacl/create-conn nil physical-schema)
         watermark (atom 0)]
     (try
+      (install-fixture-source-identity! conn)
       (let [write-token (:write-token
                          (datalevin-schema/ensure-physical-schema! conn))
             client (datalevin-eacl/make-client
