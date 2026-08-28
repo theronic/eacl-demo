@@ -30,6 +30,8 @@ export function ConsistencyPanel(): JSX.Element {
   const basis = () => bootstrap()?.meta.basis;
   const consistency = () => bootstrap()?.data.consistency;
   const supportedModes = () => new Set(consistency()?.supported ?? []);
+  const fullyConsistentLimitation = () =>
+    consistency()?.fullyConsistentReason?.trim() ?? "";
   const exactDateSupported = () =>
     Boolean(consistency()?.atExactSnapshotDateSelection);
   const exactDateValue = () => basis()?.capturedAt ?? "";
@@ -88,8 +90,8 @@ export function ConsistencyPanel(): JSX.Element {
                       const disabled = () =>
                         !supportedModes().has(mode as ConsistencyMode);
                       const title = () =>
-                        mode === "fully-consistent" && disabled()
-                          ? `${mode}: ${consistency()?.fullyConsistentReason ?? "Unavailable in this deployment."}`
+                        mode === "fully-consistent" && disabled() && fullyConsistentLimitation()
+                          ? `${mode}: ${fullyConsistentLimitation()}`
                           : mode;
                       return (
                         <label
@@ -108,7 +110,7 @@ export function ConsistencyPanel(): JSX.Element {
                               app.setConsistencyMode(mode as ConsistencyMode)
                             }
                           />
-                          <span>{mode}{mode === "fully-consistent" && disabled() ? "*" : ""}</span>
+                          <span>{mode}{mode === "fully-consistent" && disabled() && fullyConsistentLimitation() ? "*" : ""}</span>
                         </label>
                       );
                     }}
@@ -129,9 +131,9 @@ export function ConsistencyPanel(): JSX.Element {
               </Show>
             </div>
 
-            <Show when={!supportedModes().has("fully-consistent")}>
+            <Show when={!supportedModes().has("fully-consistent") && fullyConsistentLimitation()}>
               <p class="basis-info__note basis-info__note--consistency">
-                * {consistency()?.fullyConsistentReason}
+                * {fullyConsistentLimitation()}
               </p>
             </Show>
 
