@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:faf335dfad842dc4fdc9e38c11811ecfa568a1195f210f6355c7914632ab0d44",
+  "reportId": "sha256:d32142e50b6260eba22e317d5761ad9d876a9a4f96d3c6687750cfc7ed84d76e",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -140,7 +140,7 @@
         "count": 7,
         "definition": {
           "path": "infra/observability/profile-runtime.yaml",
-          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+          "sha256": "adab2d3f770fb8f34ad73f3eeebe90250c9ea8efa24316a8ed101b776cca7fe1"
         },
         "evidenceId": null,
         "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
@@ -199,7 +199,7 @@
         "count": 7,
         "definition": {
           "path": "infra/observability/profile-runtime.yaml",
-          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+          "sha256": "adab2d3f770fb8f34ad73f3eeebe90250c9ea8efa24316a8ed101b776cca7fe1"
         },
         "evidenceId": null,
         "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
@@ -258,7 +258,7 @@
         "count": 7,
         "definition": {
           "path": "infra/observability/profile-runtime.yaml",
-          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+          "sha256": "adab2d3f770fb8f34ad73f3eeebe90250c9ea8efa24316a8ed101b776cca7fe1"
         },
         "evidenceId": null,
         "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
@@ -317,7 +317,7 @@
         "count": 7,
         "definition": {
           "path": "infra/observability/profile-runtime.yaml",
-          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+          "sha256": "adab2d3f770fb8f34ad73f3eeebe90250c9ea8efa24316a8ed101b776cca7fe1"
         },
         "evidenceId": null,
         "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
@@ -376,7 +376,7 @@
         "count": 7,
         "definition": {
           "path": "infra/observability/profile-runtime.yaml",
-          "sha256": "f24ea32d3a12e1a3b7619e43936b7c577ceb1e308e79147c2e9295c9956e9ce2"
+          "sha256": "adab2d3f770fb8f34ad73f3eeebe90250c9ea8efa24316a8ed101b776cca7fe1"
         },
         "evidenceId": null,
         "reason": "The alarm template exists locally, but no profile-scoped live readiness evidence is published."
