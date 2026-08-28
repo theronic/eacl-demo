@@ -111,6 +111,11 @@
                  default-port)
         workers (or (parse-positive-int (get environment "EACL_HTTP_WORKERS"))
                     default-workers)
+        ;; Fail the process before binding the port when the retained Datomic
+        ;; reader cannot be opened. systemd can then retry transient boot-time
+        ;; credential/network races instead of serving permanent health 500s
+        ;; from a live process whose delayed initialization has failed.
+        _ (handler/initialize-runtime!)
         running (start-server! port handler/invoke-event! workers)]
     (.addShutdownHook
      (Runtime/getRuntime)
