@@ -18,12 +18,6 @@ function localDateTimeValue(instant: string): string {
   return local.toISOString().slice(0, 19);
 }
 
-function instantValue(localDateTime: string): string {
-  if (!localDateTime) return "";
-  const date = new Date(localDateTime);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
-}
-
 function basisInstant(instant: string): string {
   const date = new Date(instant);
   return Number.isNaN(date.getTime()) ? instant : date.toISOString();
@@ -143,21 +137,24 @@ export function ConsistencyPanel(): JSX.Element {
 
             <div class="consistency-panel__controls">
               <Show when={app.consistencyMode() === "at-least-as-fresh"}>
-                <label class="page-size-control freshness-control">
-                  <span class="page-size-control__label">at-least-as-fresh-as</span>
-                  <input
-                    class="freshness-control__input"
-                    type="datetime-local"
-                    step="1"
-                    aria-label="at-least-as-fresh-as date"
-                    value={localDateTimeValue(app.atLeastAsFreshAs())}
-                    onChange={(event) =>
-                      app.setAtLeastAsFreshAs(
-                        instantValue(event.currentTarget.value),
-                      )
-                    }
-                  />
-                </label>
+                <div class="exact-date-control">
+                  <label class="page-size-control freshness-control">
+                    <span class="page-size-control__label">at-least-as-fresh-as</span>
+                    <input
+                      class="freshness-control__input"
+                      type="datetime-local"
+                      step="1"
+                      aria-label="at-least-as-fresh-as date"
+                      aria-describedby="at-least-date-selection-reason"
+                      disabled
+                      value={localDateTimeValue(app.atLeastAsFreshAs())}
+                    />
+                  </label>
+                  <p id="at-least-date-selection-reason" class="basis-info__note">
+                    This demo fixes the freshness floor to the selected basis. Use
+                    Refresh Snapshot to request a newer available basis.
+                  </p>
+                </div>
               </Show>
 
               <Show when={app.consistencyMode() === "at-exact-snapshot"}>

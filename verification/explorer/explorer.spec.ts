@@ -120,7 +120,7 @@ test("an enabled publication opens the schema-validated server explorer over the
     runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
     capabilities: {
       operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
-      consistencyModes: ["minimize"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
+      consistencyModes: ["minimize", "at-least"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
     },
     limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
     dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
@@ -177,6 +177,12 @@ test("an enabled publication opens the schema-validated server explorer over the
   await page.reload();
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
+  await page.getByRole("button", { name: "Consistency Semantics" }).click();
+  await page.getByRole("radio", { name: "at-least-as-fresh", exact: true }).check();
+  const atLeastDate = page.getByLabel("at-least-as-fresh-as date");
+  await expect(atLeastDate).toBeDisabled();
+  await expect(atLeastDate).not.toHaveValue("");
+  await expect(page.getByText(/fixes the freshness floor to the selected basis/iu)).toBeVisible();
   await expect(page.getByText("Consistency Semantics:", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/EACL v8 \+/iu)).toHaveCount(0);
   await expect(page.getByText("Spice Schema", { exact: true })).toHaveCount(0);
