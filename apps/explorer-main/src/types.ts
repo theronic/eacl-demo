@@ -7,11 +7,13 @@ export type ConsistencyMode =
   | "at-least-as-fresh"
   | "at-exact-snapshot"
   | "fully-consistent";
+export type FreshnessFloorMode = "relative" | "absolute";
 
 export interface ConsistencyRequest {
   mode: ConsistencyMode;
   atLeastAsFreshAs?: string;
   atLeastAsFreshBasisId?: string;
+  atLeastAsFreshBasisCapturedAt?: string;
 }
 
 export interface BasisInfo {

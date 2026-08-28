@@ -139,23 +139,88 @@ export function ConsistencyPanel(): JSX.Element {
 
             <div class="consistency-panel__controls">
               <Show when={app.consistencyMode() === "at-least-as-fresh"}>
-                <div class="exact-date-control">
-                  <label class="page-size-control freshness-control">
-                    <span class="page-size-control__label">at-least-as-fresh-as</span>
-                    <input
-                      class="freshness-control__input"
-                      type="datetime-local"
-                      step="1"
-                      aria-label="at-least-as-fresh-as date"
-                      aria-describedby="at-least-date-selection-reason"
-                      disabled
-                      value={localDateTimeValue(app.atLeastAsFreshAs())}
-                    />
-                  </label>
-                  <p id="at-least-date-selection-reason" class="basis-info__note">
-                    This demo fixes the freshness floor to the selected basis. Use
-                    Refresh Snapshot to request a newer available basis.
-                  </p>
+                <div class="freshness-floor-control">
+                  <fieldset class="freshness-floor-control__modes">
+                    <legend class="page-size-control__label">
+                      at-least-as-fresh-as
+                    </legend>
+                    <div class="freshness-floor-control__options">
+                      <label class="consistency-radio">
+                        <input
+                          type="radio"
+                          name="freshness-floor-mode"
+                          value="relative"
+                          checked={app.freshnessFloorMode() === "relative"}
+                          onChange={() => app.setFreshnessFloorMode("relative")}
+                        />
+                        <span>Seconds ago</span>
+                      </label>
+                      <label class="consistency-radio">
+                        <input
+                          type="radio"
+                          name="freshness-floor-mode"
+                          value="absolute"
+                          checked={app.freshnessFloorMode() === "absolute"}
+                          onChange={() => app.setFreshnessFloorMode("absolute")}
+                        />
+                        <span>Absolute datetime</span>
+                      </label>
+                    </div>
+                  </fieldset>
+
+                  <Show when={app.freshnessFloorMode() === "relative"}>
+                    <label class="page-size-control freshness-control">
+                      <span class="page-size-control__label">seconds ago</span>
+                      <input
+                        class="freshness-control__input freshness-control__input--seconds"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        aria-label="at-least seconds ago"
+                        aria-describedby="at-least-relative-selection-reason"
+                        value={app.atLeastSecondsAgo()}
+                        onInput={(event) =>
+                          app.setAtLeastSecondsAgo(
+                            Number(event.currentTarget.value),
+                          )
+                        }
+                      />
+                    </label>
+                    <p id="at-least-relative-selection-reason" class="basis-info__note">
+                      “Now” is the current selected snapshot date. Refresh Snapshot
+                      moves this relative floor to the latest selected snapshot.
+                    </p>
+                  </Show>
+
+                  <Show when={app.freshnessFloorMode() === "absolute"}>
+                    <label class="page-size-control freshness-control">
+                      <span class="page-size-control__label">absolute datetime</span>
+                      <input
+                        class="freshness-control__input"
+                        type="datetime-local"
+                        step="1"
+                        aria-label="at-least-as-fresh-as date"
+                        aria-describedby="at-least-absolute-selection-reason"
+                        value={localDateTimeValue(app.atLeastAsFreshAs())}
+                        onInput={(event) => {
+                          const value = event.currentTarget.value;
+                          if (!value) {
+                            app.setAtLeastAsFreshAs("");
+                            return;
+                          }
+                          const date = new Date(value);
+                          if (!Number.isNaN(date.getTime())) {
+                            app.setAtLeastAsFreshAs(date.toISOString());
+                          }
+                        }}
+                      />
+                    </label>
+                    <p id="at-least-absolute-selection-reason" class="basis-info__note">
+                      Refresh Snapshot resets this floor to the latest selected
+                      snapshot date.
+                    </p>
+                  </Show>
                 </div>
               </Show>
 

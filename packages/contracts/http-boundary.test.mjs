@@ -43,7 +43,10 @@ test("invalid JSON, non-object bodies, oversized bodies, cursors, and consistenc
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "exact", atLeastAsFreshAs: "2026-08-26T00:00:00Z" }).code, "validation-error");
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "exact", atLeastAsFreshBasisId: "datahike:42:locator" }).code, "validation-error");
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshBasisId: "datahike:42:locator" }).code, "validation-error");
+  assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshBasisCapturedAt: "2026-08-26T00:00:00Z" }).code, "validation-error");
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshAs: "2026-08-26T00:00:00Z" }).ok, true);
-  assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshAs: "2026-08-26T00:00:00Z", atLeastAsFreshBasisId: "datahike:42:locator" }).ok, true);
+  assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshAs: "2026-08-26T00:00:00Z", atLeastAsFreshBasisId: "datahike:42:locator", atLeastAsFreshBasisCapturedAt: "2026-08-26T00:01:00Z" }).ok, true);
+  assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshAs: "2026-08-26T00:00:00Z", atLeastAsFreshBasisId: "datahike:42:locator", atLeastAsFreshBasisCapturedAt: "not-a-date" }).code, "validation-error");
+  assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "exact", atLeastAsFreshAs: "2026-08-26T00:00:00Z", atLeastAsFreshBasisId: "datahike:42:locator", atLeastAsFreshBasisCapturedAt: "2026-08-26T00:01:00Z" }).code, "validation-error");
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "at-least", atLeastAsFreshAs: "2026-08-26T00:00:00Z", atLeastAsFreshBasisId: "not a basis" }).code, "validation-error");
 });

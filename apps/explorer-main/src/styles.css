@@ -1468,6 +1468,31 @@ button {
   max-width: 720px;
 }
 
+.freshness-floor-control {
+  display: grid;
+  gap: 0.65rem;
+  min-width: min(100%, 31rem);
+}
+
+.freshness-floor-control__modes {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.freshness-floor-control__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.freshness-floor-control .basis-info__note {
+  max-width: 48rem;
+  margin: -0.2rem 0 0;
+}
+
 .freshness-control__input {
   min-width: 190px;
   padding: 3px 8px;
@@ -1477,6 +1502,10 @@ button {
   color: var(--text);
   font: inherit;
   font-weight: 700;
+}
+
+.freshness-control__input--seconds {
+  width: 7rem;
 }
 
 .freshness-control__input:focus-visible {

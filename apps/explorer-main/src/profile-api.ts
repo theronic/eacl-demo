@@ -539,20 +539,26 @@ function consistencyMode(value: unknown): ConsistencyMode {
 function freshnessFloor(value: unknown): {
   atLeastAsFreshAs?: string;
   atLeastAsFreshBasisId?: string;
+  atLeastAsFreshBasisCapturedAt?: string;
 } {
   if (!value || typeof value !== "object") return {};
   const candidate = value as {
     atLeastAsFreshAs?: unknown;
     atLeastAsFreshBasisId?: unknown;
+    atLeastAsFreshBasisCapturedAt?: unknown;
   };
   const instant = candidate.atLeastAsFreshAs;
   const basisId = candidate.atLeastAsFreshBasisId;
+  const basisCapturedAt = candidate.atLeastAsFreshBasisCapturedAt;
   return {
     ...(typeof instant === "string" && instant.length > 0
       ? { atLeastAsFreshAs: instant }
       : {}),
     ...(typeof basisId === "string" && basisId.length > 0
       ? { atLeastAsFreshBasisId: basisId }
+      : {}),
+    ...(typeof basisCapturedAt === "string" && basisCapturedAt.length > 0
+      ? { atLeastAsFreshBasisCapturedAt: basisCapturedAt }
       : {}),
   };
 }

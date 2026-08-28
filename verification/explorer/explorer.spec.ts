@@ -115,7 +115,7 @@ test("a Datomic EC2 health identity mismatch replaces the startup indicator with
     fixedForEnvironment: true,
   };
   const descriptor = {
-    contract: { name: "explorer.v1", routeMajor: 1, revision: 3, minimumClientRevision: 1 },
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 4, minimumClientRevision: 1 },
     identity,
     profile: { backend: profile.backend, storage: profile.storage },
     runtime: { execution: "ec2", name: "java25", architecture: "arm64", snapStart: "not-applicable" },
@@ -227,7 +227,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const basis = { behavior: "request-snapshot", id: "datahike:test-basis-7", capturedAt: deployedAt, fixedForEnvironment: false };
   let healthCaptures = 0;
   const descriptor = {
-    contract: { name: "explorer.v1", routeMajor: 1, revision: 3, minimumClientRevision: 1 }, identity,
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 4, minimumClientRevision: 1 }, identity,
     profile: { backend: "datahike", storage: "s3" },
     runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
     capabilities: {
@@ -262,8 +262,16 @@ test("an enabled publication opens the schema-validated server explorer over the
       ? request.postDataJSON() as Record<string, unknown>
       : {};
     apiRequests.push({ operation, requestId, origin: new URL(request.url()).origin, payloadHash, input });
-    const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
-    const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? "server-1", displayName: "Server one", attributes: [] };
+    const lookupPageTwo = operation === "lookup-resources" && Boolean(input.cursor);
+    const pageInfo = operation === "lookup-resources"
+      ? {
+          hasNextPage: !lookupPageTwo,
+          endCursor: lookupPageTwo ? null : "resources-page-2",
+          pageSize: input.pageSize ?? 1,
+        }
+      : { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
+    const objectId = lookupPageTwo ? "server-2" : "server-1";
+    const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? objectId, displayName: lookupPageTwo ? "Server two" : "Server one", attributes: [] };
     const healthBasis = operation === "health"
       ? { ...basis, capturedAt: new Date(new Date(deployedAt).getTime() + healthCaptures++ * 1_000).toISOString() }
       : basis;
@@ -275,7 +283,7 @@ test("an enabled publication opens the schema-validated server explorer over the
       "list-relationships": { items: [{ resourceType: input.resourceType, resourceId: input.resourceId, relation: input.relation ?? "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo },
       "reverse-relationships": { items: [object], pageInfo },
       "check-permission": { allowed: true },
-      "lookup-resources": { items: [{ type: input.resourceType, id: "server-1", displayName: "Server one", attributes: [] }], pageInfo },
+      "lookup-resources": { items: [{ type: input.resourceType, id: objectId, displayName: lookupPageTwo ? "Server two" : "Server one", attributes: [] }], pageInfo },
       "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
       "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
       "get-schema": { sha256: "d".repeat(64), types: [{ name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
@@ -302,14 +310,30 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
   await page.getByRole("button", { name: "Consistency Semantics" }).click();
   await page.getByRole("radio", { name: "at-least-as-fresh", exact: true }).check();
+  await expect(page.getByRole("radio", { name: "Seconds ago", exact: true })).toBeChecked();
+  const secondsAgo = page.getByLabel("at-least seconds ago");
+  await expect(secondsAgo).toHaveValue("60");
+  await expect(page.getByText(/“Now” is the current selected snapshot date/iu)).toBeVisible();
+  await expect.poll(() => apiRequests.filter(({ input }) => input.consistency === "at-least").length).toBeGreaterThan(0);
+  const initialRelativeRequest = apiRequests.filter(({ input }) => input.consistency === "at-least").at(-1)!.input;
+  expect(initialRelativeRequest.atLeastAsFreshBasisCapturedAt).toBe(basis.capturedAt);
+  expect(initialRelativeRequest.atLeastAsFreshAs).toBe(
+    new Date(new Date(basis.capturedAt).getTime() - 60_000).toISOString(),
+  );
+  await page.getByRole("radio", { name: "Absolute datetime", exact: true }).check();
   const atLeastDate = page.getByLabel("at-least-as-fresh-as date");
-  await expect(atLeastDate).toBeDisabled();
+  await expect(atLeastDate).toBeEnabled();
   await expect(atLeastDate).not.toHaveValue("");
-  await expect(page.getByText(/fixes the freshness floor to the selected basis/iu)).toBeVisible();
   await expect(page.getByText(/refreshing Datahike for every query may issue S3 GETs/iu)).toBeVisible();
   const initialFreshness = await atLeastDate.inputValue();
   await page.getByRole("button", { name: "Refresh Snapshot" }).click();
   await expect(atLeastDate).not.toHaveValue(initialFreshness);
+  const refreshedBasisCapturedAt = await page.getByLabel("Current selected basis").locator("time").getAttribute("datetime");
+  await expect.poll(() => apiRequests.filter(({ input }) =>
+    input.consistency === "at-least"
+    && input.atLeastAsFreshBasisCapturedAt === refreshedBasisCapturedAt
+    && input.atLeastAsFreshAs === refreshedBasisCapturedAt
+  ).length).toBeGreaterThan(0);
   await expect(page.getByText("Consistency Semantics:", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/EACL v8 \+/iu)).toHaveCount(0);
   await expect(page.getByText("Spice Schema", { exact: true })).toHaveCount(0);
@@ -373,7 +397,21 @@ test("an enabled publication opens the schema-validated server explorer over the
   expect(atLeastRequests.every(({ input }) =>
     input.atLeastAsFreshBasisId === basis.id
     && typeof input.atLeastAsFreshAs === "string"
+    && typeof input.atLeastAsFreshBasisCapturedAt === "string"
+    && new Date(String(input.atLeastAsFreshAs)).getTime()
+      <= new Date(String(input.atLeastAsFreshBasisCapturedAt)).getTime()
   )).toBe(true);
+  const serverGroup = page.locator('[id="resource-type:server-content"]');
+  await serverGroup.getByRole("button", { name: "Next" }).click();
+  await expect(serverGroup.getByText("Page 2", { exact: true })).toBeVisible();
+  const cacheEnabled = page.getByRole("switch", { name: /Cache Enabled/iu });
+  const cacheWasEnabled = await cacheEnabled.isChecked();
+  await cacheEnabled.click();
+  await expect(serverGroup.getByText("Page 2", { exact: true })).toBeVisible();
+  await expect.poll(() => {
+    const latest = apiRequests.filter(({ operation }) => operation === "lookup-resources").at(-1);
+    return { cursor: latest?.input.cursor, cache: latest?.input.cache };
+  }).toEqual({ cursor: "resources-page-2", cache: !cacheWasEnabled });
   expect(apiRequests.map(({ operation }) => operation)).toEqual(expect.arrayContaining(["health", "bootstrap", "list-subjects", "get-schema", "lookup-resources", "count-resources", "check-permission", "lookup-subjects"]));
   expect(apiRequests.every(({ requestId }) => /^browser-|^[0-9]+-[0-9]+$/u.test(requestId ?? ""))).toBe(true);
   expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);

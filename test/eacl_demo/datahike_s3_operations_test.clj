@@ -56,7 +56,20 @@
     (with-redefs [eacl/basis-token (constantly "basis-token")]
       (is (= (consistency/at-least-as-fresh "basis-token")
              (#'operations/eacl-consistency
-              (assoc input :atLeastAsFreshBasisId (:id public-basis)))))
+              (assoc input
+                     :atLeastAsFreshBasisId (:id public-basis)
+                     :atLeastAsFreshBasisCapturedAt
+                     "2026-08-26T00:00:01Z"))))
+      (is (= "freshness-unavailable"
+             (:code
+              (ex-data
+               (try
+                 (#'operations/eacl-consistency
+                  (assoc input
+                         :atLeastAsFreshBasisId (:id public-basis)
+                         :atLeastAsFreshBasisCapturedAt
+                         (:capturedAt public-basis)))
+                 (catch clojure.lang.ExceptionInfo error error))))))
       (is (= "freshness-unavailable"
              (:code
               (ex-data

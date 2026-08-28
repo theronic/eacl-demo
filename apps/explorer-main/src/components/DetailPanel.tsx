@@ -206,8 +206,6 @@ function PermissionSubjects(props: {
         props.resource.id,
         props.permission,
         app.pageSize(),
-        app.cacheEnabled(),
-        app.populateCache(),
         app.queryGeneration(),
         app.basisGeneration(),
         JSON.stringify(app.consistency()),
