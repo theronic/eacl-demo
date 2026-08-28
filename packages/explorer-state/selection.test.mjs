@@ -5,8 +5,8 @@ import { initialSelection, selectBackend, storageOptions } from "./src/selection
 
 const catalog = JSON.parse(await readFile(new URL("../contracts/backend-storage.v1.json", import.meta.url), "utf8"));
 
-test("Datahike is the no-URL initial backend", () => {
-  assert.deepEqual(initialSelection(catalog, new URLSearchParams()), { backend: "datahike", storage: "s3" });
+test("DataScript is the no-URL initial backend", () => {
+  assert.deepEqual(initialSelection(catalog, new URLSearchParams()), { backend: "datascript", storage: "browser-memory" });
 });
 
 test("a valid canonical backend and storage override the initial selection", () => {
@@ -15,7 +15,7 @@ test("a valid canonical backend and storage override the initial selection", () 
 });
 
 test("unknown and incompatible values fall back within the closed relation", () => {
-  assert.deepEqual(initialSelection(catalog, new URLSearchParams("backend=nope&storage=memory")), { backend: "datahike", storage: "s3" });
+  assert.deepEqual(initialSelection(catalog, new URLSearchParams("backend=nope&storage=memory")), { backend: "datascript", storage: "browser-memory" });
   assert.deepEqual(initialSelection(catalog, new URLSearchParams("backend=datomic&storage=s3")), { backend: "datomic", storage: "dynamodb" });
 });
 

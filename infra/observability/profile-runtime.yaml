@@ -8,6 +8,11 @@ Parameters:
   FunctionName:
     Type: String
     AllowedPattern: "^[A-Za-z0-9-_]{1,64}$"
+  AlarmNameSuffix:
+    Type: String
+    Default: ""
+    AllowedPattern: "^(?:|-[a-z0-9]+(?:-[a-z0-9]+)*)$"
+    Description: Optional deployment-platform suffix; metric dimensions retain the logical profile ID.
   AlarmTopicArn:
     Type: String
     AllowedPattern: "^arn:[a-z0-9-]+:sns:[a-z0-9-]+:[0-9]{12}:eacl-demo-alarms$"
@@ -38,7 +43,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: Sustained profile request p95 approaches the bounded Lambda timeout.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-duration"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-duration"
       ComparisonOperator: GreaterThanThreshold
       DatapointsToAlarm: 2
       Dimensions:
@@ -59,7 +64,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: Sustained bounded application errors for the exact profile function.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-errors"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-errors"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 2
       Dimensions:
@@ -80,7 +85,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: A canonical health request failed for the exact profile function.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-health"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-health"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ProfileId
@@ -102,7 +107,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: A cold runtime initialization failed for the exact profile function.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-initialization"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-initialization"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ProfileId
@@ -124,7 +129,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: The exact profile function observed an out-of-memory failure.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-oom"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-oom"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ProfileId
@@ -144,7 +149,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: Sustained typed dependency throttling for the exact profile function.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-throttles"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-throttles"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 2
       Dimensions:
@@ -165,7 +170,7 @@ Resources:
     Properties:
       AlarmActions: [!Ref AlarmTopicArn]
       AlarmDescription: Sustained typed deadline or timeout failures for the exact profile function.
-      AlarmName: !Sub "eacl-demo-${ProfileId}-timeouts"
+      AlarmName: !Sub "eacl-demo-${ProfileId}${AlarmNameSuffix}-timeouts"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 2
       Dimensions:

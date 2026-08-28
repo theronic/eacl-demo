@@ -17,7 +17,29 @@
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
 
 (declare handle-event initialize invoke-event! parse-environment
-         parse-positive-int)
+         parse-positive-int prime-runtime!)
+
+(def ^:private snapstart-prime-event
+  {:version "2.0"
+   :routeKey "$default"
+   :rawPath "/lookup-resources"
+   :rawQueryString ""
+   :headers {"content-type" "application/json"}
+   :requestContext
+   {:requestId "snapstart-prime-lookup-resources"
+    :http {:method "POST"}}
+   :isBase64Encoded false
+   :body (json/write-str
+          {:subjectType "user"
+           :subjectId "user-1"
+           :resourceType "server"
+           :permission "admin"
+           :pageSize 10
+           :cache true
+           :populateCache true
+           :consistency "minimize"})
+   :cookies nil})
+(def ^:private snapstart-prime-repetitions 256)
 
 (defonce ^:private runtime
   (delay
@@ -27,11 +49,10 @@
        #(initialize environment)))))
 
 (defn initialize-runtime!
-  "Realize the fixed read-only Peer and captured database value during process
-  initialization. Lambda SnapStart is deliberately disabled so the Peer can
-  refresh AWS credentials instead of restoring checkpointed credential state."
+  "Realize and exercise the fixed read-only Peer during published-version
+  initialization so SnapStart captures a ready Datomic and EACL runtime."
   []
-  @runtime
+  (prime-runtime! @runtime)
   nil)
 
 (defn initialize
@@ -81,6 +102,27 @@
                              :deadline-ms deadline
                              :cancelled? (constantly false)))]
         (function-url/create-response envelope)))))
+
+(defn prime-runtime!
+  "Compile and populate the first server page before the SnapStart checkpoint."
+  [running]
+  (let [final-cache-status (volatile! nil)]
+    (dotimes [_ snapstart-prime-repetitions]
+      (let [response (handle-event running snapstart-prime-event 30000)
+            envelope (json/read-str (:body response) :key-fn keyword)]
+        (vreset! final-cache-status (get-in envelope [:meta :cacheStatus]))
+        (when-not (and (= 200 (:statusCode response))
+                       (= 10 (count (get-in envelope [:data :items]))))
+          (throw (ex-info "Datomic/DynamoDB SnapStart lookup priming failed."
+                          {:type :eacl-demo/snapstart-prime-failed
+                           :status (:statusCode response)
+                           :cache-status @final-cache-status
+                           :error-code (get-in envelope [:error :code])})))))
+    (when-not (= "hit" @final-cache-status)
+      (throw (ex-info "Datomic/DynamoDB SnapStart cache did not converge."
+                      {:type :eacl-demo/snapstart-prime-failed
+                       :cache-status @final-cache-status}))))
+  running)
 
 (defn invoke-event!
   "Invoke one normalized Function URL-shaped event against the process runtime.

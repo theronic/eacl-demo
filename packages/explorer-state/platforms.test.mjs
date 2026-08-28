@@ -8,16 +8,25 @@ import {
   profileForPlatform
 } from "./src/platforms.mjs";
 
-test("only Datomic/DynamoDB exposes the larger Lambda and EC2", () => {
+test("Datomic and Datahike expose larger Lambdas while EC2 remains Datomic-only", () => {
   const datomic = { backend: "datomic", storage: "dynamodb" };
   assert.deepEqual(platformOptions(datomic).map(({ id, selectable }) => [id, selectable]), [
     ["lambda-1024", true], ["lambda-4096", true], ["ec2", true]
   ]);
   assert.deepEqual(platformOptions({ backend: "datahike", storage: "dynamodb" })
     .map(({ id, selectable }) => [id, selectable]), [
-    ["lambda-1024", true], ["lambda-4096", false], ["ec2", false]
+    ["lambda-1024", true], ["lambda-4096", true], ["ec2", false]
   ]);
   assert.equal(normalizePlatform({ backend: "datahike", storage: "s3" }, "ec2"), "lambda-1024");
+});
+
+test("each Datahike storage maps its 4 GiB option to a distinct deployed origin", () => {
+  const base = { backend: "datahike", apiOrigin: "https://small.example" };
+  const s3 = profileForPlatform({ ...base, id: "datahike-s3", storage: "s3" }, "lambda-4096");
+  const dynamodb = profileForPlatform({ ...base, id: "datahike-dynamodb", storage: "dynamodb" }, "lambda-4096");
+  assert.match(s3.apiOrigin, /lambda-url/u);
+  assert.match(dynamodb.apiOrigin, /lambda-url/u);
+  assert.notEqual(s3.apiOrigin, dynamodb.apiOrigin);
 });
 
 test("platform selection changes only the deployment origin and execution label", () => {

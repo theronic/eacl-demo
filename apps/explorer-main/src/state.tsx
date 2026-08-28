@@ -46,6 +46,10 @@ interface AppStateValue {
   setPermission: (value: string) => void;
   selectedResource: Accessor<EaclObject | undefined>;
   setSelectedResource: (value: EaclObject | undefined) => void;
+  knownSubjects: Accessor<readonly EaclObject[]>;
+  rememberSubjects: (values: readonly EaclObject[]) => void;
+  knownResources: Accessor<readonly EaclObject[]>;
+  rememberResources: (values: readonly EaclObject[]) => void;
   pageSize: Accessor<PageSize>;
   setPageSize: (value: PageSize) => void;
   cacheEnabled: Accessor<boolean>;
@@ -122,6 +126,8 @@ export const AppStateProvider: ParentComponent = (props) => {
   const [subjectId, setSubjectSignal] = createSignal(preferences.subjectId);
   const [permission, setPermissionSignal] = createSignal(preferences.permission);
   const [selectedResource, setSelectedResource] = createSignal<EaclObject>();
+  const [knownSubjects, setKnownSubjects] = createSignal<readonly EaclObject[]>([]);
+  const [knownResources, setKnownResources] = createSignal<readonly EaclObject[]>([]);
   const [pageSize, setPageSizeSignal] = createSignal<PageSize>(preferences.pageSize);
   const [cacheEnabled, setCacheSignal] = createSignal(preferences.cacheEnabled);
   const [populateCache, setPopulateCacheSignal] = createSignal(
@@ -190,6 +196,23 @@ export const AppStateProvider: ParentComponent = (props) => {
     if (value === atLeastAsFreshAs()) return;
     setAtLeastAsFreshAsSignal(value);
   };
+  const remember = (
+    setter: (updater: (current: readonly EaclObject[]) => readonly EaclObject[]) => void,
+    values: readonly EaclObject[],
+  ) => setter((current) => {
+    const byKey = new Map(current.map((value) => [`${value.type}\u0000${value.id}`, value]));
+    for (const value of values) byKey.set(`${value.type}\u0000${value.id}`, value);
+    return [...byKey.values()].sort((left, right) =>
+      `${left.type}:${left.id}`.localeCompare(`${right.type}:${right.id}`));
+  });
+  const rememberSubjects = (values: readonly EaclObject[]) =>
+    remember(setKnownSubjects, values);
+  const rememberResources = (values: readonly EaclObject[]) =>
+    remember(setKnownResources, values);
+  const selectResource = (value: EaclObject | undefined) => {
+    if (value) rememberResources([value]);
+    setSelectedResource(value);
+  };
   const applyMutationRevision = (value: string) => {
     setMutationRevision(value);
   };
@@ -211,9 +234,10 @@ export const AppStateProvider: ParentComponent = (props) => {
       setBootstrapData(envelope);
       setMutationRevision(envelope.meta.revision);
       setSeedProgress(envelope.data.seed);
-      if (!atLeastAsFreshAs() && envelope.meta.basis?.capturedAt) {
+      if ((refreshed || !atLeastAsFreshAs()) && envelope.meta.basis?.capturedAt) {
         setAtLeastAsFreshAsSignal(envelope.meta.basis.capturedAt);
       }
+      rememberSubjects(envelope.data.quickSubjects.map(({ id }) => ({ type: "user", id })));
       const permissions = Object.values(
         envelope.data.schema.permissionsByType,
       ).flat();
@@ -352,7 +376,11 @@ export const AppStateProvider: ParentComponent = (props) => {
     permission,
     setPermission,
     selectedResource,
-    setSelectedResource,
+    setSelectedResource: selectResource,
+    knownSubjects,
+    rememberSubjects,
+    knownResources,
+    rememberResources,
     pageSize,
     setPageSize,
     cacheEnabled,

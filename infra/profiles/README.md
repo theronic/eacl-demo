@@ -6,7 +6,7 @@ One independently deployable runtime/alias/origin/role unit per server profile. 
 25/arm64 Lambda, an exact `s3:GetObject`-only serving role, an immutable
 versioned artifact, a public read-only Function URL alias with exact-origin
 CORS, fixed concurrency one,
-bounded logs, and disabled SnapStart. It cannot list the bucket or write the
+bounded logs, and SnapStart on published versions. It cannot list the bucket or write the
 marker/data objects and does not provision or reseed the adopted store.
 
 `datahike-dynamodb-runtime.yaml` packages one Java 25/arm64 candidate from an
@@ -16,14 +16,13 @@ table plus delivery to one pre-created function log group. The table ARN and
 name must agree. Reserved and in-process admission concurrency are both fixed
 at one; retry/timeouts are closed environment values. Its Function URL is
 public only through the alias-qualified URL invocation condition and exact
-demo-origin CORS. SnapStart is explicitly off until restore qualification.
+demo-origin CORS. Published versions use SnapStart after restore qualification.
 
 `datomic-dynamodb-runtime.yaml` packages one Java 25/x86_64 fixed-current
 candidate from an immutable S3 object version. Its public read-only Function
-URL is bound to the candidate alias and exact demo-origin CORS. SnapStart is
-explicitly off until the required
-non-SnapStart memory sweep passes; promotion of a healthy version to a live
-alias remains a separate operation.
+URL is bound to the candidate alias and exact demo-origin CORS. Published
+versions use SnapStart after the read-only Peer and EACL paths are initialized;
+promotion of a healthy version to a live alias remains a separate operation.
 
 `datomic-dynamodb-serving-role.yaml` grants the read-only Peer exactly the four
 DynamoDB actions documented by Datomic (`GetItem`, `BatchGetItem`, `Scan`, and

@@ -29,7 +29,7 @@ export default defineConfig({
     video: "retain-on-failure"
   },
   webServer: externalBaseUrl ? undefined : {
-    command: `${nodeBinary} node_modules/vite/bin/vite.js --config apps/explorer-main/vite.config.ts preview --host 127.0.0.1 --port 4173`,
+    command: `${nodeBinary} scripts/serve-static-site.mjs 4173`,
     cwd: repositoryRoot,
     url: localBaseUrl,
     reuseExistingServer: !process.env.CI,

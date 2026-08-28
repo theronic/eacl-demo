@@ -95,10 +95,47 @@
            (get-in health-body [:data :identity :eaclSha])))
     (is (= (:id basis) (get-in health-body [:meta :revision])))
     (is (= #{:data :meta} (set (keys health-body))))
+    (is (= "enabled"
+           (get-in runtime [:descriptor :runtime :snapStart])))
     (is (= 404 (:statusCode denied)))
     (is (= "route-not-found" (get-in denied-body [:error :code])))
     (is (= "demo-test" (get-in denied-body [:meta :revision])))
     (is (= #{:error :meta} (set (keys denied-body))))))
+
+(deftest snapstart-primes-the-first-admin-resource-page-test
+  (let [captured (atom [])
+        running {:runtime :datomic-dynamodb}]
+    (with-redefs [handler/handle-event
+                  (fn [actual event remaining-ms]
+                    (swap! captured conj {:runtime actual
+                                          :event event
+                                          :remaining-ms remaining-ms})
+                    {:statusCode 200
+                     :body (json/write-str
+                            {:data {:items (mapv (fn [index] {:id (str index)})
+                                                (range 10))}
+                             :meta {:cacheStatus (if (= 1 (count @captured))
+                                                   "miss"
+                                                   "hit")}})})]
+      (is (= running (handler/prime-runtime! running))))
+    (is (= 256 (count @captured)))
+    (is (every? #(= running (:runtime %)) @captured))
+    (is (every? #(= 30000 (:remaining-ms %)) @captured))
+    (is (every? #(= "/lookup-resources" (get-in % [:event :rawPath]))
+                @captured))))
+
+(deftest snapstart-prime-requires-the-cache-to-converge-test
+  (with-redefs [handler/handle-event
+                (fn [_ _ _]
+                  {:statusCode 200
+                   :body (json/write-str
+                          {:data {:items (mapv (fn [index] {:id (str index)})
+                                              (range 10))}
+                           :meta {:cacheStatus "miss"}})})]
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"cache did not converge"
+         (handler/prime-runtime! {:runtime :datomic-dynamodb})))))
 
 (deftest malformed-function-url-events-return-compact-redacted-envelope-test
   (let [runtime (handler/initialize environment fake-reader)

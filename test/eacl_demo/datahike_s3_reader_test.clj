@@ -47,12 +47,12 @@
     (is (not-any? #{"no-snapstart"}
                   (get-in descriptor [:capabilities :limitations])))))
 
-(deftest open-reader-connects-only-and-captures-one-released-immutable-snapshot-test
+(deftest open-reader-retains-one-snapshot-until-explicit-refresh-test
   (let [calls (atom [])
         releases (atom 0)
         fake-connection {:connection :existing}
         fake-client {:client :read-only}
-        fake-snapshot {:snapshot :immutable}
+        snapshots (atom 0)
         opened
         (reader/open-reader!
          config
@@ -68,24 +68,30 @@
             fake-client)
           :snapshot (fn [client]
                       (swap! calls conj [:snapshot client])
-                      fake-snapshot)
+                      {:snapshot (swap! snapshots inc)})
           :basis (fn [snapshot]
-                   (is (= fake-snapshot snapshot))
                    {:backend :datahike
-                    :revision 536872941
+                    :revision (+ 536872940 (:snapshot snapshot))
                     :exact-locator
-                    "6a7df54b-1cb0-5529-9aff-504a79627f73"})
+                    (str "locator-" (:snapshot snapshot))})
           :release-snapshot (fn [snapshot]
-                              (is (= fake-snapshot snapshot))
+                              (is (map? snapshot))
                               (swap! releases inc))})
         captured ((:capture-snapshot opened))]
-    (is (= fake-snapshot (:value captured)))
-    (is (= "datahike:536872941:6a7df54b-1cb0-5529-9aff-504a79627f73"
+    (is (= {:snapshot 1} (:value captured)))
+    (is (= "datahike:536872941:locator-1"
            (get-in captured [:basis :id])))
     (is (= [:connect :make-client :snapshot] (mapv first @calls)))
     (is (true? (get-in (second @calls) [2 :read-only?])))
     ((:release! captured))
-    (is (= 1 @releases))))
+    (is (zero? @releases))
+    (let [refreshed ((:refresh-snapshot! opened))]
+      (is (= {:snapshot 2} (:value refreshed)))
+      (is (= "datahike:536872942:locator-2" (get-in refreshed [:basis :id])))
+      (is (= 1 @releases)))
+    (reader/close-reader! opened)
+    (is (= 2 @releases))
+    (is (= :release-connection (first (last @calls))))))
 
 (deftest read-only-writer-denies-dispatch-create-and-delete-test
   (let [writer (read-only-writer/->ReadOnlyWriter)]

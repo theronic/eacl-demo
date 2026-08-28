@@ -79,7 +79,8 @@
                    :memory-mib memory-mib})
                  handlers (operations/create-handlers
                            {:descriptor descriptor
-                            :cursor-key (:security-key reader-config)})]
+                            :cursor-key (:security-key reader-config)
+                            :refresh-snapshot! (:refresh-snapshot! opened)})]
              {:reader opened
               :descriptor descriptor
               :boundary (boundary/create-boundary

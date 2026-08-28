@@ -7,7 +7,7 @@ Metadata:
     Runtime: java25
     Architecture: x86_64
     SnapshotBehavior: fixed-environment
-    SnapStartPolicy: disabled-datomic-peer-credentials-must-not-be-checkpointed
+    SnapStartPolicy: published-version-preinitialized-reader
 
 Parameters:
   FunctionName:
@@ -56,7 +56,7 @@ Parameters:
     Type: Number
     Default: 1024
     AllowedValues: [1024, 1536, 2048, 3072, 4096, 5120, 6144]
-    Description: Lowest measured fit; Datomic avoids SnapStart because Peer AWS credential state must remain refreshable.
+    Description: Memory and CPU size; published versions are restore-qualified before alias promotion.
   CandidateAliasName:
     Type: String
     Default: candidate
@@ -105,7 +105,7 @@ Resources:
       Role: !Ref ExecutionRoleArn
       Runtime: java25
       SnapStart:
-        ApplyOn: None
+        ApplyOn: PublishedVersions
       Timeout: 60
       TracingConfig:
         Mode: PassThrough
@@ -183,4 +183,4 @@ Outputs:
   Architecture:
     Value: x86_64
   SnapStartEnabled:
-    Value: "false"
+    Value: "true"

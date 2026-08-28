@@ -25,9 +25,13 @@ test("unchanged Explorer components remain byte-identical to the current Datahik
   }
 });
 
-test("the stylesheet is exactly Datahike plus approved primary-control and consistency-note rules and Datomic permission-decision rules", () => {
+test("the stylesheet is exactly Datahike plus approved controls, decisions, and reusable can? footer rules", () => {
   const demo = file(resolve(demoSource, "styles.css"));
-  const withoutDecisionRules = demo.replace(
+  const withoutCanFooter = demo.replace(
+    /\n\n\/\* CAN_PERMISSION_FOOTER_START \*\/[\s\S]*?\/\* CAN_PERMISSION_FOOTER_END \*\/\n/u,
+    "\n",
+  );
+  const withoutDecisionRules = withoutCanFooter.replace(
     /\n\n\/\* DATOMIC_PERMISSION_DECISIONS_START \*\/[\s\S]*?\/\* DATOMIC_PERMISSION_DECISIONS_END \*\/\n\n/u,
     "\n\n",
   );
@@ -84,6 +88,7 @@ test("canonical layout order is unchanged except for the profile selector", () =
     "<SubjectsPanel />",
     "<ResourceTreePanel />",
     "<DetailPanel />",
+    "<CanPermissionFooter",
     '<footer class="app-footer">',
   ]);
   assert.doesNotMatch(explorer, /dashboard|report|verified profile facts|storage stats/iu);
@@ -93,6 +98,21 @@ test("canonical layout order is unchanged except for the profile selector", () =
   assert.doesNotMatch(selector, /<select|<option/iu);
   assert.match(selector, /Backend &amp; Storage/u);
   assert.match(selector, /Platform:/u);
+});
+
+test("the arbitrary permission console is one reusable schema-driven component", () => {
+  const component = file(resolve(demoSource, "components/CanPermissionFooter.tsx"));
+  const explorer = file(resolve(demoSource, "Explorer.tsx"));
+  for (const feature of [
+    "export function CanPermissionFooter",
+    "props.permissionsByType",
+    "props.subjects()",
+    "props.resources()",
+    "setTimeout(() => void execute(), 175)",
+    "manualGeneration",
+    "<MetaTiming",
+  ]) assert.match(component, new RegExp(escapeRegExp(feature), "u"), feature);
+  assert.match(explorer, /app\.runQuery<PermissionDecision>\(canRequest, "\/check-permission"/u);
 });
 
 test("requested copy and control moves are the only component deltas", () => {

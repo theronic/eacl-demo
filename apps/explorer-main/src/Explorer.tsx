@@ -1,5 +1,6 @@
-import { Show, type JSX } from "solid-js";
+import { onCleanup, Show, type JSX } from "solid-js";
 import { CachePanel } from "./components/CachePanel";
+import { CanPermissionFooter, type CanPermissionQuery } from "./components/CanPermissionFooter";
 import { ConsistencyPanel } from "./components/ConsistencyPanel";
 import { DetailPanel } from "./components/DetailPanel";
 import { EmptyState, ErrorBlock, InlineLoading, LoadingBlock } from "./components/Common";
@@ -9,6 +10,8 @@ import { SchemaPanel } from "./components/SchemaPanel";
 import { SubjectsPanel } from "./components/SubjectsPanel";
 import { formatInteger } from "./format";
 import { useAppState } from "./state";
+import { LatestRequest } from "./api";
+import type { PermissionDecision } from "./types";
 
 function SeedProgress(): JSX.Element {
   const app = useAppState();
@@ -51,6 +54,26 @@ export function Explorer(props: {
   const app = useAppState();
   const hasBootstrap = () => Boolean(app.bootstrapData());
   const startupSeconds = () => (app.healthElapsedMs() / 1000).toFixed(1);
+  const canRequest = new LatestRequest();
+  const canDefaults = (): CanPermissionQuery => {
+    const schema = app.bootstrapData()!.data.schema;
+    const resourceType = schema.resourceTypes.includes("account")
+      ? "account"
+      : schema.resourceTypes.includes("server")
+        ? "server"
+        : schema.resourceTypes[0] ?? "";
+    const permissions = schema.permissionsByType[resourceType] ?? [];
+    return {
+      subject: { type: "user", id: app.knownSubjects().find(({ id }) => id === "user-1")?.id ?? app.knownSubjects()[0]?.id ?? "user-1" },
+      permission: permissions.includes("admin") ? "admin" : permissions[0] ?? "",
+      resource: {
+        type: resourceType,
+        id: app.knownResources().find(({ type }) => type === resourceType)?.id
+          ?? (resourceType === "account" ? "account-0" : resourceType === "server" ? "server-1" : ""),
+      },
+    };
+  };
+  onCleanup(() => canRequest.abort());
   return (
     <div class="app-shell" data-theme={app.theme()}>
       <Header />
@@ -138,6 +161,26 @@ export function Explorer(props: {
       </Show>
       <Show when={!app.permission()}>
         <EmptyState>No permission is available in the active schema.</EmptyState>
+      </Show>
+      <Show when={app.bootstrapData()}>
+        <CanPermissionFooter
+          subjectTypes={[...new Set([
+            ...app.bootstrapData()!.data.schema.nodes.map(({ id }) => id),
+            ...Object.keys(app.bootstrapData()!.data.schema.childPaths),
+          ])].sort()}
+          subjects={app.knownSubjects}
+          resourceTypes={app.bootstrapData()!.data.schema.resourceTypes}
+          resources={app.knownResources}
+          permissionsByType={app.bootstrapData()!.data.schema.permissionsByType}
+          initial={canDefaults()}
+          cache={app.cacheEnabled}
+          populateCache={app.populateCache}
+          consistency={app.consistency}
+          query={(input, options) => app.runQuery<PermissionDecision>(canRequest, "/check-permission", {
+            method: "POST",
+            body: JSON.stringify({ ...input, ...options }),
+          })}
+        />
       </Show>
       <ExplorerFooter eaclSha={app.health()?.data.identity.eaclSha} />
     </div>

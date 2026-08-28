@@ -211,7 +211,7 @@ export function createProfileApi(
     }
 
     if (url.pathname === "/bootstrap" || url.pathname === "/refresh-snapshot") {
-      const active = await loadDescriptor(signal, url.pathname.endsWith("refresh"));
+      const active = await loadDescriptor(signal, url.pathname === "/refresh-snapshot");
       const activeSchema = await loadSchema(signal);
       return envelope(presentBootstrap(active, activeSchema), "bootstrap", active.basis) as ApiSuccess<T>;
     }
@@ -431,12 +431,20 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
       fullyConsistent,
       fullyConsistentReason: fullyConsistent
         ? "The immutable deployed database value is authoritative for this read-only profile."
-        : "This read-only Lambda cannot coordinate with a writer to establish a newer authoritative head.",
+        : fullyConsistentReason(descriptor),
       atExactSnapshotDateSelection: descriptor.capabilities.consistencyModes.includes("historical-date"),
       atExactSnapshotDateSelectionReason: "Historical date selection is not advertised by this profile.",
     },
     capabilities: { schemaWrite: false, seedWrite: false, cacheEvict: false },
   };
+}
+
+function fullyConsistentReason(descriptor: ProfileDescriptor): string {
+  if (descriptor.profile.backend === "datahike") {
+    const storage = descriptor.profile.storage === "s3" ? "S3 GETs" : "DynamoDB reads";
+    return `Fully consistent is disabled in this cost-controlled demo because refreshing Datahike for every query may issue ${storage}. Use Refresh Snapshot when you need a newer basis.`;
+  }
+  return "This read-only deployment does not advertise an authoritative-head synchronization operation.";
 }
 
 function presentSchema(schema: WireSchema): SchemaInfo {

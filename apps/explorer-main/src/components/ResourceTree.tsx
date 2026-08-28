@@ -457,6 +457,7 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
     const result = page();
     if (!result) return;
     setDisplayedPage(result.envelope);
+    app.rememberResources(result.envelope.data.items);
     setDisplayedPageScope(result.scope);
     setDisplayedCursors([...cursors()]);
     setDisplayedPageSize(app.pageSize());

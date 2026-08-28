@@ -31,9 +31,10 @@
     (is (thrown? clojure.lang.ExceptionInfo
                  (reader/validate-config (assoc config :access-key "forbidden"))))))
 
-(deftest reader-captures-and-releases-one-request-snapshot-test
+(deftest reader-retains-one-snapshot-until-explicit-refresh-test
   (let [calls (atom [])
         releases (atom 0)
+        snapshots (atom 0)
         opened
         (reader/open-reader!
          config
@@ -46,17 +47,23 @@
                          :client)
           :snapshot (fn [client]
                       (swap! calls conj [:snapshot client])
-                      :snapshot)
-          :basis (constantly {:revision 42 :exact-locator "locator"})
+                      {:snapshot (swap! snapshots inc)})
+          :basis (fn [snapshot]
+                   {:revision (+ 41 (:snapshot snapshot))
+                    :exact-locator (str "locator-" (:snapshot snapshot))})
           :release-snapshot (fn [snapshot]
-                              (is (= :snapshot snapshot))
+                              (is (map? snapshot))
                               (swap! releases inc))})
         captured ((:capture-snapshot opened))]
-    (is (= :snapshot (:value captured)))
-    (is (= "datahike:42:locator" (get-in captured [:basis :id])))
+    (is (= {:snapshot 1} (:value captured)))
+    (is (= "datahike:42:locator-1" (get-in captured [:basis :id])))
     (is (= [:connect :make-client :snapshot] (mapv first @calls)))
     (is (true? (get-in (second @calls) [2 :read-only?])))
     (is (= (:security-key config)
            (get-in (second @calls) [2 :security-key])))
     ((:release! captured))
-    (is (= 1 @releases))))
+    (is (zero? @releases))
+    (is (= {:snapshot 2} (:value ((:refresh-snapshot! opened)))))
+    (is (= 1 @releases))
+    (reader/close-reader! opened)
+    (is (= 2 @releases))))

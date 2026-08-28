@@ -59,6 +59,19 @@
            (invoke handlers "count-objects" ::unusable-snapshot
                    {:kind "objects" :type "server" :ceiling 1000000})))))
 
+(deftest bootstrap-explicitly-advances-the-retained-snapshot-test
+  (let [later (assoc public-basis :id "datahike:test:test:43"
+                     :capturedAt "2026-08-26T00:00:01Z")
+        calls (atom 0)
+        handlers (operations/create-handlers
+                  {:descriptor descriptor
+                   :cursor-key cursor-key
+                   :refresh-snapshot! (fn []
+                                        (swap! calls inc)
+                                        {:value ::later :basis later})})]
+    (is (= later (:basis (invoke handlers "bootstrap" ::old {}))))
+    (is (= 1 @calls))))
+
 (deftest immutable-datahike-operations-are-bounded-normalized-and-cursor-authenticated-test
   (let [database-id (random-uuid)
         connection

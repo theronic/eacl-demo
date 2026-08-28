@@ -28,7 +28,7 @@ test("individual values and the total search string are bounded", () => {
   assert.equal("subject" in fieldResult.state, false);
   const totalResult = parseCanonicalUrl(`?backend=datahike&storage=s3&unknown=${"a".repeat(canonicalUrlLimits.maxSearchBytes)}`, catalog);
   assert.deepEqual(totalResult.issues, [{ code: "url-too-large", field: null }]);
-  assert.deepEqual(totalResult.state, { backend: "datahike", storage: "s3", platform: "lambda-1024" });
+  assert.deepEqual(totalResult.state, { backend: "datascript", storage: "browser-memory", platform: "browser" });
 });
 
 test("preference-shaped portable fields normalize strictly", () => {
