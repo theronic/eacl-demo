@@ -167,6 +167,18 @@ export interface Bootstrap {
   };
 }
 
+export interface DeploymentIdentityWarning {
+  code: "deployment-identity-drift";
+  message: string;
+  expected: ReaderHealth["identity"];
+  actual: ReaderHealth["identity"];
+  differences: Array<{
+    field: keyof ReaderHealth["identity"];
+    expected: string;
+    actual: string;
+  }>;
+}
+
 export interface ReaderHealth {
   status: "ready";
   ready: true;
@@ -178,6 +190,7 @@ export interface ReaderHealth {
     deploymentId: string;
     dataManifestSha256: string;
   };
+  identityWarning?: DeploymentIdentityWarning;
   basis: {
     behavior: string;
     id: string;

@@ -11,6 +11,7 @@ import type {
   Bootstrap,
   CacheSnapshot,
   ConsistencyMode,
+  DeploymentIdentityWarning,
   EaclObject,
   KnownSubjectPage,
   ObjectPage,
@@ -52,6 +53,7 @@ interface ProfileDescriptor {
     deploymentId: string;
     dataManifestSha256: string;
   };
+  identityWarning?: DeploymentIdentityWarning;
   profile: { backend: string; storage: string };
   capabilities: {
     operations: string[];
@@ -206,6 +208,7 @@ export function createProfileApi(
         status: "ready",
         ready: true,
         identity: active.identity,
+        ...(active.identityWarning ? { identityWarning: active.identityWarning } : {}),
         basis: active.basis,
       } as ReaderHealth, "bootstrap-health", active.basis) as ApiSuccess<T>;
     }

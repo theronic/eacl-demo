@@ -24,11 +24,36 @@ test("route, registry, health and bootstrap establish one trusted descriptor", (
   assert.equal(descriptor.deployment.artifactSha256, registryProfile.deployment.artifact.sha256);
   assert.equal(descriptor.dataManifestSha256, identity.dataManifestSha256);
   assert.equal(descriptor.basis.id, basis.id);
+  assert.equal(descriptor.identityWarning, null);
 });
 
-test("route, artifact, registry, data and basis mismatches fail before use", () => {
+test("a coherent out-of-date service identity produces a detailed warning", () => {
+  const serviceIdentity = {
+    ...identity,
+    demoSha: sha("e", 40),
+    eaclSha: sha("f", 40),
+    artifactSha256: sha("9", 64),
+    deploymentId: "deploy-6"
+  };
+  const descriptor = validateDescriptorHandshake({
+    registryProfile,
+    route: registryProfile.route,
+    health: { ...health, identity: serviceIdentity },
+    bootstrap: { ...bootstrap, identity: serviceIdentity }
+  });
+  assert.equal(descriptor.deployment.eaclSha, serviceIdentity.eaclSha);
+  assert.equal(descriptor.identityWarning.code, "deployment-identity-drift");
+  assert.equal(descriptor.identityWarning.message, "The service is running an out-of-date EACL version.");
+  assert.deepEqual(descriptor.identityWarning.differences.map(({ field }) => field), ["demoSha", "eaclSha", "artifactSha256", "deploymentId"]);
+  assert.equal(descriptor.identityWarning.expected.eaclSha, identity.eaclSha);
+  assert.equal(descriptor.identityWarning.actual.eaclSha, serviceIdentity.eaclSha);
+});
+
+test("route, cross-response identity, profile, data and basis mismatches fail before use", () => {
+  const wrongProfileIdentity = { ...identity, profileId: "datomic-dynamodb" };
   const cases = [
     { route: "/extra", health, bootstrap },
+    { route: registryProfile.route, health: { ...health, identity: wrongProfileIdentity }, bootstrap: { ...bootstrap, identity: wrongProfileIdentity } },
     { route: registryProfile.route, health: { ...health, identity: { ...identity, artifactSha256: sha("e", 64) } }, bootstrap },
     { route: registryProfile.route, health, bootstrap: { ...bootstrap, identity: { ...identity, demoSha: sha("f", 40) } } },
     { route: registryProfile.route, health, bootstrap: { ...bootstrap, profile: { backend: "datomic", storage: "dynamodb" } } },
