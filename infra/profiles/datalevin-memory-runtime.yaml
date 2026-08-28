@@ -202,6 +202,6 @@ Outputs:
   Architecture:
     Value: arm64
   Storage:
-    Value: memory
+    Value: embedded
   SnapStartEnabled:
     Value: "true"

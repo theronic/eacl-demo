@@ -36,6 +36,7 @@ test("one exact artifact carries only the two deployed Linux native architecture
 
 test("Datalevin uses embedded LMDB captured by SnapStart without remote serving", () => {
   assert.match(template, /^\s{4}Storage: embedded$/mu);
+  assert.match(template, /^\s{2}Storage:\s*\n\s{4}Value: embedded$/mu);
   assert.match(readerSource, /datalevin-eacl\/create-conn \(str database-directory\) physical-schema/u);
   assert.match(readerSource, /fixture-10000\.ndjson/u);
   assert.match(template, /EACL_DATALEVIN_DIRECTORY: \/tmp\/eacl-demo-datalevin/u);
