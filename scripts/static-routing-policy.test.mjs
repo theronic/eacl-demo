@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
-const template = await readFile(new URL("../infra/static/template.yaml", import.meta.url), "utf8");
+const [template, deploySource] = await Promise.all([
+  readFile(new URL("../infra/static/template.yaml", import.meta.url), "utf8"),
+  readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8"),
+]);
 const match = template.match(/      FunctionCode: \|\n([\s\S]*?)      FunctionConfig:/u);
 assert.ok(match, "CloudFront function source must be extractable");
 const source = match[1].split("\n").map((line) => line.replace(/^ {8}/u, "")).join("\n");
@@ -45,4 +48,10 @@ test("the static CSP admits only the exact deployed API origins", () => {
   assert.match(template, /connect-src 'self'[^;]+lambda-url\.us-east-1\.on\.aws/u);
   assert.match(template, /worker-src 'none'/u);
   assert.doesNotMatch(template, /unsafe-eval|https:\/\/\*\.lambda-url/u);
+});
+
+test("static deployment rejects live response-header policy drift", () => {
+  assert.match(deploySource, /await smokeStaticSecurityHeaders\("https:\/\/demo\.eacl\.dev"\)/u);
+  assert.match(deploySource, /response\.headers\.get\("content-security-policy"\)/u);
+  assert.match(deploySource, /observed === expected/u);
 });
