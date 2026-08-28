@@ -288,6 +288,7 @@ async function deployDatomicEc2(release) {
       expectedIdentityFor("datomic-dynamodb", release.artifactSha256, release.deploymentId),
       { attempts: 30 }
     );
+    await smokeDatomicHistoricalUrl("https://datomic.demo.eacl.dev");
     process.stdout.write(`deployed datomic-dynamodb-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
@@ -449,6 +450,54 @@ async function smokeFunctionUrl(profileId, origin, expectedIdentity, { attempts 
     if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 2_000));
   }
   throw new Error(`${profileId} public origin smoke failed after deployment propagation: ${JSON.stringify(observed)}`);
+}
+
+async function smokeDatomicHistoricalUrl(origin) {
+  const request = async (operation, { method = "GET", input = null } = {}) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const response = await fetch(new URL(`/${operation}`, origin), {
+        method,
+        headers: {
+          accept: "application/json",
+          origin: "https://demo.eacl.dev",
+          "x-eacl-request-id": `ci-ec2-history-${operation}-${demoSha().slice(0, 12)}`,
+          ...(input === null ? {} : { "content-type": "application/json" })
+        },
+        body: input === null ? undefined : JSON.stringify(input),
+        redirect: "manual",
+        signal: controller.signal
+      });
+      return { status: response.status,
+        envelope: validateDemoSmokeEnvelope(JSON.parse(await response.text())) };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+  const bootstrap = await request("bootstrap");
+  const descriptor = bootstrap.envelope.data;
+  const exactAt = descriptor?.basis?.capturedAt;
+  if (bootstrap.status !== 200 || descriptor?.runtime?.execution !== "ec2" ||
+      !descriptor?.capabilities?.consistencyModes?.includes("historical-date") ||
+      typeof exactAt !== "string" || !Number.isFinite(Date.parse(exactAt))) {
+    throw new Error("datomic-dynamodb EC2 historical bootstrap smoke failed");
+  }
+  const decision = await request("check-permission", {
+    method: "POST",
+    input: {
+      subjectType: "user", subjectId: "user-1",
+      resourceType: "account", resourceId: "account-0", permission: "admin",
+      consistency: "historical-date", atExactSnapshotAt: exactAt
+    }
+  });
+  if (decision.status !== 200 || decision.envelope.data?.allowed !== true ||
+      "error" in decision.envelope) {
+    throw new Error(`datomic-dynamodb EC2 historical exact smoke failed: ${JSON.stringify({
+      status: decision.status,
+      errorCode: decision.envelope.error?.code ?? null
+    })}`);
+  }
 }
 
 function rollbackAlias(functionName, promoted, prior) {

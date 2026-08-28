@@ -13,6 +13,12 @@
 
 (def fixture-schema-source (slurp "fixtures/schema.v1.zed"))
 
+(deftest historical-revision-cannot-advance-past-retained-db-test
+  (is (= 1018630
+         (#'reader/bounded-as-of-revision 1018630 1018640)))
+  (is (= 1018629
+         (#'reader/bounded-as-of-revision 1018630 1018629))))
+
 (deftest historical-token-retains-scope-and-authenticates-the-resolved-revision-test
   (let [options (#'reader/token-format-options (:security-key config))
         scope {:backend :datomic

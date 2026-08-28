@@ -47,9 +47,9 @@
 (defn fake-reader
   [_config]
   {:basis basis
-   :capture-snapshot (fn [] {:value :fixed-snapshot
-                             :basis basis
-                             :release! (fn [])})})
+   :capture-snapshot (fn [& _] {:value :fixed-snapshot
+                                :basis basis
+                                :release! (fn [])})})
 
 (deftest closed-environment-builds-fixed-reader-identity-test
   (let [parsed (handler/parse-environment environment)]

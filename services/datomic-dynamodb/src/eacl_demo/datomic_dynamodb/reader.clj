@@ -79,12 +79,22 @@
        (assoc :revision revision :exact-locator revision)
        (dissoc :issued-at :expires-at))))
 
+(defn- bounded-as-of-revision
+  [fixed-revision requested-revision]
+  ;; Datomic maps a Date after the retained DB basis to a future logical T.
+  ;; That T is a valid as-of cutoff, but it is not a transaction in this
+  ;; immutable DB value and therefore has no :db/txInstant.  An exact snapshot
+  ;; served by this reader can never advance beyond the retained basis.
+  (min fixed-revision requested-revision))
+
 (defn- resolve-as-of
   [database instant]
   (let [historical-db (d/as-of database (Date/from instant))
-        revision (or (.asOfT ^datomic.Database historical-db)
-                     (d/basis-t historical-db))
-        captured-at (some-> (d/entity historical-db (d/t->tx revision))
+        fixed-revision (d/basis-t database)
+        requested-revision (or (.asOfT ^datomic.Database historical-db)
+                               fixed-revision)
+        revision (bounded-as-of-revision fixed-revision requested-revision)
+        captured-at (some-> (d/entity database (d/t->tx revision))
                             :db/txInstant
                             (.toInstant))]
     {:revision revision
