@@ -15,29 +15,29 @@
   {"health" {:required #{} :optional #{}}
    "bootstrap" {:required #{} :optional #{}}
    "list-subjects" {:required #{} :optional #{:type :pageSize :cursor}}
-   "get-object" {:required #{:type :id} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+   "get-object" {:required #{:type :id} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "list-relationships"
    {:required #{:resourceType :resourceId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "reverse-relationships"
    {:required #{:subjectType :subjectId}
-    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:relation :pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "check-permission"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
-    :optional #{:cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "lookup-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "lookup-subjects"
    {:required #{:resourceType :resourceId :subjectType :permission}
-    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:pageSize :cursor :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "count-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional #{:ceiling :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
-   "get-schema" {:required #{} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}
+    :optional #{:ceiling :cache :populateCache :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
+   "get-schema" {:required #{} :optional #{:consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}
    "get-cache-info" {:required #{} :optional #{}}
    "count-objects"
-   {:required #{:kind} :optional #{:type :ceiling :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId}}})
+   {:required #{:kind} :optional #{:type :ceiling :consistency :atLeastAsFreshAs :atLeastAsFreshBasisId :atLeastAsFreshBasisCapturedAt}}})
 
 (defn valid-request-id?
   [value]
@@ -117,11 +117,16 @@
 
               :else
               (if-let [code (or (when (and (or (contains? normalized :atLeastAsFreshAs)
-                                                (contains? normalized :atLeastAsFreshBasisId))
+                                                (contains? normalized :atLeastAsFreshBasisId)
+                                                (contains? normalized :atLeastAsFreshBasisCapturedAt))
                                            (not= "at-least" (:consistency normalized)))
                                   "validation-error")
                                 (when (and (contains? normalized :atLeastAsFreshBasisId)
                                            (not (contains? normalized :atLeastAsFreshAs)))
+                                  "validation-error")
+                                (when (and (contains? normalized :atLeastAsFreshBasisCapturedAt)
+                                           (not (and (contains? normalized :atLeastAsFreshAs)
+                                                     (contains? normalized :atLeastAsFreshBasisId))))
                                   "validation-error")
                                 (value-error normalized supported-consistency))]
                 {:ok? false :code code}
@@ -157,7 +162,7 @@
          (not (contains? supported-consistency value)) "unsupported-consistency"
          :else nil)
 
-       (= key :atLeastAsFreshAs)
+       (contains? #{:atLeastAsFreshAs :atLeastAsFreshBasisCapturedAt} key)
        (when-not (and (string? value)
                       (<= (alength (.getBytes ^String value StandardCharsets/UTF_8)) 64)
                       (try
@@ -183,15 +188,28 @@
 
 (defn freshness-floor-available?
   "Returns true when an immutable selected basis can satisfy an at-least floor.
-  Basis identity is authoritative across execution environments; capturedAt is
-  only a fallback for older clients that do not send a basis ID."
+  A selected basis timestamp proves floors no newer than that snapshot across
+  execution environments. Older clients retain basis-ID compatibility, while
+  timestamp comparison remains the fallback when basis identity differs."
   [input public-basis]
   (let [requested-basis-id (:atLeastAsFreshBasisId input)
         current-basis-id (:id public-basis)
         requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
+        selected-captured-at (some-> (:atLeastAsFreshBasisCapturedAt input)
+                                     java.time.Instant/parse)
         captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
-    (or (and requested-basis-id
-             (= requested-basis-id current-basis-id))
-        (not (and requested-at
-                  captured-at
-                  (.isAfter requested-at captured-at))))))
+    (cond
+      (and requested-basis-id
+           (= requested-basis-id current-basis-id)
+           selected-captured-at)
+      (not (and requested-at
+                (.isAfter requested-at selected-captured-at)))
+
+      (and requested-basis-id
+           (= requested-basis-id current-basis-id))
+      true
+
+      :else
+      (not (and requested-at
+                captured-at
+                (.isAfter requested-at captured-at))))))

@@ -20,6 +20,7 @@ import type {
   ConsistencyMode,
   ConsistencyRequest,
   EaclObject,
+  FreshnessFloorMode,
   PageSize,
   ReaderHealth,
   SeedProgress,
@@ -61,6 +62,10 @@ interface AppStateValue {
   setConsistencyMode: (value: ConsistencyMode) => void;
   atLeastAsFreshAs: Accessor<string>;
   setAtLeastAsFreshAs: (value: string) => void;
+  freshnessFloorMode: Accessor<FreshnessFloorMode>;
+  setFreshnessFloorMode: (value: FreshnessFloorMode) => void;
+  atLeastSecondsAgo: Accessor<number>;
+  setAtLeastSecondsAgo: (value: number) => void;
   refreshSnapshot: () => Promise<void>;
   snapshotRefreshing: Accessor<boolean>;
   snapshotError: Accessor<unknown>;
@@ -135,7 +140,21 @@ export const AppStateProvider: ParentComponent = (props) => {
   );
   const [consistencyMode, setConsistencySignal] =
     createSignal<ConsistencyMode>("minimize-latency");
-  const [atLeastAsFreshAs, setAtLeastAsFreshAsSignal] = createSignal("");
+  const [freshnessFloorMode, setFreshnessFloorModeSignal] =
+    createSignal<FreshnessFloorMode>("relative");
+  const [atLeastSecondsAgo, setAtLeastSecondsAgoSignal] = createSignal(60);
+  const [absoluteFreshnessAt, setAbsoluteFreshnessAt] = createSignal("");
+  const selectedSnapshotCapturedAt = createMemo(
+    () => bootstrapData()?.meta.basis?.capturedAt ?? "",
+  );
+  const atLeastAsFreshAs = createMemo(() => {
+    if (freshnessFloorMode() === "absolute") return absoluteFreshnessAt();
+    const selectedAt = selectedSnapshotCapturedAt();
+    const selectedTime = Date.parse(selectedAt);
+    if (!Number.isFinite(selectedTime)) return "";
+    const seconds = Math.max(0, Math.floor(atLeastSecondsAgo()));
+    return new Date(selectedTime - seconds * 1_000).toISOString();
+  });
   const consistency = createMemo<ConsistencyRequest>(() => ({
     mode: consistencyMode(),
     ...(consistencyMode() === "at-least-as-fresh" && atLeastAsFreshAs()
@@ -143,7 +162,15 @@ export const AppStateProvider: ParentComponent = (props) => {
           atLeastAsFreshAs: atLeastAsFreshAs(),
           ...(activeQueryBasis() === "pending"
             ? {}
-            : { atLeastAsFreshBasisId: activeQueryBasis() }),
+            : {
+                atLeastAsFreshBasisId: activeQueryBasis(),
+                ...(selectedSnapshotCapturedAt()
+                  ? {
+                      atLeastAsFreshBasisCapturedAt:
+                        selectedSnapshotCapturedAt(),
+                    }
+                  : {}),
+              }),
         }
       : {}),
   }));
@@ -198,8 +225,17 @@ export const AppStateProvider: ParentComponent = (props) => {
     setConsistencySignal(value);
   };
   const setAtLeastAsFreshAs = (value: string) => {
-    if (value === atLeastAsFreshAs()) return;
-    setAtLeastAsFreshAsSignal(value);
+    if (value === absoluteFreshnessAt()) return;
+    setAbsoluteFreshnessAt(value);
+  };
+  const setFreshnessFloorMode = (value: FreshnessFloorMode) => {
+    if (value === freshnessFloorMode()) return;
+    setFreshnessFloorModeSignal(value);
+  };
+  const setAtLeastSecondsAgo = (value: number) => {
+    const normalized = Math.max(0, Math.floor(value));
+    if (!Number.isFinite(normalized) || normalized === atLeastSecondsAgo()) return;
+    setAtLeastSecondsAgoSignal(normalized);
   };
   const remember = (
     setter: (updater: (current: readonly EaclObject[]) => readonly EaclObject[]) => void,
@@ -239,8 +275,8 @@ export const AppStateProvider: ParentComponent = (props) => {
       setBootstrapData(envelope);
       setMutationRevision(envelope.meta.revision);
       setSeedProgress(envelope.data.seed);
-      if ((refreshed || !atLeastAsFreshAs()) && envelope.meta.basis?.capturedAt) {
-        setAtLeastAsFreshAsSignal(envelope.meta.basis.capturedAt);
+      if ((refreshed || !absoluteFreshnessAt()) && envelope.meta.basis?.capturedAt) {
+        setAbsoluteFreshnessAt(envelope.meta.basis.capturedAt);
       }
       rememberSubjects(envelope.data.quickSubjects.map(({ id }) => ({ type: "user", id })));
       const permissions = Object.values(
@@ -397,6 +433,10 @@ export const AppStateProvider: ParentComponent = (props) => {
     setConsistencyMode,
     atLeastAsFreshAs,
     setAtLeastAsFreshAs,
+    freshnessFloorMode,
+    setFreshnessFloorMode,
+    atLeastSecondsAgo,
+    setAtLeastSecondsAgo,
     refreshSnapshot,
     snapshotRefreshing,
     snapshotError,

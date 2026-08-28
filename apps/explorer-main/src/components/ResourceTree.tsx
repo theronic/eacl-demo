@@ -81,8 +81,6 @@ function RelationshipGroup(props: {
       props.path.relation,
       app.subjectId(),
       app.permission(),
-      app.cacheEnabled(),
-      app.populateCache(),
       app.activeQueryBasis(),
       JSON.stringify(app.consistency()),
     );
@@ -94,8 +92,6 @@ function RelationshipGroup(props: {
       input[3],
       input[4],
       input[5],
-      input[8],
-      input[9],
       input[10],
       input[13],
     );
@@ -162,8 +158,6 @@ function RelationshipGroup(props: {
         app.subjectId(),
         app.permission(),
         app.pageSize(),
-        app.cacheEnabled(),
-        app.populateCache(),
         app.queryGeneration(),
         app.basisGeneration(),
         JSON.stringify(app.consistency()),
@@ -364,13 +358,11 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
       app.subjectId(),
       app.permission(),
       props.resourceType,
-      app.cacheEnabled(),
-      app.populateCache(),
       app.activeQueryBasis(),
       JSON.stringify(app.consistency()),
     );
   const resourceScopeFromInput = (input: readonly unknown[]) =>
-    scopeKey(...input.slice(0, 6), input[8]);
+    scopeKey(input[0], input[1], input[2], input[5], input[8]);
   const base = () =>
     expanded() && app.permission()
       ? ([
@@ -489,8 +481,6 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
         app.subjectId(),
         app.permission(),
         app.pageSize(),
-        app.cacheEnabled(),
-        app.populateCache(),
         app.queryGeneration(),
         app.basisGeneration(),
         JSON.stringify(app.consistency()),
