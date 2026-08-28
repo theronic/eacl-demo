@@ -453,7 +453,8 @@ Resources:
               /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
               systemctl daemon-reload
               systemctl restart eacl-demo-datomic.service
-              systemctl enable --now eacl-demo-datalevin.service
+              systemctl enable eacl-demo-datalevin.service
+              systemctl restart eacl-demo-datalevin.service
               for attempt in $(seq 1 180); do
                 curl --fail --silent -H 'x-eacl-request-id: ec2-datalevin-health' http://127.0.0.1:8081/health >/dev/null && exit 0
                 sleep 2

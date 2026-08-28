@@ -15,7 +15,7 @@ test("the shared persistent host may read only its two immutable profile prefixe
 
 test("the SSM release association and runtime command both verify the artifact before restart", () => {
   assert.match(source, /RuntimeArtifactAssociation:[\s\S]*get-object[\s\S]*--version-id[\s\S]*sha256sum --check --strict[\s\S]*systemctl restart eacl-demo-datomic\.service/u);
-  assert.match(source, /DatalevinRuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl enable --now eacl-demo-datalevin\.service/u);
+  assert.match(source, /DatalevinRuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl enable eacl-demo-datalevin\.service[\s\S]*systemctl restart eacl-demo-datalevin\.service/u);
   assert.match(source, /DatalevinViewerCertificate[\s\S]*HTTPPort: 8081[\s\S]*DatalevinViewerRecord/u);
 });
 
