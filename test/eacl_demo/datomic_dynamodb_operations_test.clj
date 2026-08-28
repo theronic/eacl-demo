@@ -5,6 +5,7 @@
             [eacl.core :as eacl]
             [eacl.datomic.core :as datomic-eacl]
             [eacl.datomic.schema :as datomic-schema]
+            [eacl.spicedb.consistency :as consistency]
             [eacl-demo.datomic-dynamodb.operations :as operations]))
 
 (def cursor-key (apply str (repeat 32 "k")))
@@ -30,6 +31,34 @@
                   :eacl-demo/snapshot snapshot
                   :eacl-demo/public-basis public-basis)
     :check-active! (fn [])}))
+
+(deftest minimize-latency-does-not-mint-a-basis-token-test
+  (let [calls (atom 0)
+        snapshot ::snapshot]
+    (with-redefs [eacl/basis-token
+                  (fn [actual]
+                    (is (= snapshot actual))
+                    (swap! calls inc)
+                    "basis-token")]
+      (is (= consistency/minimize-latency
+             (#'operations/eacl-consistency
+              {:eacl-demo/snapshot snapshot :consistency "minimize"})))
+      (is (zero? @calls))
+      (is (= (consistency/at-exact-snapshot "basis-token")
+             (#'operations/eacl-consistency
+              {:eacl-demo/snapshot snapshot :consistency "exact"})))
+      (is (= 1 @calls)))))
+
+(deftest fixed-server-count-does-not-scan-the-database-test
+  (let [handlers (operations/create-handlers
+                  {:descriptor (assoc descriptor :dataset {:serverCount 998417})
+                   :cursor-key cursor-key})]
+    (is (= {:kind "objects" :value 10 :exact false :ceiling 10}
+           (invoke handlers "count-objects" ::unusable-snapshot
+                   {:kind "objects" :type "server" :ceiling 10})))
+    (is (= {:kind "objects" :value 998417 :exact true :ceiling 1000000}
+           (invoke handlers "count-objects" ::unusable-snapshot
+                   {:kind "objects" :type "server" :ceiling 1000000})))))
 
 (deftest fixed-snapshot-operations-are-bounded-normalized-and-cursor-authenticated-test
   (let [uri (str "datomic:mem://eacl-demo-operations-" (random-uuid))]

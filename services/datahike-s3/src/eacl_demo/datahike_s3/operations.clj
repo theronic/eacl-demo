@@ -310,8 +310,7 @@
      "count-objects"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
-        (let [database (datahike-eacl/db snapshot)
-              ceiling (or (:ceiling input) default-count-ceiling)
+        (let [ceiling (or (:ceiling input) default-count-ceiling)
               kind (:kind input)
               type (some-> (:type input) keyword)
               exact-total
@@ -326,7 +325,7 @@
               observed (if (some? exact-total)
                          exact-total
                          (bounded-scan-count
-                          (relationship-datoms database type)
+                          (relationship-datoms (datahike-eacl/db snapshot) type)
                           ceiling check-active!))]
           {:kind kind
            :value (min ceiling observed)
@@ -337,15 +336,14 @@
   [input]
   (let [snapshot (:eacl-demo/snapshot input)
         public-basis (:eacl-demo/public-basis input)
-        token (when snapshot (eacl/basis-token snapshot))
         requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
         captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
-    (when-not token (fail! "internal-error"))
+    (when-not snapshot (fail! "internal-error"))
     (when (and requested-at captured-at (.isAfter requested-at captured-at))
       (fail! "freshness-unavailable"))
     (case (:consistency input)
-      "at-least" (consistency/at-least-as-fresh token)
-      "exact" (consistency/at-exact-snapshot token)
+      "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))
+      "exact" (consistency/at-exact-snapshot (eacl/basis-token snapshot))
       consistency/minimize-latency)))
 
 (defn- relationship-query

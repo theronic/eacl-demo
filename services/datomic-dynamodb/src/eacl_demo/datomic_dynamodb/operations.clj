@@ -246,16 +246,20 @@
      "count-objects"
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
-        (let [database (datomic-eacl/db snapshot)
-              ceiling (or (:ceiling input) default-count-ceiling)
+        (let [ceiling (or (:ceiling input) default-count-ceiling)
               kind (:kind input)
               type (some-> (:type input) keyword)
-              values (case kind
-                       "subjects" (subject-entities database type)
-                       "objects" (object-entities database type)
-                       "relationships" (relationship-datoms database type)
-                       (fail! "validation-error"))
-              observed (bounded-scan-count values ceiling check-active!)]
+              known-count (when (and (= "objects" kind) (= :server type))
+                            (get-in descriptor [:dataset :serverCount]))
+              observed
+              (or known-count
+                  (let [database (datomic-eacl/db snapshot)
+                        values (case kind
+                                 "subjects" (subject-entities database type)
+                                 "objects" (object-entities database type)
+                                 "relationships" (relationship-datoms database type)
+                                 (fail! "validation-error"))]
+                    (bounded-scan-count values ceiling check-active!)))]
           {:kind kind
            :value (min ceiling observed)
            :exact (<= observed ceiling)
@@ -265,10 +269,9 @@
   [input]
   (let [snapshot (:eacl-demo/snapshot input)
         public-basis (:eacl-demo/public-basis input)
-        token (when snapshot (eacl/basis-token snapshot))
         requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
         captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
-    (when-not token (fail! "internal-error"))
+    (when-not snapshot (fail! "internal-error"))
     (when (and requested-at captured-at (.isAfter requested-at captured-at))
       (fail! "freshness-unavailable"))
     (case (:consistency input)
@@ -277,8 +280,8 @@
       ;; so this selection deliberately validates it as the retained snapshot
       ;; instead of asking EACL's live-source path to synchronize.
       "authoritative" consistency/minimize-latency
-      "at-least" (consistency/at-least-as-fresh token)
-      "exact" (consistency/at-exact-snapshot token)
+      "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))
+      "exact" (consistency/at-exact-snapshot (eacl/basis-token snapshot))
       consistency/minimize-latency)))
 
 (defn- relationship-query
