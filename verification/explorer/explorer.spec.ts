@@ -247,7 +247,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
+    eaclSha: "76e4bd3c44436ef2755485f640ed165e355cbd50",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)

@@ -28,8 +28,10 @@ assert.ok(Number.isSafeInteger(lock.datomic.distributionBytes) && lock.datomic.d
 assert.equal(lock.datomic.distributionRoot, `datomic-pro-${lock.datomic.version}`);
 assert.deepEqual(lock.datomic.supportedJavaLts, [17, 21, 25]);
 assert.match(deps, new RegExp(`com\\.datomic/peer \\{:mvn/version "${escapeRegExp(lock.datomic.version)}"\\}`, "u"));
-assert.match(deps, new RegExp(`software\\.amazon\\.awssdk/dynamodb[\\s\\S]*?:mvn/version "${escapeRegExp(lock.dynamodbSdk.version)}"`, "u"));
-assert.match(deps, new RegExp(`software\\.amazon\\.awssdk/url-connection-client \\{:mvn/version "${escapeRegExp(lock.dynamodbSdk.version)}"\\}`, "u"));
+for (const module of lock.dynamodbSdk.modules) {
+  const coordinate = escapeRegExp(module.coordinate);
+  assert.match(deps, new RegExp(`${coordinate}(?:\\s| \\{)[\\s\\S]*?:mvn/version "${escapeRegExp(lock.dynamodbSdk.version)}"`, "u"));
+}
 assert.match(deps, new RegExp(`${lock.eacl.commit}[\\s\\S]*?modules/eacl-datomic`, "u"));
 
 const expected = [
@@ -50,8 +52,13 @@ const awsVersions = new Set(classpath.flatMap((entry) => {
   return match ? [match[1]] : [];
 }));
 assert.deepEqual([...awsVersions].sort(), lock.resolution.awsSdkV2Versions);
-for (const excluded of ["netty-nio-client", "apache-client"]) {
-  assert.equal(classpath.some((entry) => entry.includes(`/software/amazon/awssdk/${excluded}/`)), false, `${excluded} leaked onto serving classpath`);
+for (const coordinate of lock.resolution.excludedHttpClients) {
+  const artifact = coordinate.split("/")[1];
+  assert.equal(classpath.some((entry) => entry.includes(`/software/amazon/awssdk/${artifact}/`)), false, `${artifact} leaked onto serving classpath`);
+}
+for (const coordinate of lock.resolution.selectedHttpClients) {
+  const artifact = coordinate.split("/")[1];
+  assert.equal(classpath.some((entry) => entry.includes(`/software/amazon/awssdk/${artifact}/`)), true, `${artifact} is absent from serving classpath`);
 }
 assert.ok(classpath.some((entry) => entry.endsWith(`/modules/eacl-datomic/src`)), "pinned EACL Datomic adapter is absent");
 

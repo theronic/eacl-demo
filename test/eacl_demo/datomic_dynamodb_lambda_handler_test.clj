@@ -8,7 +8,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "11114f59fa57fe87c5b7ab412b3123a9c8a1a862")
+(def baked-eacl-sha "76e4bd3c44436ef2755485f640ed165e355cbd50")
 (use-fixtures :each
   (fn [run]
     (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
@@ -21,7 +21,7 @@
    "EACL_MAXIMUM_CONCURRENCY" "2"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "11114f59fa57fe87c5b7ab412b3123a9c8a1a862"
+   "EACL_CORE_SHA" "76e4bd3c44436ef2755485f640ed165e355cbd50"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
