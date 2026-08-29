@@ -278,6 +278,18 @@ Resources:
           exec > >(tee /var/log/eacl-demo-bootstrap.log | logger -t eacl-demo-bootstrap -s 2>/dev/console) 2>&1
           dnf install -y java-25-amazon-corretto-headless amazon-cloudwatch-agent awscli
           install -d -m 0755 /opt/eacl-demo /var/log/eacl-demo
+          # Preserve management-plane and JVM liveness during transient heap growth
+          # on the shared 1 GiB host without encouraging steady-state swapping.
+          if [ ! -e /swapfile ]; then
+            fallocate -l 1G /swapfile
+            chmod 0600 /swapfile
+            mkswap /swapfile
+          fi
+          chmod 0600 /swapfile
+          swapon --show=NAME --noheadings | grep -Fxq /swapfile || swapon /swapfile
+          grep -Eq '^/swapfile[[:space:]]' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+          printf 'vm.swappiness=10\n' > /etc/sysctl.d/90-eacl-demo-swap.conf
+          sysctl -p /etc/sysctl.d/90-eacl-demo-swap.conf
           aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${ArtifactKey} --version-id ${ArtifactVersion} /opt/eacl-demo/function.jar
           echo "${ArtifactSha256}  /opt/eacl-demo/function.jar" | sha256sum --check --strict
           cursor_key=$(head -c 48 /dev/urandom | base64 | tr -d '\n')
