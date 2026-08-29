@@ -19,7 +19,7 @@
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
 
 (declare handle-event initialize invoke-event! parse-environment
-         parse-positive-int prime-runtime!)
+         parse-positive-int prepare-runtime! prime-runtime!)
 
 (def ^:private snapstart-prime-event
   {:version "2.0"
@@ -51,11 +51,19 @@
        #(initialize environment)))))
 
 (defn initialize-runtime!
-  "Realize and exercise the fixed read-only Peer during published-version
-  initialization so SnapStart captures a ready Datomic and EACL runtime."
+  "Realize the fixed read-only Peer and, only for Lambda, exercise it before
+  the published-version SnapStart checkpoint. Persistent EC2 startup must bind
+  its health port after opening the Peer instead of running the Lambda JIT
+  workload on the one-vCPU host."
   []
-  (prime-runtime! @runtime)
+  (prepare-runtime! @runtime)
   nil)
+
+(defn- prepare-runtime!
+  [running]
+  (when (= "lambda" (get-in running [:descriptor :runtime :execution]))
+    (prime-runtime! running))
+  running)
 
 (defn initialize
   "Builds one reader and boundary. Injectable for local tests; production uses

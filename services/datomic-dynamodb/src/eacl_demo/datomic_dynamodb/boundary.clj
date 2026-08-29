@@ -100,7 +100,12 @@
                   (throw (ex-info "cancelled" {:code "cancelled"}))
 
                   (and (integer? deadline-ms) (>= (clock) deadline-ms))
-                  (throw (ex-info "deadline" {:code "deadline-exceeded"}))))]
+                  (throw (ex-info "deadline" {:code "deadline-exceeded"}))))
+              remaining-ms
+              (fn []
+                (if (integer? deadline-ms)
+                  (max 1 (- deadline-ms (clock)))
+                  30000))]
           (try
             (check-active!)
             (let [snapshot (capture-snapshot input)]
@@ -120,7 +125,8 @@
                                            :eacl-demo/public-basis (:basis snapshot))
                              :snapshot (:value snapshot)
                              :basis (:basis snapshot)
-                             :check-active! check-active!}))]
+                             :check-active! check-active!
+                             :remaining-ms remaining-ms}))]
                 (check-active!)
                 (success-envelope request identity (:basis snapshot)
                                   data

@@ -114,10 +114,10 @@
 
      "list-relationships"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [page (eacl/read-relationships
                     snapshot
-                    (relationship-query input
+                    (relationship-query input remaining-ms
                                         {:resource/type (keyword (:resourceType input))
                                          :resource/id (:resourceId input)}))]
           (check-active!)
@@ -126,10 +126,10 @@
 
      "reverse-relationships"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [page (eacl/read-relationships
                     snapshot
-                    (relationship-query input
+                    (relationship-query input remaining-ms
                                         {:subject/type (keyword (:subjectType input))
                                          :subject/id (:subjectId input)}))]
           (check-active!)
@@ -143,7 +143,7 @@
 
      "check-permission"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [decision
               (eacl/check-permission
                snapshot
@@ -156,6 +156,7 @@
                            (:resourceId input))
                 :cache? (not= false (:cache input))
                 :populate-cache? (not= false (:populateCache input))
+                :timeout-ms (remaining-ms)
                 :consistency (eacl-consistency input)})
               allowed? (true? (:allowed? decision))]
           (check-active!)
@@ -166,7 +167,7 @@
 
      "lookup-resources"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [result
               (eacl/lookup-resources
                snapshot
@@ -178,6 +179,7 @@
                  :first (or (:pageSize input) default-page-size)
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
+                 :timeout-ms (remaining-ms)
                  :consistency (eacl-consistency input)}
                  (:cursor input) (assoc :after (:cursor input))))]
           (check-active!)
@@ -191,7 +193,7 @@
 
      "lookup-subjects"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [result
               (eacl/lookup-subjects
                snapshot
@@ -203,6 +205,7 @@
                  :first (or (:pageSize input) default-page-size)
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
+                 :timeout-ms (remaining-ms)
                  :consistency (eacl-consistency input)}
                  (:cursor input) (assoc :after (:cursor input))))]
           (check-active!)
@@ -216,7 +219,7 @@
 
      "count-resources"
      (guarded
-      (fn [{:keys [snapshot input check-active!]}]
+      (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [ceiling (or (:ceiling input) default-count-ceiling)
               result
               (eacl/count-resources
@@ -228,6 +231,7 @@
                 :count-limit ceiling
                 :cache? (not= false (:cache input))
                 :populate-cache? (not= false (:populateCache input))
+                :timeout-ms (remaining-ms)
                 :consistency (eacl-consistency input)})]
           (check-active!)
           (response-meta/with-cache-status
@@ -286,10 +290,11 @@
       consistency/minimize-latency)))
 
 (defn- relationship-query
-  [input anchor]
+  [input remaining-ms anchor]
   (cond-> (assoc anchor :first (or (:pageSize input) default-page-size)
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
+                 :timeout-ms (remaining-ms)
                  :consistency (eacl-consistency input))
     (:relation input) (assoc :resource/relation (keyword (:relation input)))
     (:cursor input) (assoc :after (:cursor input))))
@@ -403,6 +408,11 @@
           (let [type (:type (ex-data error))]
             (fail!
              (cond
+               (= :eacl.execution/deadline-exceeded type)
+               "deadline-exceeded"
+
+               (= :eacl.execution/cancelled type) "cancelled"
+
                (contains? #{:eacl.pagination/invalid-cursor
                             :eacl.cursor/invalid
                             :eacl.format/invalid} type)
