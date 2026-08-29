@@ -29,6 +29,16 @@ test("one CloudFront prefix-list rule admits both shared-host adapters", () => {
   assert.match(ingress, /FromPort: 8080[\s\S]*ToPort: 8081/u);
 });
 
+test("the shared t3.micro provisions persistent low-swappiness headroom before starting either JVM", () => {
+  const userData = /UserData:[\s\S]*?(?=\n\s{2}RuntimeArtifactAssociation:)/u.exec(source)?.[0];
+  assert.ok(userData);
+  assert.match(userData, /fallocate -l 1G \/swapfile[\s\S]*mkswap \/swapfile/u);
+  assert.match(userData, /swapon --show=NAME --noheadings[\s\S]*swapon \/swapfile/u);
+  assert.match(userData, /\/swapfile none swap sw 0 0/u);
+  assert.match(userData, /vm\.swappiness=10/u);
+  assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
+});
+
 test("the one-vCPU Datomic host admits one engine request and retains spare HTTP workers", () => {
   assert.match(source, /echo "EACL_HTTP_WORKERS=4"/u);
   assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=1/gu) ?? []).length, 3);
