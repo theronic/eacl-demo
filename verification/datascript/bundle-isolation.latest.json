@@ -2,25 +2,27 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-CPnoOZXy.js",
+    "entry": "assets/index-DMPKRTBA.js",
     "files": [
       ".vite/manifest.json",
-      "assets/SchemaGraph-DBZytT5m.js",
-      "assets/SchemaGraph-DBZytT5m.js.map",
-      "assets/index-BLez5pps.css",
-      "assets/index-CPnoOZXy.js",
-      "assets/index-CPnoOZXy.js.map",
+      "assets/SchemaGraph-MmYub9Im.js",
+      "assets/SchemaGraph-MmYub9Im.js.map",
+      "assets/index-C7xQPCT4.css",
+      "assets/index-DMPKRTBA.js",
+      "assets/index-DMPKRTBA.js.map",
       "index.html"
     ],
-    "scriptBytes": 552479,
-    "scriptSha256": "1eb45b0cb7fd49d0ec2a14f84051b7b6ed4534a7cb68eb6f2d9e7fc8e509abd9",
+    "scriptBytes": 578733,
+    "scriptSha256": "2a81cd29460dd83ff2b1ad1c3bdcd541430440d6b12448b5e3e3da8df3efd52a",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/Explorer.tsx",
       "../../../../apps/explorer-main/src/api.ts",
       "../../../../apps/explorer-main/src/components/CachePanel.tsx",
+      "../../../../apps/explorer-main/src/components/CanPermissionFooter.tsx",
       "../../../../apps/explorer-main/src/components/Common.tsx",
       "../../../../apps/explorer-main/src/components/ConsistencyPanel.tsx",
+      "../../../../apps/explorer-main/src/components/DeploymentWarning.tsx",
       "../../../../apps/explorer-main/src/components/DetailPanel.tsx",
       "../../../../apps/explorer-main/src/components/Header.tsx",
       "../../../../apps/explorer-main/src/components/ProfileSelector.tsx",
@@ -169,7 +171,7 @@
       "../../../../packages/explorer-state/src/default-storage.mjs",
       "../../../../packages/explorer-state/src/fastest-evidence.mjs",
       "../../../../packages/explorer-state/src/http-transport.mjs",
-      "../../../../packages/explorer-state/src/profile-controller.mjs",
+      "../../../../packages/explorer-state/src/platforms.mjs",
       "../../../../packages/explorer-state/src/profile-entry.mjs",
       "../../../../packages/explorer-state/src/profile-publication.mjs",
       "../../../../packages/explorer-state/src/profile-registry.mjs",
@@ -202,12 +204,12 @@
   },
   "dedicatedRuntime": {
     "path": "dist/datascript-runtime/datascript-runtime.js",
-    "bytes": 6061225,
-    "sha256": "75d8076d75b44aaa18783dd3ff361a6551334b7e7c1daab33b7e922afb49b524",
+    "bytes": 6083206,
+    "sha256": "8131676722ac4122159a40ea1f50df303103a2428245ece76ab692dda0216252",
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",
-      "11114f59fa57fe87c5b7ab412b3123a9c8a1a862"
+      "76e4bd3c44436ef2755485f640ed165e355cbd50"
     ]
   }
 }

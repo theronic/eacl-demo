@@ -5,7 +5,7 @@ under `/Users/petrus/code/eacl/openspec/changes`. It does not edit, complete, or
 archive those changes and does not turn their dirty local worktrees into release
 inputs. The consolidated repository consumes EACL Core only through
 `dependencies/eacl-core.lock.json`, currently pinned to
-`11114f59fa57fe87c5b7ab412b3123a9c8a1a862`.
+`76e4bd3c44436ef2755485f640ed165e355cbd50`.
 
 ## Decision matrix
 

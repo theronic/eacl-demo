@@ -4,7 +4,7 @@
   "eacl": {
     "coordinate": "dev.eacl/eacl-datomic",
     "repository": "https://github.com/theronic/eacl.git",
-    "commit": "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
+    "commit": "76e4bd3c44436ef2755485f640ed165e355cbd50",
     "module": "modules/eacl-datomic"
   },
   "datomic": {
@@ -24,17 +24,21 @@
     "changelog": "https://docs.datomic.com/changes/pro.html"
   },
   "dynamodbSdk": {
-    "version": "2.31.45",
+    "version": "2.32.26",
     "requiredByDatomic": true,
     "license": "Apache-2.0",
     "modules": [
       {
         "coordinate": "software.amazon.awssdk/dynamodb",
-        "jarSha256": "1dc9e521cb17002fe75c102d36244089d5e0e0960cd07d1fd0c1b236cc934e40"
+        "jarSha256": "4da6315557e47d510c7df120c157402f9c50f0fbe654090ea2ec0487b342c0b8"
+      },
+      {
+        "coordinate": "software.amazon.awssdk/apache-client",
+        "jarSha256": "6989216669e4115618f9ca0caefd60fba87aebc39d4c3e8dd16b17626e353100"
       },
       {
         "coordinate": "software.amazon.awssdk/url-connection-client",
-        "jarSha256": "8dde920bd9cae6316674e27e5d1069b61c2704b809821ee6290e10b9b56b4d33"
+        "jarSha256": "c12a1f5dd256c02dabc7506bb9a09c1096f958789d0b02b6ada8a5349599feaf"
       }
     ]
   },
@@ -42,12 +46,14 @@
     "repository": "Maven Central",
     "credentialsRequired": false,
     "alias": "datomic-dynamodb",
-    "awsSdkV2Versions": ["2.31.45"],
+    "awsSdkV2Versions": ["2.32.26"],
     "excludedHttpClients": [
-      "software.amazon.awssdk/netty-nio-client",
-      "software.amazon.awssdk/apache-client"
+      "software.amazon.awssdk/netty-nio-client"
     ],
-    "selectedHttpClient": "software.amazon.awssdk/url-connection-client",
+    "selectedHttpClients": [
+      "software.amazon.awssdk/apache-client",
+      "software.amazon.awssdk/url-connection-client"
+    ],
     "jvmClosure": "dependencies/jvm.lock.json"
   },
   "promotionGate": "Package and audit the transactor-free read-only Lambda, then qualify it against a separately provisioned immutable Datomic database."

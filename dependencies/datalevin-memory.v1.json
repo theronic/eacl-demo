@@ -39,7 +39,7 @@
     "cleanRemoteConsumerInstallPassed": false
   },
   "eaclAdapter": {
-    "demoLockedCoreCommit": "11114f59fa57fe87c5b7ab412b3123a9c8a1a862",
+    "demoLockedCoreCommit": "76e4bd3c44436ef2755485f640ed165e355cbd50",
     "module": "modules/eacl-datalevin",
     "moduleDepsSha256": "sha256:7cfa123eb8b2971a16f926a6db5ac05b36b688f00d89631a99da095210b546f3",
     "forkDependencyKind": "local-root-development-only",
