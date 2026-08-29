@@ -19,12 +19,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-node_archive="node-v24.19.0-linux-x64.tar.xz"
+node_archive="node-v24.20.0-linux-x64.tar.xz"
 jdk_archive="OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz"
 clojure_archive="clojure-tools-1.12.5.1664.tar.gz"
 
 curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
-  "https://nodejs.org/dist/v24.19.0/${node_archive}" \
+  "https://nodejs.org/dist/v24.20.0/${node_archive}" \
   --output "${qualification_tmp}/${node_archive}"
 curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
   "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/${jdk_archive}" \
@@ -36,7 +36,7 @@ curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
 (
   cd "${qualification_tmp}"
   sha256sum --check <<'CHECKSUMS'
-14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647  node-v24.19.0-linux-x64.tar.xz
+2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2  node-v24.20.0-linux-x64.tar.xz
 dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e  OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz
 77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3  clojure-tools-1.12.5.1664.tar.gz
 CHECKSUMS

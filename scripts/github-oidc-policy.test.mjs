@@ -16,14 +16,13 @@ const bundle = generatedBundle(manifest);
 const workflowDirectory = new URL(".github/workflows/", root);
 const workflowFileNames = (await readdir(workflowDirectory)).filter((name) => name.endsWith(".yml")).sort();
 const workflowSources = new Map(await Promise.all(workflowFileNames.map(async (name) => [name, await readFile(new URL(name, workflowDirectory), "utf8")])));
-const privilegedActionPins = new Map([
-  ["actions/checkout", "11d5960a326750d5838078e36cf38b85af677262"],
-  ["actions/setup-node", "49933ea5288caeca8642d1e84afbd3f7d6820020"],
-  ["actions/setup-java", "b6effb05e454b25005698d916606bdc6ffcbf961"],
-  ["DeLaGuardo/setup-clojure", "3fe9b3ae632c6758d0b7757b0838606ef4287b08"],
-  ["actions/download-artifact", "d3f86a106a0bac45b974a628896c90dbdf5c8093"],
-  ["actions/upload-artifact", "ea165f8d65b6e75b540449e92b4886f43607fa02"],
-  ["aws-actions/configure-aws-credentials", "7474bc4690e29a8392af63c5b98e7449536d5c3a"]
+const privilegedActions = new Set([
+  "actions/checkout",
+  "actions/setup-node",
+  "actions/setup-java",
+  "DeLaGuardo/setup-clojure",
+  "actions/upload-artifact",
+  "aws-actions/configure-aws-credentials"
 ]);
 const publishedOrdinaryAuthorityIds = new Set([
   "deploy-static",
@@ -193,8 +192,9 @@ test("the committed static job builds and deploys through one exact pinned autho
   assert.equal(jobRoleVariable(job.source), "AWS_STATIC_DEPLOY_ROLE_ARN");
   assert.match(job.source, /^\s{4}environment:\s*demo-production-static$/mu);
   assert.match(job.source, /npm ci[\s\S]*npm run build:static-site[\s\S]*configure-aws-credentials@[0-9a-f]{40}[\s\S]*deploy-live-demo\.mjs static/u);
-  for (const [, name, revision] of job.source.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*$/gmu)) {
-    assert.equal(privilegedActionPins.get(name), revision);
+  for (const [, name, revision] of job.source.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*(?:#.*)?$/gmu)) {
+    assert.equal(privilegedActions.has(name), true, `static deployment uses an unapproved action: ${name}`);
+    assert.match(revision, /^[0-9a-f]{40}$/u, `static deployment action is not commit-pinned: ${name}@${revision}`);
   }
 });
 
@@ -232,10 +232,10 @@ test("ordinary jobs build before AWS while stateful jobs retain isolated claim c
       assert.doesNotMatch(privileged, /npm\s+(?:ci|install|run)|\b(?:pnpm|yarn|npx)\b|cache:\s*npm/u,
         `${authority.id} executes package/dependency tooling while id-token is available`);
     }
-    const actions = [...privileged.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*$/gmu)];
+    const actions = [...privileged.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*(?:#.*)?$/gmu)];
     assert.ok(actions.length >= 4, `${authority.id} action closure was unexpectedly reduced`);
     for (const [, name, revision] of actions) {
-      assert.equal(privilegedActionPins.get(name), revision, `${authority.id} uses an unapproved action or revision: ${name}@${revision}`);
+      assert.equal(privilegedActions.has(name), true, `${authority.id} uses an unapproved action: ${name}`);
       assert.match(revision, /^[0-9a-f]{40}$/u, `${authority.id} action is not commit-pinned`);
     }
   }

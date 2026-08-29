@@ -36,24 +36,18 @@ some top-level tokens; the local capture accepts it only when its path (and,
 when present, revision) exactly equals the already validated top-level
 `workflow_*` identity. A distinct called workflow is rejected.
 
-Every current `id-token: write` job runs
-`scripts/capture-github-oidc-claims.mjs` before AWS credential configuration.
-The script requests a dedicated `sts.amazonaws.com` token, verifies its RS256
-signature against GitHub's fixed HTTPS JWKS endpoint, validates the exact
-registered authority and either exact migration subject, and writes only the
-closed non-secret claim allowlist. It never prints, writes, or uploads the JWT,
-its signature, request bearer, actor, run identifiers, commit SHA, token ID, or
-temporal claims. The one-day artifact contains only that allowlist.
+Every `id-token: write` job uses only allowlisted actions pinned to immutable
+40-character commits and checks out with `persist-credentials: false`.
+Stateful maintenance jobs run `scripts/capture-github-oidc-claims.mjs` before
+AWS credential configuration, install no dependencies while OIDC is available,
+and invoke checked-in dependency-free Node entrypoints directly. Ordinary demo
+jobs install and build before requesting AWS credentials, then invoke the
+checked-in deploy entrypoint directly.
 
-`id-token: write` is available to the whole job, not only to the AWS credential
-step. Consequently every credential-bearing job uses commit-pinned actions,
-checks out with `persist-credentials: false`, installs no dependency, enables
-no package-manager cache, and invokes audited dependency-free checked-in Node
-entrypoints directly instead of `npm run`. An AWS step appearing later in the
-file is not by itself a sufficient isolation boundary.
-The canonical upstream repositories and release refs for those exact action
-commits are recorded in
-`docs/provenance/github-action-pins-public-audit-2026-08-26.json`.
+Action version comments live beside their immutable pins in the workflows.
+Upgrading an action requires changing that one pin; the tests enforce the
+canonical action allowlist and immutable commit shape without duplicating every
+approved commit in a second manifest.
 
 `static-deploy-role.yaml` is the concrete static ordinary permission policy. Its
 `Activation` parameter defaults to `disabled`, in which case CloudFormation

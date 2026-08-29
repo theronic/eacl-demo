@@ -13,9 +13,9 @@ Executable ports and tests are:
 
 | Runtime | Source/test | Verified on 2026-08-25 |
 | --- | --- | --- |
-| TypeScript / Node 24.19.0 | `typescript-port.ts`, `typescript-golden.test.ts` | 2 tests passed |
+| TypeScript / Node 24.20.0 | `typescript-port.ts`, `typescript-golden.test.ts` | 2 tests passed |
 | JVM Clojure 1.12.5 | `fixture_golden.cljc`, `fixture_golden_test.cljc` via nREPL | 2 tests, 23 assertions passed |
-| ClojureScript 1.12.145 / Node 24.19.0 | same `.cljc` test plus Node runner, compiled from an nREPL evaluation | 2 tests, 23 assertions passed |
+| ClojureScript 1.12.145 / Node 24.20.0 | same `.cljc` test plus Node runner, compiled from an nREPL evaluation | 2 tests, 23 assertions passed |
 | Jank 0.1-alpha arm64 macOS development binary | `fixture_golden_jank.jank` | native script passed |
 
 The macOS Jank binary's `clojure.core/unchecked-multiply` currently throws

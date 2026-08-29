@@ -26,11 +26,11 @@ export async function verifyJankBuilderWorkload({
   const workload = lock.buildWorkload;
   exactKeys(workload, [
     "schema", "runner", "timeoutMinutes", "platform", "dockerfile",
-    "dockerfileSha256", "actions", "imageRepository", "imageTag", "push",
+    "dockerfileSha256", "actions", "swapGiB", "imageRepository", "imageTag", "push",
     "provenance", "sbom", "artifactRetentionDays", "workloadDigest"
   ], "Jank builder workload");
   exactKeys(workload.actions, [
-    "checkout", "setupNode", "setupSwap", "setupBuildx", "login",
+    "checkout", "setupNode", "setupBuildx", "login",
     "buildPush", "uploadArtifact"
   ], "Jank builder workflow actions");
   assert.equal(workload.schema, "eacl-demo.jank-builder-workload.v1");
@@ -42,6 +42,7 @@ export async function verifyJankBuilderWorkload({
   assert.equal(workload.provenance, "mode=max");
   assert.equal(workload.sbom, true);
   assert.equal(workload.artifactRetentionDays, 1);
+  assert.equal(workload.swapGiB, 8);
   assert.equal(workload.imageRepository, "ghcr.io/theronic/eacl-demo-jank-builder");
   assert.equal(workload.imageTag, `jank-${lock.jank.commit}-al2023-amd64`);
   assert.match(workload.workloadDigest, SHA256);
@@ -57,6 +58,8 @@ export async function verifyJankBuilderWorkload({
   assert.match(workflowSource, new RegExp(`runs-on: ${escapeRegex(workload.runner)}`, "u"));
   assert.match(workflowSource, new RegExp(`timeout-minutes: ${workload.timeoutMinutes}`, "u"));
   for (const action of Object.values(workload.actions)) assert.match(workflowSource, new RegExp(`uses: ${escapeRegex(action)}`, "u"));
+  assert.match(workflowSource, new RegExp(`sudo fallocate --length ${workload.swapGiB}G /swapfile`, "u"));
+  assert.match(workflowSource, /sudo swapon \/swapfile/u);
   for (const [field, value] of [
     ["context", "."],
     ["file", workload.dockerfile],

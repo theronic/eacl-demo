@@ -66,11 +66,11 @@ jobs:
       SERVING_MAX_READ: "250"
       SERVING_MAX_WRITE: "1"
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .node-version
       - name: Capture signature-verified allowlisted OIDC claims without retaining the token
@@ -79,7 +79,7 @@ jobs:
           EACL_OIDC_EXPECTED_SUBJECT_MODE: transition
           EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
         run: node scripts/capture-github-oidc-claims.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: oidc-claims-stateful-datahike-dynamodb-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/github-oidc-claims.json
@@ -105,7 +105,7 @@ jobs:
             publish-serving) [[ "$EXPECTED_PHASE" == serving && "$CONFIRMATION" == "PUBLISH:${TABLE_NAME}:${GENERATION_ID}" ]] ;;
             *) exit 64 ;;
           esac
-      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.AWS_STATEFUL_ROLE_ARN }}
           role-session-name: eacl-demo-${{ github.run_id }}-${{ github.run_attempt }}

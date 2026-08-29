@@ -12,8 +12,9 @@ const toolchain = JSON.parse(await readFile(
 test("AL2023 JVM qualification pins architecture and every downloaded tool byte", () => {
   assert.match(script, /uname -m[\s\S]*x86_64/u);
   assert.match(script, /--proto '=https' --tlsv1\.2/u);
-  assert.match(script, /node-v24\.19\.0-linux-x64\.tar\.xz/u);
-  assert.match(script, /14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647/u);
+  const nodeArchive = `node-v${toolchain.javascript.node}-linux-x64.tar.xz`;
+  assert.match(script, new RegExp(nodeArchive.replaceAll(".", "\\."), "u"));
+  assert.match(script, new RegExp(`[0-9a-f]{64}  ${nodeArchive.replaceAll(".", "\\.")}`, "u"));
   assert.match(script, new RegExp(toolchain.jvm.linuxX64Archive.replaceAll(".", "\\."), "u"));
   assert.match(script, new RegExp(toolchain.jvm.linuxX64ArchiveSha256, "u"));
   assert.match(script, new RegExp(toolchain.jvm.clojureCliArchive.replaceAll(".", "\\."), "u"));

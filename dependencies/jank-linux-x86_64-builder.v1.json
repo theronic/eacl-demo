@@ -91,21 +91,21 @@
     "dockerfile": "infra/builders/jank-al2023-x86_64.Dockerfile",
     "dockerfileSha256": "df0894ae75a80b854d2057be208ccb27ccaafbb3960e3c268429e64179938577",
     "actions": {
-      "checkout": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-      "setupNode": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
-      "setupSwap": "thejerrybao/setup-swap-space@466d59798fb9263b9c2331c83cf71f9b7bfd0c78",
-      "setupBuildx": "docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f",
-      "login": "docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9",
-      "buildPush": "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8",
-      "uploadArtifact": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+      "checkout": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "setupNode": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "setupBuildx": "docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e",
+      "login": "docker/login-action@dbcb813823bdd20940b903addbd779551569679f",
+      "buildPush": "docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a",
+      "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
     },
+    "swapGiB": 8,
     "imageRepository": "ghcr.io/theronic/eacl-demo-jank-builder",
     "imageTag": "jank-489760dc927cd22900a4ab150dbab947ec25ad00-al2023-amd64",
     "push": true,
     "provenance": "mode=max",
     "sbom": true,
     "artifactRetentionDays": 1,
-    "workloadDigest": "sha256:ec4365ef92e6ec7d017db80a09eede38e6bb3cf9cf9bac4d90a729ab2c92c6d8"
+    "workloadDigest": "sha256:3c40db456674f89203c4084bd8f53069b4e4f08013c4b80701c135deead9a4c6"
   },
   "promotionGate": "Record the built image digest only after an amd64 build, check-health, source/submodule audit, release-Core compatibility, and AL2023 Lambda artifact smoke pass."
 }
