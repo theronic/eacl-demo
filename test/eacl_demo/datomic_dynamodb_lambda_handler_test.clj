@@ -124,6 +124,16 @@
     (is (every? #(= "/lookup-resources" (get-in % [:event :rawPath]))
                 @captured))))
 
+(deftest persistent-ec2-startup-skips-the-lambda-snapstart-prime-test
+  (let [primed (atom [])
+        lambda-runtime {:descriptor {:runtime {:execution "lambda"}}}
+        ec2-runtime {:descriptor {:runtime {:execution "ec2"}}}]
+    (with-redefs [handler/prime-runtime! #(swap! primed conj %)]
+      (is (= ec2-runtime (#'handler/prepare-runtime! ec2-runtime)))
+      (is (empty? @primed))
+      (is (= lambda-runtime (#'handler/prepare-runtime! lambda-runtime)))
+      (is (= [lambda-runtime] @primed)))))
+
 (deftest snapstart-prime-requires-the-cache-to-converge-test
   (with-redefs [handler/handle-event
                 (fn [_ _ _]

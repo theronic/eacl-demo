@@ -367,7 +367,7 @@ Resources:
           - !Sub "sed -i 's|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${EaclSha}|' /etc/eacl-demo-datomic.env"
           - !Sub "sed -i 's|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${DemoSha}|' /etc/eacl-demo-datomic.env"
           - !Sub "sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
-          - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|' /etc/eacl-demo-datomic.env"
+          - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|' /etc/eacl-demo-datomic.env"
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-
             for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1

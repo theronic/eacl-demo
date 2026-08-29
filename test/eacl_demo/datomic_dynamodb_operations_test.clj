@@ -30,7 +30,8 @@
     :input (assoc input
                   :eacl-demo/snapshot snapshot
                   :eacl-demo/public-basis public-basis)
-    :check-active! (fn [])}))
+    :check-active! (fn [])
+    :remaining-ms (constantly 30000)}))
 
 (deftest minimize-latency-does-not-mint-a-basis-token-test
   (let [calls (atom 0)
@@ -93,6 +94,38 @@
     (is (= {:kind "objects" :value 998417 :exact true :ceiling 1000000}
            (invoke handlers "count-objects" ::unusable-snapshot
                    {:kind "objects" :type "server" :ceiling 1000000})))))
+
+(deftest eacl-operations-inherit-the-service-deadline-test
+  (let [handlers (operations/create-handlers
+                  {:descriptor descriptor :cursor-key cursor-key})
+        captured (atom nil)
+        context {:snapshot ::snapshot
+                 :basis public-basis
+                 :input {:subjectType "user" :subjectId "user-1"
+                         :resourceType "account" :resourceId "account-0"
+                         :permission "admin"
+                         :eacl-demo/snapshot ::snapshot
+                         :eacl-demo/public-basis public-basis}
+                 :check-active! (fn [])
+                 :remaining-ms (constantly 1234)}]
+    (with-redefs [eacl/check-permission
+                  (fn [_ request]
+                    (reset! captured request)
+                    {:allowed? true})]
+      (is (= {:allowed true}
+             ((get handlers "check-permission") context)))
+      (is (= 1234 (:timeout-ms @captured))))
+    (with-redefs [eacl/check-permission
+                  (fn [& _]
+                    (throw
+                     (ex-info "deadline"
+                              {:type :eacl.execution/deadline-exceeded})))]
+      (is (= "deadline-exceeded"
+             (:code
+              (ex-data
+               (try
+                 ((get handlers "check-permission") context)
+                 (catch clojure.lang.ExceptionInfo error error)))))))))
 
 (deftest fixed-snapshot-operations-are-bounded-normalized-and-cursor-authenticated-test
   (let [uri (str "datomic:mem://eacl-demo-operations-" (random-uuid))]

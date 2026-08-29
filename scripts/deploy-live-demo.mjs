@@ -288,7 +288,7 @@ async function deployDatomicEc2(release) {
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
-    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
     `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
     "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
     "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
@@ -509,7 +509,11 @@ async function smokeDatomicHistoricalUrl(origin) {
   const bootstrap = await request("bootstrap");
   const descriptor = bootstrap.envelope.data;
   const exactAt = descriptor?.basis?.capturedAt;
+  const admissionConcurrency = descriptor?.limits?.find(
+    (limit) => limit?.name === "admissionConcurrency"
+  )?.value;
   if (bootstrap.status !== 200 || descriptor?.runtime?.execution !== "ec2" ||
+      admissionConcurrency !== 1 ||
       !descriptor?.capabilities?.consistencyModes?.includes("historical-date") ||
       typeof exactAt !== "string" || !Number.isFinite(Date.parse(exactAt))) {
     throw new Error("datomic-dynamodb EC2 historical bootstrap smoke failed");

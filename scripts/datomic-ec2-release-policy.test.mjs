@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(new URL("../infra/profiles/datomic-dynamodb-ec2.yaml", import.meta.url), "utf8");
+const [source, deploySource] = await Promise.all([
+  readFile(new URL("../infra/profiles/datomic-dynamodb-ec2.yaml", import.meta.url), "utf8"),
+  readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8")
+]);
 
 test("the shared persistent host may read only its two immutable profile prefixes", () => {
   const policy = /PolicyName: exact-runtime-artifact-read[\s\S]*?(?=\n\s{8}- PolicyName:)/u.exec(source)?.[0];
@@ -24,4 +27,13 @@ test("one CloudFront prefix-list rule admits both shared-host adapters", () => {
   assert.ok(ingress);
   assert.equal((ingress.match(/SourcePrefixListId:/gu) ?? []).length, 1);
   assert.match(ingress, /FromPort: 8080[\s\S]*ToPort: 8081/u);
+});
+
+test("the one-vCPU Datomic host admits one engine request and retains spare HTTP workers", () => {
+  assert.match(source, /echo "EACL_HTTP_WORKERS=4"/u);
+  assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=1/gu) ?? []).length, 3);
+  assert.doesNotMatch(source, /EACL_MAXIMUM_CONCURRENCY=4/u);
+  assert.match(deploySource, /EACL_MAXIMUM_CONCURRENCY=1/u);
+  assert.doesNotMatch(deploySource, /EACL_MAXIMUM_CONCURRENCY=4/u);
+  assert.match(deploySource, /limit\?\.name === "admissionConcurrency"[\s\S]*admissionConcurrency !== 1/u);
 });

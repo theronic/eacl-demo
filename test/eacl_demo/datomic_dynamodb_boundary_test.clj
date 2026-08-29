@@ -22,10 +22,11 @@
 (def handlers
   (into {}
         (map (fn [operation]
-               [operation (fn [{:keys [input snapshot]}]
+               [operation (fn [{:keys [input snapshot remaining-ms]}]
                             {:operation operation
                              :input input
-                             :snapshot snapshot})]))
+                             :snapshot snapshot
+                             :remaining-ms (remaining-ms)})]))
         (keys boundary/method-by-operation)))
 
 (defn request
@@ -61,6 +62,7 @@
                (set (keys (:meta response)))))
         (is (number? (get-in response [:meta :elapsedMs])))
         (is (= :fixed-snapshot (get-in response [:data :snapshot])))
+        (is (= 1000 (get-in response [:data :remaining-ms])))
         (is (= "datomic:eacl-demo-datomic-generation-test:eacl-demo:424242"
                (get-in response [:meta :revision])))))
     (is (= 5 @captures))
