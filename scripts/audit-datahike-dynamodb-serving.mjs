@@ -28,6 +28,19 @@ const readerSource = await readFile(
 if (!readerSource.includes(":read-only? true")) {
   throw new Error("EACL client is not explicitly constructed without its writer role");
 }
+const konserveSource = await readFile(
+  path.join(sourceRoot, "eacl_demo/datahike_dynamodb/konserve.clj"), "utf8"
+);
+if (!/\(-create-store \[_ env\][\s\S]*?:eacl-demo\/missing-dynamodb-store/u.test(
+  konserveSource
+)) {
+  throw new Error("a missing DynamoDB table does not fail with the typed read-only error");
+}
+if (/\(when-not \(konserve\.impl\.storage-layout\/-store-exists\?/u.test(
+  konserveSource
+)) {
+  throw new Error("the adapter duplicates Konserve's existing-store preflight");
+}
 const boundarySource = await readFile(
   path.join(sourceRoot, "eacl_demo/datahike_dynamodb/boundary.clj"), "utf8"
 );

@@ -9,7 +9,6 @@ import {
   trustPolicy,
   workflowRef
 } from "./github-oidc-policy.mjs";
-import { renderOrdinaryWorkflow } from "./lib/ordinary-workflow.mjs";
 
 const root = new URL("../", import.meta.url);
 const manifest = await loadManifest();
@@ -20,6 +19,8 @@ const workflowSources = new Map(await Promise.all(workflowFileNames.map(async (n
 const privilegedActionPins = new Map([
   ["actions/checkout", "11d5960a326750d5838078e36cf38b85af677262"],
   ["actions/setup-node", "49933ea5288caeca8642d1e84afbd3f7d6820020"],
+  ["actions/setup-java", "b6effb05e454b25005698d916606bdc6ffcbf961"],
+  ["DeLaGuardo/setup-clojure", "3fe9b3ae632c6758d0b7757b0838606ef4287b08"],
   ["actions/download-artifact", "d3f86a106a0bac45b974a628896c90dbdf5c8093"],
   ["actions/upload-artifact", "ea165f8d65b6e75b540449e92b4886f43607fa02"],
   ["aws-actions/configure-aws-credentials", "7474bc4690e29a8392af63c5b98e7449536d5c3a"]
@@ -184,19 +185,17 @@ test("job discovery keeps all five active future ordinary authorities distinct i
   assert.deepEqual(discovered.map(({ source }) => source.match(/^\s{4}environment:\s*(\S+)$/mu)?.[1]).sort(), ordinary.map(({ environment }) => environment).sort());
 });
 
-test("the first eligible static workflow renders one exact pinned ordinary authority", async () => {
-  const buildUnits = JSON.parse(await readFile(new URL("build-units.json", root), "utf8"));
-  for (const unit of Object.values(buildUnits.units)) unit.deploymentEligible = unit.ordinaryDeploymentTarget === "static";
-  const source = renderOrdinaryWorkflow(buildUnits);
-  const jobs = workflowJobs(source);
-  const privileged = jobs.filter(({ source: block }) => /id-token:\s*write/u.test(block));
-  assert.equal(privileged.length, 1);
-  assert.equal(privileged[0].id, "deploy-static");
-  assert.equal(jobRoleVariable(privileged[0].source), "AWS_STATIC_DEPLOY_ROLE_ARN");
-  assert.match(privileged[0].source, /^\s{4}environment:\s*demo-production-static$/mu);
-  assert.match(privileged[0].source, /verify-ordinary-artifact\.mjs static[\s\S]*capture-github-oidc-claims\.mjs[\s\S]*configure-aws-credentials@[0-9a-f]{40}[\s\S]*deploy-ordinary-target\.mjs static/u);
-  assert.doesNotMatch(privileged[0].source, /npm\s+(?:ci|install|run)|cache:\s*npm/u);
-  for (const [, name, revision] of privileged[0].source.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*$/gmu)) assert.equal(privilegedActionPins.get(name), revision);
+test("the committed static job builds and deploys through one exact pinned authority", () => {
+  const source = workflowSources.get("deploy-demos.yml");
+  const privileged = workflowJobs(source).filter(({ source: block }) => /id-token:\s*write/u.test(block));
+  const job = privileged.find(({ id }) => id === "deploy-static");
+  assert.ok(job);
+  assert.equal(jobRoleVariable(job.source), "AWS_STATIC_DEPLOY_ROLE_ARN");
+  assert.match(job.source, /^\s{4}environment:\s*demo-production-static$/mu);
+  assert.match(job.source, /npm ci[\s\S]*npm run build:static-site[\s\S]*configure-aws-credentials@[0-9a-f]{40}[\s\S]*deploy-live-demo\.mjs static/u);
+  for (const [, name, revision] of job.source.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*$/gmu)) {
+    assert.equal(privilegedActionPins.get(name), revision);
+  }
 });
 
 test("top-level workflow identities cannot silently become reusable-workflow identities", () => {
@@ -207,7 +206,7 @@ test("top-level workflow identities cannot silently become reusable-workflow ide
   }
 });
 
-test("every published OIDC job captures claims before AWS and executes no dependency install or package script", () => {
+test("ordinary jobs build before AWS while stateful jobs retain isolated claim capture", () => {
   for (const authority of manifest.authorities.filter(({ workflowFile }) => workflowSources.has(workflowFile.split("/").at(-1)))
     .filter((authority) => authority.authorityClass !== "ordinary-deployment" || publishedOrdinaryAuthorityIds.has(authority.id))) {
     const source = workflowSources.get(authority.workflowFile.split("/").at(-1));
@@ -216,13 +215,23 @@ test("every published OIDC job captures claims before AWS and executes no depend
     const privileged = matches[0].source;
     const capture = privileged.indexOf("node scripts/capture-github-oidc-claims.mjs");
     const credentials = privileged.indexOf("aws-actions/configure-aws-credentials@");
-    assert.ok(capture > 0, `${authority.id} does not capture OIDC claims`);
-    assert.ok(credentials > capture, `${authority.id} captures claims after AWS credential configuration`);
+    assert.ok(credentials > 0, `${authority.id} does not configure AWS credentials`);
     assert.match(privileged, /persist-credentials: false/u, `${authority.id} persists the checkout credential`);
-    assert.match(privileged, new RegExp(`EACL_OIDC_AUTHORITY_ID: ${authority.id}`, "u"));
-    assert.match(privileged, new RegExp(`EACL_OIDC_EXPECTED_SUBJECT_MODE: ${authority.authorityClass === "ordinary-deployment" ? "custom" : "transition"}`, "u"));
-    assert.match(privileged, new RegExp(`name: oidc-claims-${authority.id}-\\$\\{\\{ github\\.run_id \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}[\\s\\S]*retention-days: 1`, "u"));
-    assert.doesNotMatch(privileged, /npm\s+(?:ci|install|run)|\b(?:pnpm|yarn|npx)\b|cache:\s*npm/u, `${authority.id} executes package/dependency tooling while id-token is available`);
+    if (authority.authorityClass === "ordinary-deployment") {
+      const install = privileged.indexOf("npm ci");
+      const build = privileged.search(/npm run build:/u);
+      assert.ok(capture < 0, `${authority.id} retains obsolete claim-capture ceremony`);
+      assert.ok(install > 0 && build > install && credentials > build,
+        `${authority.id} must install and build before requesting AWS credentials`);
+    } else {
+      assert.ok(capture > 0, `${authority.id} does not capture OIDC claims`);
+      assert.ok(credentials > capture, `${authority.id} captures claims after AWS credential configuration`);
+      assert.match(privileged, new RegExp(`EACL_OIDC_AUTHORITY_ID: ${authority.id}`, "u"));
+      assert.match(privileged, /EACL_OIDC_EXPECTED_SUBJECT_MODE: transition/u);
+      assert.match(privileged, new RegExp(`name: oidc-claims-${authority.id}-\\$\\{\\{ github\\.run_id \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}[\\s\\S]*retention-days: 1`, "u"));
+      assert.doesNotMatch(privileged, /npm\s+(?:ci|install|run)|\b(?:pnpm|yarn|npx)\b|cache:\s*npm/u,
+        `${authority.id} executes package/dependency tooling while id-token is available`);
+    }
     const actions = [...privileged.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)\s*$/gmu)];
     assert.ok(actions.length >= 4, `${authority.id} action closure was unexpectedly reduced`);
     for (const [, name, revision] of actions) {
@@ -235,11 +244,8 @@ test("every published OIDC job captures claims before AWS and executes no depend
 test("credential-bearing checked-in entrypoints have no transitive third-party module dependency", async () => {
   const entrypoints = [
     "scripts/capture-github-oidc-claims.mjs",
-    "scripts/run-transition-smoke.mjs",
-    "scripts/exercise-profile-runtime.mjs",
     "scripts/datomic-seed-authorization.mjs",
-    "scripts/deploy-live-demo.mjs",
-    "scripts/deploy-ordinary-target.mjs"
+    "scripts/deploy-live-demo.mjs"
   ].map((name) => new URL(name, root));
   const visited = new Set();
   const visit = async (url) => {

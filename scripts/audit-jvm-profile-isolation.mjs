@@ -13,7 +13,7 @@ for (const alias of leanServerAliases) {
 }
 
 const browserEntries = classpath("datascript-runtime");
-assert.ok(browserEntries.some((entry) => /clojurescript-1\.12\.42\.jar$/u.test(entry)),
+assert.ok(browserEntries.some((entry) => /clojurescript-1\.12\.145\.jar$/u.test(entry)),
   "DataScript runtime lacks its exact ClojureScript compiler");
 console.log("Datomic/Datalevin server and DataScript browser dependency isolation audit passed; Datahike's upstream cross-platform closure remains an artifact-pruning gate");
 

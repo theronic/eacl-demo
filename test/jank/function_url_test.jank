@@ -98,7 +98,6 @@
     {"ok" true
      "contractVersion" (:contract-version value)
      "transport" (:transport value)
-     "profileId" (:profile-id value)
      "operation" (:operation value)
      "requestId" (:request-id value)
      "input" (:input value)}

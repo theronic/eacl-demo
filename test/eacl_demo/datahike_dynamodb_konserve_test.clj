@@ -13,7 +13,8 @@
            [software.amazon.awssdk.core SdkBytes]
            [software.amazon.awssdk.services.dynamodb DynamoDbClient]
            [software.amazon.awssdk.services.dynamodb.model
-            AttributeValue GetItemRequest GetItemResponse PutItemRequest]))
+            AttributeValue DescribeTableResponse GetItemRequest GetItemResponse
+            PutItemRequest TableDescription TableStatus]))
 
 (defn- bytes-attribute
   [value]
@@ -48,6 +49,12 @@
          (swap! calls conj method-name)
          (case method-name
            "getItem" (-> (GetItemResponse/builder) .build)
+           "describeTable"
+           (-> (DescribeTableResponse/builder)
+               (.table (-> (TableDescription/builder)
+                           (.tableStatus TableStatus/ACTIVE)
+                           .build))
+               .build)
            "serviceName" "DynamoDb"
            "close" nil
            "toString" "recording-client"
@@ -130,7 +137,11 @@
         (is false "operation should be denied")
         (catch clojure.lang.ExceptionInfo error
           (is (= :eacl-demo/read-only (:type (ex-data error)))))))
-    (is (nil? (storage/-create-store backing {:sync? true})))
+    (try
+      (storage/-create-store backing {:sync? true})
+      (is false "missing table creation must be denied")
+      (catch clojure.lang.ExceptionInfo error
+        (is (= :eacl-demo/missing-dynamodb-store (:type (ex-data error))))))
     (is (not (contains? (methods store/-create-store) dynamodb/backend)))
     (is (not (contains? (methods store/-delete-store) dynamodb/backend)))
     (let [config {:backend dynamodb/backend
@@ -147,8 +158,10 @@
                 :id (java.util.UUID/randomUUID)
                 :region "us-east-1"
                 :table "table"}
-        connected (dynamodb/connect-store config nil)]
+        calls (atom [])
+        connected (dynamodb/connect-store config (recording-client calls))]
     (is (some? connected))
+    (is (= ["describeTable"] @calls))
     (is (true? (get-in connected [:config :lock-blob?])))
     (is (true? (get-in connected [:config :in-place?])))))
 

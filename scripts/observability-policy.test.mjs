@@ -64,7 +64,7 @@ test("profile alarms are exact, quiet on missing data, and never define OK actio
   assert.equal((alarms.match(/Type: AWS::CloudWatch::Alarm/gmu) ?? []).length, 7);
   for (const suffix of [
     "duration", "errors", "health", "initialization", "oom", "throttles", "timeouts"
-  ]) assert.equal(alarms.includes(`AlarmName: !Sub "eacl-demo-\${ProfileId}-${suffix}"`), true);
+  ]) assert.equal(alarms.includes(`AlarmName: !Sub "eacl-demo-\${ProfileId}\${AlarmNameSuffix}-${suffix}"`), true);
   assert.equal((alarms.match(/TreatMissingData: notBreaching/gmu) ?? []).length, 7);
   assert.equal((alarms.match(/AlarmActions: \[!Ref AlarmTopicArn\]/gmu) ?? []).length, 7);
   assert.doesNotMatch(alarms, /OKActions:|Kms|AWS::KMS|kms:/iu);

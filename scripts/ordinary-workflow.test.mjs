@@ -2,79 +2,103 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { assertLiveOrdinaryTargetPairs, eligibleOrdinaryTargets, renderOrdinaryWorkflow } from "./lib/ordinary-workflow.mjs";
+const root = new URL("../", import.meta.url);
+const workflow = await readFile(new URL(".github/workflows/deploy-demos.yml", root), "utf8");
+const profiles = JSON.parse(await readFile(new URL("packages/contracts/profiles.v1.json", root), "utf8"));
 
-const committed = JSON.parse(await readFile(new URL("../build-units.json", import.meta.url), "utf8"));
-const profiles = JSON.parse(await readFile(new URL("../packages/contracts/profiles.v1.json", import.meta.url), "utf8"));
-const committedWorkflow = await readFile(new URL("../.github/workflows/deploy-demos.yml", import.meta.url), "utf8");
-
-test("committed live workflow pairs match only static and direct Function URL profiles", () => {
-  assert.deepEqual(assertLiveOrdinaryTargetPairs(committedWorkflow, profiles), ["datahike-dynamodb", "datahike-s3", "datalevin-memory", "datomic-dynamodb", "static"]);
-  assert.throws(() => assertLiveOrdinaryTargetPairs(committedWorkflow.replace(/^  build-datahike-s3:[\s\S]*?(?=^  deploy-datahike-s3:)/mu, ""), profiles), /differ/u);
-  assert.throws(() => assertLiveOrdinaryTargetPairs(`${committedWorkflow}\n  build-jank-memory:\n`, profiles), /differ/u);
+const expected = Object.freeze({
+  "deploy-static": {
+    environment: "demo-production-static",
+    build: "npm run build:static-site",
+    deploy: "node scripts/deploy-live-demo.mjs static",
+    role: "AWS_STATIC_DEPLOY_ROLE_ARN"
+  },
+  "deploy-datahike-s3": {
+    environment: "demo-production-datahike-s3",
+    build: "npm run build:datahike-s3-lambda",
+    deploy: "node scripts/deploy-live-demo.mjs datahike-s3",
+    role: "AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN"
+  },
+  "deploy-datahike-dynamodb": {
+    environment: "demo-production-datahike-dynamodb",
+    build: "npm run build:datahike-dynamodb-lambda",
+    deploy: "node scripts/deploy-live-demo.mjs datahike-dynamodb",
+    role: "AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN"
+  },
+  "deploy-datomic-dynamodb": {
+    environment: "demo-production-datomic-dynamodb",
+    build: "npm run build:datomic-lambda",
+    deploy: "node scripts/deploy-live-demo.mjs datomic-dynamodb",
+    role: "AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN"
+  },
+  "deploy-datalevin-memory": {
+    environment: "demo-production-datalevin-memory",
+    build: "npm run build:datalevin-memory-lambda",
+    deploy: "node scripts/deploy-live-demo.mjs datalevin-memory",
+    role: "AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN"
+  }
 });
 
-test("committed zero-eligibility state renders no push workflow", () => {
-  assert.deepEqual(eligibleOrdinaryTargets(committed), []);
-  assert.equal(renderOrdinaryWorkflow(committed, { deployEntrypointAvailable: false }), null);
+test("a demos push builds and deploys every live demo directly", () => {
+  assert.match(workflow, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- demos$/mu);
+  const jobs = parseJobs(workflow);
+  assert.deepEqual([...jobs.keys()].sort(), Object.keys(expected).sort());
+
+  for (const [jobId, definition] of Object.entries(expected)) {
+    const source = jobs.get(jobId);
+    assert.match(source, new RegExp(`^\\s{4}environment: ${definition.environment}$`, "mu"));
+    assert.match(source, /id-token:\s*write/u);
+    assert.match(source, /persist-credentials: false/u);
+    assert.match(source, new RegExp(`role-to-assume: \\$\\{\\{ vars\\.${definition.role} \\}\\}`, "u"));
+    const install = source.indexOf("npm ci");
+    const build = source.indexOf(definition.build);
+    const credentials = source.indexOf("aws-actions/configure-aws-credentials@");
+    const deploy = source.indexOf(definition.deploy);
+    assert.ok(install > 0 && build > install && credentials > build && deploy > credentials,
+      `${jobId} must install, build, authenticate, and deploy in that order`);
+  }
 });
 
-test("one qualified target is admitted without ineligible or parked siblings", () => {
-  const candidate = structuredClone(committed);
-  for (const unit of Object.values(candidate.units)) unit.deploymentEligible = unit.ordinaryDeploymentTarget === "static";
-  candidate.units["jank-memory"].deploymentEligible = true;
-  assert.deepEqual(eligibleOrdinaryTargets(candidate), ["static"]);
-  const workflow = renderOrdinaryWorkflow(candidate);
-  assert.match(workflow, /^on:\n  push:\n    branches:\n      - demos$/mu);
-  assert.match(workflow, /^  build-static:$/mu);
-  assert.match(workflow, /^  deploy-static:\n    needs: build-static$/mu);
-  assert.doesNotMatch(workflow, /(?:build|deploy)-(?:datahike|datomic|datalevin|jank)/u);
-  assert.doesNotMatch(workflow, /\bconcurrency:|cancel-in-progress|max-parallel|latest[-_ ]head/iu);
-  const build = workflow.slice(workflow.indexOf("  build-static:"), workflow.indexOf("  deploy-static:"));
-  const deploy = workflow.slice(workflow.indexOf("  deploy-static:"));
-  assert.doesNotMatch(build, /id-token: write|configure-aws-credentials/u);
-  assert.match(deploy, /id-token: write/u);
-  assert.match(deploy, /verify-ordinary-artifact\.mjs static[\s\S]*capture-github-oidc-claims\.mjs[\s\S]*configure-aws-credentials/u);
-  for (const variable of ["AWS_ACCOUNT_ID", "AWS_REGION", "STATIC_BUCKET", "CLOUDFRONT_DISTRIBUTION_ID", "PRODUCTION_CLOUDFRONT_ORIGIN"]) assert.match(deploy, new RegExp(`${variable}: \\$\\{\\{ vars\\.${variable} \\}\\}`, "u"));
+test("the deployment workflow has no certification or artifact-handoff graph", () => {
+  assert.doesNotMatch(workflow, /^\s{4}needs:/mu);
+  assert.doesNotMatch(workflow, /^\s{2}build-/mu);
+  assert.doesNotMatch(workflow,
+    /upload-artifact|download-artifact|capture-github-oidc-claims|change-readiness|qualification|determinism/iu);
+  assert.doesNotMatch(workflow, /^\s*concurrency:/mu);
+  for (const [, action, revision] of workflow.matchAll(/^\s*- uses:\s*([^@\s]+)@([^\s]+)$/gmu)) {
+    assert.match(revision, /^[0-9a-f]{40}$/u, `${action} is not commit-pinned`);
+  }
 });
 
-test("eligible server targets render independent same-target edges", () => {
-  const candidate = structuredClone(committed);
-  candidate.units["datahike-s3"].deploymentEligible = true;
-  candidate.units["datomic-dynamodb"].deploymentEligible = true;
-  const workflow = renderOrdinaryWorkflow(candidate);
-  assert.deepEqual(eligibleOrdinaryTargets(candidate), ["datahike-s3", "datomic-dynamodb"]);
-  assert.match(workflow, /^  deploy-datahike-s3:\n    needs: build-datahike-s3$/mu);
-  assert.match(workflow, /^  deploy-datomic-dynamodb:\n    needs: build-datomic-dynamodb$/mu);
-  assert.doesNotMatch(workflow, /needs:\s*\[/u);
-  assert.doesNotMatch(workflow, /stateful|seed|run-instances|create-table/iu);
-  const datahikeDeploy = workflow.slice(workflow.indexOf("  deploy-datahike-s3:"), workflow.indexOf("  build-datomic-dynamodb:"));
-  for (const variable of [
-    "AWS_ACCOUNT_ID", "AWS_REGION", "ARTIFACT_BUCKET", "STATIC_BUCKET",
-    "STAGED_CLOUDFRONT_DISTRIBUTION_ID", "PRODUCTION_CLOUDFRONT_DISTRIBUTION_ID",
-    "STAGED_API_CACHE_POLICY_ID", "PRODUCTION_API_CACHE_POLICY_ID",
-    "STAGED_API_ORIGIN_REQUEST_POLICY_ID", "PRODUCTION_API_ORIGIN_REQUEST_POLICY_ID",
-    "STAGED_API_VIEWER_REQUEST_FUNCTION_ARN", "PRODUCTION_API_VIEWER_REQUEST_FUNCTION_ARN",
-    "STAGED_LAMBDA_ORIGIN_ACCESS_CONTROL_ID", "PRODUCTION_LAMBDA_ORIGIN_ACCESS_CONTROL_ID",
-    "STAGED_SECURITY_HEADERS_POLICY_ID", "PRODUCTION_SECURITY_HEADERS_POLICY_ID",
-    "STAGED_CLOUDFRONT_ORIGIN", "PRODUCTION_CLOUDFRONT_ORIGIN"
-  ]) assert.match(datahikeDeploy, new RegExp(`${variable}: \\$\\{\\{ vars\\.${variable === "PRODUCTION_CLOUDFRONT_DISTRIBUTION_ID" ? "CLOUDFRONT_DISTRIBUTION_ID" : variable} \\}\\}`, "u"));
-  assert.match(datahikeDeploy, /PROFILE_FUNCTION_NAME: \$\{\{ vars\.DATAHIKE_S3_FUNCTION_NAME \}\}/u);
-  assert.doesNotMatch(datahikeDeploy, /npm (?:ci|install)|clojure |java |setup-clojure/u);
+test("the workflow target set matches the public live-demo catalog", () => {
+  const catalog = [
+    "deploy-static",
+    ...profiles.profiles
+      .filter(({ apiOrigin }) => typeof apiOrigin === "string" && apiOrigin.length > 0)
+      .map(({ id }) => `deploy-${id}`)
+  ].sort();
+  assert.deepEqual(Object.keys(expected).sort(), catalog);
 });
 
-test("renderer fails closed when an eligible target has no build or deploy entrypoint", () => {
-  const candidate = structuredClone(committed);
-  candidate.units["datalevin-memory"].deploymentEligible = true;
-  assert.throws(() => renderOrdinaryWorkflow(candidate), /no deployable build/u);
-  candidate.units["datalevin-memory"].deploymentEligible = false;
-  candidate.units["datahike-s3"].deploymentEligible = true;
-  assert.throws(() => renderOrdinaryWorkflow(candidate, { deployEntrypointAvailable: false }), /no checked-in deployment entrypoint/u);
-  assert.throws(() => renderOrdinaryWorkflow(candidate, { implementedTargets: new Set() }), /deployment transaction is not implemented/u);
-});
-
-test("partial static qualification cannot publish an incomplete site", () => {
-  const candidate = structuredClone(committed);
-  candidate.units["explorer-main"].deploymentEligible = true;
-  assert.deepEqual(eligibleOrdinaryTargets(candidate), []);
-});
+function parseJobs(source) {
+  const lines = source.split(/\r?\n/u);
+  const jobs = new Map();
+  let current = null;
+  let inJobs = false;
+  for (const line of lines) {
+    if (line === "jobs:") {
+      inJobs = true;
+      continue;
+    }
+    if (!inJobs) continue;
+    if (/^[^\s]/u.test(line) && line.length > 0) break;
+    const header = /^\s{2}([a-z0-9-]+):\s*$/u.exec(line);
+    if (header) {
+      current = header[1];
+      jobs.set(current, `${line}\n`);
+    } else if (current) {
+      jobs.set(current, `${jobs.get(current)}${line}\n`);
+    }
+  }
+  return jobs;
+}

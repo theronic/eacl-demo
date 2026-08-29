@@ -1,4 +1,4 @@
-import { jsonPayloadSha256, readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
+import { readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
 
 const PROFILE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
@@ -8,18 +8,16 @@ export const SERVER_PROFILE_IDS = Object.freeze([
   "datalevin-memory", "jank-memory"
 ]);
 
-export function qualificationTarget({ kind, baseUrl, profileId, authorize = null }) {
-  if (!new Set(["local", "direct-function-url", "staged-origin", "staged-cloudfront", "production-cloudfront"]).has(kind)) throw new TypeError("qualification target kind is invalid");
+export function qualificationTarget({ kind, baseUrl, profileId }) {
+  if (!new Set(["local", "direct-function-url"]).has(kind)) throw new TypeError("qualification target kind is invalid");
   if (typeof profileId !== "string" || !PROFILE.test(profileId) || !SERVER_PROFILE_IDS.includes(profileId)) throw new TypeError("qualification profile ID is not a registered server profile");
   const url = new URL(baseUrl);
   if (url.username || url.password || url.search || url.hash) throw new Error("qualification URL cannot contain credentials, query, or fragment");
   if (kind === "local" && (!LOOPBACK.has(url.hostname) || !new Set(["http:", "https:"]).has(url.protocol))) throw new Error("local qualification is restricted to loopback");
-  if (kind !== "local" && url.protocol !== "https:") throw new Error("staged qualification requires HTTPS");
+  if (kind !== "local" && url.protocol !== "https:") throw new Error("direct qualification requires HTTPS");
   if (kind === "direct-function-url" && (!FUNCTION_URL_HOST.test(url.hostname) || url.port)) throw new Error("direct qualification requires an exact Lambda Function URL host");
-  if (kind === "staged-origin" && typeof authorize !== "function") throw new Error("a staged origin requires a request authorization provider");
-  if (kind !== "staged-origin" && authorize !== null) throw new Error("authorization providers are restricted to staged origins");
   if (url.pathname !== "/") throw new Error("qualification URL must be the exact profile Function URL origin");
-  return Object.freeze({ kind, baseUrl: url.href.replace(/\/$/u, ""), profileId, authorize });
+  return Object.freeze({ kind, baseUrl: url.href.replace(/\/$/u, ""), profileId });
 }
 
 export function createHttpQualificationTransport(target, { fetchImpl = globalThis.fetch, requestIdPrefix = "qualification", requestTimeoutMs = 30000 } = {}) {
@@ -37,14 +35,9 @@ export function createHttpQualificationTransport(target, { fetchImpl = globalThi
       const requestId = `${requestIdPrefix}-${++sequence}`;
       const headers = {
         "x-eacl-request-id": requestId,
-        ...(method === "POST" ? {
-          "content-type": "application/json; charset=utf-8",
-          ...(target.kind === "staged-origin" ? { "x-amz-content-sha256": await jsonPayloadSha256(body) } : {})
-        } : {})
+        ...(method === "POST" ? { "content-type": "application/json; charset=utf-8" } : {})
       };
-      const authorization = target.authorize ? await target.authorize({ method, url, headers: { ...headers }, body }) : {};
-      const mergedHeaders = mergeAuthorizationHeaders(headers, authorization);
-      const response = await fetchImpl(url, { method, headers: mergedHeaders, ...(body === null ? {} : { body }), signal: boundedSignal(signal, requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
+      const response = await fetchImpl(url, { method, headers, ...(body === null ? {} : { body }), signal: boundedSignal(signal, requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
       const envelope = await readBoundedJsonResponse(response);
       if (envelope?.meta?.requestId !== requestId) throw new Error("qualification response correlation mismatch");
       return envelope;
@@ -65,11 +58,7 @@ export function createHttpQualificationTransport(target, { fetchImpl = globalThi
         }
         throw new Error("cancelled fault probe unexpectedly reached a response");
       }
-      const headers = {
-        ...probe.headers,
-        ...(probe.body === null || target.kind !== "staged-origin" ? {} : { "x-amz-content-sha256": await jsonPayloadSha256(probe.body) })
-      };
-      const response = await fetchImpl(probe.url, { method: probe.method, headers, ...(probe.body === null ? {} : { body: probe.body }), signal: AbortSignal.timeout(requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
+      const response = await fetchImpl(probe.url, { method: probe.method, headers: probe.headers, ...(probe.body === null ? {} : { body: probe.body }), signal: AbortSignal.timeout(requestTimeoutMs), redirect: "error", credentials: "omit", referrerPolicy: "no-referrer" });
       const envelope = await readBoundedJsonResponse(response);
       if (envelope?.meta?.requestId !== probe.requestId) throw new Error("fault-probe response correlation mismatch");
       return { kind, aborted: false, status: response.status, envelope };
@@ -105,34 +94,9 @@ function faultProbe(kind, baseUrl, requestId) {
   }
 }
 
-function mergeAuthorizationHeaders(fixed, authorization) {
-  if (!authorization || typeof authorization !== "object" || Array.isArray(authorization)) throw new TypeError("request authorization headers are invalid");
-  const merged = {};
-  for (const [key, value] of Object.entries(authorization)) {
-    const normalized = key.toLowerCase();
-    if (!/^[a-z0-9-]+$/u.test(normalized) || typeof value !== "string") throw new TypeError("request authorization header is invalid");
-    if (Object.hasOwn(merged, normalized)) throw new Error("request authorization contains a duplicate header");
-    merged[normalized] = value;
-  }
-  for (const [key, value] of Object.entries(fixed)) {
-    if (Object.hasOwn(merged, key) && merged[key] !== value) throw new Error(`request authorization changed fixed header ${key}`);
-    merged[key] = value;
-  }
-  return merged;
-}
-
 export function reportableTarget(target) {
   const url = new URL(target.baseUrl);
   return Object.freeze({ kind: target.kind, origin: url.origin, path: url.pathname, profileId: target.profileId });
-}
-
-export function assertTrustedCloudFrontOrigin(target, expectedOrigin) {
-  if (!target || !new Set(["staged-cloudfront", "production-cloudfront"]).has(target.kind)) throw new TypeError("trusted-origin binding requires a CloudFront target");
-  const expected = new URL(expectedOrigin);
-  if (expected.protocol !== "https:" || expected.username || expected.password || expected.pathname !== "/" || expected.search || expected.hash || expected.port) throw new Error("trusted CloudFront origin is invalid");
-  const actual = new URL(target.baseUrl ?? target.origin);
-  if (actual.origin !== expected.origin) throw new Error("qualification target does not match the trusted CloudFront origin");
-  return true;
 }
 
 export function assertTrustedFunctionUrlOrigin(target, expectedOrigin) {

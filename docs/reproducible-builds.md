@@ -51,14 +51,10 @@ were byte-identical. This qualifies only the unpublished native candidate; it
 does not create a Maven release, prove a clean remote consumer, integrate the
 Datalevin service, or qualify SnapStart lifecycle behavior.
 
-Because the exact JDK may not exist on a developer workstation,
-`.github/workflows/qualify-artifact-determinism.yml` provides a dispatch-only,
-read-only Linux qualification path. It installs exact Temurin `25.0.4+101` and
-Clojure CLI `1.12.5.1664`, executes all double-build checks, reruns packaged
-boundary audits, and retains the resulting evidence for 14 days. It has no AWS
-identity, secrets, push trigger, or role in ordinary deployment.
+The double-build commands remain available for local diagnosis when exact
+artifact bytes matter. They are not part of ordinary deployment.
 
-Artifact bytes must not contain clocks, random IDs, absolute paths, filesystem traversal order, local usernames, branch names, mutable dependency coordinates, or AWS/GitHub runtime values. Build inputs are enumerated in lexical order and file boundaries are included in source digests.
+Artifact bytes should not contain clocks, random IDs, absolute paths, filesystem traversal order, local usernames, branch names, mutable dependency coordinates, or AWS/GitHub runtime values. Build inputs are enumerated in lexical order and file boundaries are included in source digests.
 
 The following fields are deliberately outside reproducible artifact bytes:
 
@@ -67,11 +63,4 @@ The following fields are deliberately outside reproducible artifact bytes:
 - CloudFormation stack events and AWS-assigned physical resource, Lambda version, distribution, table, alarm, and log-stream IDs;
 - runtime cold/restore timestamps, request IDs, metrics, and benchmark samples.
 
-Those values are nondeterministic observations, not source or artifact identity. They must be recorded alongside immutable artifact/source digests and must never be fed back into compiled bytes. ZIP and JAR builders normalize entry order, ownership, permissions, and compressor settings. Non-class entries receive the fixed timestamp `2000-01-01T00:00:00`; JVM class entries receive the fixed ZIP timestamp `2000-01-01T00:00:02`, because Clojure requires an AOT `__init.class` resource to be strictly newer than its `.clj` or `.cljc` source. This deterministic two-second ordering prevents source recompilation and generated-class loader splits inside an uber-JAR. A runtime unit remains `deploymentEligible: false` until its actual deployable artifact passes a byte-for-byte double-build comparison or documents and strips a platform field that cannot be normalized. A source-unit manifest comparison is never sufficient evidence for runtime deployment eligibility.
-
-The dispatch-only artifact qualification workflow double-builds the complete
-static upload tree, both Datahike Lambda JARs, and both Datomic JARs with the
-exact pinned Node, Java, Clojure CLI, and package-manager versions. It then
-reruns their packaged-boundary audits. This workflow is intentionally outside
-ordinary `demos`-branch deployment and has not supplied deployment evidence
-until a recorded run succeeds.
+Those values are nondeterministic observations, not source or artifact identity. They must never be fed back into compiled bytes. ZIP and JAR builders normalize entry order, ownership, permissions, and compressor settings. Non-class entries receive the fixed timestamp `2000-01-01T00:00:00`; JVM class entries receive the fixed ZIP timestamp `2000-01-01T00:00:02`, because Clojure requires an AOT `__init.class` resource to be strictly newer than its `.clj` or `.cljc` source. This deterministic two-second ordering prevents source recompilation and generated-class loader splits inside an uber-JAR. Ordinary deployment relies on a successful build plus the deployer's bounded live correctness smoke; reproducibility checks are diagnostic, not deployment gates.

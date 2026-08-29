@@ -4,7 +4,7 @@
   "eacl": {
     "coordinate": "dev.eacl/eacl-datomic",
     "repository": "https://github.com/theronic/eacl.git",
-    "commit": "76e4bd3c44436ef2755485f640ed165e355cbd50",
+    "commit": "858a73a62dfcdf05a5341787f806796d55fd2aff",
     "module": "modules/eacl-datomic"
   },
   "datomic": {
@@ -24,21 +24,21 @@
     "changelog": "https://docs.datomic.com/changes/pro.html"
   },
   "dynamodbSdk": {
-    "version": "2.32.26",
+    "version": "2.54.7",
     "requiredByDatomic": true,
     "license": "Apache-2.0",
     "modules": [
       {
         "coordinate": "software.amazon.awssdk/dynamodb",
-        "jarSha256": "4da6315557e47d510c7df120c157402f9c50f0fbe654090ea2ec0487b342c0b8"
+        "jarSha256": "ac2bd2a9d0b45c39be9c115847b4a33456660e9e83100a32b577d6ad2f1daff3"
       },
       {
         "coordinate": "software.amazon.awssdk/apache-client",
-        "jarSha256": "6989216669e4115618f9ca0caefd60fba87aebc39d4c3e8dd16b17626e353100"
+        "jarSha256": "6c091b31588b49ed5d239bb93b5ac3dbb2377a94850d234b74d9f1e020a5222b"
       },
       {
         "coordinate": "software.amazon.awssdk/url-connection-client",
-        "jarSha256": "c12a1f5dd256c02dabc7506bb9a09c1096f958789d0b02b6ada8a5349599feaf"
+        "jarSha256": "84ba9e103752e1997e5287c374348118a4a5ca45c9871339fcca6be2dee65bda"
       }
     ]
   },
@@ -46,7 +46,7 @@
     "repository": "Maven Central",
     "credentialsRequired": false,
     "alias": "datomic-dynamodb",
-    "awsSdkV2Versions": ["2.32.26"],
+    "awsSdkV2Versions": ["2.54.7"],
     "excludedHttpClients": [
       "software.amazon.awssdk/netty-nio-client"
     ],

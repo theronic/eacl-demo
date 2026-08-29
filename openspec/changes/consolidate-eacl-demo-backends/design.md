@@ -17,7 +17,7 @@ Several platform facts determine the design:
 
 1. Datomic Pro read-only connections return one fixed database/log value and support `d/db`, `d/log`, and `d/release`, not live synchronization. The Lambda therefore constructs the EACL Datomic adapter directly over one captured `d/db` value without a connection-backed synchronization path. That immutable value is both current and authoritative for the deployed read-only dataset; at-least requests validate their floor against it, and exact requests select only verifiable bases at or before it. No serving request calls `d/sync`. The underlying schema/storage retains normal Datomic transaction history for a later separately qualified live EC2 demo.
 2. The Datahike DynamoDB adapter path still needs repair for typed failures, consistent publication reads, unprocessed keys, deadlines, and real AWS behavior. DynamoDB Local cannot prove those properties.
-3. Datalevin in-memory mode uses native resources and takes about 21 seconds to rebuild its packaged fixture in a fresh Lambda environment. Managed Java 25 supports SnapStart, so the candidate realizes the immutable reader during Lambda initialization, snapshots only a quiescent ready database, and is publishable only when AWS reports `OptimizationStatus=On` and the restored candidate passes the bounded operation smoke.
+3. Datalevin uses embedded LMDB in two explicitly different execution topologies. Lambda builds an environment-local database under `/tmp`, realizes the immutable reader during Java initialization, and snapshots only a quiescent ready database; EC2 uses a durable embedded path and service lifecycle. Their source fixture may match, but deployment identity, durability, startup, telemetry, cursor scope, and qualification evidence are never interchangeable.
 4. Jank compiles natively. Lambda requires a Linux binary matching the configured architecture. `provided.al2023` supports x86_64 and arm64 custom runtimes, but AWS SnapStart excludes OS-only runtimes and container images. Upstream Jank currently exercises Linux release builds on GitHub's x64 `ubuntu-24.04` runner, not its arm64 runner, so Linux x86_64/AL2023 is the defensible initial target. Jank should start through AOT and does not need SnapStart.
 5. AWS Budgets data is delayed; immediate DynamoDB cost defense must use on-demand maximums and CloudWatch consumption/throttle/write signals.
 6. The current Datahike deployment already contains a tested Telegram notifier path using SNS, Lambda, an AWS-held token, and end-to-end ALARM/OK tests. Consolidation should generalize that implementation and reuse the token rather than introduce GitHub-held Telegram credentials.
@@ -28,7 +28,7 @@ Several platform facts determine the design:
 **Goals:**
 
 - One stable URL and one source workspace for all demo presentation/contracts.
-- Explicit backend selection followed by only supported deployed storage choices.
+- Explicit backend and storage selection followed by only supported deployed execution choices.
 - Evidence-based fastest storage default within one backend, never a misleading global backend benchmark.
 - Honest capability differences and exact source/deployment identity in every profile.
 - Public read-only runtimes and private, bounded, recoverable data operations.
@@ -44,7 +44,7 @@ Several platform facts determine the design:
 - Cursor or exact-basis portability across profiles, deployments, or browser page lifecycles.
 - Fleet-wide atomic rollout or a requirement that every backend expose the same consistency/history/storage features.
 - A formal-verification gate for demo build or deployment.
-- A live advancing Datomic head or transactor-coordinated consistency claim from the read-only Lambda; a future non-read-only EC2 demo owns that topology.
+- A live advancing Datomic head or transactor-coordinated consistency claim from the read-only Lambda; the separately identified non-read-only EC2 execution owns that topology.
 - SnapStart for Jank, or representing its in-memory store as Datomic Pro/durable production storage.
 - Automatic durable seeding, migration, replacement, or deletion on ordinary source merges.
 - Automatic legacy destruction after cutover.
@@ -64,25 +64,25 @@ Every build records two immutable identities:
 
 Dirty local paths and mutable branch names are never published as artifact identity. Relevant current sibling work is imported deliberately into the new repository without modifying or overwriting those worktrees. An EACL Core change is deployed only after the lock update itself reaches `eacl-demo:demos`; activity in the Core repository does not coordinate or trigger this demo workflow.
 
-### 2. The UI selects backend and storage separately
+### 2. The UI selects backend storage and execution separately
 
-The first selector is a stable backend ID. The second is filtered by enabled registry entries:
+The first selector is a stable backend ID. The second is its supported storage. The third selects an execution platform when that backend/storage pair has multiple deployed Lambda-memory, EC2, or browser variants:
 
 | Backend | Storage options in this change | Runtime | Dataset |
 | --- | --- | --- | --- |
-| Datahike | S3, DynamoDB | managed Java arm64 Lambda; 1024 MB; preinitialized published-version SnapStart | exactly 1,000,000 for both |
-| Datomic | DynamoDB | managed Java Lambda, read-only Peer; published-version SnapStart | exactly 1,000,000 |
-| Datalevin | in-memory LMDB | managed Java 25 arm64 Lambda; 1024 MB; preinitialized published-version SnapStart | exactly 10,000 |
+| Datahike | S3, DynamoDB | managed Java arm64 Lambda; 1769 MiB primary and 4096 MiB comparison variants; preinitialized published-version SnapStart | exactly 1,000,000 for comparable generations; adopted S3 retains its declared legacy identity |
+| Datomic | DynamoDB | managed Java Lambda read-only Peer at 1769/4096 MiB with published-version SnapStart; separately identified shared-EC2 historical-exact service | exactly 1,000,000 |
+| Datalevin | embedded LMDB | managed Java 25 arm64 Lambda at 1769 MiB with ephemeral `/tmp` and published-version SnapStart; separately identified shared-EC2 durable service | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
 | DataScript | browser memory | direct ClojureScript page runtime | exactly 10,000 prebuilt |
 
-The internal key remains a composite profile ID such as `datahike-dynamodb`; routes, IAM, aliases, cursors, caches, and evidence stay profile-scoped. The canonical URL uses separate `backend` and `storage` parameters. Datahike is the neutral landing backend because a global speed comparison across unequal datasets/topologies is invalid.
+The internal product key remains a composite profile ID such as `datahike-dynamodb`; execution selection resolves that product to one exact origin. Routes, IAM, aliases, cursors, caches, and evidence stay execution-scoped. The canonical URL uses separate `backend`, `storage`, and `platform` parameters. Datahike is the neutral landing backend because a global speed comparison across unequal datasets/topologies is invalid.
 
 The checked-in registry is a fail-closed catalog/bootstrap record, not a mutable fleet pointer. Each profile job publishes only `/registry/profiles/<profile-id>.json`, a closed content-addressed record containing that profile's exact demo SHA, locked EACL SHA, artifact, data-manifest digest, deployment ID, gate evidence, state, and last attempt. The shell fetches all allowlisted records concurrently from its own HTTPS origin with bounded no-store requests, validates each record and digest against the closed route mapping, and composes a view without requiring every sibling. A missing, redirected, oversized, duplicate, tampered, wrong-route, or wrong-profile record disables only that profile. An embedded enabled fallback is never selectable without a verified independent record.
 
 This per-profile layout is required for uncoordinated fan-out: no profile job writes a shared aggregate object and the static job does not overwrite server status keys. Mixed generations are therefore ordinary state, not a failed fleet transaction. Comparable benchmark evidence has its own content-addressed index and raw-file loader. The browser checks the exact active deployment/data identities before applying a result and otherwise falls back without a speed claim.
 
-Changing either selector is one client state transition: increment client epoch, cancel old requests, clear profile-owned bases/cursors/pages/cache/error state, validate portable semantic intent, and start the new profile from page one.
+Changing any selector is one client state transition: increment client epoch, cancel old requests, clear execution-owned bases/cursors/pages/cache/error state, validate portable semantic intent, and start the selected execution from page one.
 
 ### 3. “Fastest” is a reproducible storage decision, not marketing
 
@@ -124,8 +124,9 @@ wildcard.
 
 Every server profile has an independently auditable serving role. Datahike/S3
 is confined to one store prefix, Datahike/DynamoDB and Datomic/DynamoDB to
-their distinct exact generation tables, Datalevin to one versioned lifecycle
-metadata object, and Jank to one pre-created log group. Serving roles attach no
+their distinct exact generation tables, Datalevin Lambda to its environment-local
+embedded database and bounded operational resources, shared EC2 services to
+their exact instance/service/data paths, and Jank to one pre-created log group. Serving roles attach no
 managed policies and accept no whole-resource or action wildcard. Automated
 decision checks exercise cross-profile table and store identities as well as
 write/admin actions. Stateful write identities are separate; the temporary
@@ -144,19 +145,19 @@ data is only `{allowed}`. Retry behavior is inferred from stable error codes;
 there is no backend-specific `ok`, operation, identity, basis, retryability,
 reason, or explanation-path payload.
 
-Independent rollout means the shell may be N while one profile is N-1. Contract additions are optional/capability-discovered for one compatibility window. Incompatible semantics introduce `/api/v2` and dual support; they do not require a fleet-atomic release. The selector visibly reports each actually deployed source pair and its last deployment outcome.
+Independent rollout means the shell may be N while one profile is N-1. Contract additions are optional/capability-discovered for one compatibility window. Contract major and compatibility range live in the descriptor handshake; transport remains on the same profile-owned root operation paths. An incompatible descriptor fails bootstrap until a compatible client/profile pair is selected, without introducing `/api/v2` or any other version path. The selector visibly reports each actually deployed source pair and its last deployment outcome.
 
 Only portable semantic intent enters URLs/history. Cursors, basis tokens, revisions, request IDs, cached values, and seed state never do.
 
 ### 6. The fixture is deterministic and data lifecycles are separate
 
-One fixture package defines stable IDs/schema/relationships/exemplars, a 10,000-resource prefix, and a 1,000,000-resource target. Each physical backend records achieved counts/digests. In-memory profiles rebuild and verify at initialization.
+One fixture package defines stable IDs/schema/relationships/exemplars, a 10,000-resource prefix, and a 1,000,000-resource target. Each physical backend records achieved counts/digests. Ephemeral Lambda and browser profiles reconstruct or restore their exact environment-local data; durable EC2 and cloud-storage profiles bind separately qualified data identities.
 
 Durable seed jobs are private, idempotent, resumable, bounded, and observable. They are never called by the public API or ordinary merge workflow. Datahike and Datomic use different DynamoDB tables, roles, lifecycles, and recovery identities.
 
 ### 7. Adopt Datahike/S3 and repair Datahike/DynamoDB before enabling it
 
-The existing S3 dataset/reader are adopted after source/config/store/basis/read-only/common-contract evidence. The store is not reseeded for consolidation. The local replacement artifact is an architecture-neutral JVM uber-JAR with an AWS `RequestStreamHandler`, a custom existing-store-only Konserve facade that preflights the existing marker without invoking upstream `konserve-s3`'s marker-writing connect path, a writer implementation that denies dispatch/create/delete, deny-all blob/store mutation methods, an exact `GetObject`/`HeadObject` SDK membrane, one immutable snapshot per admitted request, a request-basis-bound bootstrap descriptor, a closed explorer operation map, and no ClojureScript/Closure compiler closure. The runtime candidate adds exact-prefix `s3:GetObject` IAM with no list/write/admin permission. Generic dependencies still contain upstream write-capable symbols; the claim is no reachable serving write path, backstopped by the SDK membrane and IAM, not physical absence of every write class. A local MinIO regression proves upstream physical-format compatibility and unchanged object hashes across open/query, but does not qualify the live store. The JAR also passes an exact pinned-AL2023 double-build and Java 25 kernel-load audit. Production realizes the immutable reader before a published-version SnapStart checkpoint and is promoted only after AWS optimization plus restored read qualification. These local properties do not qualify the live store or staged Lambda; the profile remains unavailable until task 8.4's external evidence passes.
+The existing S3 dataset/reader are adopted after source/config/store/basis/read-only/common-contract evidence. The store is not reseeded for consolidation. The replacement artifact is an architecture-neutral JVM uber-JAR with an AWS `RequestStreamHandler`, a custom existing-store-only Konserve facade that preflights the existing marker without invoking upstream `konserve-s3`'s marker-writing connect path, a writer implementation that denies dispatch/create/delete, deny-all blob/store mutation methods, an exact `GetObject`/`HeadObject` SDK membrane, one immutable snapshot per admitted request, a request-basis-bound bootstrap descriptor, a closed explorer operation map, and no ClojureScript/Closure compiler closure. The runtime adds exact-prefix `s3:GetObject` IAM with no list/write/admin permission. Generic dependencies still contain upstream write-capable symbols; the claim is no reachable serving write path, backstopped by the SDK membrane and IAM, not physical absence of every write class. A MinIO regression proves upstream physical-format compatibility and unchanged object hashes across open/query. The JAR also passes an exact pinned-AL2023 double-build and Java 25 kernel-load audit. Production realizes the immutable reader before a published-version SnapStart checkpoint and is promoted only after AWS optimization plus restored read smoke. The deployed path is enabled; the current 1769/4096 MiB full memory/load qualification and separately authorized canonical comparable S3 generation remain open.
 
 That adopted store contains one million server entities plus ancillary data; it
 is not the canonical one-million-resource fixture and cannot enter the
@@ -188,10 +189,11 @@ write-capable library symbols, so the claim is no reachable serving write path,
 backstopped by the exact read-only client and later exact-table IAM role—not
 physical absence of every upstream write class. Production realizes the reader
 before a published-version SnapStart checkpoint and qualifies restored reads.
-Current source/package/fake-reader audits, the refreshed DynamoDB
-Local run, and the exact pinned-AL2023 double-build/Java 25 kernel-load audit
-are local-only; full stored database initialization, actual Lambda execution,
-and current real-AWS behavior remain open.
+Source/package/fake-reader audits, the refreshed DynamoDB Local run, the exact
+pinned-AL2023 double-build/Java 25 kernel-load audit, and ordinary deployed
+Lambda smoke establish the current enabled reader path. They do not substitute
+for the still-open full 1769/4096 MiB restored semantic/load/headroom gate or
+the canonical same-fixture comparison.
 
 A disposable real AWS table exercises publication, throttling, permissions,
 timeouts, partial batches, corruption/missing distinction, cancellation, and
@@ -206,7 +208,7 @@ Serving calls `d/connect` with `read-only=true`, captures `fixed-db = d/db(conn)
 
 The UI exposes the four EACL labels and describes their immutable-deployment scope. Datahike, by contrast, displays `fully-consistent*` disabled with an adjacent note because its read-only Lambda has no writer barrier. Both Datahike storage profiles expose at-least against the current captured basis and exact only for that current basis.
 
-The table/database is immutable after publication. Data refresh is blue/green per profile: qualify a new data identity and function version, then move only that alias/descriptor. Retaining storage history does not turn the Lambda into a live head. The future live/history-capable Datomic EC2 serving deployment is outside this change.
+The table/database is immutable after publication. Data refresh is blue/green per profile: qualify a new data identity and function version, then move only that alias/descriptor. Retaining storage history does not turn the Lambda into a live head. A separately identified shared-EC2 service exposes the historical-exact topology; its lifecycle and evidence are independent and do not broaden the Lambda descriptor.
 
 The separate Datomic serving and seed JARs pass exact pinned-AL2023
 double-builds and Java 25 kernel-load audits. The handler forces the reader and
@@ -214,41 +216,40 @@ captured basis during initialization, enables SnapStart on published versions,
 waits for `OptimizationStatus=On`, and promotes only after repeated restored
 health, consistency, permission, pagination, and mutation-denial qualification.
 
-### 9. Datalevin is an ephemeral SnapStarted in-memory Lambda
+### 9. Datalevin uses separately identified embedded Lambda and EC2 topologies
 
-The active artifact is a Java 25/arm64 ZIP built from the pinned maintained
-fork commit `a7e29c25` and the pinned AL2023-compatible native JAR whose ABI
-audit caps required glibc at 2.34. It opens Datalevin with a `nil` directory,
-which selects native in-memory LMDB; it has no remote server, EFS, S3,
-DynamoDB, WAL, or durable LMDB serving path. Its data exists only in one Lambda
-execution environment's memory and disappears with that environment.
+The Lambda artifact is a Java 25/arm64 ZIP built from an exact maintained-fork
+commit and an exact AL2023-compatible native closure. It opens one embedded
+LMDB database under `/tmp` per execution environment, with no remote server,
+EFS, S3, DynamoDB, or HA serving dependency. The packaged 10,000-resource
+fixture, schema digest, local revision watermark, artifact identity, and
+deployment identity determine that environment's source lifecycle. A restored
+or rolled-back version advertises its own identities and never shares mutable
+database state with another Lambda environment.
 
-Each cold environment parses the packaged 10,000-resource NDJSON fixture,
-installs the schema, and writes 10,080 objects plus 38,613 relationships. The
-original consolidation performed roughly one hundred 500-record transactions;
-the active implementation uses bounded 5,000-record batches (three object and
-eight relationship transactions). After object publication it scans the
-`:eacl/id` index once and resolves every relationship endpoint from that local
-map, instead of crossing the native LMDB boundary roughly 77,000 times. The
-two non-SnapStart deployment measurements remained 21.8 and 21.3 seconds, so
-the endpoint-index optimization is not represented as a material startup win.
+The Lambda handler forces the immutable reader during initialization. Published
+versions alone enable SnapStart, deployment waits for `OptimizationStatus=On`,
+and the exact candidate version must pass health, bootstrap, allow, deny, and
+mutation-denial smoke before alias promotion. The primary Lambda is 1769 MiB;
+ordinary deployment verifies exact memory, runtime, architecture, code identity,
+and AWS optimization. That bounded promotion evidence does not close task 10.8:
+repeated restore, concurrency, cancellation, failure, load, GC, and at least 20%
+process-headroom qualification remain required.
 
-The Java handler now forces the otherwise lazy immutable reader during Lambda
-initialization and the function enables SnapStart only on published versions.
-CI waits for the exact version to become active, requires AWS to report
-`OptimizationStatus=On`, then invokes the restored alias through health,
-bootstrap, allow, deny, and mutation-denial smoke before publishing its profile
-record. The first restored health wall time is printed on every deployment.
-Published version 39 in deployment run `33024147774` was AWS-optimized, reported
-SnapStart enabled through its restored bootstrap descriptor, passed the complete
-bounded smoke, and returned the first restored health response in 2,076 ms.
-The data remains native in-memory LMDB; SnapStart changes startup lifecycle,
-not storage or durability. Production memory is exactly 1024 MB. A 1024 MB
-candidate must pass restored semantic/load qualification with at least 20%
-process-memory headroom; failure triggers initialization or data-layout work,
-not a larger deployed memory setting. Broader repeated restore/eviction/load
-evidence can still harden the topology later, but formal verification is not a
-merge gate for this demo.
+The shared-EC2 Datalevin service uses an embedded LMDB database on its declared
+durable path. It is not described as memory-only or environment-ephemeral, and
+its service/data identity, restart behavior, process metrics, cursor scope, and
+rollback coordinates are distinct from Lambda. The same logical fixture may be
+used, but Lambda SnapStart evidence cannot qualify EC2 and EC2 persistence
+evidence cannot qualify Lambda.
+
+Both runtimes use an admitted execution scope that owns one read snapshot on
+the acquiring platform thread, fully realizes the response, and releases the
+snapshot exactly once on success, error, deadline, or cancellation. Bounded
+application telemetry records outcomes without sensitive/high-cardinality data;
+Lambda REPORT/EMF and EC2 CloudWatch/process/service signals own the surrounding
+memory and lifecycle observations. Full current semantic/load/headroom evidence
+for both advertised topologies remains the open Datalevin qualification gate.
 
 ### 10. DataScript remains a separate direct static entry
 
@@ -293,83 +294,59 @@ The descriptor labels the store as a bundled in-memory Datomic-like conformance 
 
 ### 12. One `demos` branch triggers uncoordinated maximum-parallel deployment
 
-`theronic/eacl-demo:demos` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Once at least one ordinary target is eligible, a trigger starts one explicit build/deploy pair for static and each independently eligible active-track server profile, without a global build artifact, eligibility, or success barrier. Every unprivileged `build-<target>` job runs in parallel, has no OIDC permission, and uploads a content-addressed artifact through a commit-pinned action. Its matching `deploy-<target>` alone depends on that artifact, verifies its digest, requests OIDC, and deploys without installing dependencies or rebuilding. No target waits for a sibling; any remaining matrix uses `fail-fast: false` and no `max-parallel`. The static build produces main and DataScript entries together to avoid conflicting S3-prefix writes. The closed build registry records `deploymentTrack` and `ordinaryDeploymentTarget` separately from `deploymentEligible`: every active unit assigned to one target must qualify that target, each qualified target enters ordinary delivery independently, shared infrastructure remains outside merge deployment, and a parked unit remains catalogued and fail-closed without gating or being queued.
+`theronic/eacl-demo:demos` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Every push starts five independent jobs: static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each job checks out the same immutable commit, installs the pinned toolchain and dependencies, builds only its target, assumes only its target-specific OIDC role, deploys, and runs the bounded live smoke in one job. There is no certification job, readiness ledger, generated workflow, artifact handoff, global barrier, matrix, or sibling dependency. The static job produces main and DataScript entries together to avoid conflicting S3-prefix writes. Parked Jank remains catalogued and unavailable without being queued or gating the five live targets.
 
 There are deliberately no GitHub concurrency groups, cancel-in-progress settings, latest-head guards, or cross-run ordering. Every job deploys the exact `demo-sha` and locked `eacl-sha` checked out for that run. If two pushes overlap, either run may finish last for a profile. That user-approved trade-off maximizes speed and simplicity; descriptors always reveal the actually deployed identities.
 
-If a job fails, it retains/restores that profile's last coherent alias/descriptor and records the failed update in only that profile's status object. Profile publication plans use the exact alias version/revision and exact versioned status-object ETag/version as rollback coordinates; a rollback may touch neither a sibling key nor a newer alias revision. Because Lambda alias and S3 object updates cannot form one atomic AWS transaction, the browser and every operation still perform descriptor/data identity checks and fail closed during any cross-service partial window. Other jobs and runs continue. A later merge or explicit retry may replace it, but no fleet convergence or latest-source guarantee is claimed.
+If a server job fails after candidate promotion, the direct deployer restores that profile's prior alias using the exact observed alias revision. It never touches a sibling alias or dataset. Because Lambda alias and registry updates cannot form one atomic AWS transaction, the browser and every operation still perform descriptor/data identity checks and fail closed during any cross-service partial window. Other jobs and runs continue. A later push may replace the failed target, but no fleet convergence or latest-source guarantee is claimed.
 
-The alias and public status cannot use one precomputed plan: the production recheck evidence exists only after alias promotion. An alias-only plan therefore consumes the sealed staging smoke and the pre-promotion alias revision. After promotion, the job captures the new revision, runs the production health/bootstrap recheck, creates the composite-gated publication, and prepares a status-only conditional write plan that retains both the old alias version and old status-object version. Any failed production recheck restores the alias before a failed-outcome status is prepared.
+The direct deployer publishes an immutable Lambda version, waits for SnapStart optimization where required, smokes that exact version, moves the profile's `candidate` alias with an optimistic revision, smokes the public Function URL, publishes that profile's content-addressed registry record, and restores only the prior alias if the post-promotion work fails.
 
 The release report is a content-addressed aggregate derived from the exact registry, build eligibility, dependency lock, fixture manifests, runtime definitions, benchmark evidence files, and cost-control definitions. It distinguishes `defined-not-deployed` from live `verified` evidence and distinguishes candidate memory from qualified memory. Its top-level source identifies only the demos-branch commit that built the report; it is not a fleet source claim. Each profile's deployment identity is independently authoritative, so a released aggregate can truthfully contain mixed and out-of-order generations. A checked-in pre-release report is useful because it exposes every missing identity, but it does not satisfy the final release-report task: a released report needs an immutable report-build identity, actual artifact/deployment identities for every enabled profile, benchmark evidence behind any performance-selected default, qualified memory evidence, live alarms/budgets/Telegram evidence, and executable rollback coordinates.
 
-The OpenSpec checklist has a separate fail-closed completion ledger. It groups
-every unchecked task exactly once by its current evidence or authorization
-gate, records the safe action while that gate is open, and is verified against
-the authoritative checklist. An omitted, duplicated, prematurely checked, or
-stale task makes local verification fail. This ledger reports blockers only;
-it cannot turn a local definition into live evidence or complete the final
-release report.
+OpenSpec retains the substantive implementation and live-evidence tasks, but
+ordinary demo delivery does not generate or verify a separate readiness ledger.
 
 ### 13. Merge deployment is deliberately small
 
-Each target pair performs:
+Each target job performs:
 
-1. an unprivileged clean checkout at exact SHAs, dependency-cache restore, build/package, cheap artifact/configuration/read-only guards, digest creation, and content-addressed artifact upload;
-2. a separate exact-environment deploy job that downloads and verifies only that artifact before requesting/using AWS credentials, with no dependency installation or build tool invocation;
-3. immutable candidate upload/version publication;
-4. bounded CORS preflight, health, descriptor identity, one allowed exemplar, one denied exemplar, and mutation-denial smoke through the candidate's exact direct Function URL;
-5. per-profile live-alias promotion followed by a bounded production health/bootstrap identity recheck, or rollback/failure alert.
+1. a clean checkout at the exact demo SHA and installation of the pinned toolchain/dependency lock;
+2. one target-local build whose output digest is recomputed before upload;
+3. assumption of only that target's exact OIDC deployment role;
+4. immutable candidate upload/version publication;
+5. bounded CORS preflight, health, descriptor identity, one allowed exemplar, one denied exemplar, and mutation-denial smoke through the exact public target;
+6. per-profile alias/registry publication or exact prior-alias rollback.
 
-The single same-target build-to-deploy edge is an artifact handoff, not GitHub concurrency management or fleet coordination. Neither job awaits formal verification, full semantic conformance, browser/accessibility suites, fault injection, load/memory sweeps, data seeds, migrations, or other profiles. Initial enablement/material topology changes use separate manual qualification workflows. Formal workflows may continue independently but cannot gate demo deployment.
+No ordinary job awaits formal verification, full semantic conformance, browser/accessibility suites, fault injection, load/memory sweeps, data seeds, migrations, or another profile. Those tools may remain available for diagnosis and material-change testing, but they cannot gate demo deployment.
 
-Those manual paths are concrete and fail closed. Full HTTP and
-browser/accessibility qualification retain their own dispatches. A bounded
-runtime dispatch covers staged load (at most 500 requests/eight workers with
-zero accepted request failures and immediate stop after the first decisive
-failure), a closed protocol/cancellation fault campaign with per-request
-deadlines, a started-then-aborted client request, and recovery, or exact numeric
-Lambda-version memory sampling whose direct-version ARN, runtime, architecture,
-code digest, and per-invocation `REPORT` peak must match. Memory sampling also
-stops once a passing report is no longer possible and never claims the direct
-invocations traversed CloudFront. Report validation recomputes the closed case
-set and measured outcome rather than trusting caller-supplied labels. Migration
-and rollback rehearsal can move only a dedicated
-`exercise` alias with an optimistic revision, prove both identities through
-their exact direct Function URLs, require forward numeric version movement for migration and
-backward movement for rollback, and restore the exact original version in
-`always()` cleanup;
-it cannot name `live`. Durable generation and seed workflows stay separate and
-cost-gated. Source/workflow validation proves these paths remain available, not
-that any external qualification, seed, or transition has run.
-All staged qualification/transition URLs must match a separately configured
-exact alias-qualified Function URL origin and exact root operation path;
-the input URL cannot make itself authoritative merely by being labeled staged.
+Full HTTP semantics, bounded workloads, browser/accessibility, and bundle
+isolation remain locally runnable diagnostics. HTTP diagnostics accept only
+loopback or the exact alias-qualified Function URL from the closed catalog and
+produce redacted reports; they own no GitHub workflow, staging route,
+publication gate, alias transition, or readiness record. Durable generation
+and seed workflows remain separate because they mutate state, not because demo
+deployment awaits certification.
 
 ### 14. GitHub settings favor safe speed and AWS OIDC
 
-`main` remains the development default; `demos` is the deployment branch. Rulesets block force-push/deletion and require pull-request merge with no required approval count. Separate environments such as `demo-production-static` and `demo-production-<profile>` accept only `demos` and have no reviewer or wait timer. This gives each deployment role a distinct OIDC subject without serializing the jobs. Head branches auto-delete after merge.
+`demos` is the default and deployment branch. It has no classic branch protection or repository ruleset, so an EACL lock update can be committed and pushed directly. Separate environments such as `demo-production-static` and `demo-production-<profile>` accept only `demos` and have no reviewer or wait timer. Each environment still gives its deployment role a distinct OIDC subject without serializing the jobs.
 
 Repository Actions permissions default to read-only. Deploy jobs request `contents: read` and `id-token: write`; permissions are not broadened for the entire workflow. The 2026-08-26 public audit reconfirms owner ID `1011676`, repository ID `1345904214`, creation after GitHub's 2026-07-15 immutable-subject cutoff, and the current default prefix `repo:theronic@1011676/eacl-demo@1345904214`. It is metadata evidence, not a substitute for the still-required allowlisted claim capture from a live job; the JWT itself is never printed, uploaded, or retained.
 
 GitHub makes the OIDC request bearer available to the entire job once
 `id-token: write` is granted; placing dependency installation before
-`configure-aws-credentials` does not isolate it. All current manual OIDC jobs
-therefore use only commit-pinned actions, disable checkout credential
-persistence, install no packages, enable no package-manager cache, and call
-their dependency-free checked-in Node entrypoints directly. Before AWS
-configuration, a dedicated capture entrypoint requests an STS-audience token,
-verifies RS256 against GitHub's fixed JWKS endpoint, checks every exact
-registered claim and either exact migration subject, rejects a distinct called
-reusable-workflow identity for these top-level jobs, and uploads for one day only the closed
-non-secret allowlist. It excludes the JWT/signature/request bearer and all
-actor, run, SHA, token-ID, and time claims. Future ordinary deploy jobs inherit
-the same bootstrap constraint in addition to their stronger unprivileged-build
-artifact handoff.
+`configure-aws-credentials` does not isolate it. The ordinary workflow accepts
+that exposure to keep each demo update to one direct job, while constraining the
+resulting AWS session to the exact workflow, `demos` ref, target environment,
+and target-specific deployment role. Checkout credentials are not persisted,
+actions are commit-pinned, server installs ignore package lifecycle scripts,
+and AWS credentials are configured only after a successful build. Manual
+stateful authorities retain their dependency-free claim-capture bootstrap.
 
 The desired repository-wide subject template is exactly `[repo, ref, workflow_ref, environment, event_name, runner_environment]` with immutable subjects enabled. A deployment subject therefore binds the immutable repository prefix, `refs/heads/demos`, the top-level workflow path at that ref, one role-specific environment, the `push` event, and `github-hosted` execution without wildcards. Manual authorities instead bind `workflow_dispatch`. These jobs are not reusable workflows, so `job_workflow_ref` is not required in trust. GitHub's 2026-08-27 live top-level tokens nevertheless exposed at least one `job_workflow_*` claim; the capture validator therefore accepts such a compatibility alias only when `job_workflow_ref` is identical to the already validated `workflow_ref` and, when present, `job_workflow_sha` is identical to `workflow_sha`. A different called-workflow path or revision is rejected. A future design that actually adopts a reusable workflow must instead bind its exact called-workflow identity deliberately. Current AWS documentation exposes direct GitHub conditions for `repository_id`, `repository_owner_id`, `repository`, `ref`, `workflow`, and `environment`, but not `workflow_ref`, `event_name`, or `runner_environment`, so the policy requires all supported direct claims with `StringEquals` and also requires the exact custom `sub` carrying those remaining values. This reconciles AWS's May 2026 claim-key expansion with GitHub's lagging AWS-specific statement that custom claims are unavailable.
 
-Because subject customization affects the whole repository, the authority manifest covers the five active future ordinary deployment roles and every local manual qualification, transition, and stateful role intended for publication. Parked Jank has no ordinary production authority or GitHub environment; those are added only if it is explicitly unparked. The 2026-08-26 remote audit found `main` and `demos` both at `858e11a807668c17b00345e89da90bc276b60126` with no workflow files; therefore no local OIDC workflow or generated policy is claimed live. Migration after publication updates every AWS trust before changing GitHub's template, may temporarily accept only the two exact recorded old/new subjects, verifies every job, and then removes the old subject. The static site and each active profile use separate least-privilege deployment roles/stacks; ordinary role variables and permission scopes are disjoint from seed and maintenance authorities.
+Because subject customization affects the whole repository, the authority manifest covers the five ordinary deployment roles and the retained stateful-maintenance roles. Parked Jank has no ordinary production authority or GitHub environment; those are added only if it is explicitly unparked. Migration updates every AWS trust before changing GitHub's template, may temporarily accept only two exact recorded subjects, verifies every job, and then removes the old subject. The static site and each active profile use separate least-privilege deployment roles/stacks; ordinary role variables and permission scopes are disjoint from seed and maintenance authorities.
 
 No AWS access key, Telegram token, or cross-repository dispatch credential is stored in GitHub. Non-secret region/account/role identifiers use environment variables. If a dependency repository proves it needs credentials in a clean locked-revision build, only that scoped credential is entered through the requested Chrome UI after its need and least privilege are demonstrated; no speculative dependency secret is created.
 
@@ -411,10 +388,11 @@ the frozen allow exemplar pass through the exact direct Function URL and a
 content-addressed readiness record binds those results, the dashboard, alarms,
 retention/redaction audit, runbook, deployment identity, and data identity.
 Local JVM and Jank source integration and artifact evidence does not satisfy
-that deployed readiness gate; Datalevin telemetry integration and Jank native
-fatal-OOM behavior are also still open. The telemetry, retention, alarm,
-dashboard, and canonical synthetic definitions are complete independently of
-those runtime and deployed-evidence gates.
+that deployed readiness gate. The enabled JVM profiles now have ordinary
+deployment smoke and operational telemetry wiring; current full direct
+qualification, release observation, and Jank native fatal-OOM behavior remain
+separate open gates. The telemetry, retention, alarm, dashboard, and canonical
+synthetic definitions are complete independently of those gates.
 
 The user has authorized both table seeds and temporary EC2 compute for seeds, the Datomic transactor, or a Jank AL2023 build if required. The implementation still records exact tables/instance/roles, forecast/caps, and cleanup. Temporary instances have no inbound SSH, scoped instance profiles, IMDSv2, expiry tags/watchdog, and termination in cleanup by resolved instance ID. Completion proves no matching instance/volume/address remains billable; overdue cleanup sends critical Telegram notification.
 
@@ -422,11 +400,11 @@ The user has authorized both table seeds and temporary EC2 compute for seeds, th
 
 Infrastructure units prevent a profile deploy from replacing shared DNS/static or another dataset. Stateful resources use retention/deletion protection and appropriate backups/exports. Per-profile alias promotion is coherent but there is no fleet-atomic registry move.
 
-DNS cutover uses staging, tested legacy fallback, observation thresholds, and rollback. Cutover authorization is distinct from deletion. Legacy EC2/S3/Lambda/DNS/log/backup/certificate retirement resolves exact IDs, recovery evidence, costs, and receives separate approval.
+Ordinary delivery updates static objects or one profile candidate/alias and does not change DNS. The accepted canonical CloudFront target and tested legacy fallback remain rollback coordinates. Any future DNS mutation requires fresh explicit authorization, while legacy EC2/S3/Lambda/DNS/log/backup/certificate retirement resolves exact IDs, recovery evidence, costs, and receives separate approval.
 
 ## Risks / Trade-offs
 
-- **[A UI deploy reaches an older profile]** → Maintain N/N-1 capability compatibility and version incompatible routes; show actual source identities.
+- **[A UI deploy reaches an older profile]** → Maintain N/N-1 descriptor compatibility on stable root operation paths, fail incompatible bootstrap handshakes, and show actual source identities.
 - **[An older CI run finishes after a newer run]** → Accepted by user: make no latest-version claim and expose the actual demo/EACL/artifact identities after every promotion.
 - **[One profile repeatedly fails]** → Preserve its last healthy alias, expose the failed deployment outcome, notify through the available operational path, and provide targeted retry.
 - **[Fast merge CI misses a deep semantic regression]** → Keep one-time/material-change production qualification and independent scheduled/manual diagnostics; bounded allow/deny/identity/mutation smoke still gates every promotion.
@@ -446,22 +424,22 @@ DNS cutover uses staging, tested legacy fallback, observation thresholds, and ro
 
 1. Reconcile and strictly validate this OpenSpec change.
 2. Establish clean initial commits in `theronic/eacl-demo`, create `demos`, and import shared behavior without modifying dirty sibling worktrees.
-3. Implement contracts, two-step selector, fixtures, static entries, and profile packages locally.
+3. Implement contracts, backend/storage/execution selector, fixtures, static entries, and profile packages locally.
 4. Connect Chrome; configure GitHub rules, environments, variables, and Actions permissions; add no CI secret unless a clean locked-dependency build proves one is required.
 5. Reauthenticate the AWS profile; deploy OIDC provider/trust and separate static/profile/seed roles plus Telegram/cost-control foundation.
 6. Adopt Datahike/S3 and qualify each new topology/storage using separate initial workflows.
 7. Install throughput caps/alarms/budgets/anomaly/Telegram tests before durable seeding; seed Datahike/DynamoDB and Datomic/DynamoDB; terminate and verify temporary compute.
 8. Benchmark comparable Datahike storages and publish the evidenced default.
 9. Implement the fast `eacl-demo:demos` workflow for the active Datahike, Datomic, Datalevin, DataScript/static scope with the pinned EACL revision, maximum-parallel target jobs, bounded smoke, per-job rollback, and actual-identity reporting, without GitHub concurrency management; keep parked Jank out of the fan-out.
-10. Deploy to staging, run initial material-change browser/contract qualification, and rehearse independent rollback.
-11. Cut over DNS with legacy fallbacks and observe.
+10. Qualify exact published candidate versions and the deployed static surface, then rehearse independent rollback without requiring a shared fleet-staging phase.
+11. Preserve the accepted canonical CloudFront/DNS target and tested legacy fallback; require fresh explicit authorization for any future DNS mutation and complete the production observation window.
 12. Reconcile/retire legacy resources only through separately approved destructive batches.
 
 ## Confidence Assessment
 
-- **High:** two-step selector/profile isolation; fixed-value Datomic read-only semantics; Jank cannot use SnapStart and must target Linux; single-branch uncoordinated GitHub deployment and OIDC mechanics; DynamoDB AWS-owned encryption; budget-delay implications.
-- **Moderate until measured:** fastest Datahike storage, exact Lambda memory sizes, Datalevin restore strategy, Jank cold-start latency, and cost envelopes.
-- **Unknown until external execution:** current live AWS resource state because the configured AWS session is expired; GitHub UI settings because Chrome is not connected; clean Linux Jank builder success; real Datahike/DynamoDB fault behavior.
+- **High:** backend/storage/execution selector isolation; fixed-value Datomic read-only semantics; Jank cannot use SnapStart and must target Linux; single-branch uncoordinated GitHub deployment and OIDC mechanics; DynamoDB AWS-owned encryption; budget-delay implications.
+- **Moderate until measured:** fastest comparable Datahike storage, full 1769/4096 MiB Datahike qualification, full Datalevin Lambda/EC2 load and headroom, Jank cold-start latency, and cost envelopes.
+- **Unknown until external execution:** manual-workflow OIDC authority migration, current-generation complete direct qualification, live rollback rehearsal, the full observation window, and clean Linux Jank builder success.
 
 No finite planning audit can prove absence of unknown defects. The design attains defensible confidence by making every uncertain claim an executable gate, refusing unproven capability/speed claims, keeping stateful actions separate, and retaining a healthy rollback for each independently deployed profile.
 

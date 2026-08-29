@@ -98,7 +98,11 @@
           (is false "operation should be denied")
           (catch clojure.lang.ExceptionInfo error
             (is (= :eacl-demo/read-only (:type (ex-data error)))))))
-      (is (nil? (storage/-create-store backing {:sync? true})))
+      (try
+        (storage/-create-store backing {:sync? true})
+        (is false "missing store creation must be denied")
+        (catch clojure.lang.ExceptionInfo error
+          (is (= :eacl-demo/missing-s3-store (:type (ex-data error))))))
       (is (not (contains? (methods store/-create-store) s3-store/backend)))
       (is (not (contains? (methods store/-delete-store) s3-store/backend)))
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Unsupported store backend"

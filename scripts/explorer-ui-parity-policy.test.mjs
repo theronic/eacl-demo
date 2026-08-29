@@ -25,7 +25,7 @@ test("unchanged Explorer components remain byte-identical to the current Datahik
   }
 });
 
-test("the stylesheet is exactly Datahike plus approved controls, warnings, decisions, and reusable can? footer rules", () => {
+test("the stylesheet keeps approved UI deltas and avoids costly scrolling effects", () => {
   const demo = file(resolve(demoSource, "styles.css"));
   const withoutDeploymentWarning = demo.replace(
     /\n\n\/\* DEPLOYMENT_WARNING_START \*\/[\s\S]*?\/\* DEPLOYMENT_WARNING_END \*\/\n/u,
@@ -88,9 +88,13 @@ test("the stylesheet is exactly Datahike plus approved controls, warnings, decis
     .replace(`${approvedConsistencyNoteRules}\n`, "")
     .replace(`${approvedFreshnessFloorRules}\n`, "")
     .replace(`${approvedFreshnessSecondsRules}\n`, "");
+  assert.doesNotMatch(demo, /backdrop-filter|radial-gradient|--body-(?:glow|start|end)|--header-(?:start|end)/u);
+  assert.match(demo, /body \{[\s\S]*?background: var\(--bg\);/u);
+  assert.match(demo, /\.panel-card \{[\s\S]*?background: var\(--panel\);/u);
+  assert.match(demo, /\.graph-canvas \{[\s\S]*?background: var\(--graph-start\);/u);
   assert.equal(
     sha(withoutApprovedRules),
-    "341ac588e8347cfa93867406dd0c02e081ec56ef38efa1f5fd81cce85bb6dfb9",
+    "fb46720950283a3e7508b85a27e00920de579bd4fe529c3504b27f419eb5d3ed",
   );
   const decisionRules = between(
     demo,
@@ -101,9 +105,6 @@ test("the stylesheet is exactly Datahike plus approved controls, warnings, decis
     sha(decisionRules),
     "2558a71d874afeffba820e267829eb70a62776648d78f73135dd258d19c4e4b8",
   );
-  if (existsSync(resolve(datahikeSource, "styles.css"))) {
-    assert.equal(withoutApprovedRules, file(resolve(datahikeSource, "styles.css")));
-  }
   if (existsSync(resolve(datomicSource, "styles.css"))) {
     const datomic = file(resolve(datomicSource, "styles.css"));
     assert.equal(
@@ -153,11 +154,12 @@ test("the arbitrary permission console is one reusable schema-driven component",
 });
 
 test("requested copy and control moves are the only component deltas", () => {
-  const tagline = "ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.";
+  const description = /🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library\s+inspired by SpiceDB, built in Clojure and backed by Datomic Pro,\s+Datahike or DataScript\./u;
   const header = file(resolve(demoSource, "components/Header.tsx"));
   const app = file(resolve(demoSource, "App.tsx"));
-  assert.equal(header.includes(tagline), true);
-  assert.equal(app.includes(tagline), true);
+  assert.match(header, description);
+  assert.match(app, description);
+  assert.doesNotMatch(`${header}\n${app}`, /Reactive authorization over explicit, inspectable HTTP queries/u);
   const cache = file(resolve(demoSource, "components/CachePanel.tsx"));
   assert.match(cache, /capturedOnFirstOpen/u);
   const schema = file(resolve(demoSource, "components/SchemaPanel.tsx"));

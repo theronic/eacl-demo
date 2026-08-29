@@ -59,7 +59,9 @@ export function Header(): JSX.Element {
       <div class="app-header__intro">
         <h1 class="app-title">🦅 EACL Explorer</h1>
         <p class="app-subtitle">
-          ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.
+          🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library
+          inspired by SpiceDB, built in Clojure and backed by Datomic Pro,
+          Datahike or DataScript.
         </p>
       </div>
       <div class="app-header__actions">

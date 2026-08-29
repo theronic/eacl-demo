@@ -90,15 +90,18 @@ reader before a published-version checkpoint, wait for AWS optimization, and
 qualify restored storage reads. Switching lifecycle mode is a material change
 that expires and reruns any comparison evidence.
 
-Both production Datahike profiles SHALL use 1024 MB. A candidate that cannot
-meet the gate at 1024 MB MUST be optimized to remove unnecessary initialization,
-whole-store warming, or repeated remote reads rather than promoted at a larger
-memory size.
+Both production Datahike profiles SHALL publish a 1769 MiB primary variant and
+MAY retain a 4096 MiB comparison variant. Each advertised variant SHALL qualify
+independently with its exact memory, runtime, architecture, code identity, and
+SnapStart optimization recorded. A larger variant MUST NOT be represented as a
+performance improvement unless the same-fixture workload evidence supports the
+claim, and avoidable initialization, whole-store warming, or repeated remote
+reads SHALL still be optimized rather than hidden by memory alone.
 
 #### Scenario: Smaller memory boots but violates latency
 - **WHEN** a candidate starts but fails representative latency/error/headroom limits
 - **THEN** it SHALL not be selected
 
-#### Scenario: DynamoDB cold initialization exceeds the gate at 1024 MB
-- **WHEN** memory headroom passes but avoidable initialization or DynamoDB reads cause the timeout
-- **THEN** the initialization path SHALL be profiled and reduced until the 1024 MB production candidate passes the full gate
+#### Scenario: A 1769 MiB primary misses the qualification gate
+- **WHEN** memory headroom passes but avoidable initialization or remote reads cause the timeout
+- **THEN** the initialization path SHALL be profiled and reduced, and any 4096 MiB result SHALL remain a separately identified comparison rather than silently redefining the primary

@@ -1,18 +1,24 @@
 # `demos` branch delivery
 
 `theronic/eacl-demo` is the sole deployment source. A push to `demos` starts
-four independent jobs immediately:
+five independent build-and-deploy jobs immediately:
 
 - the main explorer and separate DataScript static artifact;
 - Datahike with S3;
+- Datahike with DynamoDB;
 - Datomic with DynamoDB; and
 - Datalevin with page-lifecycle memory.
 
-Jank and Datahike/DynamoDB are not active deployment jobs. The workflow has no
+Jank is not an active deployment job. The workflow has no
 concurrency group, latest-head guard, cross-run ordering rule, or fleet-wide
 success barrier. A job deploys the exact demo commit that triggered it and the
 exact EACL commit locked by that revision. Sibling failures do not roll back a
 successful job.
+
+Each job checks out once, builds its demo in the same runner, assumes only that
+demo's deployment role, and invokes the live deployer. The workflow does not
+upload and download its own artifacts, produce certification evidence, or wait
+for a separate readiness decision.
 
 ## Static delivery
 

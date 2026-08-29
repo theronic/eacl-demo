@@ -29,7 +29,7 @@
     "clojureCli": "1.12.5.1664",
     "clojureCliArchive": "clojure-tools-1.12.5.1664.tar.gz",
     "clojureCliArchiveSha256": "77dd6868948074adcc93e83a796f8e8f15a1a92bcb1b9002d715fd2210e476f3",
-    "clojureScript": "1.12.42"
+    "clojureScript": "1.12.145"
   },
   "jankDevelopment": {
     "scope": "development-host-only",

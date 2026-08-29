@@ -18,12 +18,12 @@ const classpath = output("clojure", [
 ]).split(path.delimiter);
 const deps = await readFile(path.join(root, "deps.edn"), "utf8");
 
-assert.match(dependencyTree, /^org\.replikativ\/datahike 0\.8\.1801$/mu);
-assert.match(dependencyTree, /^org\.replikativ\/konserve 0\.9\.378$/mu);
+assert.match(dependencyTree, /^org\.replikativ\/datahike 0\.8\.1845$/mu);
+assert.match(dependencyTree, /^org\.replikativ\/konserve 0\.9\.391$/mu);
 assert.match(dependencyTree,
-  /^software\.amazon\.awssdk\/dynamodb 2\.29\.3$/mu);
+  /^software\.amazon\.awssdk\/dynamodb 2\.54\.7$/mu);
 assert.match(dependencyTree,
-  /^software\.amazon\.awssdk\/url-connection-client 2\.29\.3$/mu);
+  /^software\.amazon\.awssdk\/url-connection-client 2\.54\.7$/mu);
 assert.match(dependencyTree,
   /^com\.amazonaws\/aws-lambda-java-core 1\.4\.0$/mu);
 assert.match(dependencyTree, /^org\.clojure\/data\.json 2\.5\.2$/mu);
@@ -37,7 +37,7 @@ assert.equal(classpath.some((entry) =>
 false, "ClojureScript or Closure compiler dependency entered the Lambda classpath");
 assert.equal(classpath.some((entry) => entry.includes("/konserve-dynamodb/")),
   false, "the rejected upstream DynamoDB adapter entered the Lambda classpath");
-for (const excluded of ["netty-nio-client", "apache-client"]) {
+for (const excluded of ["netty-nio-client", "apache-client", "apache5-client"]) {
   assert.equal(classpath.some((entry) =>
     entry.includes(`/software/amazon/awssdk/${excluded}/`)), false,
   `${excluded} entered the AWS SDK v2 serving classpath`);
@@ -105,7 +105,7 @@ for (const denied of [
 ]) assert.match(sources.konserve, new RegExp(`denied! :${denied}`, "u"));
 assert.match(sources.konserve, /:lock-blob\? true/u);
 assert.match(sources.konserve,
-  /\(-create-store \[_ env\][\s\S]*?\(if \(:sync\? env\) nil \(go-try- nil\)\)\)/u);
+  /\(-create-store \[_ env\][\s\S]*?:eacl-demo\/missing-dynamodb-store/u);
 assert.match(sources.adapter, /\.consistentRead true/u);
 assert.match(sources.adapter, /BatchGetItemRequest/u);
 assert.match(sources.client, /allowed-signatures/u);
@@ -212,7 +212,7 @@ const closedRuntimeSmoke = output("java", [
                      "EACL_CONNECT_TIMEOUT_MS" "1000"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "76e4bd3c44436ef2755485f640ed165e355cbd50"
+                     "EACL_CORE_SHA" "858a73a62dfcdf05a5341787f806796d55fd2aff"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

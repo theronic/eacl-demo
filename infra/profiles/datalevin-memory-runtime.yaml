@@ -32,9 +32,7 @@ Parameters:
     AllowedPattern: "^[0-9a-f]{40}$"
   EaclSha:
     Type: String
-    Default: 76e4bd3c44436ef2755485f640ed165e355cbd50
-    AllowedValues:
-      - 76e4bd3c44436ef2755485f640ed165e355cbd50
+    AllowedPattern: "^[0-9a-f]{40}$"
   DeploymentId:
     Type: String
     AllowedPattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"

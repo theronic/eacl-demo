@@ -10,13 +10,13 @@ const profileIds = [
   "datalevin-memory",
   "jank-memory"
 ];
-const [foundation, staticTemplate, datahikeTable, datomicTable, observability, publicationPlan, legacyReadme] = await Promise.all([
+const [foundation, staticTemplate, datahikeTable, datomicTable, observability, directDeploy, legacyReadme] = await Promise.all([
   read("infra/foundation/template.yaml"),
   read("infra/static/template.yaml"),
   read("infra/data/datahike-dynamodb-table.yaml"),
   read("infra/data/datomic-dynamodb-table.yaml"),
   read("infra/observability/template.yaml"),
-  read("scripts/lib/profile-publication-plan.mjs"),
+  read("scripts/deploy-live-demo.mjs"),
   read("infra/legacy/README.md")
 ]);
 const runtimes = Object.fromEntries(await Promise.all(profileIds.map(async (profileId) => [
@@ -63,10 +63,11 @@ test("per-profile alias rollback cannot target a sibling or shared static resour
     assert.equal((source.match(/Type: AWS::Lambda::Version$/gmu) ?? []).length, 1, `${profileId} version count drifted`);
     assert.equal((source.match(/Type: AWS::Lambda::Alias$/gmu) ?? []).length, 1, `${profileId} alias count drifted`);
   }
-  assert.match(publicationPlan, /profileId: profile\.id/u);
-  assert.match(publicationPlan, /revisionId: currentAlias\.revisionId/u);
-  assert.match(publicationPlan, /onlyIfCurrentVersion: candidateVersion/u);
-  assert.match(publicationPlan, /key = `registry\/profiles\/\$\{profile\.id\}\.json`/u);
+  assert.match(directDeploy, /const priorAlias = awsJson\(\["lambda", "get-alias"/u);
+  assert.match(directDeploy, /"--revision-id", priorAlias\.RevisionId/u);
+  assert.match(directDeploy, /function rollbackAlias\(functionName, promoted, prior\)/u);
+  assert.match(directDeploy, /"--revision-id", promoted\.RevisionId/u);
+  assert.match(directDeploy, /`registry\/profiles\/\$\{profileId\}\.json`/u);
   for (const profileId of profileIds) {
     assert.doesNotMatch(runtimes[profileId], new RegExp(profileIds.filter((id) => id !== profileId).join("|"), "u"));
   }

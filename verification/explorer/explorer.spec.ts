@@ -33,6 +33,9 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/registry/benchmark-evidence/index.v1.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(emptyBenchmarkIndex) }));
   await page.goto("/?backend=datahike&storage=s3&platform=lambda-1024");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("EACL Explorer");
+  await expect(page.locator(".app-subtitle")).toHaveText(
+    "🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.",
+  );
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
 });
 
@@ -247,7 +250,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "76e4bd3c44436ef2755485f640ed165e355cbd50",
+    eaclSha: "858a73a62dfcdf05a5341787f806796d55fd2aff",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)

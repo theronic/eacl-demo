@@ -57,8 +57,11 @@ assert.doesNotMatch(client,
 const konserve = await readFile(path.join(sourceDirectory, "konserve.clj"), "utf8");
 assert.match(konserve, /def backend :eacl-demo-s3-read-only-store/u);
 assert.match(konserve,
+  /\(-create-store \[_ env\][\s\S]*?:eacl-demo\/missing-s3-store/u,
+  "a missing S3 marker does not fail with the typed read-only error");
+assert.doesNotMatch(konserve,
   /\(when-not \(konserve\.impl\.storage-layout\/-store-exists\?/u,
-  "connect does not preflight the existing store marker");
+  "the adapter duplicates Konserve's existing-store preflight");
 assert.doesNotMatch(konserve,
   /s3\/(?:connect-store|put-object|put-object-conditional|create-bucket|delete|copy|list-objects)/u,
   "custom backing reaches an upstream mutator or enumerator");

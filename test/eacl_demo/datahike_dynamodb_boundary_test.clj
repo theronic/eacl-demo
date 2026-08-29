@@ -66,17 +66,19 @@
           :capture-snapshot (fn [] (swap! captures inc))
           :handlers (handlers (constantly {:ok true}))})]
     (doseq [mode ["authoritative" "historical-date" "future-mode"]]
-      (is (= "unsupported-consistency"
-             (get-in (boundary/invoke!
-                      service
-                      (request "check-permission" :post
-                               {:input {:subjectType "user"
-                                        :subjectId "user-1"
-                                        :resourceType "account"
-                                        :resourceId "account-0"
-                                        :permission "admin"
-                                        :consistency mode}}))
-                     [:error :code]))))
+      (let [input (cond-> {:subjectType "user"
+                           :subjectId "user-1"
+                           :resourceType "account"
+                           :resourceId "account-0"
+                           :permission "admin"
+                           :consistency mode}
+                    (= "historical-date" mode)
+                    (assoc :atExactSnapshotAt "2026-08-26T00:00:00Z"))]
+        (is (= "unsupported-consistency"
+               (get-in (boundary/invoke!
+                        service
+                        (request "check-permission" :post {:input input}))
+                       [:error :code])))))
     (is (zero? @captures))))
 
 (deftest malformed-or-open-input-fails-before-snapshot-test

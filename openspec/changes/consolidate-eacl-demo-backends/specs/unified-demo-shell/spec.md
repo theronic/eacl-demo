@@ -1,11 +1,11 @@
 ## Purpose
 
-Define the canonical capability-driven SolidJS explorer, its two-step backend/storage selection, and portable behavior across independently deployed EACL profiles.
+Define the canonical capability-driven SolidJS explorer, its backend/storage/execution selection, and portable behavior across independently deployed EACL profiles.
 
 ## ADDED Requirements
 
-### Requirement: Backend and storage are selected in two explicit steps
-`https://demo.eacl.dev/` SHALL present one backend selector followed by a storage selector whose enabled options are derived from deployed, qualified profile descriptors. The backend choices SHALL be Datahike, Datomic, Datalevin, Jank, and DataScript. The storage choices SHALL be limited to the selected backend and MUST NOT route to an undeployed, unqualified, mock, or substitute profile.
+### Requirement: Backend storage and execution are selected explicitly
+`https://demo.eacl.dev/` SHALL present a backend selector, a dependent storage selector, and an execution selector when more than one deployed platform exists for that backend/storage pair. Enabled options SHALL derive from deployed profile descriptors. Backend choices SHALL be Datahike, Datomic, Datalevin, Jank, and DataScript. Storage and execution choices SHALL remain limited to their parents and MUST NOT route to an undeployed, unqualified, mock, or substitute profile.
 
 #### Scenario: User chooses Datahike and DynamoDB
 - **WHEN** the user selects Datahike and then DynamoDB
@@ -14,6 +14,10 @@ Define the canonical capability-driven SolidJS explorer, its two-step backend/st
 #### Scenario: Backend has one deployed storage
 - **WHEN** the user selects Datomic and DynamoDB is its only deployed storage
 - **THEN** DynamoDB SHALL be selected automatically and the control SHALL accurately show that there is no alternative storage in this change
+
+#### Scenario: Backend and storage have Lambda and EC2 variants
+- **WHEN** the user selects Datalevin and embedded LMDB
+- **THEN** the explorer SHALL offer the separately identified Lambda and EC2 executions, clear platform-owned state on a switch, and bootstrap only the chosen execution descriptor
 
 ### Requirement: Fastest qualified storage is the backend default
 For a backend with multiple enabled storage profiles, the registry SHALL select by default the storage with current passing comparable benchmark evidence. Evidence SHALL use the same backend, fixture, dataset size, region, runtime path, operation mix, cache states, concurrency, and scoring method. The UI MUST NOT claim a globally fastest backend or compare unequal dataset sizes as a storage result.
@@ -45,8 +49,8 @@ Changing either selector SHALL abort or logically invalidate prior in-flight wor
 - **THEN** the explorer SHALL discard the late response and SHALL not display its data, metadata, error, cursor, or loading transition
 
 #### Scenario: Newly selected profile is starting
-- **WHEN** the user switches to a valid registered backend/storage profile whose bootstrap is still pending
-- **THEN** the explorer SHALL immediately show `Waiting for <backend> Lambda to start...` with elapsed time and MUST NOT transiently show `The selected demo is not available.`
+- **WHEN** the user switches to a valid registered backend/storage/execution selection whose bootstrap is still pending
+- **THEN** the explorer SHALL immediately show execution-aware Lambda waiting or EC2 connecting status with elapsed time and MUST NOT transiently show `The selected demo is not available.`
 
 #### Scenario: Selected object is absent from a smaller profile
 - **WHEN** a user changes from a million-resource profile with `server-900000` selected to a ten-thousand-resource profile
@@ -104,4 +108,4 @@ The explorer SHALL meet WCAG 2.2 AA for principal flows, support keyboard naviga
 
 #### Scenario: Lambda initialization is slow
 - **WHEN** profile bootstrap remains pending during a cold or restore start
-- **THEN** the explorer SHALL show the selected backend/storage and elapsed startup state, offer cancellation/retry, and remain keyboard-operable without claiming readiness
+- **THEN** the explorer SHALL show the selected backend/storage/execution and elapsed startup state, offer cancellation/retry, and remain keyboard-operable without claiming readiness

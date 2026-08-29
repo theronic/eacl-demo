@@ -15,13 +15,13 @@ const classpath = output("clojure", ["-A:datahike-s3:lambda-jvm", "-Spath"])
   .split(path.delimiter);
 const deps = await readFile(path.join(root, "deps.edn"), "utf8");
 
-assert.match(dependencyTree, /^org\.replikativ\/datahike 0\.8\.1801$/mu);
-assert.match(dependencyTree, /^org\.replikativ\/konserve-s3 0\.1\.38$/mu);
+assert.match(dependencyTree, /^org\.replikativ\/datahike 0\.8\.1845$/mu);
+assert.match(dependencyTree, /^org\.replikativ\/konserve-s3 0\.1\.42$/mu);
 assert.match(dependencyTree, /^com\.amazonaws\/aws-lambda-java-core 1\.4\.0$/mu);
 assert.match(dependencyTree, /^org\.clojure\/data\.json 2\.5\.2$/mu);
-assert.match(dependencyTree, /^\s*\. software\.amazon\.awssdk\/s3 2\.29\.39$/mu);
+assert.match(dependencyTree, /^software\.amazon\.awssdk\/s3 2\.54\.7$/mu);
 assert.match(dependencyTree,
-  /^\s*\. software\.amazon\.awssdk\/url-connection-client 2\.29\.39$/mu);
+  /^software\.amazon\.awssdk\/url-connection-client 2\.54\.7$/mu);
 assert.match(deps,
   /org\.replikativ\/datahike[\s\S]*?:exclusions \[org\.clojure\/clojurescript\]/u);
 assert.match(deps,
@@ -29,7 +29,9 @@ assert.match(deps,
 assert.equal(classpath.some((entry) =>
   /\/org\/clojure\/clojurescript\/|\/com\/google\/javascript\/closure-compiler\/|\/org\/clojure\/google-closure-library/u.test(entry)),
 false, "ClojureScript or Closure compiler dependency entered the Lambda classpath");
-for (const excluded of ["netty-nio-client", "apache-client"]) {
+assert.equal(classpath.some((entry) => /aws-xray|aws-java-sdk-xray/u.test(entry)),
+  false, "unused optional X-Ray dependencies entered the Lambda classpath");
+for (const excluded of ["netty-nio-client", "apache-client", "apache5-client"]) {
   assert.equal(classpath.some((entry) =>
     entry.includes(`/software/amazon/awssdk/${excluded}/`)), false,
   `${excluded} entered the AWS SDK v2 serving classpath`);
@@ -112,9 +114,10 @@ assert.doesNotMatch(clientSource,
   "a write, administration, or enumeration method entered the SDK allowlist");
 assert.match(konserveSource, /def backend :eacl-demo-s3-read-only-store/u);
 assert.match(konserveSource,
-  /\(when-not \(konserve\.impl\.storage-layout\/-store-exists\?/u);
-assert.match(konserveSource,
-  /\(-create-store \[_ env\][\s\S]*?\(if \(:sync\? env\) nil \(go-try- nil\)\)\)/u);
+  /\(-create-store \[_ env\][\s\S]*?:eacl-demo\/missing-s3-store/u);
+assert.doesNotMatch(konserveSource,
+  /\(when-not \(konserve\.impl\.storage-layout\/-store-exists\?/u,
+  "the adapter must not duplicate Konserve's existing-store preflight");
 assert.doesNotMatch(konserveSource,
   /s3\/(?:connect-store|put-object|put-object-conditional|create-bucket|delete|copy|list-objects)/u,
   "an upstream S3 mutator or enumerator is reachable from the custom backing");
@@ -215,7 +218,7 @@ const closedRuntimeSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "1"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "76e4bd3c44436ef2755485f640ed165e355cbd50"
+                     "EACL_CORE_SHA" "858a73a62dfcdf05a5341787f806796d55fd2aff"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

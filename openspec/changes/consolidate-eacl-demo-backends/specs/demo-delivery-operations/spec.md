@@ -47,14 +47,14 @@ The public `theronic/eacl-demo` repository SHALL be authoritative for consolidat
 - **THEN** every eligible active-track demo profile SHALL be queued using that exact locked Core revision and the triggering demo commit, while ineligible or registered parked profiles SHALL remain unqueued and unavailable
 
 ### Requirement: GitHub deployment settings are fast and least privilege
-The `demos` branch SHALL reject force-push/deletion and use pull-request merges without required approvals, formal checks, deployment reviewers, or wait timers. A separate no-review/no-wait GitHub environment for static and each active profile deployment role SHALL accept only that branch. A parked profile SHALL receive no ordinary production environment or role. Actions token permissions SHALL default read-only; deployment jobs SHALL request only `contents:read` and `id-token:write` plus narrowly necessary permissions. No cross-repository dispatch credential SHALL be created.
+The `demos` branch SHALL have no classic branch protection or repository ruleset, so verified dependency upgrades can be committed and pushed directly. A separate no-review/no-wait GitHub environment for static and each active profile deployment role SHALL accept only that branch. A parked profile SHALL receive no ordinary production environment or role. Actions token permissions SHALL default read-only; deployment jobs SHALL request only `contents:read` and `id-token:write` plus narrowly necessary permissions. No cross-repository dispatch credential SHALL be created.
 
 #### Scenario: Non-demos branch requests production OIDC
 - **WHEN** an untrusted branch runs a workflow
 - **THEN** GitHub environment policy and AWS trust conditions SHALL deny production credentials
 
 ### Requirement: AWS access uses OIDC and per-profile roles
-GitHub SHALL store no long-lived AWS access key. Each static/profile job SHALL assume a dedicated least-privilege AWS role. The repository SHALL use an immutable custom subject composed in the exact order `repo`, `ref`, `workflow_ref`, `environment`, `event_name`, and `runner_environment`. Trust SHALL use `StringEquals` to require audience `sts.amazonaws.com`, the exact non-wildcard custom subject, immutable `theronic/eacl-demo` owner/repository IDs, exact repository, exact `refs/heads/demos` ref, exact top-level workflow name, and that role's exact GitHub environment. The custom subject SHALL bind `push` and `github-hosted` for ordinary deployment and `workflow_dispatch` for manual authorities. `workflow_ref`, `event_name`, and `runner_environment` SHALL be bound by the custom subject where AWS does not expose them as direct condition keys; `job_workflow_ref` SHALL be required in trust only for a job that actually runs a reusable workflow. A top-level job's claim capture MAY accept `job_workflow_ref` only when it equals the already validated `workflow_ref`, and MAY accept `job_workflow_sha` only when it equals `workflow_sha`; it SHALL reject any distinct called-workflow path or revision. It MUST NOT use an organization/repository/branch/workflow/environment/event/runner wildcard where an exact current claim is available. Because `id-token:write` exposes the OIDC request bearer to the whole job, every ordinary or manual OIDC job SHALL use only commit-pinned actions and directly invoked dependency-free checked-in entrypoints, disable checkout credential persistence, install no dependency, enable no package-manager cache, and execute no package-manager script. Before AWS credential configuration it SHALL signature-verify a dedicated GitHub JWT and retain only the exact allowlisted non-secret claims, never the JWT, its signature, request bearer, actor/run identity, commit SHA, token ID, or temporal claims. Repository-wide subject migration SHALL update all published OIDC role trusts before changing the GitHub template and SHALL remove any temporary exact legacy-subject alternative after all jobs pass.
+GitHub SHALL store no long-lived AWS access key. Each static/profile job SHALL assume a dedicated least-privilege AWS role. The repository SHALL use an immutable custom subject composed in the exact order `repo`, `ref`, `workflow_ref`, `environment`, `event_name`, and `runner_environment`. Trust SHALL use `StringEquals` to require audience `sts.amazonaws.com`, the exact non-wildcard custom subject, immutable `theronic/eacl-demo` owner/repository IDs, exact repository, exact `refs/heads/demos` ref, exact top-level workflow name, and that role's exact GitHub environment. The custom subject SHALL bind `push` and `github-hosted` for ordinary deployment and `workflow_dispatch` for manual authorities. `workflow_ref`, `event_name`, and `runner_environment` SHALL be bound by the custom subject where AWS does not expose them as direct condition keys; `job_workflow_ref` SHALL be required in trust only for a job that actually runs a reusable workflow. A top-level job's claim capture MAY accept `job_workflow_ref` only when it equals the already validated `workflow_ref`, and MAY accept `job_workflow_sha` only when it equals `workflow_sha`; it SHALL reject any distinct called-workflow path or revision. It MUST NOT use an organization/repository/branch/workflow/environment/event/runner wildcard where an exact current claim is available. Ordinary direct jobs MAY install/build before configuring AWS credentials; they SHALL use commit-pinned actions, disable persisted checkout credentials, use the exact dependency lock, ignore server package lifecycle scripts, and assume only their exact target role. Manual stateful OIDC jobs SHALL retain dependency-free claim capture and token redaction. Repository-wide subject migration SHALL update all published OIDC role trusts before changing the GitHub template and SHALL remove any temporary exact legacy-subject alternative after all jobs pass.
 
 #### Scenario: Datahike job requests Datomic permissions
 - **WHEN** its assumed deployment role attempts a Datomic table or stack action
@@ -73,7 +73,7 @@ GitHub SHALL store no long-lived AWS access key. Each static/profile job SHALL a
 - **THEN** its pinned bootstrap SHALL capture and validate only the registered allowlisted claims before AWS configuration, and no dependency install, cache restore, package-manager script, or persisted checkout credential SHALL coexist in that job
 
 ### Requirement: Profile deployments fan out without fleet atomicity
-Once any active ordinary target is eligible, each merge SHALL start an explicit unprivileged build job for static and every independently eligible active-track profile as soon as runners permit. Each target's separate credentialed deploy job SHALL depend only on that target's content-addressed artifact, verify its digest, and start as soon as that build finishes. An ineligible active target SHALL remain visible but unqueued and SHALL NOT suppress eligible siblings. Build jobs SHALL NOT receive OIDC; deploy jobs SHALL NOT install dependencies or rebuild. No target SHALL wait for a sibling, a parked profile, or a global artifact/success/eligibility barrier. Any matrix SHALL disable fail-fast and omit `max-parallel`. GitHub concurrency groups, cancel-in-progress, latest-head guards, and cross-run ordering SHALL NOT be required. Each pair SHALL deploy the exact demo commit and locked EACL revision checked out by its own run; mixed and out-of-order generations are accepted.
+Each push SHALL start five independent direct jobs for static/DataScript and the four live server profiles as soon as runners permit. Each job SHALL check out the exact demo commit, build only its own target, assume only its target-specific role, deploy, and run bounded live smoke. No target SHALL wait for a sibling, a parked profile, a certification job, a readiness ledger, an artifact handoff, or a global success barrier. GitHub concurrency groups, cancel-in-progress, matrices, latest-head guards, and cross-run ordering SHALL NOT be required. Each job SHALL deploy the exact demo commit and locked EACL revision checked out by its run; mixed and out-of-order generations are accepted.
 
 #### Scenario: One profile build fails
 - **WHEN** Jank is later unparked and fails while JVM and static jobs pass
@@ -84,11 +84,11 @@ Once any active ordinary target is eligible, each merge SHALL start an explicit 
 - **THEN** ordinary merge deployment SHALL neither queue nor wait for Jank, and Datahike, Datomic, Datalevin, DataScript, and static targets SHALL retain independent eligibility and rollout
 
 ### Requirement: Merge CI builds deploys and smokes only
-Ordinary branch CI SHALL restore/cache dependencies and build/package without OIDC, hand off a digest-verified artifact to a separate same-target deploy job, deploy immutable candidates, and run bounded health/bootstrap/identity/allow/deny/mutation-denial probes before per-profile promotion. The credentialed job MUST NOT install dependencies or execute build tooling. Neither job MUST run or await formal verification, full conformance, fault injection, load sizing, browser suites, data seeding, or state migrations.
+Ordinary branch CI SHALL install the pinned toolchain/dependency lock, build/package, configure only the target-specific OIDC role, deploy immutable candidates, and run bounded health/bootstrap/identity/allow/deny/mutation-denial probes in one target-local job. It SHALL recompute artifact digests before upload. The job MUST NOT run or await formal verification, certification, readiness ledgers, full conformance, fault injection, load sizing, browser suites, data seeding, or state migrations.
 
-#### Scenario: Dependency install is compromised
-- **WHEN** install or build code attempts to request a GitHub OIDC token or use AWS deployment credentials
-- **THEN** the build job SHALL have neither authority, and the later deploy job SHALL accept only the digest-verified handoff without rerunning that code
+#### Scenario: A target build fails
+- **WHEN** dependency installation or target compilation exits unsuccessfully
+- **THEN** that job SHALL stop before AWS credential configuration or deployment and sibling jobs SHALL continue independently
 
 #### Scenario: Formal workflow is slow or failing
 - **WHEN** independent formal verification has not completed
@@ -158,12 +158,16 @@ The system SHALL publish a closed, content-addressed release report covering eve
 - **WHEN** the release report names a performance-selected storage default
 - **THEN** its evidence ID SHALL resolve to the exact validated benchmark file whose backend, profile set, measurement time, and file digest match the selection
 
-### Requirement: Staged DNS cutover and legacy compatibility
-The distribution SHALL be validated under a temporary hostname, prior services retained at tested fallbacks, and immediate checks run after Route 53 cutover. Legacy host redirects SHALL preserve only compatible portable parameters, never opaque cursors/tokens.
+### Requirement: Candidate promotion preserves DNS and legacy compatibility
+Ordinary Lambda delivery SHALL qualify an exact published candidate version through its direct Function URL before moving only that profile alias; static delivery SHALL smoke the exact deployed CloudFront surface. Neither path SHALL require a shared fleet-staging publication or mutate canonical DNS. Prior services SHALL remain at tested fallbacks. Any future DNS change SHALL require fresh explicit authorization and immediate checks; legacy redirects SHALL preserve only compatible portable parameters, never opaque cursors/tokens.
 
-#### Scenario: Cutover checks fail
-- **WHEN** canonical health/routing/semantic thresholds fail
-- **THEN** operators SHALL restore the prior DNS/profile target without modifying stateful data
+#### Scenario: A candidate or production recheck fails
+- **WHEN** the exact profile health/routing/semantic threshold fails
+- **THEN** deployment SHALL retain or restore only that profile's prior alias/status while leaving siblings, DNS, and stateful data unchanged
+
+#### Scenario: A future change requires DNS mutation
+- **WHEN** the deployment design cannot preserve the canonical DNS target
+- **THEN** execution SHALL stop until a fresh explicit authorization names the exact DNS change and rollback target
 
 ### Requirement: Retirement is separately approved
 Cutover/continuous deployment SHALL NOT delete or permanently stop legacy EC2, S3, DynamoDB, Lambda versions, distributions, logs, backups, or certificates. Retirement SHALL resolve exact IDs, backups, dependencies, cost, recovery, and obtain explicit approval per destructive batch.

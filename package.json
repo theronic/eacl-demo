@@ -52,12 +52,10 @@
     "build:temp-compute-watchdog": "python3 scripts/package-temp-compute-watchdog.py",
     "build:registry": "node scripts/build-profile-registry.mjs",
     "build:release-report": "node scripts/build-release-report.mjs --write",
-    "prepare:profile-publication": "node scripts/prepare-profile-publication.mjs",
-    "prepare:alias-promotion": "node scripts/prepare-alias-promotion.mjs",
-    "package:ordinary-artifact": "node scripts/package-ordinary-artifact.mjs",
+    "upgrade:eacl": "node scripts/upgrade-eacl.mjs",
     "generate:runtime-validators": "node scripts/generate-runtime-validators.mjs",
     "verify:runtime-validators": "node scripts/generate-runtime-validators.mjs --check",
-    "verify:ordinary-workflow": "node scripts/render-demos-workflow.mjs --check",
+    "verify:ordinary-workflow": "node --test scripts/ordinary-workflow.test.mjs",
     "publish:benchmark-evidence": "node scripts/publish-benchmark-evidence.mjs",
     "fixture:small": "node scripts/generate-fixture.mjs --cut-point 10000",
     "fixture:large": "node scripts/generate-fixture.mjs --cut-point 1000000",
@@ -97,10 +95,6 @@
     "qualify:datascript-browser": "playwright test --config verification/datascript/playwright.config.ts",
     "qualify:main-network-isolation": "playwright test --config verification/datascript/main-network-isolation.playwright.config.ts",
     "qualify:http-profile": "node scripts/qualify-http-profile.mjs",
-    "exercise:profile-runtime": "node scripts/exercise-profile-runtime.mjs",
-    "exercise:profile-transition": "node scripts/run-transition-smoke.mjs",
-    "smoke:merge": "node scripts/run-merge-smoke.mjs",
-    "smoke:production-recheck": "node scripts/run-production-recheck.mjs",
     "test:fixtures": "node --test packages/fixture-generator/*.test.mjs",
     "test:fixture-golden-ts": "vitest run packages/fixture-generator/typescript-golden.test.ts",
     "test:benchmarks": "node --test packages/benchmarks/*.test.mjs",
@@ -112,7 +106,7 @@
     "verify:github-oidc-policies": "node scripts/github-oidc-policy.mjs --check",
     "test:github-oidc-policy": "node --test scripts/github-oidc-policy.test.mjs",
     "test:static-deploy-role-policy": "node --test scripts/static-deploy-role-policy.test.mjs",
-    "test:ordinary-delivery": "node --test scripts/ordinary-artifact.test.mjs scripts/ordinary-workflow.test.mjs scripts/static-publication.test.mjs scripts/static-s3-storage.test.mjs scripts/server-publication.test.mjs scripts/server-aws-adapter.test.mjs scripts/server-aws-adapter-policy.test.mjs scripts/server-deploy-role-policy.test.mjs",
+    "test:ordinary-delivery": "node --test scripts/ordinary-workflow.test.mjs scripts/static-deploy-role-policy.test.mjs scripts/server-deploy-role-policy.test.mjs",
     "preview:datomic-seed": "node scripts/datomic-seed-authorization.mjs preview",
     "authorize:datomic-seed": "node scripts/datomic-seed-authorization.mjs authorize",
     "test:stateful-workflows": "node --test scripts/stateful-workflow-policy.test.mjs",
@@ -142,7 +136,6 @@
     "verify:fixture-golden": "node scripts/check-fixture-golden.mjs",
     "lock:jvm": "node scripts/capture-jvm-lock.mjs",
     "verify:locks": "node scripts/verify-locks.mjs",
-    "verify:release-report": "node scripts/build-release-report.mjs --check",
-    "verify:change-readiness": "node scripts/verify-change-readiness.mjs"
+    "verify:release-report": "node scripts/build-release-report.mjs --check"
   }
 }

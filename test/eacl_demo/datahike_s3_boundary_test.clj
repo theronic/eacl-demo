@@ -119,16 +119,18 @@
 (deftest unsupported-consistency-fails-before-snapshot-test
   (let [{:keys [boundary release-count]} (configured-boundary {})]
     (doseq [mode ["authoritative" "historical-date" "future-mode"]]
-      (is (= "unsupported-consistency"
-             (get-in (boundary/invoke!
-                      boundary
-                      (request "check-permission" :post
-                               {:input {:subjectType "user" :subjectId "user-1"
-                                        :resourceType "account"
-                                        :resourceId "account-0"
-                                        :permission "admin"
-                                        :consistency mode}}))
-                     [:error :code]))))
+      (let [input (cond-> {:subjectType "user" :subjectId "user-1"
+                           :resourceType "account"
+                           :resourceId "account-0"
+                           :permission "admin"
+                           :consistency mode}
+                    (= "historical-date" mode)
+                    (assoc :atExactSnapshotAt "2026-08-26T00:00:00Z"))]
+        (is (= "unsupported-consistency"
+               (get-in (boundary/invoke!
+                        boundary
+                        (request "check-permission" :post {:input input}))
+                       [:error :code])))))
     (is (zero? @release-count))))
 
 (deftest malformed-or-open-input-fails-before-snapshot-test

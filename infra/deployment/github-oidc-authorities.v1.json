@@ -29,7 +29,7 @@
     {
       "id": "deploy-static",
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -41,7 +41,7 @@
     {
       "id": "deploy-datahike-s3",
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -53,7 +53,7 @@
     {
       "id": "deploy-datahike-dynamodb",
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -65,7 +65,7 @@
     {
       "id": "deploy-datomic-dynamodb",
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -77,7 +77,7 @@
     {
       "id": "deploy-datalevin-memory",
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -85,30 +85,6 @@
       "environment": "demo-production-datalevin-memory",
       "roleVariable": "AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN",
       "permissionScope": "datalevin-memory-runtime-only"
-    },
-    {
-      "id": "qualify-profile-memory",
-      "authorityClass": "manual-qualification",
-      "activation": "manual-only-after-workflow-publication",
-      "workflowName": "Exercise one profile runtime manually",
-      "workflowFile": ".github/workflows/exercise-profile-runtime.yml",
-      "eventName": "workflow_dispatch",
-      "runnerEnvironment": "github-hosted",
-      "environment": "demo-manual-qualification",
-      "roleVariable": "AWS_QUALIFICATION_ROLE_ARN",
-      "permissionScope": "published-function-observation-only"
-    },
-    {
-      "id": "exercise-profile-transition",
-      "authorityClass": "manual-transition",
-      "activation": "manual-only-after-workflow-publication",
-      "workflowName": "Exercise one profile migration or rollback",
-      "workflowFile": ".github/workflows/exercise-profile-transition.yml",
-      "eventName": "workflow_dispatch",
-      "runnerEnvironment": "github-hosted",
-      "environment": "demo-manual-transition",
-      "roleVariable": "AWS_TRANSITION_EXERCISE_ROLE_ARN",
-      "permissionScope": "exercise-alias-only"
     },
     {
       "id": "stateful-datahike-dynamodb",

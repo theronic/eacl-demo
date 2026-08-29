@@ -92,11 +92,16 @@
   (-atomic-move [_ _ _ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :atomic-move))))
-  ;; connect-default-store invokes this hook while opening a store. The
-  ;; upstream S3 implementation creates a bucket and writes its marker here;
-  ;; this facade preflights the existing marker and deliberately does nothing.
+  ;; Konserve 0.9.391 checks -store-exists? before invoking this hook. A
+  ;; missing marker must fail instead of reaching the upstream bucket/marker
+  ;; creation path, which keeps the serving adapter strictly read-only.
   (-create-store [_ env]
-    (if (:sync? env) nil (go-try- nil)))
+    (async+sync (:sync? env) *default-sync-translation*
+                (go-try-
+                 (throw (ex-info "The existing Datahike/S3 store marker is missing."
+                                 {:type :eacl-demo/missing-s3-store
+                                  :bucket bucket
+                                  :store-id store-id})))))
   (-delete-store [_ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :delete-store))))
@@ -130,12 +135,6 @@
   ([config client]
    (let [config (validate-config config)
          backing (backing-store config client)]
-     (when-not (konserve.impl.storage-layout/-store-exists?
-                backing {:sync? true})
-       (throw (ex-info "The existing Datahike/S3 store marker is missing."
-                       {:type :eacl-demo/missing-s3-store
-                        :bucket (:bucket config)
-                        :store-id (str (:id config))})))
      (connect-default-store
       backing
       (-> {:opts {:sync? true}

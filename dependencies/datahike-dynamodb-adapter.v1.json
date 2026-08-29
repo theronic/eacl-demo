@@ -3,18 +3,18 @@
   "decision": "audit-upstream-build-local-read-only-serving-adapter",
   "datahike": {
     "coordinate": "org.replikativ/datahike",
-    "version": "0.8.1801",
-    "jarSha256": "91cdd5f52f695d3c4ea02f972c9f5964ba242ba9f4da6ee7361d13e896f6ec5d"
+    "version": "0.8.1845",
+    "jarSha256": "4d381625d3db42f1a031f737264d7e62d2de4b62671c8699aa584a056657133a"
   },
   "konserve": {
     "coordinate": "org.replikativ/konserve",
-    "version": "0.9.378",
-    "jarSha256": "ab5831f84752dca33cc35b09fa75a6d5a63bb7f5a260f2f43446d552065c63da"
+    "version": "0.9.391",
+    "jarSha256": "43715917a76e6fd4a8816e86aa36849b1334e1986dc450007bb19238297f75c5"
   },
   "dynamodbSdk": {
     "coordinate": "software.amazon.awssdk/dynamodb",
-    "version": "2.29.3",
-    "jarSha256": "5d94384e06860e2c57d7929395258b35972d7254a75f98ac491b4b0eeced21a1"
+    "version": "2.54.7",
+    "jarSha256": "ac2bd2a9d0b45c39be9c115847b4a33456660e9e83100a32b577d6ad2f1daff3"
   },
   "upstreamAdapter": {
     "coordinate": "org.replikativ/konserve-dynamodb",

@@ -30,7 +30,7 @@ The qualified database SHALL contain exactly 1,000,000 logical resource objects 
 - **THEN** it SHALL report achieved logical counts and the post-seed fixture digest
 
 ### Requirement: Durable storage preserves Datomic history
-The seeded schema and publication process SHALL retain transaction history for the EACL data needed by a future separately qualified non-read-only EC2 demo. Relevant attributes MUST NOT use `:db/noHistory true`; seed evidence SHALL record multiple basis values and prove normal-Peer `d/as-of` and history behavior before writer teardown. This retained storage capability MUST NOT be advertised as a capability of the read-only Lambda.
+The seeded schema and publication process SHALL retain transaction history for the separately identified non-read-only EC2 demo. Relevant attributes MUST NOT use `:db/noHistory true`; seed evidence SHALL record multiple basis values and prove normal-Peer `d/as-of` and history behavior before writer teardown. This retained storage capability MUST NOT be advertised as a capability of the read-only Lambda, and EC2 evidence MUST NOT be reused as Lambda qualification.
 
 #### Scenario: Seed history is qualified
 - **WHEN** the temporary normal Peer inspects recorded earlier and final seed bases
@@ -79,12 +79,19 @@ The function SHALL record exact EACL Core/demo SHAs, Datomic Peer version at/abo
 - **WHEN** the ZIP is compared with its descriptor
 - **THEN** all EACL/Datomic dependencies and digest SHALL match
 
-### Requirement: Smallest fitting memory is qualified
-The selected memory SHALL be the lowest tested configuration passing cold initialization and representative one-million-resource load with no OOM/timeout/GC/native failure, at least 20% peak headroom, and accepted warm/cold latency.
+### Requirement: Lambda memory variants are identified and qualified
+The Lambda SHALL publish a 1769 MiB primary and MAY retain a 4096 MiB comparison variant. Each advertised variant SHALL record exact memory/runtime/architecture/code identity and independently pass cold initialization and representative one-million-resource load with no OOM/timeout/GC/native failure, at least 20% peak headroom, and accepted warm/cold latency.
 
 #### Scenario: Candidate initializes but thrashes
 - **WHEN** latency/error/GC/headroom fails
-- **THEN** the next larger candidate SHALL be evaluated
+- **THEN** it SHALL fail qualification; a larger comparison MAY be evaluated but MUST NOT silently replace the declared primary or inherit its evidence
+
+### Requirement: EC2 historical-exact service is a separate topology
+The shared-EC2 service SHALL publish its own execution, service, data, lifecycle, consistency, and rollback identities. It MAY expose history-backed exact selection unavailable from the fixed-basis Lambda, but MUST NOT imply that its live-head/transactor semantics or evidence apply to the Lambda profile.
+
+#### Scenario: User switches from Lambda to EC2
+- **WHEN** the selected platform changes while backend and storage remain Datomic/DynamoDB
+- **THEN** the shell SHALL clear Lambda-owned basis/cursors, bootstrap the EC2 descriptor, and display the EC2 consistency semantics without reusing Lambda qualification
 
 ### Requirement: SnapStart is required and qualified
 The production function SHALL enable SnapStart on a published Java version after forcing the read-only reader and immutable `d/db` value during initialization. Publication SHALL wait for AWS `OptimizationStatus=On`, and repeated restore tests SHALL prove reader validity, fixed-basis identity, cache isolation, concurrency, and error behavior before alias promotion.

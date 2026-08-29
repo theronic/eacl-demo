@@ -175,11 +175,15 @@
   (-atomic-move [_ _ _ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :atomic-move))))
-  ;; connect-default-store invokes this backing lifecycle hook while opening
-  ;; an existing store. It is deliberately a no-op; the public
-  ;; store/-create-store multimethod remains unregistered.
+  ;; Konserve 0.9.391 checks -store-exists? before invoking this hook. Serving
+  ;; must refuse a missing table instead of attempting to create one; the
+  ;; public store/-create-store multimethod also remains unregistered.
   (-create-store [_ env]
-    (if (:sync? env) nil (go-try- nil)))
+    (async+sync (:sync? env) *default-sync-translation*
+                (go-try-
+                 (throw (ex-info "The existing Datahike/DynamoDB table is missing."
+                                 {:type :eacl-demo/missing-dynamodb-store
+                                  :table table})))))
   (-delete-store [_ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :delete-store))))

@@ -16,7 +16,7 @@
   "policies": {
     "deploy-static": {
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos",
       "eventName": "push",
@@ -54,7 +54,7 @@
     },
     "deploy-datahike-s3": {
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos",
       "eventName": "push",
@@ -92,7 +92,7 @@
     },
     "deploy-datahike-dynamodb": {
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos",
       "eventName": "push",
@@ -130,7 +130,7 @@
     },
     "deploy-datomic-dynamodb": {
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos",
       "eventName": "push",
@@ -168,7 +168,7 @@
     },
     "deploy-datalevin-memory": {
       "authorityClass": "ordinary-deployment",
-      "activation": "after-target-is-deployment-eligible",
+      "activation": "every-demos-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos",
       "eventName": "push",
@@ -198,82 +198,6 @@
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
                 "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "qualify-profile-memory": {
-      "authorityClass": "manual-qualification",
-      "activation": "manual-only-after-workflow-publication",
-      "workflowFile": ".github/workflows/exercise-profile-runtime.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/exercise-profile-runtime.yml@refs/heads/demos",
-      "eventName": "workflow_dispatch",
-      "runnerEnvironment": "github-hosted",
-      "environment": "demo-manual-qualification",
-      "roleVariable": "AWS_QUALIFICATION_ROLE_ARN",
-      "permissionScope": "published-function-observation-only",
-      "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-manual-qualification",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/exercise-profile-runtime.yml@refs/heads/demos:environment:demo-manual-qualification:event_name:workflow_dispatch:runner_environment:github-hosted",
-      "assumeRolePolicyDocument": {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Sid": "ExactGitHubOidcAuthority",
-            "Effect": "Allow",
-            "Principal": {
-              "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
-            },
-            "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {
-              "StringEquals": {
-                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                "token.actions.githubusercontent.com:environment": "demo-manual-qualification",
-                "token.actions.githubusercontent.com:ref": "refs/heads/demos",
-                "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
-                "token.actions.githubusercontent.com:repository_id": "1345904214",
-                "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/exercise-profile-runtime.yml@refs/heads/demos:environment:demo-manual-qualification:event_name:workflow_dispatch:runner_environment:github-hosted",
-                "token.actions.githubusercontent.com:workflow": "Exercise one profile runtime manually"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "exercise-profile-transition": {
-      "authorityClass": "manual-transition",
-      "activation": "manual-only-after-workflow-publication",
-      "workflowFile": ".github/workflows/exercise-profile-transition.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/exercise-profile-transition.yml@refs/heads/demos",
-      "eventName": "workflow_dispatch",
-      "runnerEnvironment": "github-hosted",
-      "environment": "demo-manual-transition",
-      "roleVariable": "AWS_TRANSITION_EXERCISE_ROLE_ARN",
-      "permissionScope": "exercise-alias-only",
-      "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-manual-transition",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/exercise-profile-transition.yml@refs/heads/demos:environment:demo-manual-transition:event_name:workflow_dispatch:runner_environment:github-hosted",
-      "assumeRolePolicyDocument": {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Sid": "ExactGitHubOidcAuthority",
-            "Effect": "Allow",
-            "Principal": {
-              "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
-            },
-            "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {
-              "StringEquals": {
-                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                "token.actions.githubusercontent.com:environment": "demo-manual-transition",
-                "token.actions.githubusercontent.com:ref": "refs/heads/demos",
-                "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
-                "token.actions.githubusercontent.com:repository_id": "1345904214",
-                "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/exercise-profile-transition.yml@refs/heads/demos:environment:demo-manual-transition:event_name:workflow_dispatch:runner_environment:github-hosted",
-                "token.actions.githubusercontent.com:workflow": "Exercise one profile migration or rollback"
               }
             }
           }

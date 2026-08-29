@@ -337,7 +337,11 @@ function StandaloneExplorer(props: {
       <header class="app-header">
         <div class="app-header__intro">
           <h1 class="app-title">🦅 EACL Explorer</h1>
-          <p class="app-subtitle">ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.</p>
+          <p class="app-subtitle">
+            🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library
+            inspired by SpiceDB, built in Clojure and backed by Datomic Pro,
+            Datahike or DataScript.
+          </p>
         </div>
         <div class="app-header__actions">
           <nav class="app-header__sources" aria-label="Source repositories">

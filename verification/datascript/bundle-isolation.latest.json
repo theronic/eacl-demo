@@ -2,18 +2,18 @@
   "schema": "eacl-demo.datascript-bundle-isolation.v1",
   "result": "pass",
   "main": {
-    "entry": "assets/index-DMPKRTBA.js",
+    "entry": "assets/index-CIv61Qyy.js",
     "files": [
       ".vite/manifest.json",
-      "assets/SchemaGraph-MmYub9Im.js",
-      "assets/SchemaGraph-MmYub9Im.js.map",
-      "assets/index-C7xQPCT4.css",
-      "assets/index-DMPKRTBA.js",
-      "assets/index-DMPKRTBA.js.map",
+      "assets/SchemaGraph-v0F2l-0p.js",
+      "assets/SchemaGraph-v0F2l-0p.js.map",
+      "assets/index-CIv61Qyy.js",
+      "assets/index-CIv61Qyy.js.map",
+      "assets/index-Y3T5x0Ov.css",
       "index.html"
     ],
-    "scriptBytes": 578733,
-    "scriptSha256": "2a81cd29460dd83ff2b1ad1c3bdcd541430440d6b12448b5e3e3da8df3efd52a",
+    "scriptBytes": 578817,
+    "scriptSha256": "3ea673c08c7f632165452529df772191060beeb95c027fbc5668b6b63b6b3780",
     "sourceGraph": [
       "../../../../apps/explorer-main/src/App.tsx",
       "../../../../apps/explorer-main/src/Explorer.tsx",
@@ -204,12 +204,12 @@
   },
   "dedicatedRuntime": {
     "path": "dist/datascript-runtime/datascript-runtime.js",
-    "bytes": 6083206,
-    "sha256": "8131676722ac4122159a40ea1f50df303103a2428245ece76ab692dda0216252",
+    "bytes": 6099740,
+    "sha256": "ea62c581eb84c509848ca7156d666c68b0852fe48483004e838492e6803d28f8",
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",
-      "76e4bd3c44436ef2755485f640ed165e355cbd50"
+      "858a73a62dfcdf05a5341787f806796d55fd2aff"
     ]
   }
 }

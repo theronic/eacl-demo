@@ -127,8 +127,7 @@
       "sha256": "e0c9b8ebdffd8b9b56e9987e25ec3c6bab7fac11a309ab80a9556a14e27f2760",
       "bytes": 1044135,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -136,16 +135,7 @@
       "sha256": "95520cc83cad6a4474d42a6acf8b3b2e946fcdf0d20dca3f6a082f1bb6f318a9",
       "bytes": 610625,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/com/amazonaws/aws-xray-recorder-sdk-aws-sdk-core/2.13.0/aws-xray-recorder-sdk-aws-sdk-core-2.13.0.jar",
-      "sha256": "651ef97f0098c2456191c636675bf2e4ef628ecf78d0e4cc7dfbaa38fcd5d445",
-      "bytes": 7251,
-      "aliases": [
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -157,27 +147,11 @@
       ]
     },
     {
-      "path": "repository/com/amazonaws/aws-xray-recorder-sdk-aws-sdk-v2/2.13.0/aws-xray-recorder-sdk-aws-sdk-v2-2.13.0.jar",
-      "sha256": "9313a83d7ae717b5dd3f204302e947d31315c31201e2b87daf88e43d3e35074e",
-      "bytes": 11298,
-      "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
       "path": "repository/com/amazonaws/aws-xray-recorder-sdk-aws-sdk-v2/2.14.0/aws-xray-recorder-sdk-aws-sdk-v2-2.14.0.jar",
       "sha256": "7bc4893fadd31412fa272ed7a9085eb29d346ff20b69a7fd0b82d9a40edb6373",
       "bytes": 11296,
       "aliases": [
         "datahike-dynamodb-upstream-audit"
-      ]
-    },
-    {
-      "path": "repository/com/amazonaws/aws-xray-recorder-sdk-core/2.13.0/aws-xray-recorder-sdk-core-2.13.0.jar",
-      "sha256": "df37ff36ec8836884925835caa8bf760dfc6667a2c6c6c0cadf8526299299ce3",
-      "bytes": 227629,
-      "aliases": [
-        "datahike-s3"
       ]
     },
     {
@@ -193,8 +167,7 @@
       "sha256": "8c6552672d77ac600b46f5fa78b9b60a9faf196d47f2a2732a3573e21bc0c49c",
       "bytes": 27588,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -401,8 +374,7 @@
       "sha256": "cfa008d15f052e69221e8c3193056ff95c3c594271321ccac8d72dc1a770619c",
       "bytes": 61503,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -533,19 +505,12 @@
       ]
     },
     {
-      "path": "repository/com/google/javascript/closure-compiler/v20250402/closure-compiler-v20250402.jar",
-      "sha256": "6fcbd20f75994edc6856e336bc0147ce3dd7110c6b3a132e93edf580673c72bb",
-      "bytes": 14062314,
-      "aliases": [
-        "datascript-runtime"
-      ]
-    },
-    {
       "path": "repository/com/google/javascript/closure-compiler/v20250820/closure-compiler-v20250820.jar",
       "sha256": "171d24354ffe7dcd378fe4dfb30e4673859391f4da11a70ba04fdac0dd4d82d2",
       "bytes": 14080764,
       "aliases": [
-        "datahike-dynamodb-upstream-audit"
+        "datahike-dynamodb-upstream-audit",
+        "datascript-runtime"
       ]
     },
     {
@@ -658,8 +623,7 @@
       "sha256": "b3e9f6d63a790109bf0d056611fbed1cf69055826defeb9894a71369d246ed63",
       "bytes": 353793,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -700,7 +664,6 @@
       "bytes": 61829,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -963,8 +926,7 @@
       "sha256": "b4670b95f75957c974284c5f3ada966040be2578f643c5c6083d262162061fa2",
       "bytes": 621931,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -1096,7 +1058,6 @@
       "bytes": 780321,
       "aliases": [
         "datahike-dynamodb-upstream-audit",
-        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -1105,8 +1066,7 @@
       "sha256": "e06e89d40943245fcfa39ec537cdbfce3762aecde8f9c597780d2b00c2b43424",
       "bytes": 328593,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {
@@ -1261,14 +1221,7 @@
       "sha256": "cc8795a3f7a0238d4a7b69413b969cb12ed8ccb7a9991e9e06d107743f8d55e7",
       "bytes": 5444560,
       "aliases": [
-        "datahike-dynamodb-upstream-audit"
-      ]
-    },
-    {
-      "path": "repository/org/clojure/clojurescript/1.12.42/clojurescript-1.12.42.jar",
-      "sha256": "ac8aee8f79457fe32e63d5eb558111cd0c356404fab7bdfae3318baef5739a3b",
-      "bytes": 5349977,
-      "aliases": [
+        "datahike-dynamodb-upstream-audit",
         "datascript-runtime"
       ]
     },
@@ -1433,20 +1386,13 @@
       ]
     },
     {
-      "path": "repository/org/clojure/test.check/1.1.1/test.check-1.1.1.jar",
-      "sha256": "945118163b2c355a5fab96c9ebd01287152555bb2e9641f5cd9ed07fe4bc5078",
-      "bytes": 40000,
-      "aliases": [
-        "test"
-      ]
-    },
-    {
       "path": "repository/org/clojure/test.check/1.1.3/test.check-1.1.3.jar",
       "sha256": "8b0637b13982734742fb3f4d129f0a9d9e3d752b1aec0c6f65ced4555f72b649",
       "bytes": 40187,
       "aliases": [
         "datahike-dynamodb",
-        "datahike-s3"
+        "datahike-s3",
+        "test"
       ]
     },
     {
@@ -1772,9 +1718,9 @@
       ]
     },
     {
-      "path": "repository/org/replikativ/datahike/0.8.1801/datahike-0.8.1801.jar",
-      "sha256": "91cdd5f52f695d3c4ea02f972c9f5964ba242ba9f4da6ee7361d13e896f6ec5d",
-      "bytes": 851700,
+      "path": "repository/org/replikativ/datahike/0.8.1845/datahike-0.8.1845.jar",
+      "sha256": "4d381625d3db42f1a031f737264d7e62d2de4b62671c8699aa584a056657133a",
+      "bytes": 884909,
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3"
@@ -1808,9 +1754,9 @@
       ]
     },
     {
-      "path": "repository/org/replikativ/hasch/0.4.102/hasch-0.4.102.jar",
-      "sha256": "bad084b0399d9a89fb306a01350b22e9ce4c795295dcc32333c2fc80f1e580a3",
-      "bytes": 19542,
+      "path": "repository/org/replikativ/hasch/0.4.104/hasch-0.4.104.jar",
+      "sha256": "adf63bd7c68975fcf9a5ce6aee95bb7b927f3d98ff3be748dc5c830086f0bf37",
+      "bytes": 19532,
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3"
@@ -1821,8 +1767,15 @@
       "sha256": "3fd48e3700eeed6e5b727aed5345d1fb95e77d04fffe4681fe294297261e2fb5",
       "bytes": 7056,
       "aliases": [
+        "datahike-dynamodb-upstream-audit"
+      ]
+    },
+    {
+      "path": "repository/org/replikativ/incognito/0.3.71/incognito-0.3.71.jar",
+      "sha256": "f2de06e68310e6f9c7237a3d2d575ba9aa7a941ab5a50ad32d68d7017c578e2e",
+      "bytes": 7287,
+      "aliases": [
         "datahike-dynamodb",
-        "datahike-dynamodb-upstream-audit",
         "datahike-s3"
       ]
     },
@@ -1835,9 +1788,9 @@
       ]
     },
     {
-      "path": "repository/org/replikativ/konserve-s3/0.1.38/konserve-s3-0.1.38.jar",
-      "sha256": "7131b4b615adc9b3e31133519243403ac038a02347cb8db63e0ea7976d73dc00",
-      "bytes": 22816,
+      "path": "repository/org/replikativ/konserve-s3/0.1.42/konserve-s3-0.1.42.jar",
+      "sha256": "7caab06ef63d9a7b2152d771bde2a9d3f85fe086ae75951a7b182860b07fd066",
+      "bytes": 24156,
       "aliases": [
         "datahike-s3"
       ]
@@ -1851,9 +1804,9 @@
       ]
     },
     {
-      "path": "repository/org/replikativ/konserve/0.9.378/konserve-0.9.378.jar",
-      "sha256": "ab5831f84752dca33cc35b09fa75a6d5a63bb7f5a260f2f43446d552065c63da",
-      "bytes": 147310,
+      "path": "repository/org/replikativ/konserve/0.9.391/konserve-0.9.391.jar",
+      "sha256": "43715917a76e6fd4a8816e86aa36849b1334e1986dc450007bb19238297f75c5",
+      "bytes": 160301,
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3"
@@ -1870,9 +1823,18 @@
       ]
     },
     {
-      "path": "repository/org/replikativ/persistent-sorted-set/0.5.142/persistent-sorted-set-0.5.142.jar",
-      "sha256": "134f6bf03426b9f329143eebf7eb452bbfd276a4e828738f62335802d00778f0",
-      "bytes": 196624,
+      "path": "repository/org/replikativ/metrics/0.1.4/metrics-0.1.4.jar",
+      "sha256": "a22e1f23af7a3a38c28d330132d89529ba9b7148b40292e33632e063a957282b",
+      "bytes": 7641,
+      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3"
+      ]
+    },
+    {
+      "path": "repository/org/replikativ/persistent-sorted-set/0.5.144/persistent-sorted-set-0.5.144.jar",
+      "sha256": "aa798658b382fc2aad80b66354f8d7cf76a84d59675f62bd27727bc230fd58ee",
+      "bytes": 198253,
       "aliases": [
         "datahike-dynamodb",
         "datahike-s3"
@@ -1883,8 +1845,15 @@
       "sha256": "e18b7452c76daa99f7ab4284ea16f47e162e6839b22dbb54f56bd7fb54ec5cd2",
       "bytes": 11010,
       "aliases": [
+        "datahike-dynamodb-upstream-audit"
+      ]
+    },
+    {
+      "path": "repository/org/replikativ/superv.async/0.3.51/superv.async-0.3.51.jar",
+      "sha256": "71eaad8e3ce344018458cc0a838c3f8d585ca1673504b3f99fd37e13cb422a77",
+      "bytes": 11596,
+      "aliases": [
         "datahike-dynamodb",
-        "datahike-dynamodb-upstream-audit",
         "datahike-s3"
       ]
     },
@@ -1988,38 +1957,31 @@
       "sha256": "963127f0ffaff6e220bc10223b1d680bddfb6e8dc4f4b30a7d18e18ec1d88542",
       "bytes": 13757,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/annotations/2.29.39/annotations-2.29.39.jar",
-      "sha256": "eccacd7d33935023deffaf5c74c6e4b0bc9e6fc62241e714ec81a1e1ee5a32ef",
-      "bytes": 13759,
+      "path": "repository/software/amazon/awssdk/annotations/2.54.7/annotations-2.54.7.jar",
+      "sha256": "798673510e08b933f80d849bbf14ac0e8521f7bd8a3524d91fc0ffd88f4e883d",
+      "bytes": 15139,
       "aliases": [
-        "datahike-s3"
+        "datahike-dynamodb",
+        "datahike-s3",
+        "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/annotations/2.32.26/annotations-2.32.26.jar",
-      "sha256": "8e42f42cce03e44f54b48fccb0cf102cf9f8211fa35707c3dbe640ab10143a1a",
-      "bytes": 13759,
+      "path": "repository/software/amazon/awssdk/apache-client/2.54.7/apache-client-2.54.7.jar",
+      "sha256": "6c091b31588b49ed5d239bb93b5ac3dbb2377a94850d234b74d9f1e020a5222b",
+      "bytes": 77713,
       "aliases": [
         "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/apache-client/2.32.26/apache-client-2.32.26.jar",
-      "sha256": "6989216669e4115618f9ca0caefd60fba87aebc39d4c3e8dd16b17626e353100",
-      "bytes": 77015,
-      "aliases": [
-        "datomic-dynamodb"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/arns/2.29.39/arns-2.29.39.jar",
-      "sha256": "a55a9ab5ab2f018981ee3c02728b52b224f7b4da93e6d5d61e60d86b64252237",
-      "bytes": 15823,
+      "path": "repository/software/amazon/awssdk/arns/2.54.7/arns-2.54.7.jar",
+      "sha256": "32a41b40d35dbebfabcf884fc600d1b879957793ace7925a93f2796d7a89656d",
+      "bytes": 16404,
       "aliases": [
         "datahike-s3"
       ]
@@ -2029,23 +1991,16 @@
       "sha256": "d2f7a0f7e0897c8e6a0cd61f6c075ec1f5f112d76be1a182e4b3b519888ac69c",
       "bytes": 232354,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/auth/2.29.39/auth-2.29.39.jar",
-      "sha256": "ec2185b5a00a7fabcd3d6db2c97bde13ef862c397aa8c28667db53836c0c0f2b",
-      "bytes": 234083,
+      "path": "repository/software/amazon/awssdk/auth/2.54.7/auth-2.54.7.jar",
+      "sha256": "56bcf56c1d78d5e45016d4bae93d21124c3eb37d7ce444f325471c4a35554473",
+      "bytes": 240993,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/auth/2.32.26/auth-2.32.26.jar",
-      "sha256": "f321a43d9f58a06b9d7f35c14a9817c72866d026eb85310444d98690d17245ec",
-      "bytes": 234932,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2054,23 +2009,16 @@
       "sha256": "fa86dcc4c3531266da842d266a7913e2d2048c7c115a4e0f0a7df1c2cf18741c",
       "bytes": 177958,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-core/2.29.39/aws-core-2.29.39.jar",
-      "sha256": "cc069266255345d8d989b4da8c42891422f20090f5d03b2de9c9352c91d70986",
-      "bytes": 180663,
+      "path": "repository/software/amazon/awssdk/aws-core/2.54.7/aws-core-2.54.7.jar",
+      "sha256": "a80512885827a60f97488dea03bb39bff248b4d832d055c336a28ec5b0868dd8",
+      "bytes": 203597,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/aws-core/2.32.26/aws-core-2.32.26.jar",
-      "sha256": "c85d73a65da789c1f6f400cd6883aabe48d9f497814bcd8cb06002e0158583a7",
-      "bytes": 192120,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2079,30 +2027,30 @@
       "sha256": "283aca3bfb503450d90649569895686aa0dd2f008e979a94e95597bda2574583",
       "bytes": 127728,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-json-protocol/2.32.26/aws-json-protocol-2.32.26.jar",
-      "sha256": "0a478bfd1048dd3f93053056bd2bb48f559b43c68105c37f740e60e27ccb9c8f",
-      "bytes": 141897,
+      "path": "repository/software/amazon/awssdk/aws-json-protocol/2.54.7/aws-json-protocol-2.54.7.jar",
+      "sha256": "4a52729c575216dbcc98129a1f6447ecaccdc68890cab91428de446e98663bae",
+      "bytes": 150549,
       "aliases": [
+        "datahike-dynamodb",
         "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-query-protocol/2.29.39/aws-query-protocol-2.29.39.jar",
-      "sha256": "7baf135fe333ffb0836b42f92e8b1b116593cc6f2c4b340ff4f1dd5225730583",
-      "bytes": 69394,
+      "path": "repository/software/amazon/awssdk/aws-query-protocol/2.54.7/aws-query-protocol-2.54.7.jar",
+      "sha256": "9522ddf7386381b7626a80234e112eb3dba50084bc96cb9de3444d6281fa6456",
+      "bytes": 69862,
       "aliases": [
         "datahike-s3"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/aws-xml-protocol/2.29.39/aws-xml-protocol-2.29.39.jar",
-      "sha256": "a26fec94b3a799c3ec9f0efda3b847d863e0ac26a2c9c5dbe47e09712efe19a2",
-      "bytes": 102273,
+      "path": "repository/software/amazon/awssdk/aws-xml-protocol/2.54.7/aws-xml-protocol-2.54.7.jar",
+      "sha256": "5cf7174383cce395e6624b55218f2cf5d3d70ff21344e19d2fafc2bfa4cf10d5",
+      "bytes": 103030,
       "aliases": [
         "datahike-s3"
       ]
@@ -2112,23 +2060,16 @@
       "sha256": "aff5486bb873999370cad145e0552e8800649543236228658e08361e5725b4ca",
       "bytes": 8044,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/checksums-spi/2.29.39/checksums-spi-2.29.39.jar",
-      "sha256": "8e6f66c7648b5b6358f5224783cbfa21ac6e84d6d35c067760552221db0ba591",
-      "bytes": 8046,
+      "path": "repository/software/amazon/awssdk/checksums-spi/2.54.7/checksums-spi-2.54.7.jar",
+      "sha256": "0020007e7ea2f01dfbf7c421506bac4776d041f291493cc4b4c605e4af70b50a",
+      "bytes": 8044,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/checksums-spi/2.32.26/checksums-spi-2.32.26.jar",
-      "sha256": "285d395f113ddefff790ded211c1712e00721ae1faae6006175fa1f989eaeda1",
-      "bytes": 8046,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2137,30 +2078,23 @@
       "sha256": "99ea75b8a52e5b98bc9e066ef8fef391368d1f247bb309a078a5fab0ee592a1c",
       "bytes": 69045,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/checksums/2.29.39/checksums-2.29.39.jar",
-      "sha256": "e1d29e6e481d53213495075508a30780d5b3b67e2a271a04d1893f14ce4f5107",
-      "bytes": 69428,
+      "path": "repository/software/amazon/awssdk/checksums/2.54.7/checksums-2.54.7.jar",
+      "sha256": "ec49a12aedaf31742e92c914e21d4991988c218b9d06e91d6fb411e6e63f7c29",
+      "bytes": 72562,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/checksums/2.32.26/checksums-2.32.26.jar",
-      "sha256": "8c15c08b2c4d81700205b88817f0d7489849766a895c092941cacf80c5c56cdc",
-      "bytes": 69586,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/crt-core/2.29.39/crt-core-2.29.39.jar",
-      "sha256": "8173edf541cfcb85c06fbc32d92f74132b6f4c8ef0c3cdd2d7db1e71c65da362",
-      "bytes": 17776,
+      "path": "repository/software/amazon/awssdk/crt-core/2.54.7/crt-core-2.54.7.jar",
+      "sha256": "a96613da47c99aa00ad0dce77ad192bddb7fb9d8bfa059fb0b44c6ff10ea4e34",
+      "bytes": 19504,
       "aliases": [
         "datahike-s3"
       ]
@@ -2170,15 +2104,15 @@
       "sha256": "5d94384e06860e2c57d7929395258b35972d7254a75f98ac491b4b0eeced21a1",
       "bytes": 2862135,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/dynamodb/2.32.26/dynamodb-2.32.26.jar",
-      "sha256": "4da6315557e47d510c7df120c157402f9c50f0fbe654090ea2ec0487b342c0b8",
-      "bytes": 3124267,
+      "path": "repository/software/amazon/awssdk/dynamodb/2.54.7/dynamodb-2.54.7.jar",
+      "sha256": "ac2bd2a9d0b45c39be9c115847b4a33456660e9e83100a32b577d6ad2f1daff3",
+      "bytes": 2990809,
       "aliases": [
+        "datahike-dynamodb",
         "datomic-dynamodb"
       ]
     },
@@ -2187,23 +2121,16 @@
       "sha256": "6db5e620495c9b205a62fae5ddd1a7fd85050cba33f0a1818b3e3435fa3a2eeb",
       "bytes": 13168,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/endpoints-spi/2.29.39/endpoints-spi-2.29.39.jar",
-      "sha256": "5cf4060fdeeae19f5ad597e80c405cf97629d5a527709f6d4d14aa75fcd09f5d",
-      "bytes": 13170,
+      "path": "repository/software/amazon/awssdk/endpoints-spi/2.54.7/endpoints-spi-2.54.7.jar",
+      "sha256": "d25bf3a3f796cc3050816c623b22f8a7aa89eb1754fb90c9b1c32c4f6e1ef524",
+      "bytes": 17422,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/endpoints-spi/2.32.26/endpoints-spi-2.32.26.jar",
-      "sha256": "e52ad5c1df4e777854ae349e5d0251f62d7d9d3ebe7b517b780543f23f8616e3",
-      "bytes": 13170,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2212,23 +2139,16 @@
       "sha256": "1487fe9cf6be43f6c2c36eef22c58854b3e092e857f79a489eaabc3a311c942d",
       "bytes": 8705,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-aws-eventstream/2.29.39/http-auth-aws-eventstream-2.29.39.jar",
-      "sha256": "fd76270b54069096db2996d21e9ea0bc839cc3d8853bb78e3bd80a9ec2f16871",
-      "bytes": 8707,
+      "path": "repository/software/amazon/awssdk/http-auth-aws-eventstream/2.54.7/http-auth-aws-eventstream-2.54.7.jar",
+      "sha256": "5146e9716577a9560fee620bb75c1f6eb9c5bcea1df6e5d21a505b232ce361e7",
+      "bytes": 8709,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/http-auth-aws-eventstream/2.32.26/http-auth-aws-eventstream-2.32.26.jar",
-      "sha256": "57651a661329fae881721ddc35eca5525efc848a87766dc2022008d6686fb12a",
-      "bytes": 8706,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2237,23 +2157,16 @@
       "sha256": "b31c64f42e410db5edec763592b35784e6890b42e9ec1871a99d78994b9ccc8f",
       "bytes": 158902,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-aws/2.29.39/http-auth-aws-2.29.39.jar",
-      "sha256": "0d40a8dabb7ab7168c5aead4aeea42bab259baa4f301314457e0d9e363bb91fa",
-      "bytes": 158969,
+      "path": "repository/software/amazon/awssdk/http-auth-aws/2.54.7/http-auth-aws-2.54.7.jar",
+      "sha256": "293cf8cfc4a2eaa81ab12e6fcd1c6cac67792dcfa510d35319320f56482a637b",
+      "bytes": 180316,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/http-auth-aws/2.32.26/http-auth-aws-2.32.26.jar",
-      "sha256": "6e1998fa747f72888bcb94f7e2a4b17e03e7108584fb47b49ebf61889878ec06",
-      "bytes": 168304,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2262,23 +2175,16 @@
       "sha256": "e20d084d7a84e5c0ab34bf53755a47b9fe0c5b5db753c08c491bacfee88b865c",
       "bytes": 45762,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth-spi/2.29.39/http-auth-spi-2.29.39.jar",
-      "sha256": "3c5db2ae63e570b13719287cfb93b50623a4ab23d18caad6c22e7ef837ad0178",
-      "bytes": 45763,
+      "path": "repository/software/amazon/awssdk/http-auth-spi/2.54.7/http-auth-spi-2.54.7.jar",
+      "sha256": "2eef366a25778116372cfb29bd317e43d967d420997eb6c7290827bfa7fce954",
+      "bytes": 48395,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/http-auth-spi/2.32.26/http-auth-spi-2.32.26.jar",
-      "sha256": "c6cb1c730399a2ce8061121137c53047cd3faf02630a28e205d0b373fa57d218",
-      "bytes": 45763,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2287,23 +2193,16 @@
       "sha256": "e194dff4b31e8beff50795eb843c7a0847e204d27beb5decf6d670307492d598",
       "bytes": 17474,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-auth/2.29.39/http-auth-2.29.39.jar",
-      "sha256": "c27d597f537cecf0c9cc74d1d92bdab8bd9a8c690b4b78b85854def5d2ad28b6",
-      "bytes": 17476,
+      "path": "repository/software/amazon/awssdk/http-auth/2.54.7/http-auth-2.54.7.jar",
+      "sha256": "d90591458d96aa44a6b8d8d2819a9b0ecb6d870d6756ccbb448f39e1edbdeaa5",
+      "bytes": 17562,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/http-auth/2.32.26/http-auth-2.32.26.jar",
-      "sha256": "d43c353ee788a544056649b7aa5d2ac1714cdf9838e2f555d8bfd025adcfbc50",
-      "bytes": 17475,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2312,23 +2211,16 @@
       "sha256": "95c1b7d6817b8ba9b553ba55d0760369c276433470b5c25d7cea445c4087df66",
       "bytes": 87341,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/http-client-spi/2.29.39/http-client-spi-2.29.39.jar",
-      "sha256": "05cb180acc8dae2c501cacac6bf247b31ed5a41fdc50ea5901204d21d2248219",
-      "bytes": 87343,
+      "path": "repository/software/amazon/awssdk/http-client-spi/2.54.7/http-client-spi-2.54.7.jar",
+      "sha256": "b7dde414de89be9dcee0174a068f90f42d431e72387de9f37086ed45f3b57de7",
+      "bytes": 93677,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/http-client-spi/2.32.26/http-client-spi-2.32.26.jar",
-      "sha256": "0be7d65566f12c28c762e4f871fb1af22e2d5c6090c20287993a5a7310273a4a",
-      "bytes": 91686,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2337,23 +2229,16 @@
       "sha256": "5ad609ec4d0fcaa341facc07a94605b3381239c0c3e3d0be4fcae63fb67d60e9",
       "bytes": 30963,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/identity-spi/2.29.39/identity-spi-2.29.39.jar",
-      "sha256": "54fce89a3d1746529dbeed37c85320abe152644d29b26157708d7a3426e86439",
-      "bytes": 30965,
+      "path": "repository/software/amazon/awssdk/identity-spi/2.54.7/identity-spi-2.54.7.jar",
+      "sha256": "3592c4e431fb645dc559e48a6cb6911390a2657779b1b9670a677e3024e3dd38",
+      "bytes": 31177,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/identity-spi/2.32.26/identity-spi-2.32.26.jar",
-      "sha256": "188c7d7938d41776f5b5765677a7d23e734bd8323e963b99eb54758e9ac23996",
-      "bytes": 30964,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2362,23 +2247,16 @@
       "sha256": "00c9ae06783ba0df453d3c5c6c195e71cd1d367b0f3cf5bc8c93d48d11c3ed6d",
       "bytes": 33222,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/json-utils/2.29.39/json-utils-2.29.39.jar",
-      "sha256": "8990a94c684ddd986e283760d35e8eea646a6b4b3554469f3799035398c7232a",
-      "bytes": 33224,
+      "path": "repository/software/amazon/awssdk/json-utils/2.54.7/json-utils-2.54.7.jar",
+      "sha256": "01fdc87b20f55fd02858188b050015e502069c26084573fefcfd97635dbde74d",
+      "bytes": 33488,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/json-utils/2.32.26/json-utils-2.32.26.jar",
-      "sha256": "73a0ec93d23d14977fe9da3529b24ba2e372c22412fac1d8fed35a4792e1f50f",
-      "bytes": 33227,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2387,23 +2265,16 @@
       "sha256": "640ca491129ac615299fbfbb94d9d922e96c4aab7c39fed0cdb4f4b241b9c687",
       "bytes": 27262,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/metrics-spi/2.29.39/metrics-spi-2.29.39.jar",
-      "sha256": "9acb5bc2705af92c463a3294b1b9d4d4c6069cf8463c6b43dd3bf514a34b5de7",
-      "bytes": 27264,
+      "path": "repository/software/amazon/awssdk/metrics-spi/2.54.7/metrics-spi-2.54.7.jar",
+      "sha256": "4376d7151002ad44b0d533f9c3f607d974fff1d44a902af61273a79684449d16",
+      "bytes": 27517,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/metrics-spi/2.32.26/metrics-spi-2.32.26.jar",
-      "sha256": "3234214846890af478bb482429be26eb8f0a749c1f4c9e29b8142aaf51829c26",
-      "bytes": 27264,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2412,23 +2283,16 @@
       "sha256": "e73766fee277a4062626dbb616da21a37783fb5f03ed9d0d9d4a66b03d2b4ac5",
       "bytes": 49814,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/profiles/2.29.39/profiles-2.29.39.jar",
-      "sha256": "bafec6ff80cbcd530e8128fba8b0acfd3c2b9ba5f9e66efb96796196099c15fb",
-      "bytes": 49837,
+      "path": "repository/software/amazon/awssdk/profiles/2.54.7/profiles-2.54.7.jar",
+      "sha256": "9e4ced7bce92790788b7a0330ffe6e3f3b3be121e1353ca490d111012bf036b6",
+      "bytes": 53177,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/profiles/2.32.26/profiles-2.32.26.jar",
-      "sha256": "3da1bf696d506c85fe463ab8716966887152d4c7b04a768fc572350ba1e361ae",
-      "bytes": 50526,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2437,23 +2301,16 @@
       "sha256": "a214cddb1a17975289406b2846a064638ba30ecad9a9cf58c565d9d11323df33",
       "bytes": 44333,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/protocol-core/2.29.39/protocol-core-2.29.39.jar",
-      "sha256": "931c685d3db72f86a442dfc82e6a8c34d6c9ead254f60f9d714c25d76c08fedc",
-      "bytes": 44335,
+      "path": "repository/software/amazon/awssdk/protocol-core/2.54.7/protocol-core-2.54.7.jar",
+      "sha256": "34c08e62603145f164415ac0ce4de0501856794e210144a02dd5e067005e2f2b",
+      "bytes": 44627,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/protocol-core/2.32.26/protocol-core-2.32.26.jar",
-      "sha256": "5644e3f421c232bab9e38664704a135e2ccf6337287425ccb0d913664602cb98",
-      "bytes": 44372,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2462,23 +2319,16 @@
       "sha256": "164a31c37640ef9ae635407c77bd4282b4b4dab7ad354510f97efc2943baa0c8",
       "bytes": 877617,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/regions/2.29.39/regions-2.29.39.jar",
-      "sha256": "add64955fd3f74453a084f1d0ad3535f690142e9d6474019dd1979f949148f8e",
-      "bytes": 895400,
+      "path": "repository/software/amazon/awssdk/regions/2.54.7/regions-2.54.7.jar",
+      "sha256": "26b25f8044509ae560ac295ebe40235d0f0f98ca73b4914b3420b486da6931e5",
+      "bytes": 958116,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/regions/2.32.26/regions-2.32.26.jar",
-      "sha256": "01c48b4b40ca89d84470ed415d6592c2f8c0888b47e02fbd5bd7bcce228d2ee4",
-      "bytes": 964998,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2487,23 +2337,16 @@
       "sha256": "a3a7abdbfb14bf1e2a52dc01645fd8bdb98129b4f950ad98d1505f126c0b4a74",
       "bytes": 31271,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/retries-spi/2.29.39/retries-spi-2.29.39.jar",
-      "sha256": "0360d57f3325031fc947402bd5b965cdcea10b54fcd864116739e36ff7acf270",
-      "bytes": 31488,
+      "path": "repository/software/amazon/awssdk/retries-spi/2.54.7/retries-spi-2.54.7.jar",
+      "sha256": "5873e1c4fe22dfaeffa15e84d86a5afc215477fbdb625ab11424bd91e86f51b9",
+      "bytes": 32602,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/retries-spi/2.32.26/retries-spi-2.32.26.jar",
-      "sha256": "d12c804bb17fd6988e14a7d8820de14a00714511cba84313796b7e20fec7a01a",
-      "bytes": 31487,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2512,30 +2355,23 @@
       "sha256": "478ece63d0312d8e57670d029bafe7a086826dc3a37c650bec5ed3c0d8b6a2d8",
       "bytes": 63103,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/retries/2.29.39/retries-2.29.39.jar",
-      "sha256": "4c25a548004a8e6db2b93704878137c106655cb0e0d8dfb1b92585e3ca303145",
-      "bytes": 66325,
+      "path": "repository/software/amazon/awssdk/retries/2.54.7/retries-2.54.7.jar",
+      "sha256": "0993437d6738ccd43a319cea1d2793aa780811205199bc079fa4c397ea6b770b",
+      "bytes": 74162,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/retries/2.32.26/retries-2.32.26.jar",
-      "sha256": "ba4774c9f7c924fbb914d6dbcbddf263d815e78d6585367bdc170a5662519a2f",
-      "bytes": 66310,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/s3/2.29.39/s3-2.29.39.jar",
-      "sha256": "6e320243b57c9c206fe3c0df119b183846890380142d1f242dda38bd3d573bc5",
-      "bytes": 3835567,
+      "path": "repository/software/amazon/awssdk/s3/2.54.7/s3-2.54.7.jar",
+      "sha256": "67ebd1c596cbb82d9a13e6fa410e4ae6f17d145187cfbdb2f2da07665ab8c9a5",
+      "bytes": 4371434,
       "aliases": [
         "datahike-s3"
       ]
@@ -2545,23 +2381,16 @@
       "sha256": "20b90c2d5bcd86d29034fc6f1e56a340f9e05b9f5f3e40f4cf81b6a2bb383b21",
       "bytes": 969264,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/sdk-core/2.29.39/sdk-core-2.29.39.jar",
-      "sha256": "f368bb7bdf28f8b12594fa04f26ed0fc3ca06f4d6b08a8bc5c65e0d385412c43",
-      "bytes": 977551,
+      "path": "repository/software/amazon/awssdk/sdk-core/2.54.7/sdk-core-2.54.7.jar",
+      "sha256": "862b6eceff29a35e48e07379da1f482fbda2b406ba446940a7be4f5f59256cb9",
+      "bytes": 1104299,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/sdk-core/2.32.26/sdk-core-2.32.26.jar",
-      "sha256": "a5af7c9f90f6321f862162b91b61442937b1071dc724fb6e7757ad6f974b5435",
-      "bytes": 1003727,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2570,23 +2399,16 @@
       "sha256": "0721bf7d070fda61a3a9ff592ec15e2cfea031b9e34be37467b8a1b41c0cb6c2",
       "bytes": 535001,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/third-party-jackson-core/2.29.39/third-party-jackson-core-2.29.39.jar",
-      "sha256": "b74957b6aa7141a1357bd225e1c0f1fba194961c93fc3986182653831f89b53f",
-      "bytes": 535001,
+      "path": "repository/software/amazon/awssdk/third-party-jackson-core/2.54.7/third-party-jackson-core-2.54.7.jar",
+      "sha256": "9d4438574b6c2afe0150bfd5a214211e54e23500897d0c9ccf9f8e30d363c03b",
+      "bytes": 582370,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/third-party-jackson-core/2.32.26/third-party-jackson-core-2.32.26.jar",
-      "sha256": "356c2ea77af4c4f8043bb40d2552525d5634339dc31d95b13473e5011d31bff3",
-      "bytes": 535001,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2595,23 +2417,26 @@
       "sha256": "8dc630d6f8fdedc8818bea61c4c9a051eb5480b81212a670bcea9ea387159bfe",
       "bytes": 33074,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/url-connection-client/2.29.39/url-connection-client-2.29.39.jar",
-      "sha256": "61e6e9b3ecb6556f010b4a3e5ab9a48c292e06aa959a5a97730f8a7c8c8233c8",
-      "bytes": 33076,
+      "path": "repository/software/amazon/awssdk/url-connection-client/2.54.7/url-connection-client-2.54.7.jar",
+      "sha256": "84ba9e103752e1997e5287c374348118a4a5ca45c9871339fcca6be2dee65bda",
+      "bytes": 33360,
       "aliases": [
-        "datahike-s3"
+        "datahike-dynamodb",
+        "datahike-s3",
+        "datomic-dynamodb"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/url-connection-client/2.32.26/url-connection-client-2.32.26.jar",
-      "sha256": "c12a1f5dd256c02dabc7506bb9a09c1096f958789d0b02b6ada8a5349599feaf",
-      "bytes": 33043,
+      "path": "repository/software/amazon/awssdk/utils-lite/2.54.7/utils-lite-2.54.7.jar",
+      "sha256": "a00dc615e1013348d5fa3d71f255fb60e24aaa0d5b8c8c70b04805a2a65e808e",
+      "bytes": 8812,
       "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2620,23 +2445,16 @@
       "sha256": "e431e7ff1737e4c5ceacd0b2c5a535d9974960745bf4bb7d986028322fe5cc25",
       "bytes": 226385,
       "aliases": [
-        "datahike-dynamodb",
         "datahike-dynamodb-upstream-audit"
       ]
     },
     {
-      "path": "repository/software/amazon/awssdk/utils/2.29.39/utils-2.29.39.jar",
-      "sha256": "2cc23aaa7c13c10db8979c4cdda67cfc940a4994a7b58ba32c0ee3bad3ef702b",
-      "bytes": 226880,
+      "path": "repository/software/amazon/awssdk/utils/2.54.7/utils-2.54.7.jar",
+      "sha256": "80c4d6f81e5f8ce37706064394f5e1c588d7dbe85d095b115f66336b5fb22d4a",
+      "bytes": 253355,
       "aliases": [
-        "datahike-s3"
-      ]
-    },
-    {
-      "path": "repository/software/amazon/awssdk/utils/2.32.26/utils-2.32.26.jar",
-      "sha256": "f6d54fa60d40166fd30080a393a99b5bc07c100e628e19771d100aadb9c1c233",
-      "bytes": 241620,
-      "aliases": [
+        "datahike-dynamodb",
+        "datahike-s3",
         "datomic-dynamodb"
       ]
     },
@@ -2656,8 +2474,7 @@
       "sha256": "0d127b205a1fce0abc2a3757a041748651bc66c15cf4c059bac5833b27d471a5",
       "bytes": 565410,
       "aliases": [
-        "datahike-dynamodb-upstream-audit",
-        "datahike-s3"
+        "datahike-dynamodb-upstream-audit"
       ]
     },
     {

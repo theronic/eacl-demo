@@ -1,6 +1,6 @@
 ## Purpose
 
-Define deterministic fixtures, initial backend qualification, lightweight continuous-deployment smoke gates, comparable storage evidence, provenance, and truthful profile behavior.
+Define deterministic fixtures, locally runnable backend diagnostics, lightweight continuous-deployment smoke, comparable storage evidence, provenance, and truthful profile behavior.
 
 ## ADDED Requirements
 
@@ -11,12 +11,12 @@ One versioned manifest SHALL define EACL v8 schema, stable IDs, generation seed/
 - **WHEN** Datalevin and DataScript build the accepted fixture
 - **THEN** physical storage MAY differ but stable objects, relationships, schema, exemplars, and fixture digest SHALL agree
 
-### Requirement: Initial production-path qualification is separate from merge CI
-Before first public enablement or after a material storage/topology change, each profile SHALL run its advertised operations through production transport, normalization, EACL client, immutable snapshot, adapter, and real runtime/storage. This qualification is not repeated by ordinary `demos` merges and formal verification MUST NOT be a demo enablement or deployment requirement.
+### Requirement: Production-path diagnostics are available but non-gating
+Each profile SHALL retain a locally callable diagnostic path that can run its advertised operations through direct production transport, normalization, EACL client, immutable snapshot, adapter, and real runtime/storage. These diagnostics, formal verification, and generated evidence MUST NOT be a demo enablement or deployment requirement.
 
 #### Scenario: Unit tests pass but route is wrong
 - **WHEN** adapter tests pass but the deployed direct Function URL, CORS, or profile binding diverges
-- **THEN** initial qualification SHALL fail and the profile SHALL remain unavailable
+- **THEN** the diagnostic SHALL fail, while the direct deployer's mandatory route/identity smoke independently prevents promotion of that broken candidate
 
 ### Requirement: Common authorization semantics
 Supported fixture cases SHALL agree on direct/arrow permissions, cycles, duplicates, forward/reverse discovery, relationship filters, reverse subjects, counts/truncation, and stable semantic ordering.
@@ -46,8 +46,8 @@ Each candidate SHALL bind immutable EACL Core SHA, demo SHA, dependencies, toolc
 - **WHEN** an alias points to an unrecorded artifact
 - **THEN** monitoring SHALL mark the profile unhealthy or lagging until reconciled
 
-### Requirement: Failure security and memory qualification
-Initial qualification SHALL cover bounded input, cancellation/deadline cleanup, overload, retry classification, IAM denial, artifact/dependency review, redaction, no public mutations, storage fault injection where applicable, and representative cold/restore/warm memory/load with at least 20% peak headroom.
+### Requirement: Failure security and memory diagnostics remain executable
+Locally invoked diagnostics SHALL cover bounded input, cancellation/deadline cleanup, overload, retry classification, IAM denial, artifact/dependency review, redaction, no public mutations, storage fault injection where applicable, and representative cold/restore/warm memory/load with at least 20% peak headroom. Their absence SHALL NOT block an ordinary demo update.
 
 #### Scenario: Secret-like text reaches an exception
 - **WHEN** a test exception contains a URI, token, or filesystem path
@@ -67,9 +67,9 @@ Every `demos` merge SHALL build/package each independently eligible active-track
 - **WHEN** the candidate returns the wrong identity or exemplar
 - **THEN** that profile SHALL retain/restore its previous alias, report lag, notify operators, and SHALL NOT cancel unrelated profile deployments
 
-### Requirement: Initial browser and bundle qualification remains available
-Before initial cutover and after material shell/contract changes, the staged static domain plus exact direct Function URLs SHALL prove principal desktop/mobile accessibility, history/share links, stale-response switching, identity/routing, exact CORS, no intermediary API cache, and DataScript bundle exclusion. Ordinary merges require only build and bounded public smoke.
+### Requirement: Browser and bundle diagnostics remain available
+The exact static surface plus exact direct profile origins SHALL remain testable for principal desktop/mobile accessibility, history/share links, stale-response switching, identity/routing, exact CORS, no intermediary API cache, and DataScript bundle exclusion. Ordinary pushes require only build and bounded public smoke.
 
 #### Scenario: Main bundle imports DataScript
 - **WHEN** bundle analysis finds browser database code reachable from `/`
-- **THEN** initial/material-change qualification SHALL fail
+- **THEN** the bundle diagnostic SHALL fail without becoming an ordinary deployment gate

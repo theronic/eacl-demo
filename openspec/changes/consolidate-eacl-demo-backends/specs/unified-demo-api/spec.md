@@ -1,11 +1,11 @@
 ## Purpose
 
-Define a stable bounded read-only explorer contract that remains compatible while backend/storage profiles deploy independently.
+Define a stable bounded read-only explorer contract that remains compatible while backend/storage/execution profiles deploy independently.
 
 ## ADDED Requirements
 
 ### Requirement: Simple profile-owned logical contract and mixed-generation compatibility
-All profiles SHALL implement the same normalized logical operations and data/error shapes. Each server profile SHALL own one Lambda Function URL and expose operations directly at root paths such as `/health`, `/bootstrap`, `/lookup-resources`, and `/check-permission`; paths MUST NOT contain an `/api` prefix, route version, backend name, storage name, or composite profile ID. The permission operation SHALL be named `check-permission`, not `authorize`. The direct DataScript page runtime SHALL implement the same logical operations without a second protocol. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; an incompatible contract change SHALL update the descriptor handshake rather than add transport noise to every operation path.
+All profiles SHALL implement the same normalized logical operations and data/error shapes. Each server profile SHALL own one origin and expose operations directly at root paths such as `/health`, `/bootstrap`, `/lookup-resources`, and `/check-permission`; paths MUST NOT contain an `/api` prefix, route version, backend name, storage name, composite profile ID, or execution platform. The permission operation SHALL be named `check-permission`, not `authorize`. The direct DataScript page runtime SHALL implement the same logical operations without a second protocol. Descriptor metadata SHALL declare contract major and compatible range. An N client SHALL remain compatible with N-1 profile descriptors during independent rollout; an incompatible descriptor SHALL fail during bootstrap rather than add transport noise to every operation path.
 
 #### Scenario: Shell deploys before one backend
 - **WHEN** the current shell contacts a healthy N-1 profile during a non-atomic rollout
@@ -14,6 +14,10 @@ All profiles SHALL implement the same normalized logical operations and data/err
 #### Scenario: Browser checks a permission
 - **WHEN** the active server profile checks whether a subject has a permission
 - **THEN** the browser SHALL POST directly to that profile's `<function-url>/check-permission` path with no `/api`, version, backend, storage, or profile path segment
+
+#### Scenario: Bootstrap returns an incompatible contract major
+- **WHEN** the descriptor's declared compatibility range excludes the shell contract major
+- **THEN** the shell SHALL reject that profile before ordinary operations and SHALL NOT retry through a versioned or platform-prefixed route
 
 ### Requirement: Bootstrap identifies exact sources and ordinary responses stay compact
 Health and bootstrap SHALL establish the exact profile, EACL Core SHA, demo SHA, deployment/artifact identity, dataset identity, and basis before ordinary operations. Every backend SHALL then use the same prior consumer-facing envelope: success is `{data, meta}`, failure is `{error, meta}`, and metadata is revision, request ID, and elapsed/cache fields when meaningful. Ordinary responses MUST NOT repeat an `ok` flag, deployment identity, contract version, operation, structured basis, retryability, authorization reason, or explanation path. Every failure SHALL return only a stable code, safe message, and compact request metadata when available; clients infer retry behavior from the stable code.

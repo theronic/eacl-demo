@@ -1,69 +1,69 @@
 ## Purpose
 
-Define an EACL/Datalevin in-memory demonstration in a managed Java Lambda with an honest ephemeral lifecycle and bounded cold initialization.
+Define the separately identified embedded Datalevin Lambda and EC2 demonstrations, including their different persistence, startup, lifecycle, and qualification semantics.
 
 ## ADDED Requirements
 
-### Requirement: True ephemeral Datalevin in-memory profile
-`datalevin-memory` SHALL use Datalevin's native in-memory environment mode and the canonical 10,000-resource fixture. The database SHALL not depend on durable LMDB data files, a remote Datalevin server, HA, WAL, or EFS. Any external state required solely for EACL source lifecycle and rollback detection SHALL be identified separately and MUST NOT be described as the data store.
+### Requirement: Maintained source and native closure are immutable
+Datalevin SHALL resolve the maintained fork by exact Git commit together with the exact EACL adapter and Linux native closure. Clean CI SHALL verify source resolution, snapshot API availability, native ABI compatibility, licenses, and artifact provenance without depending on a mutable branch, sibling checkout, or an unrecorded local native file. A separate Maven publication SHALL NOT be required when the exact source/native closure is reproducibly resolved and recorded.
 
-#### Scenario: Environment initializes
-- **WHEN** a new Lambda environment becomes ready
-- **THEN** it SHALL prove in-memory mode, exact fixture/schema digests, exactly 10,000 resources, and absence of a durable serving database path
+#### Scenario: Only a mutable or local dependency works
+- **WHEN** the service builds only from a mutable branch, sibling source directory, or unrecorded native file
+- **THEN** the affected deployment SHALL remain unavailable because its source and native closure are not reproducible
 
-### Requirement: Qualified maintained fork and native artifact
-The profile SHALL depend on the maintained Datalevin fork that exposes explicit owned read snapshots and executable write-policy/topology checks. Its reserved fork and EACL adapter coordinates, Linux arm64 native closure, clean remote-consumer installation, and source/artifact provenance MUST pass before public deployment.
+### Requirement: Lambda and EC2 are distinct embedded topologies
+The Lambda execution SHALL use one environment-local embedded LMDB database under `/tmp`, with no remote server, EFS, S3, DynamoDB, or HA serving dependency. The shared-EC2 execution SHALL use embedded LMDB on its declared durable path. Their descriptors SHALL publish distinct execution, persistence, deployment, service/data, lifecycle, and rollback identities. Neither topology's evidence SHALL qualify the other.
 
-#### Scenario: Only local-root dependencies work
-- **WHEN** the service can build only by reading sibling source directories or unpublished native files
-- **THEN** the profile SHALL remain unavailable and SHALL not describe those dependencies as published releases
+#### Scenario: Lambda environment is replaced
+- **WHEN** AWS creates a new Lambda execution environment
+- **THEN** that environment SHALL reconstruct or restore its own exact fixture/database and SHALL not claim persistence from the previous environment
 
-### Requirement: Lambda topology receives its own EACL qualification
-The currently qualified embedded Datalevin topology MUST NOT automatically qualify Lambda/SnapStart. A dedicated certification SHALL prove one local embedded database per environment, no remote/HA/WAL path, no runtime public writer, platform-thread request execution, acquiring-thread snapshot ownership, complete response realization before release, deterministic release on success/error/cancellation, and no use of an ordinary live DB handle as an immutable request snapshot.
+#### Scenario: EC2 service restarts
+- **WHEN** the declared EC2 service restarts without a data-generation change
+- **THEN** it SHALL reopen the same qualified durable embedded path and retain its declared data identity rather than rebuilding an unrelated ephemeral store
+
+### Requirement: Source lifecycle and cursors are topology-scoped
+Each deployment SHALL bind the deterministic 10,000-resource fixture, schema digest, source identity, local Datalevin revision watermark, artifact identity, and deployment identity in bootstrap. Cursors and snapshot locators SHALL be scoped to the exact execution and lifecycle. Rollback SHALL restore the selected deployment's own identities and MUST NOT share mutable lifecycle state across Lambda environments or between Lambda and EC2.
+
+#### Scenario: Cursor crosses execution platforms
+- **WHEN** a Lambda cursor or snapshot locator is submitted to the EC2 service
+- **THEN** the request SHALL fail with a typed invalid-scope error before reading page data
+
+### Requirement: Read snapshots have exact ownership and release
+Every request SHALL execute in one admitted scope on a platform thread, acquire one owned Datalevin read snapshot, fully realize the bounded response before release, and release the snapshot exactly once on success, error, deadline, or cancellation. An ordinary live database handle MUST NOT be represented as an immutable request snapshot.
 
 #### Scenario: Snapshot crosses a thread
-- **WHEN** an instrumented request acquires a Datalevin read snapshot on one thread and attempts to use or release it on another
-- **THEN** the qualification SHALL fail and no public profile SHALL be enabled
+- **WHEN** an instrumented request acquires a read snapshot on one thread and attempts to use or release it on another
+- **THEN** qualification SHALL fail and the affected deployment SHALL not be advertised as qualified
 
 #### Scenario: Response realization throws
 - **WHEN** an exception occurs after snapshot acquisition during page realization
-- **THEN** the owned read snapshot SHALL still be released exactly once and the response SHALL be a typed safe error
+- **THEN** the owned snapshot SHALL still be released exactly once and the response SHALL be a typed safe error
 
-### Requirement: Honest environment-local source lifecycle
-The profile SHALL bind its deterministic fixture and deployment identity in bootstrap while keeping the Datalevin revision watermark inside the execution environment that owns the in-memory database. It MUST NOT describe that process-local watermark as durable persistence or coordinate it through another storage service.
+### Requirement: Lambda uses a ready pre-checkpoint reader
+The Lambda SHALL use a supported managed Java runtime, published function versions, an alias, no reserved-concurrency cap, and qualified SnapStart. It SHALL create the embedded `/tmp` database and force the immutable reader during initialization, publish only after AWS reports `OptimizationStatus=On`, and smoke the exact restored candidate version before alias promotion. Rebuilding the full database in an after-restore hook is not a second supported production strategy.
 
-#### Scenario: Old deployment is restored
-- **WHEN** an operator moves the alias back to a prior immutable dataset/artifact
-- **THEN** the old function version SHALL rebuild its own exact packaged fixture and advertise its own deployment/basis; it SHALL not share mutable database state with the newer environment
+#### Scenario: A published version is not optimized
+- **WHEN** AWS reports a SnapStart optimization state other than `On`
+- **THEN** deployment SHALL not promote that version even if an unoptimized invocation succeeds
 
-### Requirement: Cold initialization and restore are bounded and measurable
-The production deployment SHALL initialize its native in-memory database before a published Java SnapStart checkpoint. Fixture parsing and writes SHALL use bounded batches, publication SHALL wait for AWS `OptimizationStatus=On`, and ordinary candidate smoke SHALL report wall time to first restored healthy response. Repeated restore, eviction, lock, and load evidence SHALL remain part of qualification.
+### Requirement: Current Lambda memory is explicit and fully qualified
+The primary Lambda SHALL use 1769 MiB. Deployment SHALL verify exact memory, runtime, architecture, code identity, and SnapStart state. Full qualification SHALL additionally cover the 10,000-resource semantic/load suite, repeated restore, simultaneous environments, eviction, stale handles, cancellation, failure recovery, accepted latency/error/GC, and at least 20% process-memory headroom. Bounded promotion smoke MUST NOT be represented as that full qualification.
 
-#### Scenario: Pre-checkpoint handle passes one smoke test only
-- **WHEN** a snapshotted native handle succeeds once but lacks repeated restore, eviction, lock, and load evidence
-- **THEN** it SHALL not qualify the pre-checkpoint strategy
+#### Scenario: Ordinary smoke passes but headroom evidence is absent
+- **WHEN** the candidate passes health, bootstrap, allow, deny, and mutation-denial probes without current load/process-memory evidence
+- **THEN** it MAY remain deployed under the ordinary delivery policy but the full Datalevin qualification task SHALL remain open
 
-#### Scenario: Post-restore seed exceeds hook limit
-- **WHEN** deterministic database creation and seed do not reliably finish inside the restore-hook limit
-- **THEN** the post-restore strategy SHALL fail and MUST NOT be masked by returning readiness early
+### Requirement: EC2 service receives independent qualification
+The shared-EC2 service SHALL qualify its exact host/service/runtime/native/data-path identities, restart and recovery behavior, read-only boundary, snapshot ownership/release, concurrency, latency, errors, process memory, disk capacity, alarms, and rollback coordinates. Lambda SnapStart or Lambda memory evidence MUST NOT satisfy this gate.
 
-### Requirement: Public runtime is immutable and bounded
-After readiness, the service SHALL expose only shared read routes and SHALL prevent schema, relation, fixture, cache-lifecycle, or raw Datalevin writes. Each invocation SHALL use one admitted request execution scope with deadlines, cancellation, and deterministic snapshot release.
+#### Scenario: EC2 is advertised from Lambda evidence
+- **WHEN** the only evidence references a Lambda version, Function URL, `/tmp`, or SnapStart
+- **THEN** the EC2 execution SHALL remain unqualified regardless of logical fixture equality
 
-#### Scenario: Public caller sends legacy seed route
-- **WHEN** a caller attempts to reseed the in-memory database
-- **THEN** the route SHALL be rejected before any transaction and the current fixture/basis SHALL remain unchanged
+### Requirement: Public runtime and telemetry are bounded
+After readiness, both executions SHALL expose only the shared read routes and prevent schema, relation, fixture, cache-lifecycle, or raw Datalevin writes. Bounded application telemetry SHALL record safe operation outcomes and exact-once cleanup without sensitive or high-cardinality data. Lambda REPORT/EMF and EC2 CloudWatch/process/service signals SHALL provide the surrounding memory, failure, and lifecycle observations.
 
-### Requirement: Managed Lambda configuration
-The profile SHALL use a supported managed Java runtime, published function versions, an alias, qualified SnapStart, and no EFS or durable database attachment. The production function SHALL use exactly 1024 MB and no reserved-concurrency cap.
-
-#### Scenario: Infrastructure requests an incompatible feature
-- **WHEN** a plan configures more than 1024 MB or reserved concurrency for the production function
-- **THEN** validation SHALL fail before deployment
-
-### Requirement: Smallest fitting Datalevin memory is measured
-The final memory setting SHALL be 1024 MB and SHALL pass initialization/restore, the full 10,000-resource semantic and load suite, native/direct/heap observation, agreed latency/error/GC limits, and at least 20% peak-memory headroom. The report SHALL distinguish heap, native LMDB mapping, direct buffers, code, and process RSS as far as the runtime exposes them. Failure at 1024 MB SHALL require initialization/data-layout optimization and MUST NOT be resolved by increasing production memory.
-
-#### Scenario: Native memory is omitted from the report
-- **WHEN** heap headroom passes but process RSS/native mapping approaches the Lambda limit
-- **THEN** the candidate SHALL fail the fit gate despite its Java heap result
+#### Scenario: Public caller sends a legacy seed route
+- **WHEN** a caller attempts to reseed either embedded database
+- **THEN** the route SHALL be rejected before any transaction and the selected deployment's fixture/basis SHALL remain unchanged

@@ -2,7 +2,7 @@
 
 `toolchain.json` is the authoritative, closed tool version record. Version-manager files mirror it for developer convenience; they are not independent release inputs. CI must compare installed versions with the record before building.
 
-The JavaScript baseline is Node 24.19.0 LTS and its bundled npm 11.17.0. JVM builds use Eclipse Temurin semver 25.0.4+101.0.LTS (the patched runtime reports 25.0.4.1+1-LTS), Clojure 1.12.5, Clojure CLI 1.12.5.1664, and ClojureScript 1.12.42. Infrastructure is raw CloudFormation validated with AWS CLI 2.34.53, cfn-lint 1.55.1, and check-jsonschema 0.38.0. Formatter, linter, and test runner versions are exact rather than ranges.
+The JavaScript baseline is Node 24.19.0 LTS and its bundled npm 11.17.0. JVM builds use Eclipse Temurin semver 25.0.4+101.0.LTS (the patched runtime reports 25.0.4.1+1-LTS), Clojure 1.12.5, Clojure CLI 1.12.5.1664, and ClojureScript 1.12.145. Infrastructure is raw CloudFormation validated with AWS CLI 2.34.53, cfn-lint 1.55.1, and check-jsonschema 0.38.0. Formatter, linter, and test runner versions are exact rather than ranges.
 
 EACL Core defaults its generated formal JVM runtime to Java 26, which is too
 new for the pinned Java 25 Lambda runtime. Demo preparation therefore sets

@@ -1,5 +1,9 @@
 # GitHub settings audit — 2026-08-27
 
+> Superseded for branch protection by
+> `github-settings-audit-2026-08-29.md`. The environment and OIDC observations
+> below remain historical evidence from this audit date.
+
 This is a redacted audit of the authenticated settings for
 `theronic/eacl-demo`. The changes and the persisted state were inspected through
 the user's connected Chrome session. No secret value, authentication token,

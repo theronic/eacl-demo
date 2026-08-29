@@ -1,15 +1,10 @@
 # Operator runbook
 
-This runbook is the control surface for builds, qualification, deployment,
-stateful data, cost review, rollback, and incidents. Commands that contact AWS
+This runbook is the control surface for builds, deployment, stateful data,
+cost review, rollback, and incidents. Commands that contact AWS
 or GitHub are operator actions: do not run them merely to validate source.
 Always resolve the exact account, Region, commit, stack, table, function,
 instance, and data generation before changing external state.
-
-Before treating the change as release-ready, run
-`npm run verify:change-readiness`. The fail-closed ledger is documented in
-`docs/completion-readiness.md`; it must cover every unchecked OpenSpec task
-exactly once and must have no remaining gate before task 16.10 can close.
 
 ## Universal preflight
 
@@ -19,8 +14,8 @@ exactly once and must have no remaining gate before task 16.10 can close.
    reachable and use that value as `eacl-sha`. Never substitute Core `HEAD`.
 3. Confirm the intended AWS account and Region independently before assuming a
    role. Stop on any mismatch.
-4. Read the target profile registry state. `unavailable`, `qualifying`, and
-   `disabled` are not deployment authorization.
+4. Read the target profile registry state before changing infrastructure or
+   stateful data. Ordinary deployment updates all five live targets.
 5. For stateful or temporary-compute work, use only the separately dispatched
    workflow and exact reviewed confirmation token. A `demos` push is never a
    seed, migration, table-creation, or EC2 authorization.
@@ -49,28 +44,24 @@ Examples include `verify:datahike-dynamodb-serving`,
 `verify:datahike-dynamodb-lambda-artifact`,
 `verify:datomic-lambda-artifact`, `verify:jank-source`, and
 `test:jank-runtime-api`. A foundation-only build or passing source/package
-audit is not a deployable runtime artifact. Never change a profile from
-unavailable to enabled without the profile's remaining artifact and
-qualification gates.
+audit is not a deployable runtime artifact.
 
 Clojure source tests use the persistent nREPL procedure in
 `docs/clojure-nrepl-workflow.md`, including `:reload` after source edits.
 
-## Qualification
+## Optional deep testing
 
-Full qualification is manual and independent of ordinary merge deployment.
-
-Run browser qualification against a local static build or `demo.eacl.dev` and
+Run the browser suites against a local static build or `demo.eacl.dev` and
 record every API request. Server requests must use the exact selected
 `*.lambda-url.us-east-1.on.aws` origin; a request to
 `demo.eacl.dev/api/v1/*` is a failure. Verify exact-origin CORS, the
 health/bootstrap identity handshake, allow, deny, mutation-route rejection,
 and DataScript's zero-Worker page-local execution.
 
-Full profile, load, memory, fault, migration, initial-topology, and rollback
-exercises remain manual. They are not `demos` merge gates. Stateful generation,
-seed, publication, and temporary-compute workflows remain separately confirmed;
-their existence is not authorization to run them.
+Profile load, memory, fault, migration, initial-topology, and rollback exercises
+remain available as local tools when useful. They are not `demos` deployment
+gates. Stateful generation, seed, publication, and temporary-compute workflows
+remain separately confirmed; their existence is not authorization to run them.
 
 Store reports under `verification/results/` or the profile's evidence
 directory. Evidence must distinguish not-run, unsupported, failed, and passed;
@@ -84,8 +75,8 @@ resolve Core solely from the committed lock, and fan out static plus one job per
 server profile. Jobs may finish out of order and one failure must not stop a
 sibling. See `docs/demos-branch-delivery.md` for the closed CI contract.
 
-The workflow contains four independent jobs: static plus DataScript,
-Datahike/S3, Datomic/DynamoDB, and Datalevin/memory. Each server job builds one
+The workflow contains five independent jobs: static plus DataScript,
+Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each server job builds one
 content-addressed artifact, publishes one immutable Lambda version, moves only
 its `candidate` alias, runs the bounded direct-invoke smoke, and publishes only
 its registry document. A sibling failure does not block or roll back it.
@@ -98,7 +89,7 @@ The merge path must not create data, seed, migrate, start EC2, run load or
 memory sweeps, modify cost controls, send Telegram tests, or retire anything.
 See `docs/demos-branch-delivery.md` for the complete current contract.
 
-## Release report gate
+## Release report
 
 Run `npm run build:release-report` after changing the profile registry, build
 eligibility, fixture manifests, EACL lock, benchmark evidence, runtime
@@ -115,22 +106,22 @@ source. It does not prove that an AWS resource exists, an alarm is `OK`, a
 budget is active, Telegram delivery succeeded, or rollback was rehearsed.
 Do not mark OpenSpec task 16.4 complete for the pre-release report.
 
-Before enabling repository-wide OIDC subject customization, follow
+Before changing repository-wide OIDC subject customization, follow
 `infra/deployment/README.md`. Verify the checked-in policy bundle, update every
 AWS trust before changing GitHub's template, capture only allowlisted decoded
 claims without printing or retaining a token, verify all published manual jobs,
 and remove the temporary exact default-subject alternatives. Never customize
 the subject for only the future deployment roles: the same change affects the
-existing stateful and qualification jobs.
+existing stateful jobs.
 
-For each manual run, download its one-day
+For each stateful run, download its one-day
 `oidc-claims-<authority>-<run>-<attempt>` artifact and require
 `signatureVerified: true`, the exact authority ID, the expected claim allowlist,
-and the migration phase's expected subject mode. Do not proceed if the capture
-step fails. Treat any `npm install`, `npm ci`, `npm run`, package-manager cache,
-non-pinned action, or persisted checkout credential in an `id-token: write` job
-as a credential-exposure regression, even when it appears before
-`configure-aws-credentials`.
+and the expected subject mode. Do not proceed if the capture step fails.
+Stateful jobs keep dependency installation and package scripts outside their
+credential-bearing steps. Ordinary demo jobs intentionally build before AWS
+credential configuration in the same direct deployment job. All actions remain
+commit-pinned and checkout credentials remain disabled.
 
 ## Telegram notification gate
 

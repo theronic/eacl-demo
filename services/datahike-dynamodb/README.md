@@ -21,9 +21,10 @@ loader behavior, packaged Datahike runtime, and request-snapshot boundary
 without opening a DynamoDB connection. These local checks are not production
 qualification and do not make the profile deployment-eligible.
 
-Konserve's backing `-create-store` hook is a no-op because
-`connect-default-store` invokes it while opening an existing in-place store;
-locking is enabled as required by Konserve 0.9.378 and is implemented by the
-reader's no-op read lock. This does not expose database creation: the public
-Konserve `store/-create-store` multimethod is absent, the Datahike writer's
-create/delete methods deny, and the SDK membrane/IAM surface remains read-only.
+Konserve 0.9.391 checks the backing store's `-store-exists?` exactly once before
+opening it. If the table is absent, the backing `-create-store` hook throws the
+typed `:eacl-demo/missing-dynamodb-store` failure instead of creating anything.
+Locking is enabled as required by Konserve and is implemented by the reader's
+no-op read lock. The public Konserve `store/-create-store` multimethod remains
+absent, the Datahike writer's create/delete methods deny, and the SDK
+membrane/IAM surface remains read-only.

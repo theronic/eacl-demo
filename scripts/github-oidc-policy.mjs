@@ -14,8 +14,7 @@ const EXACT_CONDITION_KEYS = [
   "token.actions.githubusercontent.com:sub",
   "token.actions.githubusercontent.com:workflow"
 ].sort();
-const ACTIVE_DEPLOYMENT_ACTIVATION =
-  "after-target-is-deployment-eligible";
+const ACTIVE_DEPLOYMENT_ACTIVATION = "every-demos-push";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -82,7 +81,7 @@ export function validateManifest(manifest) {
     if (authority.authorityClass === "ordinary-deployment") {
       assert(authority.workflowFile === ".github/workflows/deploy-demos.yml", `ordinary authority uses another workflow: ${authority.id}`);
       assert(authority.eventName === "push", `ordinary authority is not push-only: ${authority.id}`);
-      assert(authority.activation === ACTIVE_DEPLOYMENT_ACTIVATION, `ordinary authority is active too early: ${authority.id}`);
+      assert(authority.activation === ACTIVE_DEPLOYMENT_ACTIVATION, `ordinary authority is not active on every demos push: ${authority.id}`);
       assert(!/(?:STATEFUL|SEED|MAINTENANCE)/u.test(`${authority.roleVariable}:${authority.permissionScope}`), `ordinary authority crosses stateful boundary: ${authority.id}`);
     } else {
       assert(authority.activation === "manual-only-after-workflow-publication", `nonordinary authority is not manual-only: ${authority.id}`);

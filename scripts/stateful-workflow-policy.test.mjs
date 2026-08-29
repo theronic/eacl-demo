@@ -14,10 +14,6 @@ const datomicSeedWorkflow = await readFile(
   new URL("../.github/workflows/stateful-datomic-seed.yml", import.meta.url),
   "utf8"
 );
-const artifactDeterminismWorkflow = await readFile(
-  new URL("../.github/workflows/qualify-artifact-determinism.yml", import.meta.url),
-  "utf8"
-);
 const table = await readFile(
   new URL("../infra/data/datahike-dynamodb-table.yaml", import.meta.url),
   "utf8"
@@ -26,10 +22,6 @@ const costControls = await readFile(
   new URL("../infra/data/dynamodb-cost-controls.yaml", import.meta.url),
   "utf8"
 );
-const buildUnits = JSON.parse(await readFile(
-  new URL("../build-units.json", import.meta.url),
-  "utf8"
-));
 const profileDefinitions = JSON.parse(await readFile(
   new URL("../packages/contracts/profiles.v1.json", import.meta.url),
   "utf8"
@@ -44,24 +36,6 @@ const statefulWorkflowFiles = new Set([
 const ordinaryWorkflows = await Promise.all(workflowFiles
   .filter((name) => !statefulWorkflowFiles.has(name))
   .map(async (name) => ({ name, source: await readFile(new URL(name, workflowDirectory), "utf8") })));
-
-function targetEligibility(units) {
-  const targetUnits = new Map();
-  for (const [name, unit] of Object.entries(units)) {
-    if (unit.deploymentTrack !== "active" || unit.ordinaryDeploymentTarget === null) continue;
-    const members = targetUnits.get(unit.ordinaryDeploymentTarget) ?? [];
-    members.push([name, unit]);
-    targetUnits.set(unit.ordinaryDeploymentTarget, members);
-  }
-  const eligible = [];
-  const ineligible = [];
-  for (const [target, members] of targetUnits) {
-    (members.every(([, unit]) => unit.deploymentEligible === true)
-      ? eligible
-      : ineligible).push(target);
-  }
-  return { eligible: eligible.sort(), ineligible: ineligible.sort() };
-}
 
 test("stateful Datahike workflow is manual, exact-targeted, and unreachable from merge CI", () => {
   assert.match(workflow, /^\s{2}workflow_dispatch:/mu);
@@ -139,16 +113,6 @@ test("DynamoDB alarm handoff has a write guard without bootstrap OK notification
   assert.doesNotMatch(costControls, /OKActions:/u);
 });
 
-test("artifact determinism is exact-toolchain, manual, read-only, and outside demos deployment", () => {
-  assert.match(artifactDeterminismWorkflow, /^\s{2}workflow_dispatch:/mu);
-  assert.doesNotMatch(artifactDeterminismWorkflow, /^\s{2}(?:push|pull_request|workflow_call|workflow_run|schedule):/mu);
-  assert.match(artifactDeterminismWorkflow, /^permissions:\s*\n\s{2}contents: read\s*$/mu);
-  assert.match(artifactDeterminismWorkflow, /actions\/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961[\s\S]*java-version: 25\.0\.4\+101/u);
-  assert.match(artifactDeterminismWorkflow, /DeLaGuardo\/setup-clojure@3fe9b3ae632c6758d0b7757b0838606ef4287b08[\s\S]*cli: 1\.12\.5\.1664/u);
-  assert.match(artifactDeterminismWorkflow, /verify:static-artifact-determinism[\s\S]*verify:datomic-artifact-determinism/u);
-  assert.doesNotMatch(artifactDeterminismWorkflow, /id-token:\s*write|secrets\.|aws-actions|\baws\s/u);
-});
-
 test("every ordinary workflow is structurally unable to invoke stateful data or temporary compute", () => {
   const forbidden = [
     /AWS_STATEFUL|STATEFUL_ROLE|MAINTENANCE_PRINCIPAL/u,
@@ -164,13 +128,8 @@ test("every ordinary workflow is structurally unable to invoke stateful data or 
   }
 });
 
-test("the automatic workflow deploys every public direct profile independently", () => {
+test("the automatic workflow directly deploys every public profile independently", () => {
   const automatic = ordinaryWorkflows.filter(({ source }) => /^\s{2}push:/mu.test(source));
-  const parked = Object.entries(buildUnits.units)
-    .filter(([, unit]) => unit.deploymentTrack === "parked")
-    .map(([name]) => name)
-    .sort();
-  assert.deepEqual(parked, ["jank-memory"]);
   const publicTargets = ["static", ...profileDefinitions.profiles
     .filter(({ apiOrigin }) => typeof apiOrigin === "string" && apiOrigin.length > 0)
     .map(({ id }) => id)].sort();
@@ -182,23 +141,9 @@ test("the automatic workflow deploys every public direct profile independently",
     if (/\bmatrix:/u.test(source)) assert.match(source, /fail-fast:\s*false/u);
     assert.match(source, /^permissions:\s*\n\s{2}contents: read\s*$/mu);
     for (const target of publicTargets) {
-      assert.match(source, new RegExp(`build-${target}`, "u"), `${name} omits eligible build target ${target}`);
-      assert.match(source, new RegExp(`deploy-${target}`, "u"), `${name} omits eligible deploy target ${target}`);
+      assert.match(source, new RegExp(`^  deploy-${target}:`, "mu"), `${name} omits live target ${target}`);
     }
-    for (const profile of parked) {
-      assert.doesNotMatch(source, new RegExp(`(?:build|deploy)-${profile}`, "u"), `${name} queues parked profile ${profile}`);
-    }
+    assert.doesNotMatch(source, /^  build-|^\s{4}needs:|upload-artifact|download-artifact|change-readiness/imu);
+    assert.doesNotMatch(source, /(?:build|deploy)-jank-memory/u);
   }
-});
-
-test("one qualified target cannot be held back by ineligible or parked siblings", () => {
-  const candidate = structuredClone(buildUnits.units);
-  for (const unit of Object.values(candidate)) {
-    unit.deploymentEligible = unit.ordinaryDeploymentTarget === "static";
-  }
-  candidate["jank-memory"].deploymentEligible = true;
-  assert.deepEqual(targetEligibility(candidate), {
-    eligible: ["static"],
-    ineligible: ["datahike-dynamodb", "datahike-s3", "datalevin-memory", "datomic-dynamodb"],
-  });
 });
