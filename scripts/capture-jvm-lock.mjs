@@ -4,7 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
-const aliases = ["test", "nrepl", "datascript-runtime", "datahike-s3", "datahike-s3-upstream-audit", "datahike-dynamodb", "datahike-dynamodb-upstream-audit", "datomic-dynamodb", "datalevin-memory"];
+const aliases = ["test", "nrepl", "datascript-runtime", "datahike-s3", "datahike-s3-upstream-audit", "datahike-dynamodb", "datahike-dynamodb-upstream-audit", "datomic-dynamodb", "datomic-http-server", "datalevin-memory"];
 const byPath = new Map();
 for (const alias of aliases) {
   const classpath = execFileSync("clojure", [`-A:${alias}`, "-Spath"], {

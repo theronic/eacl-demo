@@ -303,7 +303,6 @@ Resources:
             echo "EACL_DEMO_SHA=${DemoSha}"
             echo "EACL_DEPLOYMENT_ID=${DeploymentId}"
             echo "EACL_HTTP_PORT=8080"
-            echo "EACL_HTTP_WORKERS=4"
             echo "EACL_MAXIMUM_CONCURRENCY=1"
             echo "EACL_RUNTIME_EXECUTION=ec2"
             echo "EACL_RUNTIME_MEMORY_MIB=1024"
@@ -377,6 +376,7 @@ Resources:
           - !Sub "sed -i 's|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${EaclSha}|' /etc/eacl-demo-datomic.env"
           - !Sub "sed -i 's|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${DemoSha}|' /etc/eacl-demo-datomic.env"
           - !Sub "sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
+          - "sed -i '/^EACL_HTTP_WORKERS=/d' /etc/eacl-demo-datomic.env"
           - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|' /etc/eacl-demo-datomic.env"
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-

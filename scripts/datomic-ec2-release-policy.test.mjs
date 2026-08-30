@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [source, deploySource] = await Promise.all([
+const [source, deploySource, httpServerSource, depsSource] = await Promise.all([
   readFile(new URL("../infra/profiles/datomic-dynamodb-ec2.yaml", import.meta.url), "utf8"),
-  readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8")
+  readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8"),
+  readFile(new URL("../services/datomic-dynamodb/src/eacl_demo/datomic_dynamodb/http_server.clj", import.meta.url), "utf8"),
+  readFile(new URL("../deps.edn", import.meta.url), "utf8")
 ]);
 
 test("the shared persistent host may read only its two immutable profile prefixes", () => {
@@ -39,11 +41,35 @@ test("the shared t3.micro provisions persistent low-swappiness headroom before s
   assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
 });
 
-test("the one-vCPU Datomic host admits one engine request and retains spare HTTP workers", () => {
-  assert.match(source, /echo "EACL_HTTP_WORKERS=4"/u);
+test("the one-vCPU Datomic host uses http-kit request tasks around one engine permit", () => {
   assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=1/gu) ?? []).length, 3);
   assert.doesNotMatch(source, /EACL_MAXIMUM_CONCURRENCY=4/u);
+  assert.doesNotMatch(source, /echo "EACL_HTTP_WORKERS=4"/u);
+  assert.match(source, /sed -i '\/\^EACL_HTTP_WORKERS=\/d' \/etc\/eacl-demo-datomic\.env/u);
   assert.match(deploySource, /EACL_MAXIMUM_CONCURRENCY=1/u);
   assert.doesNotMatch(deploySource, /EACL_MAXIMUM_CONCURRENCY=4/u);
+  assert.match(deploySource, /\/\^EACL_HTTP_WORKERS=\/d/u);
   assert.match(deploySource, /limit\?\.name === "admissionConcurrency"[\s\S]*admissionConcurrency !== 1/u);
+  assert.match(depsSource, /http-kit\/http-kit \{:mvn\/version "2\.8\.1"\}/u);
+  assert.match(httpServerSource, /\[org\.httpkit\.server :as http-kit\]/u);
+  assert.match(httpServerSource, /:max-body \(inc maximum-request-body-bytes\)/u);
+  assert.match(httpServerSource, /:server-header nil/u);
+  assert.doesNotMatch(httpServerSource, /com\.sun\.net\.httpserver|io\.netty/u);
+});
+
+test("deployment proves ordinary Datomic engine contention queues instead of overloading", () => {
+  assert.match(deploySource,
+    /await smokeDatomicAdmissionQueueUrl\("https:\/\/datomic\.demo\.eacl\.dev"\)/u);
+  assert.match(deploySource,
+    /async function smokeDatomicAdmissionQueueUrl[\s\S]*requests\.map\(\(request, index\)[\s\S]*status !== 200 \|\| errorCode !== null \|\| data !== true/u);
+  for (const operation of [
+    "check-permission", "get-object", "list-relationships",
+    "reverse-relationships", "list-subjects", "lookup-resources",
+    "lookup-subjects", "count-resources", "count-objects", "get-schema",
+    "get-cache-info", "bootstrap"
+  ]) {
+    assert.match(deploySource, new RegExp(`operation: "${operation}"`, "u"));
+  }
+  assert.match(deploySource,
+    /queued \$\{results\.length\} concurrent mixed engine requests without overload/u);
 });

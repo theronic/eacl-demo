@@ -141,10 +141,127 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
                           (boundary/invoke! profile (request "minimize"))))
     (is (zero? (boundary/active-count profile)))
-    ;; A released semaphore permits another call instead of reporting overload.
+    ;; A released semaphore permits another call instead of leaving it queued.
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"release failed"
                           (boundary/invoke! profile (request "minimize"))))
     (is (= 2 @captures))))
+
+(deftest admission-contention-waits-and-then-runs-test
+  (let [entered (promise)
+        continue (promise)
+        captures (atom 0)
+        releases (atom 0)
+        calls (atom [])
+        call-index (atom 0)
+        waiting-handlers
+        (assoc handlers "check-permission"
+               (fn [_]
+                 (let [index (swap! call-index inc)]
+                   (swap! calls conj index)
+                   (when (= 1 index)
+                     (deliver entered true)
+                     @continue))
+                 {:allowed true}))
+        profile
+        (boundary/create-boundary
+         {:descriptor descriptor
+          :maximum-concurrency 1
+          :capture-snapshot
+          (fn [_]
+            (swap! captures inc)
+            {:value :fixed-snapshot
+             :basis (:basis descriptor)
+             :release! #(swap! releases inc)})
+          :handlers waiting-handlers})
+        deadline (+ (System/currentTimeMillis) 5000)
+        marked-request
+        (fn [request-id]
+          (assoc (request "minimize")
+                 :request-id request-id :deadline-ms deadline))
+        first-call
+        (future (boundary/invoke! profile
+                                  (marked-request "request-first")))]
+    @entered
+    (let [second-call
+          (future (boundary/invoke! profile
+                                    (marked-request "request-second")))]
+      (is (= ::waiting (deref second-call 100 ::waiting))
+          "contention must queue instead of returning overloaded")
+      (is (= 1 (boundary/active-count profile)))
+      (is (= 1 @captures)
+          "a queued request must not capture a Datomic snapshot")
+      (deliver continue true)
+      (is (contains? @first-call :data))
+      (let [second-response (deref second-call 2000 ::timed-out)]
+        (is (not= ::timed-out second-response))
+        (is (contains? second-response :data))
+        (is (not= "overloaded" (get-in second-response [:error :code])))))
+    (is (= [1 2] @calls))
+    (is (= 2 @captures))
+    (is (= 2 @releases))
+    (is (zero? (boundary/active-count profile)))))
+
+(deftest admission-wait-honors-deadline-and-cancellation-test
+  (let [entered (promise)
+        continue (promise)
+        captures (atom 0)
+        waiting-handlers
+        (assoc handlers "check-permission"
+               (fn [_]
+                 (deliver entered true)
+                 @continue
+                 {:allowed true}))
+        profile
+        (boundary/create-boundary
+         {:descriptor descriptor
+          :maximum-concurrency 1
+          :capture-snapshot
+          (fn [_]
+            (swap! captures inc)
+            {:value :fixed-snapshot
+             :basis (:basis descriptor)
+             :release! (fn [])})
+          :handlers waiting-handlers})
+        first-call
+        (future
+          (boundary/invoke!
+           profile
+           (assoc (request "minimize")
+                  :request-id "request-holder"
+                  :deadline-ms (+ (System/currentTimeMillis) 5000))))]
+    @entered
+    (try
+      (let [deadline-call
+            (future
+              (boundary/invoke!
+               profile
+               (assoc (request "minimize")
+                      :request-id "request-deadline"
+                      :deadline-ms (+ (System/currentTimeMillis) 100))))
+            deadline-response (deref deadline-call 2000 ::timed-out)]
+        (is (not= ::timed-out deadline-response))
+        (is (= "deadline-exceeded"
+               (get-in deadline-response [:error :code])))
+        (is (= 1 @captures)))
+      (let [cancelled? (atom false)
+            cancelled-call
+            (future
+              (boundary/invoke!
+               profile
+               (assoc (request "minimize")
+                      :request-id "request-cancelled"
+                      :deadline-ms (+ (System/currentTimeMillis) 5000)
+                      :cancelled? #(deref cancelled?))))]
+        (Thread/sleep 50)
+        (reset! cancelled? true)
+        (let [cancelled-response (deref cancelled-call 2000 ::timed-out)]
+          (is (not= ::timed-out cancelled-response))
+          (is (= "cancelled" (get-in cancelled-response [:error :code])))
+          (is (= 1 @captures))))
+      (finally
+        (deliver continue true)
+        (deref first-call 2000 ::timed-out)))
+    (is (zero? (boundary/active-count profile)))))
 
 (deftest ec2-historical-date-selects-a-request-basis-test
   (let [captured-input (atom nil)

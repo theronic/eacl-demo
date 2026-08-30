@@ -170,8 +170,7 @@
            (reset! seen request)
            {:statusCode 200
             :headers {"content-type" "application/json; charset=utf-8"}
-            :body "{}"})
-         1)
+            :body "{}"}))
         client (HttpClient/newHttpClient)
         origin (str "http://127.0.0.1:" (:port running))]
     (try
@@ -196,3 +195,80 @@
         (is (= 204 (.statusCode response))))
       (finally
         (http-server/stop-server! running)))))
+
+(deftest ec2-http-contention-queues-all-requests-before-snapshot-capture-test
+  (let [entered (promise)
+        continue (promise)
+        captures (atom 0)
+        releases (atom 0)
+        calls (atom 0)
+        ec2-environment
+        (-> environment
+            (dissoc "AWS_LAMBDA_FUNCTION_MEMORY_SIZE")
+            (assoc "EACL_RUNTIME_EXECUTION" "ec2"
+                   "EACL_RUNTIME_MEMORY_MIB" "1024"
+                   "EACL_MAXIMUM_CONCURRENCY" "1"))
+        runtime
+        (handler/initialize
+         ec2-environment
+         (fn [_]
+           {:basis basis
+            :capture-snapshot
+            (fn [& _]
+              (swap! captures inc)
+              {:value :fixed-snapshot
+               :basis basis
+               :release! #(swap! releases inc)})}))
+        runtime
+        (assoc-in
+         runtime [:boundary :handlers "check-permission"]
+         (fn [_]
+           (let [index (swap! calls inc)]
+             (when (= 1 index)
+               (deliver entered true)
+               @continue)
+             {:allowed true})))
+        running
+        (http-server/start-server!
+         0 #(handler/handle-event runtime %1 %2))
+        client (HttpClient/newHttpClient)
+        origin (str "http://127.0.0.1:" (:port running))
+        body (json/write-str
+              {:subjectType "user" :subjectId "user-1"
+               :resourceType "account" :resourceId "account-0"
+               :permission "admin" :consistency "minimize"})
+        create-request
+        (fn [index]
+          (-> (HttpRequest/newBuilder
+               (URI/create (str origin "/check-permission")))
+              (.header "content-type" "application/json")
+              (.header "x-eacl-request-id" (str "http-queue-" index))
+              (.POST (HttpRequest$BodyPublishers/ofString body))
+              (.build)))
+        send #(-> client
+                  (.sendAsync (create-request %)
+                              (HttpResponse$BodyHandlers/ofString)))]
+    (try
+      (let [first-response (send 1)]
+        (is (= true (deref entered 2000 ::timed-out)))
+        (let [waiting-responses (mapv send (range 2 9))]
+          (Thread/sleep 100)
+          (is (every? #(not (.isDone %)) waiting-responses)
+              "all contending HTTP requests must still be queued")
+          (is (= 1 @captures)
+              "queued HTTP requests must not capture Datomic snapshots")
+          (deliver continue true)
+          (let [responses (mapv #(.join %) (into [first-response]
+                                                 waiting-responses))
+                envelopes (mapv #(json/read-str (.body %) :key-fn keyword)
+                                responses)]
+            (is (every? #(= 200 (.statusCode %)) responses))
+            (is (every? #(true? (get-in % [:data :allowed])) envelopes))
+            (is (every? #(not= "overloaded" (get-in % [:error :code]))
+                        envelopes)))))
+      (finally
+        (deliver continue true)
+        (http-server/stop-server! running)))
+    (is (= 8 @calls))
+    (is (= 8 @captures))
+    (is (= 8 @releases))))

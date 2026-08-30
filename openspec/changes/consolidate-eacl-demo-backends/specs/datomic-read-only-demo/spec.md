@@ -89,9 +89,15 @@ The Lambda SHALL publish a 1769 MiB primary and MAY retain a 4096 MiB comparison
 ### Requirement: EC2 historical-exact service is a separate topology
 The shared-EC2 service SHALL publish its own execution, service, data, lifecycle, consistency, and rollback identities. It MAY expose history-backed exact selection unavailable from the fixed-basis Lambda, but MUST NOT imply that its live-head/transactor semantics or evidence apply to the Lambda profile.
 
+The one-vCPU shared host SHALL retain one qualified Datomic engine request at a time while allowing its HTTP workers to wait. Validated requests contending for that permit SHALL queue fairly until admission, cancellation, interruption, or deadline. Queueing SHALL occur before request-snapshot capture; engine contention alone MUST NOT return `overloaded`.
+
 #### Scenario: User switches from Lambda to EC2
 - **WHEN** the selected platform changes while backend and storage remain Datomic/DynamoDB
 - **THEN** the shell SHALL clear Lambda-owned basis/cursors, bootstrap the EC2 descriptor, and display the EC2 consistency semantics without reusing Lambda qualification
+
+#### Scenario: Multiple Explorer panels query Datomic EC2 together
+- **WHEN** concurrent valid requests exceed the single qualified Datomic engine slot
+- **THEN** one request SHALL execute while the others wait without owning snapshots, and each waiting request SHALL execute in turn unless its own cancellation or deadline ends the wait
 
 ### Requirement: SnapStart is required and qualified
 The production function SHALL enable SnapStart on a published Java version after forcing the read-only reader and immutable `d/db` value during initialization. Publication SHALL wait for AWS `OptimizationStatus=On`, and repeated restore tests SHALL prove reader validity, fixed-basis identity, cache isolation, concurrency, and error behavior before alias promotion.

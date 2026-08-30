@@ -1,122 +1,110 @@
 (ns eacl-demo.datomic-dynamodb.http-server
-  "Bounded EC2 HTTP adapter for the fixed Datomic/DynamoDB reader."
+  "Bounded http-kit EC2 adapter for the fixed Datomic/DynamoDB reader."
   (:gen-class)
   (:require [clojure.string :as str]
             [eacl-demo.contracts.function-url :as function-url]
-            [eacl-demo.datomic-dynamodb.lambda-handler :as handler])
-  (:import [com.sun.net.httpserver HttpExchange HttpHandler HttpServer]
-           [java.net InetSocketAddress]
+            [eacl-demo.datomic-dynamodb.lambda-handler :as handler]
+            [org.httpkit.server :as http-kit])
+  (:import [java.io InputStream]
            [java.nio.charset StandardCharsets]
-           [java.util UUID]
-           [java.util.concurrent Executors]))
+           [java.util UUID]))
 
 (def ^:private maximum-request-body-bytes 65536)
+(def ^:private maximum-header-line-bytes 8192)
 (def ^:private default-port 8080)
-(def ^:private default-workers 4)
 (def ^:private cors-origin "https://demo.eacl.dev")
 
-(declare exchange-event handle-exchange! parse-positive-int write-response!)
+(declare handle-request parse-positive-int request-event ring-response)
 
 (defn start-server!
-  "Start the bounded HTTP adapter. The injectable arity exists for contract
-  tests; production always invokes the shared Datomic runtime boundary."
+  "Start the bounded http-kit adapter. The injectable arity exists for
+  contract tests; production invokes the shared Datomic runtime boundary."
   ([port]
-   (start-server! port handler/invoke-event! default-workers))
-  ([port invoke! workers]
-   (when-not (and (int? port) (<= 0 port 65535)
-                  (fn? invoke!) (pos-int? workers))
+   (start-server! port handler/invoke-event!))
+  ([port invoke!]
+   (when-not (and (int? port) (<= 0 port 65535) (fn? invoke!))
      (throw (ex-info "Invalid Datomic HTTP server configuration."
                      {:type :eacl-demo/invalid-http-server})))
-   (let [server (HttpServer/create (InetSocketAddress. port) 0)
-         executor (Executors/newFixedThreadPool workers)]
-     (.createContext
-      server "/"
-      (reify HttpHandler
-        (handle [_ exchange]
-          (handle-exchange! invoke! exchange))))
-     (.setExecutor server executor)
-     (.start server)
+   (let [server
+         (http-kit/run-server
+          #(handle-request invoke! %)
+          {:ip "0.0.0.0"
+           :port port
+           :max-body (inc maximum-request-body-bytes)
+           :max-line maximum-header-line-bytes
+           :server-header nil
+           :legacy-return-value? false})]
      {:server server
-      :executor executor
-      :port (.getPort (.getAddress server))})))
+      :port (http-kit/server-port server)})))
 
 (defn stop-server!
-  [{:keys [^HttpServer server executor]}]
-  (when server (.stop server 1))
-  (when executor (.shutdownNow executor))
+  [{:keys [server]}]
+  (when-let [stopped (and server
+                          (http-kit/server-stop! server {:timeout 1000}))]
+    (deref stopped 2000 nil))
   nil)
 
-(defn- handle-exchange!
-  [invoke! ^HttpExchange exchange]
-  (try
-    (if (= "OPTIONS" (.getRequestMethod exchange))
-      (write-response! exchange {:statusCode 204 :headers {} :body ""})
-      (write-response! exchange (invoke! (exchange-event exchange) 30000)))
-    (catch Throwable _
-      (write-response!
-       exchange
-       (function-url/internal-error-response
-        (try (exchange-event exchange) (catch Throwable _ nil))
-        "ec2-http-adapter")))
-    (finally
-      (.close exchange))))
+(defn- handle-request
+  [invoke! request]
+  (let [event* (atom nil)]
+    (try
+      (let [event (request-event request)]
+        (reset! event* event)
+        (ring-response
+         (if (= :options (:request-method request))
+           {:statusCode 204 :headers {} :body ""}
+           (invoke! event 30000))))
+      (catch Throwable _
+        (ring-response
+         (function-url/internal-error-response
+          @event* "ec2-http-adapter"))))))
 
-(defn- exchange-event
-  [^HttpExchange exchange]
-  (let [method (.getRequestMethod exchange)
-        body-bytes (when-not (= "GET" method)
-                     (.readNBytes (.getRequestBody exchange)
+(defn- request-event
+  [{:keys [request-method uri query-string headers body]}]
+  (let [method (-> request-method name str/upper-case)
+        body-bytes (when (and (not= :get request-method) body)
+                     (.readNBytes ^InputStream body
                                   (inc maximum-request-body-bytes)))
         body (when body-bytes
-               (String. ^bytes body-bytes StandardCharsets/UTF_8))
-        uri (.getRequestURI exchange)]
+               (String. ^bytes body-bytes StandardCharsets/UTF_8))]
     {:version "2.0"
-     :rawPath (.getRawPath uri)
-     :rawQueryString (or (.getRawQuery uri) "")
+     :rawPath uri
+     :rawQueryString (or query-string "")
      :headers (into {}
-                    (map (fn [[key values]]
-                           [(str/lower-case key) (first values)]))
-                    (.entrySet (.getRequestHeaders exchange)))
+                    (map (fn [[key value]]
+                           [(str/lower-case (name key)) value]))
+                    headers)
      :requestContext
      {:requestId (str (UUID/randomUUID))
       :http {:method method}}
      :isBase64Encoded false
      :body body}))
 
-(defn- write-response!
-  [^HttpExchange exchange {:keys [statusCode headers body]}]
+(defn- ring-response
+  [{:keys [statusCode headers body]}]
   (let [status (if (and (integer? statusCode) (<= 100 statusCode 599))
                  statusCode 500)
         body (if (string? body) body "")
-        bytes (.getBytes ^String body StandardCharsets/UTF_8)
-        response-headers (.getResponseHeaders exchange)]
-    (doseq [[key value] headers]
-      (.set response-headers key value))
-    (.set response-headers "access-control-allow-origin" cors-origin)
-    (.set response-headers "access-control-allow-methods" "GET, POST, OPTIONS")
-    (.set response-headers "access-control-allow-headers"
-          "accept, content-type, x-eacl-request-id")
-    (.set response-headers "vary" "Origin")
-    (if (= 204 status)
-      (.sendResponseHeaders exchange status -1)
-      (do
-        (.sendResponseHeaders exchange status (alength bytes))
-        (with-open [output (.getResponseBody exchange)]
-          (.write output bytes))))))
+        headers (merge headers
+                       {"access-control-allow-origin" cors-origin
+                        "access-control-allow-methods"
+                        "GET, POST, OPTIONS"
+                        "access-control-allow-headers"
+                        "accept, content-type, x-eacl-request-id"
+                        "vary" "Origin"})]
+    {:status status :headers headers :body (when-not (= 204 status) body)}))
 
 (defn -main
   [& _arguments]
   (let [environment (System/getenv)
         port (or (parse-positive-int (get environment "EACL_HTTP_PORT"))
                  default-port)
-        workers (or (parse-positive-int (get environment "EACL_HTTP_WORKERS"))
-                    default-workers)
         ;; Fail the process before binding the port when the retained Datomic
         ;; reader cannot be opened. systemd can then retry transient boot-time
         ;; credential/network races instead of serving permanent health 500s
         ;; from a live process whose delayed initialization has failed.
         _ (handler/initialize-runtime!)
-        running (start-server! port handler/invoke-event! workers)]
+        running (start-server! port handler/invoke-event!)]
     (.addShutdownHook
      (Runtime/getRuntime)
      (Thread. #(stop-server! running) "eacl-demo-http-shutdown"))

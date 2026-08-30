@@ -12,7 +12,9 @@ const deps = await readFile(path.join(root, "deps.edn"), "utf8");
 const credentialFreeEnvironment = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => !/^(?:AWS|DATOMIC)(?:_|$)/u.test(name))
 );
-const classpath = execFileSync("clojure", ["-A:datomic-dynamodb", "-Spath"], {
+const classpath = execFileSync("clojure", [
+  "-A:datomic-dynamodb:datomic-http-server", "-Spath"
+], {
   cwd: root,
   env: credentialFreeEnvironment,
   encoding: "utf8",
@@ -61,6 +63,10 @@ for (const coordinate of lock.resolution.selectedHttpClients) {
   assert.equal(classpath.some((entry) => entry.includes(`/software/amazon/awssdk/${artifact}/`)), true, `${artifact} is absent from serving classpath`);
 }
 assert.ok(classpath.some((entry) => entry.endsWith(`/modules/eacl-datomic/src`)), "pinned EACL Datomic adapter is absent");
+const httpKitPath = classpath.find((entry) => /\/http-kit\/http-kit\/2\.8\.1\/http-kit-2\.8\.1\.jar$/u.test(entry));
+assert.ok(httpKitPath, "pinned http-kit server is absent");
+assert.equal(sha256(await readFile(httpKitPath)), lock.httpServer.jarSha256,
+  "http-kit artifact digest mismatch");
 
 const peerPomPath = classpath.find((entry) => /\/peer-[^/]+\.jar$/u.test(entry)).replace(/\.jar$/u, ".pom");
 const peerPom = await readFile(peerPomPath, "utf8");
@@ -68,6 +74,8 @@ assert.match(peerPom, /<name>The Apache Software License, Version 2\.0<\/name>/u
 const dynamodbPomPath = classpath.find((entry) => /\/dynamodb-[^/]+\.jar$/u.test(entry)).replace(/\.jar$/u, ".pom");
 const dynamodbPom = await readFile(dynamodbPomPath, "utf8");
 assert.match(dynamodbPom, /Licensed under the Apache License, Version 2\.0/u);
+const httpKitPom = await readFile(httpKitPath.replace(/\.jar$/u, ".pom"), "utf8");
+assert.match(httpKitPom, /<license>[\s\S]*?<name>Apache License, Version 2\.0<\/name>/u);
 
 console.log("Datomic/DynamoDB dependency provenance and convergence audit passed");
 

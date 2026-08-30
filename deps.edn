@@ -113,6 +113,9 @@
                   software.amazon.awssdk/apache5-client]}
     software.amazon.awssdk/apache-client {:mvn/version "2.54.7"}
     software.amazon.awssdk/url-connection-client {:mvn/version "2.54.7"}}}
+  :datomic-http-server
+  {:extra-deps
+   {http-kit/http-kit {:mvn/version "2.8.1"}}}
   :lambda-jvm
   {:extra-deps
    {com.amazonaws/aws-lambda-java-core {:mvn/version "1.4.0"}

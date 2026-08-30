@@ -10,9 +10,12 @@ const bytes = await readFile(archive);
 const sha256 = createHash("sha256").update(bytes).digest("hex");
 const entries = output("unzip", ["-Z1", archive]).split("\n").filter(Boolean);
 const entrySet = new Set(entries);
-const dependencyTree = output("clojure", ["-A:datomic-dynamodb:lambda-jvm", "-Stree"]);
+const dependencyTree = output("clojure", [
+  "-A:datomic-dynamodb:datomic-http-server:lambda-jvm", "-Stree"
+]);
 
 assert.match(dependencyTree, /com\.datomic\/peer 1\.0\.7705/u);
+assert.match(dependencyTree, /http-kit\/http-kit 2\.8\.1/u);
 assert.doesNotMatch(
   dependencyTree,
   /com\.datomic\/(?:transactor|peer-server|client-cloud)(?:\s|$)/iu,
@@ -28,6 +31,7 @@ for (const required of [
   "eacl_demo/datomic_dynamodb/operations.clj",
   "eacl_demo/datomic_dynamodb/profile.clj",
   "eacl_demo/datomic_dynamodb/reader.clj",
+  "org/httpkit/server/HttpServer.class",
   "schema-wire.v1.json",
   "CurrentCache/__default.class",
   "EaclKernel/__default.class",

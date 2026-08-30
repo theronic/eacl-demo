@@ -86,12 +86,17 @@
   [basis class-dir source-dirs]
   ;; Lambda cold starts must not spend tens of seconds compiling application
   ;; namespaces from source. Compile only this workspace's closed service and
-  ;; transport namespaces; dependency JARs remain untouched.
+  ;; transport namespaces; dependency JARs remain untouched. Clojure AOT emits
+  ;; captured locals from identity-keyed maps, whose default HotSpot identity
+  ;; hashes make otherwise identical clean builds bytewise unstable. The pinned
+  ;; Temurin build VM's constant identity-hash mode gives those maps a stable
+  ;; insertion order; it affects the compiler process only, not deployed code.
   (b/compile-clj
    {:basis basis
     :src-dirs (vec (distinct (conj source-dirs contract-source-dir)))
     :class-dir class-dir
-    :sort :topo}))
+    :sort :topo
+    :java-opts ["-XX:+UnlockExperimentalVMOptions" "-XX:hashCode=2"]}))
 
 (defn datahike-s3-lambda
   [_]
@@ -229,7 +234,8 @@
                       {:exit exit}))))
   (let [basis (b/create-basis
                {:project "deps.edn"
-                :aliases [:datomic-dynamodb :lambda-jvm]})]
+                :aliases [:datomic-dynamodb :datomic-http-server
+                          :lambda-jvm]})]
     (b/delete {:path datomic-class-dir})
     (b/delete {:path datomic-uber-file})
     (generate-build-identity! datomic-class-dir)

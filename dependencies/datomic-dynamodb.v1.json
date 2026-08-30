@@ -42,10 +42,21 @@
       }
     ]
   },
+  "httpServer": {
+    "coordinate": "http-kit/http-kit",
+    "version": "2.8.1",
+    "jarSha256": "05e632f9b08da3cebefd51c334ccab650b3b8bc43068443661472606b804d2f2",
+    "pomSha256": "f549738c4daf851496c475ec8ce7fcdbf3c7f4bdccd5fe770743fb3f75da61dc",
+    "bytes": 207269,
+    "sourceCommit": "7259e69e1645689109d23dd8143830278bb923fb",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/http-kit/http-kit",
+    "execution": "EC2 only; the shared artifact remains the Lambda deployment unit"
+  },
   "resolution": {
     "repository": "Maven Central",
     "credentialsRequired": false,
-    "alias": "datomic-dynamodb",
+    "aliases": ["datomic-dynamodb", "datomic-http-server"],
     "awsSdkV2Versions": ["2.54.7"],
     "excludedHttpClients": [
       "software.amazon.awssdk/netty-nio-client"

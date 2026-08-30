@@ -288,7 +288,7 @@ async function deployDatomicEc2(release) {
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
-    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
     `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
     "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
     "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
@@ -320,6 +320,7 @@ async function deployDatomicEc2(release) {
       { attempts: 30 }
     );
     await smokeDatomicHistoricalUrl("https://datomic.demo.eacl.dev");
+    await smokeDatomicAdmissionQueueUrl("https://datomic.demo.eacl.dev");
     process.stdout.write(`deployed datomic-dynamodb-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
@@ -533,6 +534,91 @@ async function smokeDatomicHistoricalUrl(origin) {
       errorCode: decision.envelope.error?.code ?? null
     })}`);
   }
+}
+
+async function smokeDatomicAdmissionQueueUrl(origin) {
+  const requests = [
+    { operation: "check-permission", input: {
+      subjectType: "user", subjectId: "user-1", resourceType: "account",
+      resourceId: "account-0", permission: "admin", consistency: "minimize"
+    } },
+    { operation: "check-permission", input: {
+      subjectType: "user", subjectId: "user-2", resourceType: "account",
+      resourceId: "account-0", permission: "admin", consistency: "minimize"
+    } },
+    { operation: "get-object", input: {
+      type: "server", id: "account-4-server-15", consistency: "minimize"
+    } },
+    { operation: "list-relationships", input: {
+      resourceType: "server", resourceId: "account-4-server-15",
+      pageSize: 25, consistency: "minimize"
+    } },
+    { operation: "reverse-relationships", input: {
+      subjectType: "team", subjectId: "account-0-team-0", relation: "team",
+      pageSize: 25, consistency: "minimize"
+    } },
+    { operation: "list-subjects", input: { type: "user", pageSize: 100 } },
+    { operation: "lookup-resources", input: {
+      subjectType: "user", subjectId: "user-1", resourceType: "server",
+      permission: "view", pageSize: 25, cache: false,
+      populateCache: false, consistency: "minimize"
+    } },
+    { operation: "lookup-subjects", input: {
+      resourceType: "server", resourceId: "account-4-server-15",
+      subjectType: "user", permission: "view", pageSize: 25, cache: false,
+      populateCache: false, consistency: "minimize"
+    } },
+    { operation: "count-resources", input: {
+      subjectType: "user", subjectId: "user-1", resourceType: "server",
+      permission: "view", ceiling: 1_000_000, cache: false,
+      populateCache: false, consistency: "minimize"
+    } },
+    { operation: "count-objects", input: {
+      kind: "objects", type: "server", ceiling: 1_000_000,
+      consistency: "minimize"
+    } },
+    { operation: "get-schema", input: { consistency: "minimize" } },
+    { operation: "get-cache-info", input: {} },
+    { operation: "bootstrap", method: "GET", input: null }
+  ];
+  const run = async ({ operation, method = "POST", input }, index) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const response = await fetch(new URL(`/${operation}`, origin), {
+        method,
+        headers: {
+          accept: "application/json",
+          origin: "https://demo.eacl.dev",
+          ...(input === null ? {} : { "content-type": "application/json" }),
+          "x-eacl-request-id": `ci-ec2-admission-${operation}-${index}-${demoSha().slice(0, 12)}`
+        },
+        body: input === null ? undefined : JSON.stringify(input),
+        redirect: "manual",
+        signal: controller.signal
+      });
+      const envelope = validateDemoSmokeEnvelope(JSON.parse(await response.text()));
+      return {
+        operation,
+        status: response.status,
+        errorCode: envelope.error?.code ?? null,
+        data: Object.hasOwn(envelope, "data"),
+        elapsedMs: envelope.meta?.elapsedMs ?? null
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+  const results = await Promise.all(
+    requests.map((request, index) => run(request, index + 1))
+  );
+  if (results.some(({ status, errorCode, data }) =>
+    status !== 200 || errorCode !== null || data !== true)) {
+    throw new Error(`datomic-dynamodb EC2 admission queue smoke failed: ${JSON.stringify(results)}`);
+  }
+  process.stdout.write(
+    `datomic-dynamodb EC2 queued ${results.length} concurrent mixed engine requests without overload\n`
+  );
 }
 
 function rollbackAlias(functionName, promoted, prior) {

@@ -11,6 +11,7 @@
     "datahike-dynamodb",
     "datahike-dynamodb-upstream-audit",
     "datomic-dynamodb",
+    "datomic-http-server",
     "datalevin-memory"
   ],
   "artifacts": [
@@ -722,6 +723,14 @@
       ]
     },
     {
+      "path": "repository/http-kit/http-kit/2.8.1/http-kit-2.8.1.jar",
+      "sha256": "05e632f9b08da3cebefd51c334ccab650b3b8bc43068443661472606b804d2f2",
+      "bytes": 207269,
+      "aliases": [
+        "datomic-http-server"
+      ]
+    },
+    {
       "path": "repository/instaparse/instaparse/1.5.0/instaparse-1.5.0.jar",
       "sha256": "c2bcd6f3a74d1a114973e6ac71e3536f6b035f29f769e9d1ec528ffe5e56cc27",
       "bytes": 101614,
@@ -1212,6 +1221,7 @@
         "datalevin-memory",
         "datascript-runtime",
         "datomic-dynamodb",
+        "datomic-http-server",
         "nrepl",
         "test"
       ]
@@ -1300,6 +1310,7 @@
         "datalevin-memory",
         "datascript-runtime",
         "datomic-dynamodb",
+        "datomic-http-server",
         "nrepl",
         "test"
       ]
@@ -1381,6 +1392,7 @@
         "datalevin-memory",
         "datascript-runtime",
         "datomic-dynamodb",
+        "datomic-http-server",
         "nrepl",
         "test"
       ]
