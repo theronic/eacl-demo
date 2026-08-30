@@ -1,7 +1,7 @@
 {
   "schema": "eacl-demo.eacl-core-lock.v1",
   "repository": "https://github.com/theronic/eacl.git",
-  "sha": "990a58162a0a03c365db46cf166c5966ab70950a",
+  "sha": "a91815ae0a4d32fc32db4e671e4d101834688332",
   "modules": [
     "modules/eacl",
     "modules/eacl-datahike",
