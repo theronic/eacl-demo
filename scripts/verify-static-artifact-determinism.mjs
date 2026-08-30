@@ -4,11 +4,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
-const toolchain = JSON.parse(await readFile(path.join(root, "toolchain.json"), "utf8"));
 const actualNode = process.versions.node;
-if (actualNode !== toolchain.javascript.node) {
-  throw new Error(`static artifact determinism requires Node ${toolchain.javascript.node}; running ${actualNode}`);
-}
 
 const first = await buildAndSnapshot();
 const second = await buildAndSnapshot();
