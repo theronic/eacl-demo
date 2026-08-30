@@ -7,7 +7,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "990a58162a0a03c365db46cf166c5966ab70950a")
+(def baked-eacl-sha "a91815ae0a4d32fc32db4e671e4d101834688332")
 
 (use-fixtures :each
   (fn [run]

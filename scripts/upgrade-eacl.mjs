@@ -104,7 +104,9 @@ function trackedFiles() {
 
 function isCurrentSource(relative) {
   if (relative.startsWith("docs/provenance/") || relative.startsWith("openspec/")) return false;
-  if (relative.startsWith("verification/") && !relative.endsWith(".latest.json")) return false;
+  if (relative.startsWith("verification/")
+      && !relative.endsWith(".latest.json")
+      && !/\.(?:[cm]?js|ts)$/u.test(relative)) return false;
   return !relative.endsWith(".jar") && !relative.endsWith(".png") && !relative.endsWith(".zip");
 }
 
