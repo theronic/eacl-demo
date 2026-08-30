@@ -77,7 +77,7 @@ Deliberate changes to backend, storage, subject, permission, selected resource, 
 ### Requirement: Mixed deployment generations remain usable and visible
 The shell SHALL tolerate independently deployed N and N-1 compatible profile generations. It SHALL display each profile's actual EACL Core SHA, demo SHA, artifact/deployment identity, and last deployment outcome without implying a fleet-atomic rollout or that every profile currently uses the same commit.
 
-#### Scenario: One profile fails a demos-branch deployment
+#### Scenario: One profile fails a main-branch deployment
 - **WHEN** Datahike/DynamoDB remains on the prior healthy source pair while other profiles advance
 - **THEN** the selector SHALL keep the healthy profile usable, visibly mark the failed update, and MUST NOT describe all demos as synchronized
 

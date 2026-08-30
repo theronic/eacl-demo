@@ -41,7 +41,7 @@ permissions:
 
 jobs:
   exact-generation:
-    if: github.ref == 'refs/heads/demos'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: demo-stateful-datahike-dynamodb

@@ -37,12 +37,6 @@ for (const relative of trackedFiles()) {
 }
 
 lock.sha = resolved.sha;
-lock.reachability = {
-  verifiedAt: new Date().toISOString().replace(/\.\d{3}Z$/u, "Z"),
-  remoteRef: resolved.remoteRef,
-  observedTip: resolved.sha,
-  method: "exact remote ref resolution plus exact-SHA fetch"
-};
 await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 changed.push("dependencies/eacl-core.lock.json");
 
@@ -60,7 +54,7 @@ process.stdout.write([
   `EACL ${oldSha} -> ${resolved.sha}`,
   `Resolved from ${resolved.remoteRef}`,
   `Updated ${new Set(changed).size} tracked files.`,
-  "Push the resulting commit to demos to rebuild and deploy every live demo.",
+  "Push the resulting commit to main to rebuild and deploy every live demo.",
   ""
 ].join("\n"));
 

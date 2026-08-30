@@ -61,7 +61,7 @@ A fastest-storage decision SHALL compare only profiles of the same backend with 
 - **THEN** dataset scale SHALL be prominent and no global fastest claim SHALL be derived
 
 ### Requirement: Merge deployment gate is deliberately small
-Every `demos` merge SHALL build/package each independently eligible active-track profile in an unprivileged job, pass its content-addressed artifact to a separate digest-verifying credentialed job, deploy an immutable candidate, and run bounded health, bootstrap/identity, one allowed exemplar, one denied exemplar, and public-mutation-denial probes. It SHALL NOT wait for formal verification, full conformance, fault campaigns, load sweeps, browser suites, ineligible siblings, or a registered parked profile. Ineligible and parked profiles SHALL remain fail-closed and SHALL NOT be queued by ordinary merge deployment.
+Every `main` merge SHALL build/package each independently eligible active-track profile in an unprivileged job, pass its content-addressed artifact to a separate digest-verifying credentialed job, deploy an immutable candidate, and run bounded health, bootstrap/identity, one allowed exemplar, one denied exemplar, and public-mutation-denial probes. It SHALL NOT wait for formal verification, full conformance, fault campaigns, load sweeps, browser suites, ineligible siblings, or a registered parked profile. Ineligible and parked profiles SHALL remain fail-closed and SHALL NOT be queued by ordinary merge deployment.
 
 #### Scenario: One smoke probe fails
 - **WHEN** the candidate returns the wrong identity or exemplar

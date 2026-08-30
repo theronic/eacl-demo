@@ -184,7 +184,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
 
   const current = awsJson(["lambda", "get-function-configuration",
                            "--function-name", profile.functionName]);
-  const deploymentId = `demos:${demoSha()}:${profileId}`;
+  const deploymentId = `main:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
     EACL_ARTIFACT_SHA256: artifactSha,
     EACL_CORE_SHA: eaclSha(),
@@ -239,7 +239,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
     const promoted = awsJson(["lambda", "update-alias", "--function-name",
       profile.functionName, "--name", "candidate",
       "--function-version", update.Version,
-      "--description", `demos:${demoSha()}:${artifactSha}`,
+      "--description", `main:${demoSha()}:${artifactSha}`,
       "--revision-id", priorAlias.RevisionId]);
     try {
       await smokeFunctionUrl(profileId, profile.apiOrigin ?? definitionFor(profileId).apiOrigin,
@@ -658,14 +658,14 @@ async function publishProfile({ profileId, artifactKind, artifactSha,
   const deployment = {
     demoSha: demoSha(), eaclSha: eaclSha(),
     artifact: { kind: artifactKind, sha256: artifactSha, version: artifactVersion },
-    deploymentId: `demos:${demoSha()}:${profileId}`,
+    deploymentId: `main:${demoSha()}:${profileId}`,
     dataManifestSha256: dataManifestSha, deployedAt
   };
   const profile = { ...structuredClone(base), state: "enabled", reason: null,
     deployment,
     lastOutcome: { outcome: "succeeded", attemptedDemoSha: demoSha(),
       attemptedEaclSha: eaclSha(), artifactSha256: artifactSha, at: deployedAt,
-      message: "The demos-branch build and bounded live smoke passed." }
+      message: "The main-branch build and bounded live smoke passed." }
   };
   const publication = await createProfilePublication({ profile, definition,
     publishedAt: deployedAt,

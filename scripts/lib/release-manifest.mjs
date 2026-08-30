@@ -13,7 +13,7 @@ export function createReleaseManifest({ demoSha, eaclSha, fixture, deployment, a
   invariant(deployment.repositoryId === "1345904214", "deployment repository ID is not canonical");
   invariant(/^[1-9][0-9]*$/u.test(deployment.runId), "GitHub run ID is invalid");
   invariant(Number.isSafeInteger(deployment.runAttempt) && deployment.runAttempt >= 1, "GitHub run attempt is invalid");
-  invariant(deployment.ref === "refs/heads/demos", "release ref must be refs/heads/demos");
+  invariant(deployment.ref === "refs/heads/main", "release ref must be refs/heads/main");
   invariant(Array.isArray(artifacts) && artifacts.length > 0, "artifacts must be non-empty");
   for (const artifact of artifacts) {
     exactKeys(artifact, ["name", "path", "sha256", "bytes"], "artifact");

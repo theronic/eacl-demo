@@ -38,9 +38,8 @@ version of an external lifecycle-metadata object and deliver logs. It offers
 the two closed lifecycle-strategy inputs but marks the candidate blocked. The
 metadata schema fixes a deterministic native source UUID and final revision;
 it is not the Datalevin store and cannot be written by the runtime. The
-template is not a runtime artifact and cannot override the unpublished
-maintained-fork release, incompatible arm64 native closure, or
-lifecycle-evidence gates recorded in `dependencies/datalevin-memory.v1.json`.
+template is not a runtime artifact and cannot override native ABI/platform
+compatibility or the source-lifecycle behavior exercised by the service tests.
 
 `jank-memory-runtime.yaml` owns its execution role rather than accepting an
 arbitrary role ARN. The custom runtime can create a stream and write events

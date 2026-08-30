@@ -1,7 +1,8 @@
 (ns eacl-demo.datalevin-memory-reader-test
   (:require [clojure.java.io :as io]
-            [clojure.test :refer [deftest is testing]]
+            [clojure.test :refer [deftest is testing use-fixtures]]
             [datalevin.core :as d]
+            [eacl-demo.fixture :as fixture]
             [eacl-demo.datalevin-memory.operations :as operations]
             [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader]
@@ -10,6 +11,25 @@
            [java.util UUID]))
 
 (def security-key (apply str (repeat 32 "k")))
+
+(def ^:private generated-fixture-records
+  (delay (vec (mapcat :records (fixture/small-fixture-bundles)))))
+
+(defn- read-generated-fixture-batches!
+  [kind consume!]
+  (let [records (filterv #(= (keyword kind) (:kind %))
+                         @generated-fixture-records)]
+    (doseq [batch (partition-all 5000 records)]
+      (consume! batch))
+    (count records)))
+
+(use-fixtures
+  :each
+  (fn [run]
+    (with-redefs-fn
+      {#'eacl-demo.datalevin-memory.reader/read-fixture-batches!
+       read-generated-fixture-batches!}
+      run)))
 
 (defn- delete-tree!
   [directory]

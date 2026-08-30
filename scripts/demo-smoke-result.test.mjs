@@ -9,7 +9,7 @@ const expectedIdentity = {
   demoSha: "b".repeat(40),
   eaclSha: "c".repeat(40),
   artifactSha256: "d".repeat(64),
-  deploymentId: "demos:example:datomic-dynamodb"
+  deploymentId: "main:example:datomic-dynamodb"
 };
 const identity = (dataManifestSha256 = manifest) => ({ ...expectedIdentity, dataManifestSha256 });
 

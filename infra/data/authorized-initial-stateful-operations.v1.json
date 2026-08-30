@@ -4,7 +4,7 @@
   "authorizedAccountId": "843761893873",
   "authorizedRegion": "us-east-1",
   "authorizedRepositoryId": "1345904214",
-  "authorizedRef": "refs/heads/demos",
+  "authorizedRef": "refs/heads/main",
   "scope": {
     "durableGenerations": [
       {
@@ -59,7 +59,7 @@
     "verify-temporary-role-inactive"
   ],
   "explicitlyExcluded": [
-    "ordinary-demos-branch-deployment",
+    "ordinary-main-branch-deployment",
     "additional-durable-generations",
     "active-dataset-mutation",
     "resource-deletion",

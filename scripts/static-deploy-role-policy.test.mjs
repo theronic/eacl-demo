@@ -8,13 +8,13 @@ test("static deployment trust is the exact inactive-until-eligible ordinary auth
   for (const claim of [
     "aud: sts.amazonaws.com",
     "environment: demo-production-static",
-    "ref: refs/heads/demos",
+    "ref: refs/heads/main",
     "repository: theronic/eacl-demo",
     "repository_id: \"1345904214\"",
     "repository_owner_id: \"1011676\"",
     "workflow: Deploy EACL demos"
   ]) assert.ok(source.includes(`token.actions.githubusercontent.com:${claim}`));
-  assert.match(source, /token\.actions\.githubusercontent\.com:sub: repo:theronic@1011676\/eacl-demo@1345904214:ref:refs\/heads\/demos:workflow_ref:theronic\/eacl-demo\/\.github\/workflows\/deploy-demos\.yml@refs\/heads\/demos:environment:demo-production-static:event_name:push:runner_environment:github-hosted/u);
+  assert.match(source, /token\.actions\.githubusercontent\.com:sub: repo:theronic@1011676\/eacl-demo@1345904214:ref:refs\/heads\/main:workflow_ref:theronic\/eacl-demo\/\.github\/workflows\/deploy-demos\.yml@refs\/heads\/main:environment:demo-production-static:event_name:push:runner_environment:github-hosted/u);
   assert.doesNotMatch(source, /StringLike|[?]/u);
   assert.match(source, /Activation:\s*\n\s+Type: String\s*\n\s+Default: disabled\s*\n\s+AllowedValues: \[disabled, enabled\]/u);
   assert.match(source, /StaticDeploymentEnabled: !Equals \[!Ref Activation, enabled\][\s\S]*StaticDeployRole:\s*\n\s+Type: AWS::IAM::Role\s*\n\s+Condition: StaticDeploymentEnabled/u);

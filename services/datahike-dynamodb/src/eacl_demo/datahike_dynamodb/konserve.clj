@@ -175,7 +175,7 @@
   (-atomic-move [_ _ _ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :atomic-move))))
-  ;; Konserve 0.9.391 checks -store-exists? before invoking this hook. Serving
+  ;; Konserve checks -store-exists? before invoking this hook. Serving
   ;; must refuse a missing table instead of attempting to create one; the
   ;; public store/-create-store multimethod also remains unregistered.
   (-create-store [_ env]

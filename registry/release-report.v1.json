@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:cd96b4446e2db47122aaad9b09a562e39457fd7b9721f9917406af75589a6730",
+  "reportId": "sha256:2698adf8e7945d8bb4ebcddd7c0f7078d5967485a7f7f3f36325e4c0523d1d45",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -14,12 +14,12 @@
     },
     "eacl": {
       "repository": "https://github.com/theronic/eacl.git",
-      "sha": "858a73a62dfcdf05a5341787f806796d55fd2aff",
+      "sha": "990a58162a0a03c365db46cf166c5966ab70950a",
       "status": "locked",
       "reason": null,
       "lock": {
         "path": "dependencies/eacl-core.lock.json",
-        "sha256": "2d9b6f436281055e1621eac770f43f5ce83e13557dba79ba2407962f7c1d1883"
+        "sha256": "ca97b2ffea0f8a8bcb9385620f72b8c0d25b24500b4def716f9fa15bc66f4abb"
       }
     }
   },
@@ -544,7 +544,7 @@
       "code": "release-identity-unavailable",
       "profiles": [],
       "reason": "There is no deployed release manifest with an immutable demo source and artifact set.",
-      "requiredEvidence": "A successful demos-branch deployment release manifest and its content digest."
+      "requiredEvidence": "A successful main-branch deployment release manifest and its content digest."
     },
     {
       "code": "profiles-not-enabled",

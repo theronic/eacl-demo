@@ -15,7 +15,7 @@ const request = {
   accountId: "843761893873",
   region: "us-east-1",
   repositoryId: "1345904214",
-  ref: "refs/heads/demos",
+  ref: "refs/heads/main",
   profileId: "datomic-dynamodb",
   operation: "seed",
   tableName: "eacl-demo-datomic-fixture-v1-green",
@@ -54,7 +54,7 @@ test("the recorded authorization is closed to the two approved million-resource 
     { tableName: "eacl-demo-datomic-fixture-v1-green", generationId: "fixture-v1-green" }
   ]);
   assert.equal(policy.scope.durableGenerations.every(({ maximumNewGenerations, logicalResourceCount }) => maximumNewGenerations === 1 && logicalResourceCount === 1_000_000), true);
-  assert.equal(policy.explicitlyExcluded.includes("ordinary-demos-branch-deployment"), true);
+  assert.equal(policy.explicitlyExcluded.includes("ordinary-main-branch-deployment"), true);
 });
 
 test("execution requires a fresh immutable exact-target preview and typed confirmation", () => {

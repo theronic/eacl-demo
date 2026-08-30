@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   preview:
-    if: github.ref == 'refs/heads/demos' && inputs.action == 'preview'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'preview'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -67,7 +67,7 @@ jobs:
           retention-days: 1
 
   execute:
-    if: github.ref == 'refs/heads/demos' && inputs.action == 'execute'
+    if: github.ref == 'refs/heads/main' && inputs.action == 'execute'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     environment: demo-stateful-datomic-seed

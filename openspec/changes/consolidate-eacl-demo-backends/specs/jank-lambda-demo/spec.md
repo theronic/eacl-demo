@@ -19,7 +19,7 @@ The ZIP SHALL contain executable `bootstrap`, the Linux Jank executable, and onl
 - **THEN** `bootstrap` SHALL be executable at its root and every native dependency SHALL resolve on the matching AL2023 x86_64 environment
 
 ### Requirement: Lambda semantic smoke does not require formal verification
-Initial qualification SHALL prove the common public semantics and runtime ownership through the actual Lambda transport. Ordinary `demos` merges SHALL require only build/package plus bounded health, bootstrap identity, one allowed exemplar, one denied exemplar, and mutation-denial probes. Formal models, source-linked certification, sanitizers, fault campaigns, and load suites MUST NOT gate demo deployment.
+Initial qualification SHALL prove the common public semantics and runtime ownership through the actual Lambda transport. Ordinary `main` merges SHALL require only build/package plus bounded health, bootstrap identity, one allowed exemplar, one denied exemplar, and mutation-denial probes. Formal models, source-linked certification, sanitizers, fault campaigns, and load suites MUST NOT gate demo deployment.
 
 #### Scenario: Independent formal workflow is incomplete
 - **WHEN** the Jank artifact builds and Lambda smoke passes but formal verification has not run

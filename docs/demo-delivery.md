@@ -1,6 +1,6 @@
-# `demos` branch delivery
+# Demo delivery
 
-`theronic/eacl-demo` is the sole deployment source. A push to `demos` starts
+`theronic/eacl-demo` is the sole deployment source. A push to `main` starts
 five independent build-and-deploy jobs immediately:
 
 - the main explorer and separate DataScript static artifact;

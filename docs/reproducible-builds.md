@@ -18,7 +18,7 @@ a concrete artifact. The check proves deterministic source identity and
 workspace enumeration; it does not claim to compile the runtime-specific
 artifacts represented by foundation-only units.
 
-`node scripts/verify-static-artifact-determinism.mjs` is the separate material-change check for the real static deployment artifact. It builds the main Vite entry, DataScript Vite entry, advanced-compiled direct ClojureScript runtime, and assembled upload tree twice, then compares every output byte and verifies that the runtime artifact, content-addressed filename, and assembled copy carry the same digest. Both checks refuse the wrong Node version. The compiled check is manual qualification and is intentionally outside the fast ordinary `demos` deployment path.
+`node scripts/verify-static-artifact-determinism.mjs` is the separate material-change check for the real static deployment artifact. It builds the main Vite entry, DataScript Vite entry, advanced-compiled direct ClojureScript runtime, and assembled upload tree twice, then compares every output byte and verifies that the runtime artifact, content-addressed filename, and assembled copy carry the same digest. Both checks refuse the wrong Node version. The compiled check is manual qualification and is intentionally outside the fast ordinary `main` deployment path.
 
 The `verify:datomic-artifact-determinism`,
 `verify:datahike-s3-artifact-determinism`, and

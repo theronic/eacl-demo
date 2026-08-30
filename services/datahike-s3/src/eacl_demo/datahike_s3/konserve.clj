@@ -92,7 +92,7 @@
   (-atomic-move [_ _ _ env]
     (async+sync (:sync? env) *default-sync-translation*
                 (go-try- (denied! :atomic-move))))
-  ;; Konserve 0.9.391 checks -store-exists? before invoking this hook. A
+  ;; Konserve checks -store-exists? before invoking this hook. A
   ;; missing marker must fail instead of reaching the upstream bucket/marker
   ;; creation path, which keeps the serving adapter strictly read-only.
   (-create-store [_ env]

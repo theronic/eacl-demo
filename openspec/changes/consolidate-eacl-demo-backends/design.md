@@ -32,7 +32,7 @@ Several platform facts determine the design:
 - Evidence-based fastest storage default within one backend, never a misleading global backend benchmark.
 - Honest capability differences and exact source/deployment identity in every profile.
 - Public read-only runtimes and private, bounded, recoverable data operations.
-- Fast automatic deployment of every independently eligible active-track target after a `demos` merge, with maximum parallelism and no fleet-atomic eligibility barrier; an ineligible sibling or parked registered profile neither enters nor blocks the fan-out.
+- Fast automatic deployment of every independently eligible active-track target after a `main` merge, with maximum parallelism and no fleet-atomic eligibility barrier; an ineligible sibling or parked registered profile neither enters nor blocks the fan-out.
 - A failed profile retains the last healthy version and visibly/operationally reports that failed update while other profiles continue.
 - Minimal merge gates: build, deploy, bounded smoke, promote/rollback. Formal verification is independent and non-blocking.
 - No long-lived AWS access key, Telegram token, or cross-repository dispatch credential in GitHub.
@@ -60,9 +60,9 @@ Deterministic JVM uber-JAR normalization preserves Clojure's AOT loader invarian
 Every build records two immutable identities:
 
 - `demo-sha`: the `theronic/eacl-demo` commit providing services/UI/infrastructure;
-- `eacl-sha`: the exact reachable `theronic/eacl` commit pinned by a dependency lock committed in that demo revision and providing EACL v8 modules/generated runtime.
+- `eacl-sha`: the exact `theronic/eacl` commit pinned by a dependency lock committed in that demo revision and providing EACL v8 modules/generated runtime.
 
-Dirty local paths and mutable branch names are never published as artifact identity. Relevant current sibling work is imported deliberately into the new repository without modifying or overwriting those worktrees. An EACL Core change is deployed only after the lock update itself reaches `eacl-demo:demos`; activity in the Core repository does not coordinate or trigger this demo workflow.
+Dirty local paths and mutable branch names are never published as artifact identity. Relevant current sibling work is imported deliberately into the new repository without modifying or overwriting those worktrees. An EACL Core change is deployed only after the lock update itself reaches `eacl-demo:main`; activity in the Core repository does not coordinate or trigger this demo workflow.
 
 ### 2. The UI selects backend storage and execution separately
 
@@ -294,9 +294,9 @@ the Jank build unit deployable.
 
 The descriptor labels the store as a bundled in-memory Datomic-like conformance store and denies Datomic Pro, durability, Datalog, distribution, and production claims.
 
-### 12. One `demos` branch triggers uncoordinated maximum-parallel deployment
+### 12. One `main` branch triggers uncoordinated maximum-parallel deployment
 
-`theronic/eacl-demo:demos` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Every push starts five independent jobs: static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each job checks out the same immutable commit, installs the pinned toolchain and dependencies, builds only its target, assumes only its target-specific OIDC role, deploys, and runs the bounded live smoke in one job. There is no certification job, readiness ledger, generated workflow, artifact handoff, global barrier, matrix, or sibling dependency. The static job produces main and DataScript entries together to avoid conflicting S3-prefix writes. Parked Jank remains catalogued and unavailable without being queued or gating the five live targets.
+`theronic/eacl-demo:main` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Every push starts five independent jobs: static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each job checks out the same immutable commit, installs the pinned toolchain and dependencies, builds only its target, assumes only its target-specific OIDC role, deploys, and runs the bounded live smoke in one job. There is no certification job, readiness ledger, generated workflow, artifact handoff, global barrier, matrix, or sibling dependency. The static job produces main and DataScript entries together to avoid conflicting S3-prefix writes. Parked Jank remains catalogued and unavailable without being queued or gating the five live targets.
 
 There are deliberately no GitHub concurrency groups, cancel-in-progress settings, latest-head guards, or cross-run ordering. Every job deploys the exact `demo-sha` and locked `eacl-sha` checked out for that run. If two pushes overlap, either run may finish last for a profile. That user-approved trade-off maximizes speed and simplicity; descriptors always reveal the actually deployed identities.
 
@@ -304,7 +304,7 @@ If a server job fails after candidate promotion, the direct deployer restores th
 
 The direct deployer publishes an immutable Lambda version, waits for SnapStart optimization where required, smokes that exact version, moves the profile's `candidate` alias with an optimistic revision, smokes the public Function URL, publishes that profile's content-addressed registry record, and restores only the prior alias if the post-promotion work fails.
 
-The release report is a content-addressed aggregate derived from the exact registry, build eligibility, dependency lock, fixture manifests, runtime definitions, benchmark evidence files, and cost-control definitions. It distinguishes `defined-not-deployed` from live `verified` evidence and distinguishes candidate memory from qualified memory. Its top-level source identifies only the demos-branch commit that built the report; it is not a fleet source claim. Each profile's deployment identity is independently authoritative, so a released aggregate can truthfully contain mixed and out-of-order generations. A checked-in pre-release report is useful because it exposes every missing identity, but it does not satisfy the final release-report task: a released report needs an immutable report-build identity, actual artifact/deployment identities for every enabled profile, benchmark evidence behind any performance-selected default, qualified memory evidence, live alarms/budgets/Telegram evidence, and executable rollback coordinates.
+The release report is a content-addressed aggregate derived from the exact registry, build eligibility, dependency lock, fixture manifests, runtime definitions, benchmark evidence files, and cost-control definitions. It distinguishes `defined-not-deployed` from live `verified` evidence and distinguishes candidate memory from qualified memory. Its top-level source identifies only the main-branch commit that built the report; it is not a fleet source claim. Each profile's deployment identity is independently authoritative, so a released aggregate can truthfully contain mixed and out-of-order generations. A checked-in pre-release report is useful because it exposes every missing identity, but it does not satisfy the final release-report task: a released report needs an immutable report-build identity, actual artifact/deployment identities for every enabled profile, benchmark evidence behind any performance-selected default, qualified memory evidence, live alarms/budgets/Telegram evidence, and executable rollback coordinates.
 
 OpenSpec retains the substantive implementation and live-evidence tasks, but
 ordinary demo delivery does not generate or verify a separate readiness ledger.
@@ -332,7 +332,7 @@ deployment awaits certification.
 
 ### 14. GitHub settings favor safe speed and AWS OIDC
 
-`demos` is the default and deployment branch. It has no classic branch protection or repository ruleset, so an EACL lock update can be committed and pushed directly. Separate environments such as `demo-production-static` and `demo-production-<profile>` accept only `demos` and have no reviewer or wait timer. Each environment still gives its deployment role a distinct OIDC subject without serializing the jobs.
+`main` is the default and deployment branch. It has no classic branch protection or repository ruleset, so an EACL lock update can be committed and pushed directly. Separate environments such as `demo-production-static` and `demo-production-<profile>` accept only `main` and have no reviewer or wait timer. Each environment still gives its deployment role a distinct OIDC subject without serializing the jobs.
 
 Repository Actions permissions default to read-only. Deploy jobs request `contents: read` and `id-token: write`; permissions are not broadened for the entire workflow. The 2026-08-26 public audit reconfirms owner ID `1011676`, repository ID `1345904214`, creation after GitHub's 2026-07-15 immutable-subject cutoff, and the current default prefix `repo:theronic@1011676/eacl-demo@1345904214`. It is metadata evidence, not a substitute for the still-required allowlisted claim capture from a live job; the JWT itself is never printed, uploaded, or retained.
 
@@ -340,13 +340,13 @@ GitHub makes the OIDC request bearer available to the entire job once
 `id-token: write` is granted; placing dependency installation before
 `configure-aws-credentials` does not isolate it. The ordinary workflow accepts
 that exposure to keep each demo update to one direct job, while constraining the
-resulting AWS session to the exact workflow, `demos` ref, target environment,
+resulting AWS session to the exact workflow, `main` ref, target environment,
 and target-specific deployment role. Checkout credentials are not persisted,
 actions are commit-pinned, server installs ignore package lifecycle scripts,
 and AWS credentials are configured only after a successful build. Manual
 stateful authorities retain their dependency-free claim-capture bootstrap.
 
-The desired repository-wide subject template is exactly `[repo, ref, workflow_ref, environment, event_name, runner_environment]` with immutable subjects enabled. A deployment subject therefore binds the immutable repository prefix, `refs/heads/demos`, the top-level workflow path at that ref, one role-specific environment, the `push` event, and `github-hosted` execution without wildcards. Manual authorities instead bind `workflow_dispatch`. These jobs are not reusable workflows, so `job_workflow_ref` is not required in trust. GitHub's 2026-08-27 live top-level tokens nevertheless exposed at least one `job_workflow_*` claim; the capture validator therefore accepts such a compatibility alias only when `job_workflow_ref` is identical to the already validated `workflow_ref` and, when present, `job_workflow_sha` is identical to `workflow_sha`. A different called-workflow path or revision is rejected. A future design that actually adopts a reusable workflow must instead bind its exact called-workflow identity deliberately. Current AWS documentation exposes direct GitHub conditions for `repository_id`, `repository_owner_id`, `repository`, `ref`, `workflow`, and `environment`, but not `workflow_ref`, `event_name`, or `runner_environment`, so the policy requires all supported direct claims with `StringEquals` and also requires the exact custom `sub` carrying those remaining values. This reconciles AWS's May 2026 claim-key expansion with GitHub's lagging AWS-specific statement that custom claims are unavailable.
+The desired repository-wide subject template is exactly `[repo, ref, workflow_ref, environment, event_name, runner_environment]` with immutable subjects enabled. A deployment subject therefore binds the immutable repository prefix, `refs/heads/main`, the top-level workflow path at that ref, one role-specific environment, the `push` event, and `github-hosted` execution without wildcards. Manual authorities instead bind `workflow_dispatch`. These jobs are not reusable workflows, so `job_workflow_ref` is not required in trust. GitHub's 2026-08-27 live top-level tokens nevertheless exposed at least one `job_workflow_*` claim; the capture validator therefore accepts such a compatibility alias only when `job_workflow_ref` is identical to the already validated `workflow_ref` and, when present, `job_workflow_sha` is identical to `workflow_sha`. A different called-workflow path or revision is rejected. A future design that actually adopts a reusable workflow must instead bind its exact called-workflow identity deliberately. Current AWS documentation exposes direct GitHub conditions for `repository_id`, `repository_owner_id`, `repository`, `ref`, `workflow`, and `environment`, but not `workflow_ref`, `event_name`, or `runner_environment`, so the policy requires all supported direct claims with `StringEquals` and also requires the exact custom `sub` carrying those remaining values. This reconciles AWS's May 2026 claim-key expansion with GitHub's lagging AWS-specific statement that custom claims are unavailable.
 
 Because subject customization affects the whole repository, the authority manifest covers the five ordinary deployment roles and the retained stateful-maintenance roles. Parked Jank has no ordinary production authority or GitHub environment; those are added only if it is explicitly unparked. Migration updates every AWS trust before changing GitHub's template, may temporarily accept only two exact recorded subjects, verifies every job, and then removes the old subject. The static site and each active profile use separate least-privilege deployment roles/stacks; ordinary role variables and permission scopes are disjoint from seed and maintenance authorities.
 
@@ -425,14 +425,14 @@ Ordinary delivery updates static objects or one profile candidate/alias and does
 ## Migration Plan
 
 1. Reconcile and strictly validate this OpenSpec change.
-2. Establish clean initial commits in `theronic/eacl-demo`, create `demos`, and import shared behavior without modifying dirty sibling worktrees.
+2. Establish clean initial commits in `theronic/eacl-demo`, create `main`, and import shared behavior without modifying dirty sibling worktrees.
 3. Implement contracts, backend/storage/execution selector, fixtures, static entries, and profile packages locally.
 4. Connect Chrome; configure GitHub rules, environments, variables, and Actions permissions; add no CI secret unless a clean locked-dependency build proves one is required.
 5. Reauthenticate the AWS profile; deploy OIDC provider/trust and separate static/profile/seed roles plus Telegram/cost-control foundation.
 6. Adopt Datahike/S3 and qualify each new topology/storage using separate initial workflows.
 7. Install throughput caps/alarms/budgets/anomaly/Telegram tests before durable seeding; seed Datahike/DynamoDB and Datomic/DynamoDB; terminate and verify temporary compute.
 8. Benchmark comparable Datahike storages and publish the evidenced default.
-9. Implement the fast `eacl-demo:demos` workflow for the active Datahike, Datomic, Datalevin, DataScript/static scope with the pinned EACL revision, maximum-parallel target jobs, bounded smoke, per-job rollback, and actual-identity reporting, without GitHub concurrency management; keep parked Jank out of the fan-out.
+9. Implement the fast `eacl-demo:main` workflow for the active Datahike, Datomic, Datalevin, DataScript/static scope with the pinned EACL revision, maximum-parallel target jobs, bounded smoke, per-job rollback, and actual-identity reporting, without GitHub concurrency management; keep parked Jank out of the fan-out.
 10. Qualify exact published candidate versions and the deployed static surface, then rehearse independent rollback without requiring a shared fleet-staging phase.
 11. Preserve the accepted canonical CloudFront/DNS target and tested legacy fallback; require fresh explicit authorization for any future DNS mutation and complete the production observation window.
 12. Reconcile/retire legacy resources only through separately approved destructive batches.

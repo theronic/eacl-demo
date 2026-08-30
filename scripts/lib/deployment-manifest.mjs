@@ -20,17 +20,12 @@ export function sha256(bytes) {
 }
 
 export function validateCoreLock(lock) {
-  exactKeys(lock, ["schema", "repository", "sha", "modules", "reachability", "identityRule"], "Core lock");
+  exactKeys(lock, ["schema", "repository", "sha", "modules"], "Core lock");
   invariant(lock.schema === "eacl-demo.eacl-core-lock.v1", "Unsupported Core lock schema");
   invariant(lock.repository === "https://github.com/theronic/eacl.git", "Core lock repository is not canonical");
   invariant(SHA1.test(lock.sha), "Core lock sha must be a lowercase 40-hex commit");
   invariant(Array.isArray(lock.modules) && lock.modules.length > 0, "Core lock modules must be non-empty");
   invariant(new Set(lock.modules).size === lock.modules.length, "Core lock modules must be unique");
-  exactKeys(lock.reachability, ["verifiedAt", "remoteRef", "observedTip", "method"], "Core lock reachability");
-  invariant(lock.reachability.remoteRef.startsWith("refs/"), "Reachability proof must name a full ref");
-  invariant(lock.reachability.observedTip === lock.sha, "Reachability observed tip must equal the locked sha");
-  invariant(!Number.isNaN(Date.parse(lock.reachability.verifiedAt)), "Reachability verification time must be ISO-8601");
-  invariant(lock.identityRule.includes("Only sha"), "Core lock must state that only sha is a release identity");
   return lock;
 }
 

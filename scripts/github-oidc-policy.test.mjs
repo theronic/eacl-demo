@@ -85,7 +85,7 @@ test("every authority has an exact immutable custom subject and direct AWS claim
     assert.deepEqual(Object.keys(statement.Condition), ["StringEquals"]);
     assert.equal(statement.Condition.StringEquals["token.actions.githubusercontent.com:sub"], [
       "repo:theronic@1011676/eacl-demo@1345904214",
-      "ref:refs/heads/demos",
+      "ref:refs/heads/main",
       `workflow_ref:${workflowRef(manifest, authority)}`,
       `environment:${authority.environment}`,
       `event_name:${authority.eventName}`,
@@ -103,7 +103,7 @@ test("a changed repository, immutable ID, ref, workflow, subject, environment, e
   for (const [claim, value] of Object.entries({
     aud: "https://github.com/theronic",
     environment: "demo-production-datahike-dynamodb",
-    ref: "refs/heads/main",
+    ref: "refs/heads/feature",
     repository: "theronic/eacl",
     repository_id: "999",
     repository_owner_id: "998",

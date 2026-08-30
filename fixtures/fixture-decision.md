@@ -185,7 +185,7 @@ Backend-native serialization is never substituted for this digest.
   digest-mismatched imports fail closed and are not made serving-ready.
 - The existing Datahike/S3 million-server store remains a separately identified
   legacy lifecycle until its objects and relationships are mapped and verified.
-- Normal `demos` deployment jobs may verify an accepted lifecycle but cannot
+- Normal `main` deployment jobs may verify an accepted lifecycle but cannot
   seed, append, migrate, or mutate it.
 - In-memory and browser profiles rebuild from the same generator and verify the
   accepted manifest before reporting readiness.

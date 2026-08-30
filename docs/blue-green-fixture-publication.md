@@ -1,7 +1,7 @@
 # Immutable blue-green fixture publication
 
 An accepted data manifest and its physical lifecycle are immutable. A normal
-`demos` deployment may verify that its expected manifest equals the profile's
+`main` deployment may verify that its expected manifest equals the profile's
 serving lifecycle; it has no seed, migration, schema-write, table-create,
 bucket-create, pointer-update, or deletion permission. A mismatch fails with
 `stateful-migration-required` and leaves the healthy alias untouched.

@@ -5,11 +5,10 @@ generation. The local source, package, and fake-reader boundary audits pass; the
 profile remains disabled until DynamoDB Local, staged AL2023, and real-AWS
 qualification pass for the exact data generation and artifact.
 
-`dependencies/datahike-dynamodb-adapter.v1.json` binds the exact dependency
-decision. The released upstream adapter is available only through the
-`datahike-dynamodb-upstream-audit` alias so its four rejected behaviors remain
-executable regression evidence. It is deliberately absent from the serving
-alias and Lambda closure.
+The service uses its local, read-only Konserve adapter. The serving source and
+resolved classpath audits reject the upstream `konserve-dynamodb` adapter and
+all write-capable AWS SDK operations; no duplicate dependency-decision
+manifest or audit-only dependency is required.
 
 The serving aliases exclude the upstream ClojureScript dependency at the
 Datahike and Konserve roots, and the package audit rejects ClojureScript,
@@ -21,7 +20,7 @@ loader behavior, packaged Datahike runtime, and request-snapshot boundary
 without opening a DynamoDB connection. These local checks are not production
 qualification and do not make the profile deployment-eligible.
 
-Konserve 0.9.391 checks the backing store's `-store-exists?` exactly once before
+Konserve checks the backing store's `-store-exists?` exactly once before
 opening it. If the table is absent, the backing `-create-store` hook throws the
 typed `:eacl-demo/missing-dynamodb-store` failure instead of creating anything.
 Locking is enabled as required by Konserve and is implemented by the reader's

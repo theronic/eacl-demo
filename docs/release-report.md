@@ -1,6 +1,6 @@
 # EACL demo release report
 
-Report ID: `sha256:cd96b4446e2db47122aaad9b09a562e39457fd7b9721f9917406af75589a6730`
+Report ID: `sha256:2698adf8e7945d8bb4ebcddd7c0f7078d5967485a7f7f3f36325e4c0523d1d45`
 
 Status: **pre-release**. This is an honest readiness report, not evidence that a production release exists. Local infrastructure definitions are never described as deployed or verified without live evidence.
 
@@ -9,9 +9,9 @@ Status: **pre-release**. This is an honest readiness report, not evidence that a
 | Source | Status | Immutable SHA |
 | --- | --- | --- |
 | Demo | uncommitted | — |
-| EACL Core | locked | 858a73a62dfcdf05a5341787f806796d55fd2aff |
+| EACL Core | locked | 990a58162a0a03c365db46cf166c5966ab70950a |
 
-This source pair identifies the report build, not a fleet generation. Every profile deployment below is independently authoritative and may come from a different demos-branch run.
+This source pair identifies the report build, not a fleet generation. Every profile deployment below is independently authoritative and may come from a different main-branch run.
 
 ## Profiles
 
@@ -56,7 +56,7 @@ DynamoDB controls: defined-not-deployed; 9 alarm definitions per table. Telegram
 
 ## Blocking evidence
 
-- `release-identity-unavailable`: There is no deployed release manifest with an immutable demo source and artifact set. Required evidence: A successful demos-branch deployment release manifest and its content digest.
+- `release-identity-unavailable`: There is no deployed release manifest with an immutable demo source and artifact set. Required evidence: A successful main-branch deployment release manifest and its content digest.
 - `profiles-not-enabled`: Every registered profile remains disabled, qualifying, or unavailable. Required evidence: Profile-specific qualification, deployment identity, and successful publication evidence.
 - `live-cost-controls-unverified`: Budget, alarm, anomaly, and Telegram definitions have no live readiness evidence in this report. Required evidence: Deployed resource identities, OK alarm state, enabled actions, and a successful Telegram delivery test.
 - `rollback-coordinates-unavailable`: No profile has exact prior and active publication coordinates. Required evidence: Immutable alias revisions or static prefixes plus versioned status-object rollback coordinates.

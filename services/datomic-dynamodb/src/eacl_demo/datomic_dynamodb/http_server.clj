@@ -32,6 +32,10 @@
            :port port
            :max-body (inc maximum-request-body-bytes)
            :max-line maximum-header-line-bytes
+           ;; http-kit 2.9 uses virtual threads on Java 21+ by default. Keep
+           ;; that choice explicit: admission waits must not consume a bounded
+           ;; platform-thread pool while the fair semaphore is contended.
+           :pool-opts {:allow-virtual? true}
            :server-header nil
            :legacy-return-value? false})]
      {:server server

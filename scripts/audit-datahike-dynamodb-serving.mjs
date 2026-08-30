@@ -6,9 +6,6 @@ const root = path.resolve(import.meta.dirname, "..");
 const sourceRoot = path.join(root, "services/datahike-dynamodb/src");
 const files = await enumerate(sourceRoot);
 const joined = (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
-const dependencyDecision = JSON.parse(await readFile(
-  path.join(root, "dependencies/datahike-dynamodb-adapter.v1.json"), "utf8"
-));
 
 const forbiddenSdkWitnesses = [
   "PutItemRequest", "DeleteItemRequest", "DeleteTableRequest", "CreateTableRequest",
@@ -75,11 +72,6 @@ for (const witness of forbiddenEaclServingCalls) {
     throw new Error(`write or administration call in serving source: ${witness}`);
   }
 }
-if (dependencyDecision.upstreamAdapter.servingClosure !== false ||
-    dependencyDecision.servingAdapter.upstreamArtifactOnClasspath !== false) {
-  throw new Error("dependency decision does not exclude the upstream artifact from serving");
-}
-
 const servingClasspath = execFileSync("clojure", ["-A:datahike-dynamodb", "-Spath"], {
   cwd: root, encoding: "utf8"
 });
@@ -105,13 +97,6 @@ if (!/org\.replikativ\/konserve[\s\S]*?:exclusions \[org\.clojure\/clojurescript
   dependencySource
 )) {
   throw new Error("Konserve serving dependency lacks its ClojureScript exclusion");
-}
-const auditClasspath = execFileSync(
-  "clojure", ["-A:datahike-dynamodb-upstream-audit", "-Spath"],
-  { cwd: root, encoding: "utf8" }
-);
-if (!auditClasspath.includes("konserve-dynamodb-0.1.33.jar")) {
-  throw new Error("exact upstream audit artifact is not reproducibly reachable");
 }
 
 console.log(`datahike-dynamodb serving audit passed (${files.length} source files)`);

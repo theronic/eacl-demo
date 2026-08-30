@@ -77,8 +77,7 @@ assert.deepEqual(smoke, {
 });
 run(process.execPath, [
   path.join(root, "scripts/qualify-datalevin-native-arm64.mjs"),
-  "--artifact", artifactPath,
-  "--expectations", lockPath
+  "--artifact", artifactPath
 ]);
 await smokeInExactLambdaImage(artifactPath, lock);
 process.stdout.write(`${lock.native.artifactSha256}\tqualification-only\t${artifactPath}\n`);

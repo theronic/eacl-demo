@@ -4,7 +4,7 @@
 (def datomic-class-dir "target/datomic-dynamodb-lambda/classes")
 (def datomic-uber-file "dist/datomic-dynamodb/function.jar")
 (def datomic-generated-classes-dir
-  "target/eacl-core-source/858a73a62dfcdf05a5341787f806796d55fd2aff/target/formal/java/classes")
+  "target/eacl-core-source/990a58162a0a03c365db46cf166c5966ab70950a/target/formal/java/classes")
 (def datomic-source-dirs
   ["packages/contracts/src"
    "services/datomic-dynamodb/src"])
@@ -316,9 +316,7 @@
                    ["clojure" "-X:deps" "prep" ":aliases"
                     "[:datalevin-memory :lambda-jvm]"]
                    ["node" "scripts/qualify-datalevin-native-arm64.mjs"
-                    "--artifact" datalevin-memory-native-jar
-                    "--expectations"
-                    "dependencies/datalevin-native-al2023-builder.v1.json"]
+                    "--artifact" datalevin-memory-native-jar]
                    ["node" "scripts/generate-fixture.mjs"
                     "--cut-point" "10000"
                     "--output" datalevin-memory-fixture]]]

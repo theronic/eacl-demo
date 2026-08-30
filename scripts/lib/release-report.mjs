@@ -260,7 +260,7 @@ export function createPreReleaseReport({
         code: "release-identity-unavailable",
         profiles: [],
         reason: "There is no deployed release manifest with an immutable demo source and artifact set.",
-        requiredEvidence: "A successful demos-branch deployment release manifest and its content digest."
+        requiredEvidence: "A successful main-branch deployment release manifest and its content digest."
       },
       {
         code: "profiles-not-enabled",
@@ -341,7 +341,7 @@ export function renderReleaseReportMarkdown(report) {
     `Status: **${report.reportState}**. This is an honest readiness report, not evidence that a production release exists. ` +
     `Local infrastructure definitions are never described as deployed or verified without live evidence.\n\n` +
     `## Report-build source identity\n\n| Source | Status | Immutable SHA |\n| --- | --- | --- |\n${sourceRows}\n\n` +
-    `This source pair identifies the report build, not a fleet generation. Every profile deployment below is independently authoritative and may come from a different demos-branch run.\n\n` +
+    `This source pair identifies the report build, not a fleet generation. Every profile deployment below is independently authoritative and may come from a different main-branch run.\n\n` +
     `## Profiles\n\n| Profile | Availability | Artifact SHA-256 | Fixture resources | Memory | Alarms | Rollback |\n| --- | --- | --- | ---: | --- | --- | --- |\n${profileRows}\n\n` +
     `Candidate memory values are template starting points only. No profile has a qualified memory setting or memory evidence ID.\n\n` +
     `## Storage defaults\n\n| Backend | Outcome | Default profile | Evidence | Reason |\n| --- | --- | --- | --- | --- |\n${defaultRows}\n\n` +

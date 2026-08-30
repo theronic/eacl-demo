@@ -48,7 +48,7 @@ stream. It may write only one exact SSE-S3 evidence object. Cleanup deletes the
 role and instance profile after terminating the exact instance. The read-only
 Lambda role remains a separate profile stack.
 
-`.github/workflows/stateful-datomic-dynamodb.yml` is manual-only, demos-ref
+`.github/workflows/stateful-datomic-dynamodb.yml` is manual-only, main-ref
 restricted, and hard-bound to the single recorded green generation. It can
 preview/create, verify, back up, and publish that table, installs alarms before
 creation, and never starts EC2. Temporary transactor/seed compute remains a

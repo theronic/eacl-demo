@@ -5,7 +5,7 @@ under `/Users/petrus/code/eacl/openspec/changes`. It does not edit, complete, or
 archive those changes and does not turn their dirty local worktrees into release
 inputs. The consolidated repository consumes EACL Core only through
 `dependencies/eacl-core.lock.json`, currently pinned to
-`858a73a62dfcdf05a5341787f806796d55fd2aff`.
+`990a58162a0a03c365db46cf166c5966ab70950a`.
 
 ## Decision matrix
 
@@ -27,8 +27,8 @@ particular:
   enable the profile.
 - `docs/provenance/source-state-2026-08-25.json` binds the legacy UI/source
   inventories and their dirty-state manifests.
-- the EACL Core lock binds module source to one exact commit; its dated remote
-  ref is reachability evidence, not a branch dependency.
+- the EACL Core lock binds every module source to one exact commit and contains
+  no parallel branch or reachability state.
 - the consolidated fixture, contracts, registry, artifacts, and qualification
   results are owned by `eacl-demo` and cannot be satisfied by relabelling a
   sibling result from a different source, fixture, runtime, or topology.

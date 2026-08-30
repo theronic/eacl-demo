@@ -10,11 +10,10 @@ import {
 const lockBytes = readFileSync(new URL("../dependencies/eacl-core.lock.json", import.meta.url));
 const lock = JSON.parse(lockBytes.toString("utf8"));
 
-test("the committed Core lock uses only an exact reachable SHA as identity", () => {
+test("the committed Core lock uses only an exact SHA as identity", () => {
   assert.equal(validateCoreLock(lock), lock);
   assert.match(lock.sha, /^[0-9a-f]{40}$/u);
-  assert.equal(lock.reachability.observedTip, lock.sha);
-  assert.match(lock.identityRule, /Only sha/u);
+  assert.deepEqual(Object.keys(lock).sort(), ["modules", "repository", "schema", "sha"]);
 });
 
 test("the deployment manifest deterministically binds both repository SHAs", () => {

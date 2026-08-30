@@ -85,10 +85,10 @@ test("every trust-relevant claim is exact and a different called reusable workfl
     repository_id: "999",
     repository_owner: "someone-else",
     repository_owner_id: "998",
-    ref: "refs/heads/main",
+    ref: "refs/heads/feature",
     ref_type: "tag",
     workflow: "Another workflow",
-    workflow_ref: workflowRef(manifest, authority).replace("demos", "main"),
+    workflow_ref: workflowRef(manifest, authority).replace("@refs/heads/main", "@refs/heads/feature"),
     environment: "demo-stateful-datomic-dynamodb",
     event_name: "push",
     runner_environment: "self-hosted"
@@ -100,7 +100,7 @@ test("every trust-relevant claim is exact and a different called reusable workfl
   }));
   assert.throws(() => capture({
     ...claims(),
-    job_workflow_ref: "theronic/eacl-demo/.github/workflows/reusable-deploy.yml@refs/heads/demos"
+    job_workflow_ref: "theronic/eacl-demo/.github/workflows/reusable-deploy.yml@refs/heads/main"
   }), /different called reusable workflow/u);
   assert.throws(() => capture({
     ...claims(),

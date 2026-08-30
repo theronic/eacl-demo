@@ -12,7 +12,7 @@ test("server deployment role is inactive by default and binds every exact ordina
     assert.ok(source.includes(`environment:demo-production-${profile}:event_name:push:runner_environment:github-hosted`));
   }
   for (const claim of [
-    "aud: sts.amazonaws.com", "ref: refs/heads/demos", "repository: theronic/eacl-demo",
+    "aud: sts.amazonaws.com", "ref: refs/heads/main", "repository: theronic/eacl-demo",
     "repository_id: \"1345904214\"", "repository_owner_id: \"1011676\"", "workflow: Deploy EACL demos"
   ]) assert.ok(source.includes(`token.actions.githubusercontent.com:${claim}`));
   assert.doesNotMatch(source, /StringLike|[?]/u);

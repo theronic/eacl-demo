@@ -6,7 +6,7 @@ const input = {
   demoSha: "a".repeat(40),
   eaclSha: "b".repeat(40),
   fixture: { id: "eacl-canonical.v1-10000", manifestSha256: "c".repeat(64) },
-  deployment: { provider: "github-actions", repositoryId: "1345904214", runId: "12345", runAttempt: 2, ref: "refs/heads/demos" },
+  deployment: { provider: "github-actions", repositoryId: "1345904214", runId: "12345", runAttempt: 2, ref: "refs/heads/main" },
   artifacts: [{ name: "datahike-s3", path: "dist/datahike-s3/artifact.json", sha256: "d".repeat(64), bytes: 123 }]
 };
 
@@ -27,5 +27,5 @@ test("unknown fields and mutable source identities are rejected", () => {
 
 test("artifact path, digest, and deployment scope are bound", () => {
   assert.throws(() => createReleaseManifest({ ...input, artifacts: [{ ...input.artifacts[0], path: "other" }] }), /path/u);
-  assert.throws(() => createReleaseManifest({ ...input, deployment: { ...input.deployment, ref: "refs/heads/main" } }), /refs\/heads\/demos/u);
+  assert.throws(() => createReleaseManifest({ ...input, deployment: { ...input.deployment, ref: "refs/heads/feature" } }), /refs\/heads\/main/u);
 });

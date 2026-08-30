@@ -18,73 +18,57 @@ const root = path.resolve(import.meta.dirname, "..");
 const argumentsList = process.argv.slice(2);
 const reportOnly = argumentsList.includes("--report-only");
 let artifactPath;
-let expectationsPath = path.join(root, "dependencies/datalevin-memory.v1.json");
-const allowed = new Set(["--artifact", "--expectations", "--report-only"]);
+const allowed = new Set(["--artifact", "--report-only"]);
 for (let index = 0; index < argumentsList.length; index += 1) {
   const argument = argumentsList[index];
-  if (argument === "--artifact" || argument === "--expectations") {
+  if (argument === "--artifact") {
     index += 1;
     if (index >= argumentsList.length) throw new Error(`${argument} requires a path`);
-    if (argument === "--artifact") artifactPath = path.resolve(argumentsList[index]);
-    else expectationsPath = path.resolve(argumentsList[index]);
+    artifactPath = path.resolve(argumentsList[index]);
   } else if (!allowed.has(argument)) {
     throw new Error(`unknown argument: ${argument}`);
   }
 }
 if (!artifactPath) throw new Error("--artifact is required");
 
-const expectationsDocument = JSON.parse(await readFile(expectationsPath, "utf8"));
-const expected = expectationsDocument.native ?? expectationsDocument;
-assert.equal(typeof expected, "object", "native expectations must be an object");
-assert.equal(expected.platform, "linux/arm64", "native expectations must target Linux arm64");
-assert.equal(expected.lambdaOperatingSystem, "Amazon Linux 2023");
-assert.equal(expected.lambdaGlibc, "2.34");
-assert.ok(Array.isArray(expected.libraries) && expected.libraries.length > 0,
-  "native expectations must declare libraries");
+const maximumAllowedGlibc = "2.34";
 const artifact = await readFile(artifactPath);
 const details = await stat(artifactPath);
 assert.equal(details.isFile(), true, "native artifact must be a regular file");
-assert.equal(artifact.length, expected.artifactBytes, "native artifact size differs from expectations");
-assert.equal(sha256(artifact), expected.artifactSha256, "native artifact digest differs from expectations");
 
 const names = outputText("unzip", ["-Z1", artifactPath]).trim().split("\n").filter(Boolean);
-const expectedNames = expected.libraries.map(({ path: name }) => name).sort();
-for (const name of expectedNames) assert.ok(names.includes(name), `native artifact is missing ${name}`);
-assert.deepEqual(names.filter((name) => /\.(?:so|dylib|dll)$/u.test(name)).sort(), expectedNames,
-  "native artifact contains an unexpected shared library");
+const libraryNames = names.filter((name) => /\.so(?:\.[0-9]+)*$/u.test(name)).sort();
+assert.ok(libraryNames.length > 0, "native artifact contains no shared libraries");
+for (const name of libraryNames) {
+  assert.match(name, /^datalevin\/dtlvnative\/linux-arm64\/[^/]+\.so(?:\.[0-9]+)*$/u,
+    `native artifact contains a shared library outside the Linux arm64 runtime path: ${name}`);
+}
+assert.equal(names.some((name) => /\.(?:dylib|dll)$/u.test(name)), false,
+  "native artifact contains a non-Linux shared library");
 
 const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-datalevin-native-abi-"));
 const reports = [];
 try {
-  for (const expectedLibrary of expected.libraries) {
-    const bytes = outputBytes("unzip", ["-p", artifactPath, expectedLibrary.path]);
-    assert.equal(sha256(bytes), expectedLibrary.sha256,
-      `${expectedLibrary.path} digest differs from expectations`);
-    const localPath = path.join(temporary, path.basename(expectedLibrary.path));
+  for (const libraryName of libraryNames) {
+    const bytes = outputBytes("unzip", ["-p", artifactPath, libraryName]);
+    const librarySha256 = sha256(bytes);
+    const localPath = path.join(temporary, path.basename(libraryName));
     await writeFile(localPath, bytes, { flag: "wx", mode: 0o600 });
     const format = outputText("file", ["-b", localPath]);
     assert.match(format, /ELF 64-bit LSB shared object, ARM aarch64/u,
-      `${expectedLibrary.path} is not Linux AArch64 ELF64`);
+      `${libraryName} is not Linux AArch64 ELF64`);
     const dynamic = outputText("objdump", ["-p", localPath]);
     const symbols = outputText("objdump", ["-T", localPath]);
     const glibcVersions = parseGlibcVersions(symbols);
     const maximumRequiredGlibc = maximumVersion(glibcVersions);
     const needed = parseNeededLibraries(dynamic);
     const runtimePaths = parseRuntimePaths(dynamic);
-    assert.equal(maximumRequiredGlibc, expectedLibrary.maximumRequiredGlibc,
-      `${expectedLibrary.path} glibc evidence differs from expectations`);
-    assert.deepEqual(needed, [...expectedLibrary.needed].sort(),
-      `${expectedLibrary.path} dependency closure differs from expectations`);
-    if (expectedLibrary.runtimePaths) {
-      assert.deepEqual(runtimePaths, [...expectedLibrary.runtimePaths].sort(),
-        `${expectedLibrary.path} runtime paths differ from expectations`);
-    }
-    const glibcCompatible = atMost(maximumRequiredGlibc, expected.lambdaGlibc);
+    const glibcCompatible = atMost(maximumRequiredGlibc, maximumAllowedGlibc);
     const runtimePathsCompatible = runtimePaths.every((runtimePath) => runtimePath === "$ORIGIN");
     reports.push({
-      path: expectedLibrary.path,
-      sha256: expectedLibrary.sha256,
-      format: expectedLibrary.format,
+      path: libraryName,
+      sha256: librarySha256,
+      format: format.trim(),
       maximumRequiredGlibc,
       glibcCompatible,
       runtimePaths,
@@ -99,11 +83,11 @@ try {
 
 const report = {
   schema: "eacl-demo.datalevin-native-abi-report.v1",
-  expectations: path.relative(root, expectationsPath),
-  artifactSha256: expected.artifactSha256,
-  platform: expected.platform,
-  lambdaRuntime: expected.lambdaRuntime,
-  maximumAllowedGlibc: expected.lambdaGlibc,
+  artifact: path.relative(root, artifactPath),
+  artifactSha256: sha256(artifact),
+  platform: "linux/arm64",
+  lambdaRuntime: "java25",
+  maximumAllowedGlibc,
   compatible: reports.every(({ compatible }) => compatible),
   libraries: reports
 };

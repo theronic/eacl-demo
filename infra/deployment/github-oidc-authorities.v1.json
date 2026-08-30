@@ -10,7 +10,7 @@
     "name": "eacl-demo",
     "repositoryId": "1345904214",
     "fullName": "theronic/eacl-demo",
-    "deploymentRef": "refs/heads/demos",
+    "deploymentRef": "refs/heads/main",
     "immutableSubjectPrefix": "repo:theronic@1011676/eacl-demo@1345904214"
   },
   "subjectCustomization": {
@@ -29,7 +29,7 @@
     {
       "id": "deploy-static",
       "authorityClass": "ordinary-deployment",
-      "activation": "every-demos-push",
+      "activation": "every-main-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -41,7 +41,7 @@
     {
       "id": "deploy-datahike-s3",
       "authorityClass": "ordinary-deployment",
-      "activation": "every-demos-push",
+      "activation": "every-main-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -53,7 +53,7 @@
     {
       "id": "deploy-datahike-dynamodb",
       "authorityClass": "ordinary-deployment",
-      "activation": "every-demos-push",
+      "activation": "every-main-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -65,7 +65,7 @@
     {
       "id": "deploy-datomic-dynamodb",
       "authorityClass": "ordinary-deployment",
-      "activation": "every-demos-push",
+      "activation": "every-main-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",
@@ -77,7 +77,7 @@
     {
       "id": "deploy-datalevin-memory",
       "authorityClass": "ordinary-deployment",
-      "activation": "every-demos-push",
+      "activation": "every-main-push",
       "workflowName": "Deploy EACL demos",
       "workflowFile": ".github/workflows/deploy-demos.yml",
       "eventName": "push",

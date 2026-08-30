@@ -14,7 +14,7 @@ const EXACT_CONDITION_KEYS = [
   "token.actions.githubusercontent.com:sub",
   "token.actions.githubusercontent.com:workflow"
 ].sort();
-const ACTIVE_DEPLOYMENT_ACTIVATION = "every-demos-push";
+const ACTIVE_DEPLOYMENT_ACTIVATION = "every-main-push";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -55,7 +55,7 @@ export function validateManifest(manifest) {
   assert(manifest.repository?.name === "eacl-demo", "repository name changed");
   assert(manifest.repository?.repositoryId === "1345904214", "repository ID changed");
   assert(manifest.repository?.fullName === `${manifest.repository.owner}/${manifest.repository.name}`, "repository full name is inconsistent");
-  assert(manifest.repository?.deploymentRef === "refs/heads/demos", "deployment ref must be exact demos");
+  assert(manifest.repository?.deploymentRef === "refs/heads/main", "deployment ref must be exact main");
   assert(manifest.repository?.immutableSubjectPrefix === `repo:${manifest.repository.owner}@${manifest.repository.ownerId}/${manifest.repository.name}@${manifest.repository.repositoryId}`, "immutable subject prefix is inconsistent");
   assert(JSON.stringify(manifest.subjectCustomization) === JSON.stringify({
     use_default: false,
@@ -81,7 +81,7 @@ export function validateManifest(manifest) {
     if (authority.authorityClass === "ordinary-deployment") {
       assert(authority.workflowFile === ".github/workflows/deploy-demos.yml", `ordinary authority uses another workflow: ${authority.id}`);
       assert(authority.eventName === "push", `ordinary authority is not push-only: ${authority.id}`);
-      assert(authority.activation === ACTIVE_DEPLOYMENT_ACTIVATION, `ordinary authority is not active on every demos push: ${authority.id}`);
+      assert(authority.activation === ACTIVE_DEPLOYMENT_ACTIVATION, `ordinary authority is not active on every main push: ${authority.id}`);
       assert(!/(?:STATEFUL|SEED|MAINTENANCE)/u.test(`${authority.roleVariable}:${authority.permissionScope}`), `ordinary authority crosses stateful boundary: ${authority.id}`);
     } else {
       assert(authority.activation === "manual-only-after-workflow-publication", `nonordinary authority is not manual-only: ${authority.id}`);

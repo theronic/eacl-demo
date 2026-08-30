@@ -20,4 +20,4 @@ The remaining modules are deliberately small:
 
 Ordinary delivery is defined only by `.github/workflows/deploy-demos.yml` and
 `scripts/deploy-live-demo.mjs`: five independent direct jobs build, deploy, and
-smoke every live demo on each push to `demos`.
+smoke every live demo on each push to `main`.

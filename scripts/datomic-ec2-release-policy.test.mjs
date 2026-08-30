@@ -50,8 +50,9 @@ test("the one-vCPU Datomic host uses http-kit request tasks around one engine pe
   assert.doesNotMatch(deploySource, /EACL_MAXIMUM_CONCURRENCY=4/u);
   assert.match(deploySource, /\/\^EACL_HTTP_WORKERS=\/d/u);
   assert.match(deploySource, /limit\?\.name === "admissionConcurrency"[\s\S]*admissionConcurrency !== 1/u);
-  assert.match(depsSource, /http-kit\/http-kit \{:mvn\/version "2\.8\.1"\}/u);
+  assert.match(depsSource, /http-kit\/http-kit \{:mvn\/version "2\.9\.0-beta4"\}/u);
   assert.match(httpServerSource, /\[org\.httpkit\.server :as http-kit\]/u);
+  assert.match(httpServerSource, /:pool-opts \{:allow-virtual\? true\}/u);
   assert.match(httpServerSource, /:max-body \(inc maximum-request-body-bytes\)/u);
   assert.match(httpServerSource, /:server-header nil/u);
   assert.doesNotMatch(httpServerSource, /com\.sun\.net\.httpserver|io\.netty/u);

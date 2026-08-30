@@ -7,9 +7,9 @@ The product uses two explicit selections: an EACL backend followed by a storage 
 Deployment source is always an immutable pair:
 
 - the exact `theronic/eacl-demo` commit being built; and
-- the exact reachable `theronic/eacl` commit in `dependencies/eacl-core.lock.json` committed by that demo revision.
+- the exact `theronic/eacl` commit in `dependencies/eacl-core.lock.json` committed by that demo revision.
 
-Dirty checkouts, local-root dependencies, and branch names are not release identities. Every push to the `demos` branch rebuilds and deploys all live demos independently.
+Dirty checkouts, local-root dependencies, and branch names are not release identities. Every push to `main` rebuilds and deploys all live demos independently.
 
 ## Upgrade EACL
 
@@ -20,7 +20,7 @@ prepares the exact Core checkout, and regenerates the release report:
 npm run upgrade:eacl -- <commit-or-ref>
 ```
 
-Commit the result and push it to `demos`. The deployment workflow builds and
+Commit the result and push it to `main`. The deployment workflow builds and
 smoke-tests the static, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and
 Datalevin/memory demos. There is no readiness ledger, qualification workflow,
 or artifact-handoff gate in this path.

@@ -1,10 +1,10 @@
 {
   "$schema": "./schemas/toolchain.v1.schema.json",
   "schemaVersion": 1,
-  "capturedAt": "2026-08-29T00:00:00Z",
+  "capturedAt": "2026-08-30T00:00:00Z",
   "javascript": {
-    "node": "24.20.0",
-    "nodeReleaseLine": "Krypton LTS",
+    "node": "26.8.1",
+    "nodeReleaseLine": "Current",
     "packageManager": "npm",
     "npm": "11.19.0",
     "typescript": "7.0.2",
@@ -16,7 +16,7 @@
     "ajv": "8.20.0",
     "ajvFormats": "3.0.1",
     "vitePluginSolid": "2.11.14",
-    "typesNode": "24.13.3"
+    "typesNode": "26.4.0"
   },
   "jvm": {
     "distribution": "Eclipse Temurin",
@@ -65,7 +65,7 @@
     "cljfmt": "0.16.5",
     "cljKondo": "2026.08.04",
     "nrepl": "1.7.0",
-    "nodeTestRunner": "24.20.0",
+    "nodeTestRunner": "26.8.1",
     "vitest": "4.1.11",
     "fastCheck": "4.9.0",
     "jsdom": "30.0.1"

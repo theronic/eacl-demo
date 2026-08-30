@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Minimal demos-branch deployment role for already-provisioned EACL demo resources.
+Description: Minimal main-branch deployment role for already-provisioned EACL demo resources.
 
 Parameters:
   GitHubOidcProviderArn:
@@ -19,7 +19,7 @@ Resources:
   Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: eacl-demo-demos-branch-deploy
+      RoleName: eacl-demo-main-branch-deploy
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -30,7 +30,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos
+                token.actions.githubusercontent.com:sub: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main
       Policies:
         - PolicyName: exact-demo-delivery
           PolicyDocument:
@@ -69,7 +69,7 @@ Resources:
         - Key: Project
           Value: eacl-demo
         - Key: Branch
-          Value: demos
+          Value: main
 
 Outputs:
   RoleArn:

@@ -3,7 +3,7 @@ name: Deploy EACL demos
 on:
   push:
     branches:
-      - demos
+      - main
 
 permissions:
   contents: read

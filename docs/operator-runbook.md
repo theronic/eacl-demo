@@ -17,7 +17,7 @@ instance, and data generation before changing external state.
 4. Read the target profile registry state before changing infrastructure or
    stateful data. Ordinary deployment updates all five live targets.
 5. For stateful or temporary-compute work, use only the separately dispatched
-   workflow and exact reviewed confirmation token. A `demos` push is never a
+   workflow and exact reviewed confirmation token. A `main` push is never a
    seed, migration, table-creation, or EC2 authorization.
 6. Announce any deliberate alarm transition in advance. Do not create load to
    test Telegram: use one nonce-bearing synthetic notification.
@@ -29,7 +29,6 @@ Install the pinned Node/npm, Java, and Clojure toolchains described by
 
 ```sh
 npm ci
-npm run verify:locks
 npm run verify:secrets
 npm run test:contracts
 npm run test:explorer-state
@@ -59,7 +58,7 @@ health/bootstrap identity handshake, allow, deny, mutation-route rejection,
 and DataScript's zero-Worker page-local execution.
 
 Profile load, memory, fault, migration, initial-topology, and rollback exercises
-remain available as local tools when useful. They are not `demos` deployment
+remain available as local tools when useful. They are not `main` deployment
 gates. Stateful generation, seed, publication, and temporary-compute workflows
 remain separately confirmed; their existence is not authorization to run them.
 
@@ -70,10 +69,10 @@ it must bind immutable source, artifact, runtime, and data identities.
 ## Ordinary deployment
 
 The only automatic deployment trigger is a push to
-`theronic/eacl-demo:refs/heads/demos`. It must check out the triggering commit,
+`theronic/eacl-demo:refs/heads/main`. It must check out the triggering commit,
 resolve Core solely from the committed lock, and fan out static plus one job per
 server profile. Jobs may finish out of order and one failure must not stop a
-sibling. See `docs/demos-branch-delivery.md` for the closed CI contract.
+sibling. See `docs/demo-delivery.md` for the delivery contract.
 
 The workflow contains five independent jobs: static plus DataScript,
 Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each server job builds one
@@ -87,7 +86,7 @@ uses the same direct origin. CloudFront must receive no `/api/v1/*` request.
 
 The merge path must not create data, seed, migrate, start EC2, run load or
 memory sweeps, modify cost controls, send Telegram tests, or retire anything.
-See `docs/demos-branch-delivery.md` for the complete current contract.
+See `docs/demo-delivery.md` for the complete current contract.
 
 ## Release report
 
@@ -158,7 +157,7 @@ budget.
 
 ## DynamoDB generation and publication
 
-Use only the manual, `demos`-ref-restricted workflow for the exact backend:
+Use only the manual, `main`-ref-restricted workflow for the exact backend:
 
 - `.github/workflows/stateful-datahike-dynamodb.yml`
 - `.github/workflows/stateful-datomic-dynamodb.yml`

@@ -8,7 +8,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "858a73a62dfcdf05a5341787f806796d55fd2aff")
+(def baked-eacl-sha "990a58162a0a03c365db46cf166c5966ab70950a")
 (use-fixtures :each
   (fn [run]
     (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
@@ -21,7 +21,7 @@
    "EACL_MAXIMUM_CONCURRENCY" "2"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "858a73a62dfcdf05a5341787f806796d55fd2aff"
+   "EACL_CORE_SHA" "990a58162a0a03c365db46cf166c5966ab70950a"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
@@ -251,7 +251,7 @@
     (try
       (let [first-response (send 1)]
         (is (= true (deref entered 2000 ::timed-out)))
-        (let [waiting-responses (mapv send (range 2 9))]
+        (let [waiting-responses (mapv send (range 2 65))]
           (Thread/sleep 100)
           (is (every? #(not (.isDone %)) waiting-responses)
               "all contending HTTP requests must still be queued")
@@ -269,6 +269,6 @@
       (finally
         (deliver continue true)
         (http-server/stop-server! running)))
-    (is (= 8 @calls))
-    (is (= 8 @captures))
-    (is (= 8 @releases))))
+    (is (= 64 @calls))
+    (is (= 64 @captures))
+    (is (= 64 @releases))))

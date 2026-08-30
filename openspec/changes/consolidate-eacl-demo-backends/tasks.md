@@ -5,9 +5,9 @@
 - [x] 1.3 Classify each existing UI, service, fixture, and infrastructure source area as adopt, extract, replace, dependency-only, or retire.
 - [x] 1.4 Preserve immutable baseline screenshots and machine-readable health/bootstrap responses for each reachable legacy demo.
 - [x] 1.5 Verify theronic/eacl-demo is the canonical product repository and its origin is https://github.com/theronic/eacl-demo.git.
-- [x] 1.6 Define a deployment manifest that binds one immutable eacl-demo SHA and the exact reachable EACL Core SHA pinned by that repository revision.
+- [x] 1.6 Define a deployment manifest that binds one immutable eacl-demo SHA and the exact EACL Core SHA pinned by that repository revision.
 - [x] 1.7 Create and push the reviewed initial eacl-demo main commit without importing unrelated sibling-worktree changes.
-- [x] 1.8 Create or verify the demos deployment branch in theronic/eacl-demo without creating a coordinated Core deployment branch.
+- [x] 1.8 Create or verify the main deployment branch in theronic/eacl-demo without creating a coordinated Core deployment branch.
 - [x] 1.9 Document that local-root dependencies, dirty checkouts, and mutable branch names cannot be release identities.
 
 ## 2. Workspace and reproducible build foundations
@@ -107,8 +107,8 @@
 - [x] 7.4 Produce machine-readable and human-readable reports that distinguish unsupported features from failed behavior.
 - [x] 7.5 Remove qualification evidence as a demo publication gate; bounded live smoke and exact descriptor identity remain mandatory in the direct deployer.
 - [x] 7.6 Create a minimal merge smoke suite limited to health, bootstrap identity, one allowed authorization example, one denied example, and one expected mutation denial.
-- [x] 7.7 Assert ordinary demos-branch deployment has no dependency on formal verification, full conformance, full browser suites, load tests, memory sweeps, fault injection, seeds, or migrations.
-- [x] 7.8 Ensure the EACL formal workflow does not gate or trigger as part of ordinary demos-branch deployment, preserving any unrelated existing workflow edits.
+- [x] 7.7 Assert ordinary main-branch deployment has no dependency on formal verification, full conformance, full browser suites, load tests, memory sweeps, fault injection, seeds, or migrations.
+- [x] 7.8 Ensure the EACL formal workflow does not gate or trigger as part of ordinary main-branch deployment, preserving any unrelated existing workflow edits.
 - [x] 7.9 Retain locally runnable HTTP, browser, accessibility, workload, fixture, and fault diagnostics without qualification/publication workflows; keep only genuinely stateful operations in manual workflows.
 
 ## 8. Datahike storage profiles
@@ -208,7 +208,7 @@ decision as well as the existing qualification evidence.
 - [x] 13.6 Route alarm, budget, anomaly, applicable deployment-failure, and overdue temporary-compute notifications to Telegram.
 - [x] 13.7 Send and verify a synthetic Telegram alarm before creating or seeding durable DynamoDB data.
 - [x] 13.8 Implement explicit dispatch-only workflows for table creation, seed, verification, backup, data publication, and temporary compute.
-- [x] 13.9 Ensure ordinary demos-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.
+- [x] 13.9 Ensure ordinary main-branch workflows cannot invoke stateful workflows and do not receive seed or maintenance roles.
 - [x] 13.10 Encode the user's authorization for initial DynamoDB seeding and temporary seed, transactor, or Jank-build EC2, while retaining exact-target previews and noninteractive cleanup checks.
 - [x] 13.11 Add expiry-tag enforcement and a watchdog that emits a critical Telegram notification and terminates overdue temporary seed, transactor, or build compute.
 - [x] 13.12 Verify after every temporary-compute run that applicable tables respect caps and alarms, temporary roles are no longer active, EC2 is terminated, and no orphan volume or address remains.
@@ -217,13 +217,13 @@ decision as well as the existing qualification evidence.
 ## 14. GitHub settings, OIDC, and maximum-parallel deployment
 
 - [ ] 14.1 Reverify owner/repository IDs; keep manual stateful OIDC jobs dependency-install-free with pinned actions, no persisted checkout credential, and signature-verified allowlisted non-secret claim capture that never retains a token; permit the five ordinary direct jobs to build before AWS configuration while binding each to its exact target environment/role; configure the immutable `[repo, ref, workflow_ref, environment, event_name, runner_environment]` subject template and exact audience/repository/ref/workflow/environment conditions; require `push` for ordinary deployment, `workflow_dispatch` for manual authorities, and `github-hosted` execution; reject mismatched reusable-workflow identity, remove exact legacy-subject alternatives after migration, and create no ordinary Jank authority while it is parked.
-- [x] 14.2 Configure separate eacl-demo static and active per-profile deployment environments with demos-branch restrictions, no manual reviewers or wait timer, read-only default token permissions, and job-scoped id-token write; create no ordinary Jank environment while it is parked.
-- [x] 14.3 Remove classic branch protection and repository rulesets from theronic/eacl-demo:demos so a verified EACL upgrade can be committed and pushed directly to trigger deployment.
+- [x] 14.2 Configure separate eacl-demo static and active per-profile deployment environments with main-branch restrictions, no manual reviewers or wait timer, read-only default token permissions, and job-scoped id-token write; create no ordinary Jank environment while it is parked.
+- [x] 14.3 Remove classic branch protection and repository rulesets from theronic/eacl-demo:main so a verified EACL upgrade can be committed and pushed directly to trigger deployment.
 - [x] 14.4 Perform GitHub settings changes through the user's connected Chrome session and record a redacted settings audit.
 - [x] 14.5 Add no CI secrets speculatively; if a clean build of the pinned EACL revision proves a dependency credential is required, add only that scoped credential through Chrome.
 - [x] 14.6 Store immutable GitHub identity, AWS account, region, role identifiers, distribution IDs, and non-secret deployment coordinates as GitHub variables rather than secrets.
 - [x] 14.7 Assert GitHub contains no AWS access-key, Telegram bot-token, or cross-repository dispatch secret.
-- [x] 14.8 Build one workflow triggered only by pushes to eacl-demo:demos that fans out five independent direct jobs for static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Registered parked Jank/memory remains unavailable and unqueued.
+- [x] 14.8 Build one workflow triggered only by pushes to eacl-demo:main that fans out five independent direct jobs for static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Registered parked Jank/memory remains unavailable and unqueued.
 - [x] 14.9 Give each direct job only its target-specific environment and OIDC role; add no artifact handoff, sibling/global barrier, matrix, concurrency group, cancel-in-progress setting, latest-head guard, or cross-run ordering dependency.
 - [x] 14.10 In each direct job install the pinned toolchain and lock, build the target, configure its AWS role, deploy an immutable candidate, run only the bounded live smoke, publish that target's healthy identity, and roll back only that profile's alias on failure.
 - [x] 14.11 Allow mixed and out-of-order profile generations and publish the exact deployed demo SHA, locked EACL SHA, artifact identity, and last outcome without claiming latest-source convergence.
@@ -243,13 +243,13 @@ decision as well as the existing qualification evidence.
 - [x] 15.9 Record that the adopted direct-Function-URL cutover retained `demo.eacl.dev` on its canonical CloudFront distribution and required no production DNS mutation; any future DNS change remains separately and explicitly authorized.
 - [x] 15.10 Cut demo.eacl.dev over to the accepted CloudFront distribution and run immediate health, identity, allow, deny, mutation-denial, selector, and browser checks.
 - [x] 15.11 Record that no defined threshold failed during the accepted cutover/deployment, so the conditional rollback was not triggered; retain per-target automatic rollback and the still-open live rollback rehearsal in task 15.7.
-- [x] 15.12 Merge subsequent approved changes to demos and verify each completed job reports the exact run's demo/EACL identities while any failed job visibly retains its prior healthy deployment.
+- [x] 15.12 Merge subsequent approved changes to main and verify each completed job reports the exact run's demo/EACL identities while any failed job visibly retains its prior healthy deployment.
 
 ## 16. Documentation, legacy compatibility, and completion audit
 
 - [ ] 16.1 Publish user documentation for the backend/storage/platform selector, root Function URL operations, unequal dataset scales, 1769/4096 MiB Lambda variants, Datahike current-basis exact and `fully-consistent*` limitation, immutable-value Datomic consistency semantics, Datomic and Datalevin Lambda/EC2 topology differences, DataScript privacy, and Jank limitations.
 - [x] 16.2 Publish operator runbooks for build, qualification, deployment, seed, Telegram tests, temporary EC2 cleanup, data publication, rollback, cost review, and incidents.
-- [x] 16.3 Document the single GitHub demos-branch flow, pinned-source manifest, OIDC roles, variables, absence of long-lived AWS secrets, absence of GitHub concurrency management, and deliberately small merge gate.
+- [x] 16.3 Document the single GitHub main-branch flow, pinned-source manifest, OIDC roles, variables, absence of long-lived AWS secrets, absence of GitHub concurrency management, and deliberately small merge gate.
 - [ ] 16.4 Publish a release report listing enabled and disabled profiles, exact source and artifact identities, storage default evidence, fixture identities, memory settings, alarms, budgets, and rollback coordinates.
 - [x] 16.5 Reconcile sibling OpenSpec changes and identify prerequisites, adopted evidence, superseded demo deployment, and still-independent work.
 - [ ] 16.6 Observe production health, deployed source identities and outcomes, latency, errors, throttles, cost, Telegram delivery, and orphan-resource checks through the agreed window.
@@ -264,5 +264,5 @@ decision as well as the existing qualification evidence.
 - [x] 17.2 Configure Datahike/S3, Datahike/DynamoDB, Datomic, and Datalevin primary Lambda variants at 1769 MiB, retain 4096 MiB comparison variants where declared, and verify every deployed alias resolves to a published version with the exact memory, runtime, architecture, code identity, and required AWS SnapStart optimization state.
 - [ ] 17.3 Run the complete direct qualification suite for all four server profiles after the contract, consistency, concurrency, startup, and memory changes; require every advertised case to pass through its exact alias-qualified root paths.
 - [x] 17.4 Deploy the shared static entries, verify backend switching never flashes unavailable, Subjects always page by 25, consistency controls/notes match descriptors, DataScript remains workerless, and browser console/network audits show no legacy API paths or operations.
-- [x] 17.5 Merge the corrective release to `demos` and verify every eligible build/deploy job reports the exact merged demo/EACL identities without reintroducing a concurrency cap; retain the required production error, throttle, restore/init, memory, cost, queue, and Telegram observation window in task 16.6.
+- [x] 17.5 Merge the corrective release to `main` and verify every eligible build/deploy job reports the exact merged demo/EACL identities without reintroducing a concurrency cap; retain the required production error, throttle, restore/init, memory, cost, queue, and Telegram observation window in task 16.6.
 - [x] 17.6 Replace the minimal JDK Datomic EC2 adapter with pinned http-kit, replace immediate engine-permit rejection with fair deadline-aware admission waiting before snapshot capture, and add dependency, deadline, cancellation, cleanup, concurrent HTTP, and live no-overload evidence without increasing qualified engine concurrency.

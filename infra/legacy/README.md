@@ -22,4 +22,4 @@ stack, evidence must bind all of the following:
 Cutover authorization may create or update only those compatibility records.
 It does not authorize retirement. Retirement remains a separate exact-resource
 plan with backup, dependency, cost, recovery-window, and per-batch approval
-evidence. Ordinary `demos` deployment must never call it.
+evidence. Ordinary `main` deployment must never call it.

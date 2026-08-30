@@ -6,7 +6,7 @@
   "deploymentEligible": false,
   "builder": {
     "orchestrator": "scripts/build-datalevin-native-al2023.mjs",
-    "orchestratorSha256": "89319eea5de1cb89c1d7c703c98d6e7db62d31fff475bb67ff2790b0581b82a5",
+    "orchestratorSha256": "8db64c36b3a756a536cf763572935d8b91af1d5ec487fa5779ea2dd63262de9b",
     "definition": "infra/builders/datalevin-native-al2023-arm64.Dockerfile",
     "definitionSha256": "7117a74d0c1686a2abd5d045814b61e886b62020948899a53325cbba3e434729",
     "rpathPatch": "infra/builders/datalevin-native-al2023-rpath.patch",

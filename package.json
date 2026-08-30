@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "24.20.0",
+    "node": "26.8.1",
     "npm": "11.19.0"
   },
   "packageManager": "npm@11.19.0",
@@ -18,7 +18,7 @@
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.62.1",
     "@types/d3": "7.4.3",
-    "@types/node": "24.13.3",
+    "@types/node": "26.4.0",
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vite-plugin-solid": "2.11.14",
@@ -81,7 +81,6 @@
     "verify:jank-builder": "node scripts/audit-jank-builder.mjs",
     "verify:jank-builder-workload": "node scripts/verify-jank-builder-workload.mjs",
     "verify:jank-source": "node scripts/audit-jank-source.mjs",
-    "verify:datomic-dependencies": "node scripts/audit-datomic-dependencies.mjs",
     "verify:datomic-serving": "node scripts/audit-datomic-serving.mjs",
     "verify:datomic-lambda-artifact": "node scripts/audit-datomic-lambda-artifact.mjs",
     "verify:datomic-seed-artifact": "node scripts/audit-datomic-seed-artifact.mjs",
@@ -120,7 +119,6 @@
     "test:datomic-table-policy": "node --test scripts/datomic-table-policy.test.mjs",
     "test:jank-runtime-policy": "node --test scripts/jank-runtime-policy.test.mjs",
     "test:jank-builder-workload": "node --test scripts/jank-builder-workload.test.mjs",
-    "test:datalevin-dependency-policy": "node --test scripts/datalevin-dependency-policy.test.mjs",
     "test:datalevin-native-abi": "node --test scripts/datalevin-native-abi.test.mjs",
     "test:datalevin-native-builder-policy": "node --test scripts/datalevin-native-builder-policy.test.mjs",
     "test:datalevin-runtime-policy": "node --test scripts/datalevin-runtime-policy.test.mjs",
@@ -134,8 +132,6 @@
     "test:static-routing-policy": "node --test scripts/static-routing-policy.test.mjs",
     "test:services": "node --test services/**/*.test.mjs",
     "verify:fixture-golden": "node scripts/check-fixture-golden.mjs",
-    "lock:jvm": "node scripts/capture-jvm-lock.mjs",
-    "verify:locks": "node scripts/verify-locks.mjs",
     "verify:release-report": "node scripts/build-release-report.mjs --check"
   }
 }

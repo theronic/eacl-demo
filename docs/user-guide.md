@@ -1,8 +1,7 @@
 # EACL demo user guide
 
 Operators should use `docs/operator-runbook.md`; the deliberately small,
-parallel `demos`-branch delivery contract is in
-`docs/demos-branch-delivery.md`.
+parallel `main` delivery contract is in `docs/demo-delivery.md`.
 
 ## Choose a backend, then its storage
 

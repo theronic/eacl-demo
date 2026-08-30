@@ -2,10 +2,10 @@
 
 `github-oidc-authorities.v1.json` is the closed source of truth for every local
 job intended to request a GitHub OIDC token after publication. It includes the
-five active future ordinary deployment roles and every local manual qualification,
+five active ordinary deployment roles and every local manual qualification,
 transition, and stateful role because GitHub subject customization is
-repository-wide. The remote `demos` branch contained no workflow files in the
-2026-08-26 audit, so these policies are not evidence of a live authority.
+repository-wide. The generated policies define current trust; live IAM trust
+is verified independently before deployment.
 
 The desired repository subject template is:
 
@@ -20,7 +20,7 @@ The desired repository subject template is:
 For example, the Datomic deployment role requires this exact subject:
 
 ```text
-repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/demos:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/demos:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
+repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
 ```
 
 The generated AWS policies also compare the current AWS-supported `aud`,
