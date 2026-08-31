@@ -2,6 +2,8 @@
   (:require [clojure.data.json :as json]
             [clojure.test :refer [deftest is use-fixtures]]
             [eacl-demo.contracts.build-identity :as build-identity]
+            [eacl-demo.contracts.cache-metrics :as cache-metrics]
+            [eacl-demo.datomic-dynamodb.boundary :as boundary]
             [eacl-demo.datomic-dynamodb.http-server :as http-server]
             [eacl-demo.datomic-dynamodb.lambda-handler :as handler]
             [eacl-demo.datomic-dynamodb.reader :as reader])
@@ -107,48 +109,69 @@
     (is (= "demo-test" (get-in denied-body [:meta :revision])))
     (is (= #{:error :meta} (set (keys denied-body))))))
 
-(deftest snapstart-primes-the-first-admin-resource-page-test
-  (let [captured (atom [])
-        running {:runtime :datomic-dynamodb}]
-    (with-redefs [handler/handle-event
-                  (fn [actual event remaining-ms]
-                    (swap! captured conj {:runtime actual
-                                          :event event
-                                          :remaining-ms remaining-ms})
-                    {:statusCode 200
-                     :body (json/write-str
-                            {:data {:items (mapv (fn [index] {:id (str index)})
-                                                (range 10))}
-                             :meta {:cacheStatus (if (= 1 (count @captured))
-                                                   "miss"
-                                                   "hit")}})})]
-      (is (= running (handler/prime-runtime! running))))
-    (is (= 256 (count @captured)))
-    (is (every? #(= running (:runtime %)) @captured))
-    (is (every? #(= 30000 (:remaining-ms %)) @captured))
-    (is (every? #(= "/lookup-resources" (get-in % [:event :rawPath]))
-                @captured))))
+(deftest warmup-compiles-both-canonical-cache-hit-paths-test
+  (let [calls (atom {})
+        requests (atom {})
+        operation-metrics (cache-metrics/create-operation-metrics)
+        running {:boundary ::boundary
+                 :descriptor {:identity {}}
+                 :operation-metrics operation-metrics}]
+    (with-redefs
+     [boundary/invoke!
+      (fn [actual request]
+        (when-not (= ::boundary actual)
+          (throw (ex-info "unexpected boundary" {})))
+        (swap! calls update (:path request) (fnil inc 0))
+        (swap! requests assoc (:path request) request)
+        (case (:path request)
+          "/lookup-resources"
+          {:data {:items (mapv (fn [index] {:id (str index)}) (range 64))
+                  :pageInfo {:hasNextPage false
+                             :endCursor nil
+                             :pageSize 64}}
+           :meta {:cacheStatus "hit"}}
 
-(deftest persistent-ec2-startup-skips-the-lambda-snapstart-prime-test
-  (let [primed (atom [])
+          "/count-resources"
+          {:data {:kind "objects" :value 64 :exact true :ceiling 1000}
+           :meta {:cacheStatus "hit"}}))]
+      (is (= running (handler/warm-hot-path! running))))
+    (is (= 20000 @#'handler/hot-path-warmup-iterations))
+    ;; Ten thousand direct calls plus one full Function URL verification per
+    ;; operation exercises both the timed boundary and transport metrics.
+    (is (= {"/lookup-resources" 10001
+            "/count-resources" 10001}
+           @calls))
+    (is (= {:subjectType "user" :subjectId "user-1"
+            :resourceType "server" :permission "view"
+            :pageSize 100 :cache true :populateCache true
+            :consistency "minimize"}
+           (get-in @requests ["/lookup-resources" :input])))
+    (is (= 1000 (get-in @requests ["/count-resources" :input :ceiling])))
+    (let [metrics (cache-metrics/operation-snapshot operation-metrics)]
+      (is (= 1 (get-in metrics ["lookup-resources" :count])))
+      (is (= 1 (get-in metrics ["count-resources" :count]))))))
+
+(deftest lambda-and-persistent-ec2-startup-warm-before-serving-test
+  (let [warmed (atom [])
         lambda-runtime {:descriptor {:runtime {:execution "lambda"}}}
         ec2-runtime {:descriptor {:runtime {:execution "ec2"}}}]
-    (with-redefs [handler/prime-runtime! #(swap! primed conj %)]
+    (with-redefs [handler/warm-hot-path! #(swap! warmed conj %)]
       (is (= ec2-runtime (#'handler/prepare-runtime! ec2-runtime)))
-      (is (empty? @primed))
       (is (= lambda-runtime (#'handler/prepare-runtime! lambda-runtime)))
-      (is (= [lambda-runtime] @primed)))))
+      (is (= [ec2-runtime lambda-runtime] @warmed)))))
 
-(deftest failed-lambda-prime-closes-the-process-reader-test
-  (let [closed (atom [])
-        running {:reader :fixed-reader
-                 :descriptor {:runtime {:execution "lambda"}}}]
-    (with-redefs [handler/prime-runtime!
-                  (fn [_] (throw (ex-info "prime failed" {})))
-                  reader/close-reader! #(swap! closed conj %)]
-      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"prime failed"
-                            (#'handler/prepare-runtime! running))))
-    (is (= [:fixed-reader] @closed))))
+(deftest failed-hot-path-warmup-closes-either-process-reader-test
+  (doseq [execution ["lambda" "ec2"]]
+    (let [closed (atom [])
+          fixed-reader (keyword (str execution "-reader"))
+          running {:reader fixed-reader
+                   :descriptor {:runtime {:execution execution}}}]
+      (with-redefs [handler/warm-hot-path!
+                    (fn [_] (throw (ex-info "warmup failed" {})))
+                    reader/close-reader! #(swap! closed conj %)]
+        (is (thrown-with-msg? clojure.lang.ExceptionInfo #"warmup failed"
+                              (#'handler/prepare-runtime! running))))
+      (is (= [fixed-reader] @closed)))))
 
 (deftest runtime-close-delegates-to-the-process-reader-test
   (let [closed (atom [])]
@@ -167,18 +190,25 @@
          (handler/initialize environment (constantly opened))))
     (is (= 1 @close-calls))))
 
-(deftest snapstart-prime-requires-the-cache-to-converge-test
-  (with-redefs [handler/handle-event
-                (fn [_ _ _]
-                  {:statusCode 200
-                   :body (json/write-str
-                          {:data {:items (mapv (fn [index] {:id (str index)})
-                                              (range 10))}
-                           :meta {:cacheStatus "miss"}})})]
+(deftest hot-path-warmup-requires-both-caches-to-converge-test
+  (with-redefs [boundary/invoke!
+                (fn [_ request]
+                  (case (:path request)
+                    "/lookup-resources"
+                    {:data {:items (vec (repeat 64 {}))
+                            :pageInfo {:pageSize 64}}
+                     :meta {:cacheStatus "miss"}}
+
+                    "/count-resources"
+                    {:data {:value 64 :exact true :ceiling 1000}
+                     :meta {:cacheStatus "miss"}}))]
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
          #"cache did not converge"
-         (handler/prime-runtime! {:runtime :datomic-dynamodb})))))
+         (handler/warm-hot-path!
+          {:boundary ::boundary
+           :descriptor {:identity {}}
+           :operation-metrics (cache-metrics/create-operation-metrics)})))))
 
 (deftest malformed-function-url-events-return-compact-redacted-envelope-test
   (let [runtime (handler/initialize environment fake-reader)

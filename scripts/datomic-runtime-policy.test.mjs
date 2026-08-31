@@ -14,7 +14,7 @@ test("Datomic candidate uses managed Java 25 and a restore-qualified preinitiali
   assert.match(template, /SnapStartPolicy: published-version-preinitialized-reader/u);
   assert.match(template, /SnapStart:\s*\n\s*ApplyOn: PublishedVersions/u);
   assert.match(handlerSource, /defn initialize-runtime!/u);
-  assert.match(handlerSource, /prime-runtime!/u);
+  assert.match(handlerSource, /warm-hot-path!/u);
   assert.match(javaHandlerSource, /INITIALIZE\.invoke\(\)/u);
   assert.doesNotMatch(template, /ProvisionedConcurrency|java17(?:\s|$)|provided\./u);
 });
