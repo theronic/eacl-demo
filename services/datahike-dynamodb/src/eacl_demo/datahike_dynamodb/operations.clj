@@ -270,10 +270,10 @@
     (when-not snapshot (fail! "internal-error"))
     (when-not (http/freshness-floor-available? input public-basis)
       (fail! "freshness-unavailable"))
-    (case (:consistency input)
-      "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))
-      "exact" (consistency/at-exact-snapshot (eacl/basis-token snapshot))
-      consistency/minimize-latency)))
+    ;; Snapshot selection and freshness validation are complete at this
+    ;; boundary. Do not mint a token from the retained snapshot merely to
+    ;; authenticate it back to itself on the cache-hit path.
+    consistency/minimize-latency))
 
 (defn- relationship-query
   [input anchor]

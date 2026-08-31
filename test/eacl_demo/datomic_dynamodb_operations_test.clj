@@ -33,7 +33,7 @@
     :check-active! (fn [])
     :remaining-ms (constantly 30000)}))
 
-(deftest minimize-latency-does-not-mint-a-basis-token-test
+(deftest selected-snapshot-modes-do-not-mint-a-basis-token-test
   (let [calls (atom 0)
         snapshot ::snapshot]
     (with-redefs [eacl/basis-token
@@ -41,26 +41,23 @@
                     (is (= snapshot actual))
                     (swap! calls inc)
                     "basis-token")]
-      (is (= consistency/minimize-latency
-             (#'operations/eacl-consistency
-              {:eacl-demo/snapshot snapshot :consistency "minimize"})))
-      (is (zero? @calls))
-      (is (= (consistency/at-exact-snapshot "basis-token")
-             (#'operations/eacl-consistency
-              {:eacl-demo/snapshot snapshot :consistency "exact"})))
-      (is (= (consistency/at-exact-snapshot "basis-token")
-             (#'operations/eacl-consistency
-              {:eacl-demo/snapshot snapshot
-               :consistency "historical-date"})))
-      (is (= 2 @calls)))))
+      (doseq [mode ["minimize" "authoritative" "at-least" "exact"
+                    "historical-date"]]
+        (is (= consistency/minimize-latency
+               (#'operations/eacl-consistency
+                {:eacl-demo/snapshot snapshot :consistency mode}))))
+      (is (zero? @calls)
+          "a consistency-selected snapshot must not mint a token to assert against itself"))))
 
 (deftest same-basis-identity-satisfies-cross-environment-freshness-floor-test
   (let [input {:eacl-demo/snapshot ::snapshot
                :eacl-demo/public-basis public-basis
                :consistency "at-least"
                :atLeastAsFreshAs "2026-08-25T12:00:01Z"}]
-    (with-redefs [eacl/basis-token (constantly "basis-token")]
-      (is (= (consistency/at-least-as-fresh "basis-token")
+    (with-redefs [eacl/basis-token
+                  (fn [& _]
+                    (throw (ex-info "must not mint a basis token" {})))]
+      (is (= consistency/minimize-latency
              (#'operations/eacl-consistency
               (assoc input
                      :atLeastAsFreshBasisId (:id public-basis)
