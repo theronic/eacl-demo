@@ -19,29 +19,36 @@
 (def ^:private deployment-pattern #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}")
 
 (declare handle-event initialize invoke-event! parse-environment
-         parse-positive-int prepare-runtime! prime-runtime!)
+         parse-positive-int prepare-runtime! verify-hot-path! warm-hot-path!)
 
-(def ^:private snapstart-prime-event
-  {:version "2.0"
-   :routeKey "$default"
-   :rawPath "/lookup-resources"
-   :rawQueryString ""
-   :headers {"content-type" "application/json"}
-   :requestContext
-   {:requestId "snapstart-prime-lookup-resources"
-    :http {:method "POST"}}
-   :isBase64Encoded false
-   :body (json/write-str
-          {:subjectType "user"
-           :subjectId "user-1"
-           :resourceType "server"
-           :permission "admin"
-           :pageSize 10
-           :cache true
-           :populateCache true
-           :consistency "minimize"})
-   :cookies nil})
-(def ^:private snapstart-prime-repetitions 256)
+;; On a fresh JVM, the same real Datomic cache hit falls from roughly 100us to
+;; roughly 13us after ten thousand calls. Alternate the two Explorer requests
+;; so both operation-specific call sites cross the measured JIT threshold.
+(def ^:private hot-path-warmup-iterations 20000)
+(def ^:private never-cancelled? (constantly false))
+(def ^:private hot-path-requests
+  [{:path "/lookup-resources"
+    :method :post
+    :request-id "warm-lookup-resources"
+    :input {:subjectType "user"
+            :subjectId "user-1"
+            :resourceType "server"
+            :permission "view"
+            :pageSize 100
+            :cache true
+            :populateCache true
+            :consistency "minimize"}}
+   {:path "/count-resources"
+    :method :post
+    :request-id "warm-count-resources"
+    :input {:subjectType "user"
+            :subjectId "user-1"
+            :resourceType "server"
+            :permission "view"
+            :ceiling 1000
+            :cache true
+            :populateCache true
+            :consistency "minimize"}}])
 
 (defonce ^:private runtime
   (delay
@@ -51,10 +58,8 @@
        #(initialize environment)))))
 
 (defn initialize-runtime!
-  "Realize the fixed read-only Peer and, only for Lambda, exercise it before
-  the published-version SnapStart checkpoint. Persistent EC2 startup must bind
-  its health port after opening the Peer instead of running the Lambda JIT
-  workload on the one-vCPU host."
+  "Realize and warm the fixed read-only Peer. Lambda does this before its
+  SnapStart checkpoint; EC2 does it before binding its public health port."
   []
   (prepare-runtime! @runtime)
   nil)
@@ -72,16 +77,15 @@
 
 (defn- prepare-runtime!
   [running]
-  (when (= "lambda" (get-in running [:descriptor :runtime :execution]))
-    (try
-      (prime-runtime! running)
-      (catch Throwable error
-        (try
-          (close-runtime! running)
-          (catch Throwable cleanup-error
-            (.addSuppressed ^Throwable error cleanup-error)))
-        (throw error))))
-  running)
+  (try
+    (warm-hot-path! running)
+    running
+    (catch Throwable error
+      (try
+        (close-runtime! running)
+        (catch Throwable cleanup-error
+          (.addSuppressed ^Throwable error cleanup-error)))
+      (throw error))))
 
 (defn initialize
   "Builds one reader and boundary. Injectable for local tests; production uses
@@ -149,26 +153,85 @@
          started-nanos response envelope)
         response))))
 
-(defn prime-runtime!
-  "Compile and populate the first server page before the SnapStart checkpoint."
+(defn warm-hot-path!
+  "Populate and JIT-compile the two canonical server cache-hit paths."
   [running]
-  (let [final-cache-status (volatile! nil)]
-    (dotimes [_ snapstart-prime-repetitions]
-      (let [response (handle-event running snapstart-prime-event 30000)
+  (let [profile-boundary (:boundary running)
+        final-envelopes
+        (loop [iteration 0
+               final-envelopes [nil nil]]
+          (if (= iteration hot-path-warmup-iterations)
+            final-envelopes
+            (let [request-index (bit-and iteration 1)
+                  request (nth hot-path-requests request-index)
+                  envelope
+                  (boundary/invoke!
+                   profile-boundary
+                   (assoc request
+                          :deadline-ms (+ (System/currentTimeMillis) 30000)
+                          :cancelled? never-cancelled?))]
+              (recur (inc iteration)
+                     (assoc final-envelopes request-index envelope)))))]
+    (doseq [[request envelope] (map vector hot-path-requests final-envelopes)]
+      (verify-hot-path! request envelope))
+    ;; Exercise JSON encoding and operation metrics once per route without
+    ;; paying that allocation-heavy transport cost during all 20,000 JIT calls.
+    (doseq [request hot-path-requests]
+      (let [event {:version "2.0"
+                   :routeKey "$default"
+                   :rawPath (:path request)
+                   :rawQueryString ""
+                   :headers {"content-type" "application/json"}
+                   :requestContext
+                   {:requestId (str "verify-" (:request-id request))
+                    :http {:method "POST"}}
+                   :isBase64Encoded false
+                   :body (json/write-str (:input request))
+                   :cookies nil}
+            response (handle-event running event 30000)
             envelope (json/read-str (:body response) :key-fn keyword)]
-        (vreset! final-cache-status (get-in envelope [:meta :cacheStatus]))
-        (when-not (and (= 200 (:statusCode response))
-                       (= 10 (count (get-in envelope [:data :items]))))
-          (throw (ex-info "Datomic/DynamoDB SnapStart lookup priming failed."
-                          {:type :eacl-demo/snapstart-prime-failed
-                           :status (:statusCode response)
-                           :cache-status @final-cache-status
-                           :error-code (get-in envelope [:error :code])})))))
-    (when-not (= "hit" @final-cache-status)
-      (throw (ex-info "Datomic/DynamoDB SnapStart cache did not converge."
-                      {:type :eacl-demo/snapstart-prime-failed
-                       :cache-status @final-cache-status}))))
+        (when-not (= 200 (:statusCode response))
+          (throw
+           (ex-info "Datomic/DynamoDB hot-path transport verification failed."
+                    {:type :eacl-demo/hot-path-warmup-failed
+                     :operation (subs (:path request) 1)
+                     :status (:statusCode response)})))
+        (verify-hot-path! request envelope)))
+    (let [metrics (cache-metrics/operation-snapshot
+                   (:operation-metrics running))]
+      (when-not (every? #(pos? (long (get-in metrics [% :count] 0)))
+                        ["lookup-resources" "count-resources"])
+        (throw
+         (ex-info "Datomic/DynamoDB hot-path metrics verification failed."
+                  {:type :eacl-demo/hot-path-warmup-failed})))))
   running)
+
+(defn- verify-hot-path!
+  [request envelope]
+  (let [operation (subs (:path request) 1)
+        cache-status (get-in envelope [:meta :cacheStatus])
+        valid-data?
+        (case operation
+          "lookup-resources"
+          (and (= 64 (count (get-in envelope [:data :items])))
+               (= 64 (get-in envelope [:data :pageInfo :pageSize])))
+
+          "count-resources"
+          (and (= 64 (get-in envelope [:data :value]))
+               (true? (get-in envelope [:data :exact]))
+               (= 1000 (get-in envelope [:data :ceiling])))
+
+          false)]
+    (when-not (and valid-data? (= "hit" cache-status))
+      (throw
+       (ex-info (if (= "miss" cache-status)
+                  "Datomic/DynamoDB hot-path cache did not converge."
+                  "Datomic/DynamoDB hot-path verification failed.")
+                {:type :eacl-demo/hot-path-warmup-failed
+                 :operation operation
+                 :cache-status cache-status
+                 :error-code (get-in envelope [:error :code])}))))
+  envelope)
 
 (defn invoke-event!
   "Invoke one normalized Function URL-shaped event against the process runtime.
