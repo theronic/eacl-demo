@@ -1,5 +1,6 @@
 (ns eacl-demo.contracts-response-meta-test
   (:require [clojure.test :refer [deftest is testing]]
+            [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta]))
 
 (deftest canonical-cache-status-test
@@ -16,3 +17,8 @@
 
 (deftest elapsed-time-is-nonnegative-test
   (is (<= 0.0 (response-meta/elapsed-ms (System/nanoTime)))))
+
+(deftest absent-freshness-floor-needs-no-timestamp-work-test
+  (is (true? (http/freshness-floor-available?
+              {:consistency "minimize"}
+              {:capturedAt "not-read-without-a-floor"}))))

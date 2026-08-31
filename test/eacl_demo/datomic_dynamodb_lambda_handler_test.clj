@@ -9,7 +9,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "5ec31570def0d637010bb2339ffb893da7675cf8")
+(def baked-eacl-sha "e9e9c616350da43cd2c731385eea856ce6c58075")
 (use-fixtures :each
   (fn [run]
     (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
@@ -22,7 +22,7 @@
    "EACL_MAXIMUM_CONCURRENCY" "2"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "5ec31570def0d637010bb2339ffb893da7675cf8"
+   "EACL_CORE_SHA" "e9e9c616350da43cd2c731385eea856ce6c58075"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
@@ -62,6 +62,11 @@
     (is (= baked-eacl-sha
            (get-in (handler/parse-environment (dissoc environment "EACL_CORE_SHA"))
                    [:identity :eaclSha])))
+    (is (= baked-eacl-sha
+           (get-in (handler/parse-environment
+                    (assoc environment "EACL_CORE_SHA"
+                           (apply str (repeat 40 "0"))))
+                   [:identity :eaclSha])))
     (is (= "lambda" (:execution parsed))))
   (let [parsed (handler/parse-environment
                 (-> environment
@@ -71,7 +76,6 @@
     (is (= "ec2" (:execution parsed)))
     (is (= 1024 (:memory-mib parsed))))
   (doseq [changed [(dissoc environment "EACL_CURSOR_KEY")
-                   (assoc environment "EACL_CORE_SHA" (apply str (repeat 40 "0")))
                    (assoc environment "EACL_MAXIMUM_CONCURRENCY" "0")
                    (assoc environment "EACL_ARTIFACT_SHA256" "not-a-digest")
                    (assoc environment "EACL_RUNTIME_EXECUTION" "container")]]

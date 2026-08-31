@@ -7,7 +7,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "5ec31570def0d637010bb2339ffb893da7675cf8")
+(def baked-eacl-sha "e9e9c616350da43cd2c731385eea856ce6c58075")
 
 (use-fixtures :each
   (fn [run]
@@ -37,7 +37,12 @@
     (is (= 1 (:maximum-concurrency lambda)))
     (is (= "ec2" (:execution ec2)))
     (is (= 1 (:maximum-concurrency ec2)))
-    (is (= 1024 (:memory-mib ec2))))
+    (is (= 1024 (:memory-mib ec2)))
+    (is (= baked-eacl-sha
+           (get-in (handler/parse-environment
+                    (assoc environment "EACL_CORE_SHA"
+                           (apply str (repeat 40 "0"))))
+                   [:identity :eaclSha]))))
   (doseq [changed [(assoc environment "EACL_RUNTIME_EXECUTION" "container")
                    (-> environment
                        (dissoc "AWS_LAMBDA_FUNCTION_MEMORY_SIZE")

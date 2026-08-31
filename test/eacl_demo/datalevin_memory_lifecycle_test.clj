@@ -291,12 +291,15 @@
   (is (= (:eaclSha valid-state)
          (:eaclSha (lifecycle/expected-state-from-environment!
                     (dissoc valid-environment "EACL_CORE_SHA")))))
+  (is (= (:eaclSha valid-state)
+         (:eaclSha (lifecycle/expected-state-from-environment!
+                    (assoc valid-environment "EACL_CORE_SHA"
+                           (apply str (repeat 40 "0")))))))
   (doseq [[field value]
           [["EACL_DATALEVIN_STORAGE_MODE" "disk"]
            ["EACL_RUNTIME" "provided.al2023"]
            ["EACL_ARCHITECTURE" "x86_64"]
            ["EACL_DEMO_SHA" (apply str (repeat 40 "g"))]
-           ["EACL_CORE_SHA" (apply str (repeat 40 "0"))]
            ["EACL_DEPLOYMENT_ID" "bad deployment"]
            ["EACL_MAXIMUM_CONCURRENCY" "2"]
            ["EACL_SNAPSHOT_STRATEGY" "unqualified"]

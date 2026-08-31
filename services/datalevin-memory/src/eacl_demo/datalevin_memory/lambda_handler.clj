@@ -46,7 +46,6 @@
 (defn parse-environment
   [environment]
   (let [baked-eacl-sha (build-identity/eacl-sha)
-        declared-eacl-sha (get environment "EACL_CORE_SHA")
         execution (get environment "EACL_RUNTIME_EXECUTION" "lambda")
         memory-key (if (= "ec2" execution)
                      "EACL_RUNTIME_MEMORY_MIB"
@@ -65,8 +64,6 @@
                                  (get environment "EACL_MAXIMUM_CONCURRENCY"))
                                 (when (= "lambda" execution) 1))]
     (when-not (and (re-matches #"[0-9a-f]{40}" (or (:demoSha identity) ""))
-                   (or (nil? declared-eacl-sha)
-                       (= baked-eacl-sha declared-eacl-sha))
                    (re-matches #"[0-9a-f]{64}"
                                (or (:artifactSha256 identity) ""))
                    (re-matches #"[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}"

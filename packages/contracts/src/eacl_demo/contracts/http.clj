@@ -203,24 +203,25 @@
   execution environments. Older clients retain basis-ID compatibility, while
   timestamp comparison remains the fallback when basis identity differs."
   [input public-basis]
-  (let [requested-basis-id (:atLeastAsFreshBasisId input)
-        current-basis-id (:id public-basis)
-        requested-at (some-> (:atLeastAsFreshAs input) java.time.Instant/parse)
-        selected-captured-at (some-> (:atLeastAsFreshBasisCapturedAt input)
-                                     java.time.Instant/parse)
-        captured-at (some-> (:capturedAt public-basis) java.time.Instant/parse)]
-    (cond
-      (and requested-basis-id
-           (= requested-basis-id current-basis-id)
-           selected-captured-at)
-      (not (and requested-at
-                (.isAfter requested-at selected-captured-at)))
+  (if-let [requested-at-value (:atLeastAsFreshAs input)]
+    (let [requested-basis-id (:atLeastAsFreshBasisId input)
+          current-basis-id (:id public-basis)
+          requested-at (java.time.Instant/parse requested-at-value)
+          selected-captured-at (some-> (:atLeastAsFreshBasisCapturedAt input)
+                                       java.time.Instant/parse)]
+      (cond
+        (and requested-basis-id
+             (= requested-basis-id current-basis-id)
+             selected-captured-at)
+        (not (.isAfter requested-at selected-captured-at))
 
-      (and requested-basis-id
-           (= requested-basis-id current-basis-id))
-      true
+        (and requested-basis-id
+             (= requested-basis-id current-basis-id))
+        true
 
-      :else
-      (not (and requested-at
-                captured-at
-                (.isAfter requested-at captured-at))))))
+        :else
+        (let [captured-at (some-> (:capturedAt public-basis)
+                                  java.time.Instant/parse)]
+          (not (and captured-at
+                    (.isAfter requested-at captured-at))))))
+    true))

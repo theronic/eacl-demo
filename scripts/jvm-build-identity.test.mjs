@@ -32,23 +32,22 @@ test("the generated JVM identity is an exact deterministic projection of the Cor
   }
 });
 
-test("every JVM service reports the baked SHA and only cross-checks an optional deployment assertion", async () => {
+test("every JVM service reports the generated baked SHA without runtime assertion machinery", async () => {
   const build = await readFile(path.join(root, "build.clj"), "utf8");
   assert.equal((build.match(/\(generate-build-identity! [^)]+\)/gu) ?? []).length, 4);
-  assert.equal((build.match(/\(verify-build-identity! [^)]+\)/gu) ?? []).length, 4);
+  assert.doesNotMatch(build, /verify-build-identity|verify-jvm-build-identity/u);
   for (const file of handlers) {
     const source = await readFile(path.join(root, file), "utf8");
     assert.match(source, /\[eacl-demo\.contracts\.build-identity :as build-identity\]/u, file);
     assert.match(source, /baked-eacl-sha \(build-identity\/eacl-sha\)/u, file);
     assert.match(source, /:eaclSha baked-eacl-sha/u, file);
-    assert.match(source, /declared-eacl-sha \(get environment "EACL_CORE_SHA"\)/u, file);
-    assert.doesNotMatch(source, /def \^:private pinned-eacl-sha|:eaclSha \(get environment "EACL_CORE_SHA"\)/u, file);
+    assert.doesNotMatch(source, /declared-eacl-sha|:eaclSha \(get environment "EACL_CORE_SHA"\)/u, file);
   }
   const lifecycle = await readFile(path.join(root,
     "services/datalevin-memory/src/eacl_demo/datalevin_memory/lifecycle.clj"), "utf8");
   assert.match(lifecycle, /baked-eacl-sha \(build-identity\/eacl-sha\)/u);
   assert.match(lifecycle, /:eaclSha baked-eacl-sha/u);
-  assert.doesNotMatch(lifecycle, /:eaclSha "EACL_CORE_SHA"/u);
+  assert.doesNotMatch(lifecycle, /declared-eacl-sha|:eaclSha "EACL_CORE_SHA"/u);
 });
 
 test("DataScript keeps its equivalent CI-baked closure define", async () => {

@@ -232,7 +232,6 @@
                                              "EACL_MAXIMUM_CONCURRENCY"))
         memory-mib (parse-positive-int (get environment memory-key))
         baked-eacl-sha (build-identity/eacl-sha)
-        declared-eacl-sha (get environment "EACL_CORE_SHA")
         identity {:profileId "datomic-dynamodb"
                   :demoSha (get environment "EACL_DEMO_SHA")
                   :eaclSha baked-eacl-sha
@@ -243,8 +242,6 @@
               (nil? concurrency) (nil? memory-mib)
               (not (contains? #{"lambda" "ec2"} execution))
               (not (re-matches sha1-pattern (:demoSha identity)))
-              (and (some? declared-eacl-sha)
-                   (not= baked-eacl-sha declared-eacl-sha))
               (not (re-matches sha256-pattern (:artifactSha256 identity)))
               (not (re-matches deployment-pattern (:deploymentId identity))))
       (throw (ex-info "Lambda environment is incomplete or invalid."

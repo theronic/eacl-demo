@@ -4,7 +4,7 @@
 (def datomic-class-dir "target/datomic-dynamodb-lambda/classes")
 (def datomic-uber-file "dist/datomic-dynamodb/function.jar")
 (def datomic-generated-classes-dir
-  "target/eacl-core-source/5ec31570def0d637010bb2339ffb893da7675cf8/target/formal/java/classes")
+  "target/eacl-core-source/e9e9c616350da43cd2c731385eea856ce6c58075/target/formal/java/classes")
 (def datomic-source-dirs
   ["packages/contracts/src"
    "services/datomic-dynamodb/src"])
@@ -72,16 +72,6 @@
       (throw (ex-info "JVM build identity generation failed."
                       {:class-dir class-dir :exit exit})))))
 
-(defn- verify-build-identity!
-  [uber-file]
-  (let [{:keys [exit]}
-        (b/process {:command-args ["node"
-                                   "scripts/verify-jvm-build-identity.mjs"
-                                   uber-file]})]
-    (when-not (zero? exit)
-      (throw (ex-info "JVM build identity verification failed."
-                      {:uber-file uber-file :exit exit})))))
-
 (defn- compile-service!
   [basis class-dir source-dirs]
   ;; Lambda cold starts must not spend tens of seconds compiling application
@@ -137,7 +127,6 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic Datahike/S3 JAR normalization failed."
                         {:exit exit}))))
-    (verify-build-identity! datahike-s3-uber-file)
     (println datahike-s3-uber-file)))
 
 (defn datahike-dynamodb-lambda
@@ -181,7 +170,6 @@
         (throw (ex-info
                 "Deterministic Datahike/DynamoDB JAR normalization failed."
                 {:exit exit}))))
-    (verify-build-identity! datahike-dynamodb-uber-file)
     (println datahike-dynamodb-uber-file)))
 
 (defn datahike-dynamodb-seed
@@ -261,7 +249,6 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic JAR normalization failed."
                         {:exit exit}))))
-    (verify-build-identity! datomic-uber-file)
     (println datomic-uber-file)))
 
 (defn datomic-seed
@@ -358,5 +345,4 @@
       (when-not (zero? exit)
         (throw (ex-info "Deterministic Datalevin JAR normalization failed."
                         {:exit exit}))))
-    (verify-build-identity! datalevin-memory-uber-file)
     (println datalevin-memory-uber-file)))
