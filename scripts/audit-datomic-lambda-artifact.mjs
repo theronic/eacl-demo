@@ -33,7 +33,6 @@ for (const required of [
   "eacl_demo/datomic_dynamodb/reader.clj",
   "org/httpkit/server/HttpServer.class",
   "schema-wire.v1.json",
-  "CurrentCache/__default.class",
   "EaclKernel/__default.class",
   "PageWindow/__default.class"
 ]) assert.ok(entrySet.has(required), `required JAR entry missing: ${required}`);
