@@ -59,10 +59,28 @@
   (prepare-runtime! @runtime)
   nil)
 
+(defn close-runtime!
+  "Closes the process reader after request admission has stopped. Lambda owns
+  its runtime for the process lifetime; the EC2 shutdown hook calls this."
+  ([]
+   (when (realized? runtime)
+     (close-runtime! @runtime)))
+  ([running]
+   (when-let [opened (:reader running)]
+     (reader/close-reader! opened))
+   nil))
+
 (defn- prepare-runtime!
   [running]
   (when (= "lambda" (get-in running [:descriptor :runtime :execution]))
-    (prime-runtime! running))
+    (try
+      (prime-runtime! running)
+      (catch Throwable error
+        (try
+          (close-runtime! running)
+          (catch Throwable cleanup-error
+            (.addSuppressed ^Throwable error cleanup-error)))
+        (throw error))))
   running)
 
 (defn initialize
@@ -73,27 +91,36 @@
   ([environment open-reader!]
    (let [{:keys [reader-config identity memory-mib execution]}
          (parse-environment environment)
-         opened (open-reader! reader-config)
-         descriptor (profile/descriptor
-                     {:identity identity
-                      :basis (:basis opened)
-                      :memory-mib memory-mib
-                      :execution execution
-                      :admission-concurrency (:maximum-concurrency reader-config)})
-         operation-metrics (cache-metrics/create-operation-metrics)
-         handlers (operations/create-handlers
-                   {:descriptor descriptor
-                    :cursor-key (:security-key reader-config)
-                    :cache-stats #(datomic-eacl/cache-stats (:client opened))
-                    :operation-metrics operation-metrics})]
-     {:reader opened
-      :descriptor descriptor
-      :operation-metrics operation-metrics
-      :boundary (boundary/create-boundary
-                 {:descriptor descriptor
-                  :capture-snapshot (:capture-snapshot opened)
-                  :handlers handlers
-                  :maximum-concurrency (:maximum-concurrency reader-config)})})))
+         opened (open-reader! reader-config)]
+     (try
+       (let [descriptor (profile/descriptor
+                         {:identity identity
+                          :basis (:basis opened)
+                          :memory-mib memory-mib
+                          :execution execution
+                          :admission-concurrency
+                          (:maximum-concurrency reader-config)})
+             operation-metrics (cache-metrics/create-operation-metrics)
+             handlers (operations/create-handlers
+                       {:descriptor descriptor
+                        :cursor-key (:security-key reader-config)
+                        :cache-stats #(datomic-eacl/cache-stats (:client opened))
+                        :operation-metrics operation-metrics})]
+         {:reader opened
+          :descriptor descriptor
+          :operation-metrics operation-metrics
+          :boundary (boundary/create-boundary
+                     {:descriptor descriptor
+                      :capture-snapshot (:capture-snapshot opened)
+                      :handlers handlers
+                      :maximum-concurrency
+                      (:maximum-concurrency reader-config)})})
+       (catch Throwable error
+         (try
+           (reader/close-reader! opened)
+           (catch Throwable cleanup-error
+             (.addSuppressed ^Throwable error cleanup-error)))
+         (throw error))))))
 
 (defn handle-event
   [runtime event remaining-time-ms]

@@ -13,7 +13,6 @@ const entrySet = new Set(entries);
 for (const required of [
   "eacl_demo/datomic_dynamodb/seed.clj",
   "eacl_demo/datomic_dynamodb/seed_main.clj",
-  "CurrentCache/__default.class",
   "EaclKernel/__default.class",
   "PageWindow/__default.class",
   "schema.v1.zed",

@@ -111,7 +111,15 @@
         running (start-server! port handler/invoke-event!)]
     (.addShutdownHook
      (Runtime/getRuntime)
-     (Thread. #(stop-server! running) "eacl-demo-http-shutdown"))
+     (Thread.
+      #(try
+         ;; Stop new admission first. Reader leases then keep the fixed
+         ;; Snapshot alive until every request already inside the boundary has
+         ;; released it.
+         (stop-server! running)
+         (finally
+           (handler/close-runtime!)))
+      "eacl-demo-http-shutdown"))
     (println (str "Datomic/DynamoDB EC2 reader listening on port "
                   (:port running)))
     (flush)))

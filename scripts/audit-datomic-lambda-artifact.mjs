@@ -33,7 +33,6 @@ for (const required of [
   "eacl_demo/datomic_dynamodb/reader.clj",
   "org/httpkit/server/HttpServer.class",
   "schema-wire.v1.json",
-  "CurrentCache/__default.class",
   "EaclKernel/__default.class",
   "PageWindow/__default.class"
 ]) assert.ok(entrySet.has(required), `required JAR entry missing: ${required}`);
@@ -178,14 +177,14 @@ const fixedReaderSmoke = output("java", [
     (assert (= 1 (count (filter #(= :current-db (first %)) @calls))))
     (assert (= [[:select-current-snapshot :read-only-client]]
                (filterv #(= :select-current-snapshot (first %)) @calls)))
-    (assert (= 4 (count exact-calls)))
-    (assert (= ["fixed-authenticated-token" "fixed-authenticated-token"
-                "fixed-authenticated-token" "historical-authenticated-token"]
+    (assert (= 1 (count exact-calls)))
+    (assert (= ["historical-authenticated-token"]
                (mapv #(nth % 2) exact-calls)))
     (assert (= 1 (count (filter #(= :decode-token (first %)) @calls))))
-    (assert (= [424242 424242 424242 400]
+    (assert (= [400]
                (mapv last
                      (filter #(= :issue-exact-token (first %)) @calls))))
+    (assert (every? #(identical? :initial-snapshot (:value %)) snapshots))
     (assert (every? #(= (:basis opened) (:basis %)) snapshots))
     (assert (= {:behavior "request-snapshot"
                 :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:400"
@@ -201,7 +200,7 @@ const fixedReaderSmoke = output("java", [
     (doseq [snapshot snapshots] ((:release! snapshot)))
     ((:release! historical))
     (reader/close-reader! opened)
-    (assert (= 5 (count (filter #(= :snapshot (first %)) @releases))))
+    (assert (= 2 (count (filter #(= :snapshot (first %)) @releases))))
     (assert (= [[:connection :read-only-connection]]
                (filterv #(= :connection (first %)) @releases)))
     (println :datomic-packaged-fixed-reader-pass)))`
@@ -219,7 +218,7 @@ const closedRouteSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "2"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "a91815ae0a4d32fc32db4e671e4d101834688332"
+                     "EACL_CORE_SHA" "5ec31570def0d637010bb2339ffb893da7675cf8"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}
