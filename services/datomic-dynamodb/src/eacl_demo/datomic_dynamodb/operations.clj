@@ -277,17 +277,11 @@
     (when-not snapshot (fail! "internal-error"))
     (when-not (http/freshness-floor-available? input public-basis)
       (fail! "freshness-unavailable"))
-    (case (:consistency input)
-      ;; The read-only Peer exposes one immutable deployment value and cannot
-      ;; synchronize. That value is the authoritative head of this deployment,
-      ;; so this selection deliberately validates it as the retained snapshot
-      ;; instead of asking EACL's live-source path to synchronize.
-      "authoritative" consistency/minimize-latency
-      "at-least" (consistency/at-least-as-fresh (eacl/basis-token snapshot))
-      "exact" (consistency/at-exact-snapshot (eacl/basis-token snapshot))
-      "historical-date" (consistency/at-exact-snapshot
-                           (eacl/basis-token snapshot))
-      consistency/minimize-latency)))
+    ;; The boundary has already selected the request's immutable snapshot and
+    ;; rejected an unsatisfied freshness floor. Minting a token from that same
+    ;; snapshot only to authenticate it back to itself cannot select a fresher
+    ;; value; it adds secure-format and HMAC work to every cache hit.
+    consistency/minimize-latency))
 
 (defn- relationship-query
   [input remaining-ms anchor]
