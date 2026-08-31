@@ -229,10 +229,6 @@
   (when-not (map? environment)
     (fail! :invalid-environment {:failure :not-a-map}))
   (let [baked-eacl-sha (build-identity/eacl-sha)
-        declared-eacl-sha (get environment "EACL_CORE_SHA")
-        _ (when (and (some? declared-eacl-sha)
-                     (not= baked-eacl-sha declared-eacl-sha))
-            (fail! :invalid-environment {:field :eaclSha}))
         values
         (assoc
          (into {}

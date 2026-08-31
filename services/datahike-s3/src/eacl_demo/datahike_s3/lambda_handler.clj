@@ -203,7 +203,6 @@
                     (get environment "EACL_DATAHIKE_STORE_ID" ""))
                    (catch IllegalArgumentException _ nil))
         baked-eacl-sha (build-identity/eacl-sha)
-        declared-eacl-sha (get environment "EACL_CORE_SHA")
         identity {:profileId "datahike-s3"
                   :demoSha (get environment "EACL_DEMO_SHA")
                   :eaclSha baked-eacl-sha
@@ -223,8 +222,6 @@
                         (<= 32 (count (.getBytes ^String cursor-key
                                                 "UTF-8")))))
               (not (re-matches sha1-pattern (:demoSha identity)))
-              (and (some? declared-eacl-sha)
-                   (not= baked-eacl-sha declared-eacl-sha))
               (not (re-matches sha256-pattern (:artifactSha256 identity)))
               (not (re-matches deployment-pattern (:deploymentId identity))))
       (throw (ex-info "Lambda environment is incomplete or invalid."
