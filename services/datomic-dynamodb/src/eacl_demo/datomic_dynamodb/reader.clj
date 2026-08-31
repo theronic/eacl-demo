@@ -9,7 +9,9 @@
   (:import [java.nio.charset StandardCharsets]
            [java.security MessageDigest]
            [java.time Instant]
-           [java.util Date]))
+           [java.util Date]
+           [java.util.concurrent.locks StampedLock]
+           [java.util.concurrent.atomic AtomicBoolean]))
 
 (def ^:private fixture-schema-sha256
   "7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c")
@@ -100,10 +102,42 @@
     {:revision revision
      :captured-at captured-at}))
 
+(defn- release-once
+  "Wraps one acquired resource release. A failed release remains retryable."
+  [release! resource]
+  (let [released? (AtomicBoolean.)]
+    (fn []
+      (if-not (.compareAndSet released? false true)
+        false
+        (try
+          (release! resource)
+          true
+          (catch Throwable error
+            (.set released? false)
+            (throw error)))))))
+
+(defn- reader-closed!
+  []
+  (throw
+   (ex-info "Datomic reader is closed."
+            {:type :eacl-demo/reader-closed})))
+
+(defn- acquire-lease!
+  "Acquires a cross-thread request lease or rejects a closing reader."
+  [^StampedLock lease-lock ^AtomicBoolean closing?]
+  (when (.get closing?)
+    (reader-closed!))
+  (let [stamp (.readLock lease-lock)]
+    (if (.get closing?)
+      (do
+        (.unlockRead lease-lock stamp)
+        (reader-closed!))
+      stamp)))
+
 (defn open-reader!
   "Connects without a transactor, retains exactly one current DB value, and
-  creates request-scoped EACL snapshots selected by its authenticated exact
-  basis token."
+  lends that immutable EACL Snapshot to ordinary requests. Historical-date
+  requests still select and own request-scoped exact Snapshots."
   ([config]
    (open-reader!
     config
@@ -139,7 +173,9 @@
      (throw (ex-info "Invalid Datomic/DynamoDB reader operations."
                      {:type :eacl-demo/invalid-reader-operations})))
    (let [config (validate-config config)
-         connection (connect (connection-uri config))]
+         connection (connect (connection-uri config))
+         release-connection! (release-once release-connection connection)
+         release-fixed-snapshot!* (volatile! nil)]
      (try
        (let [fixed-db (current-db connection)
              fixed-revision (basis-t fixed-db)
@@ -160,64 +196,119 @@
                 :database (:database config)}
                :read-only? true
                :security-key (:security-key config)})
-             initial-snapshot (select-current-snapshot client)
+             fixed-snapshot (select-current-snapshot client)
+             release-fixed-snapshot!
+             (release-once release-snapshot fixed-snapshot)
+             _ (vreset! release-fixed-snapshot!*
+                        release-fixed-snapshot!)
              fixed-token
-             (try
-               (let [selected-revision
-                     (basis-t (snapshot-db initial-snapshot))]
-                 (when-not (= fixed-revision selected-revision)
-                   (throw
-                    (ex-info
-                     "Datomic reader advanced while fixing its serving basis."
-                     {:type :eacl-demo/initialization-basis-drift
-                      :expected fixed-revision
-                      :actual selected-revision})))
-                 (snapshot-token initial-snapshot))
-               (finally
-                 (release-snapshot initial-snapshot)))
+             (let [selected-revision
+                   (basis-t (snapshot-db fixed-snapshot))]
+               (when-not (= fixed-revision selected-revision)
+                 (throw
+                  (ex-info
+                   "Datomic reader advanced while fixing its serving basis."
+                   {:type :eacl-demo/initialization-basis-drift
+                    :expected fixed-revision
+                    :actual selected-revision})))
+               (snapshot-token fixed-snapshot))
              format-options (token-format-options (:security-key config))
              fixed-token-scope (decode-token format-options fixed-token)
-             fixed-basis (public-basis config fixed-revision (clock))]
+             fixed-basis (public-basis config fixed-revision (clock))
+             lease-lock (StampedLock.)
+             closing? (AtomicBoolean.)
+             closed? (AtomicBoolean.)
+             close-monitor (Object.)
+             close!
+             (fn []
+               (locking close-monitor
+                 (if (.get closed?)
+                   false
+                   (do
+                     ;; Reject new captures before waiting for every borrowed
+                     ;; request lease. StampedLock leases may be released by a
+                     ;; different request thread than the capturer.
+                     (.set closing? true)
+                     (let [stamp (.writeLock lease-lock)]
+                       (try
+                         ;; A failed Snapshot release stays retryable while
+                         ;; its Datomic connection is still open. If only the
+                         ;; connection release fails, release-once skips the
+                         ;; already-completed Snapshot on the retry.
+                         (release-fixed-snapshot!)
+                         (release-connection!)
+                         (.set closed? true)
+                         true
+                         (finally
+                           (.unlockWrite lease-lock stamp))))))))]
          {:config config
           :connection connection
           :client client
           :fixed-db fixed-db
           :basis fixed-basis
-          :release-connection release-connection
+          :close! close!
           :capture-snapshot
           (fn capture-snapshot
             ([] (capture-snapshot {}))
             ([input]
-             (let [[token basis]
-                   (if (= "historical-date" (:consistency input))
-                     (let [instant (Instant/parse (:atExactSnapshotAt input))
-                           {:keys [revision captured-at]}
-                           (resolve-as-of fixed-db instant)]
-                       (when-not (and (integer? revision)
-                                      (not (neg? revision))
-                                      (instance? Instant captured-at))
-                         (throw
-                          (ex-info
-                           "Datomic historical basis could not be resolved."
-                           {:type :eacl-demo/historical-basis-unavailable})))
-                       [(issue-exact-token format-options fixed-token-scope
-                                           revision)
-                        (historical-public-basis config revision captured-at)])
-                     [(issue-exact-token format-options fixed-token-scope
-                                         fixed-revision)
-                      fixed-basis])
-                   snapshot (select-exact-snapshot client token)]
-               {:value snapshot
-                :basis basis
-                :release! #(release-snapshot snapshot)})))})
+             (let [stamp (acquire-lease! lease-lock closing?)
+                   release-lease!
+                   (release-once
+                    (fn [stamp]
+                      (.unlockRead lease-lock stamp))
+                    stamp)]
+               (try
+                 (if (= "historical-date" (:consistency input))
+                   (let [instant (Instant/parse (:atExactSnapshotAt input))
+                         {:keys [revision captured-at]}
+                         (resolve-as-of fixed-db instant)]
+                     (when-not (and (integer? revision)
+                                    (not (neg? revision))
+                                    (instance? Instant captured-at))
+                       (throw
+                        (ex-info
+                         "Datomic historical basis could not be resolved."
+                         {:type :eacl-demo/historical-basis-unavailable})))
+                     (let [token
+                           (issue-exact-token
+                            format-options fixed-token-scope revision)
+                           snapshot (select-exact-snapshot client token)
+                           release-owned!
+                           (release-once release-snapshot snapshot)]
+                       {:value snapshot
+                        :basis
+                        (historical-public-basis config revision captured-at)
+                        :release!
+                        (fn []
+                          (try
+                            (release-owned!)
+                            (finally
+                              (release-lease!))))}))
+                   {:value fixed-snapshot
+                    :basis fixed-basis
+                    ;; Ordinary requests borrow the process-owned immutable
+                    ;; Snapshot. Their release ends only the request lease;
+                    ;; close-reader! owns the underlying Snapshot release.
+                    :release! release-lease!})
+                 (catch Throwable error
+                   (release-lease!)
+                   (throw error))))))})
        (catch Throwable error
-         (release-connection connection)
+         (try
+           (try
+             (when-let [release-fixed-snapshot! @release-fixed-snapshot!*]
+               (release-fixed-snapshot!))
+             (finally
+               (release-connection!)))
+           (catch Throwable cleanup-error
+             (.addSuppressed ^Throwable error cleanup-error)))
          (throw error))))))
 
 (defn close-reader!
-  [{:keys [connection release-connection]}]
-  (when connection
-    ((or release-connection d/release) connection)))
+  [{:keys [close!]}]
+  (when close!
+    (close!))
+  nil)
 
 (defn- sha256
   [value]

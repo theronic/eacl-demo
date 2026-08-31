@@ -3,7 +3,8 @@
             [clojure.test :refer [deftest is use-fixtures]]
             [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datomic-dynamodb.http-server :as http-server]
-            [eacl-demo.datomic-dynamodb.lambda-handler :as handler])
+            [eacl-demo.datomic-dynamodb.lambda-handler :as handler]
+            [eacl-demo.datomic-dynamodb.reader :as reader])
   (:import [java.net URI]
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
@@ -133,6 +134,34 @@
       (is (empty? @primed))
       (is (= lambda-runtime (#'handler/prepare-runtime! lambda-runtime)))
       (is (= [lambda-runtime] @primed)))))
+
+(deftest failed-lambda-prime-closes-the-process-reader-test
+  (let [closed (atom [])
+        running {:reader :fixed-reader
+                 :descriptor {:runtime {:execution "lambda"}}}]
+    (with-redefs [handler/prime-runtime!
+                  (fn [_] (throw (ex-info "prime failed" {})))
+                  reader/close-reader! #(swap! closed conj %)]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"prime failed"
+                            (#'handler/prepare-runtime! running))))
+    (is (= [:fixed-reader] @closed))))
+
+(deftest runtime-close-delegates-to-the-process-reader-test
+  (let [closed (atom [])]
+    (with-redefs [reader/close-reader! #(swap! closed conj %)]
+      (is (nil? (handler/close-runtime! {:reader :fixed-reader})))
+      (is (= [:fixed-reader] @closed)))))
+
+(deftest failed-runtime-construction-closes-the-opened-reader-test
+  (let [close-calls (atom 0)
+        opened {:basis {}
+                :capture-snapshot (fn [& _] :unused)
+                :close! #(swap! close-calls inc)}]
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"Invalid Datomic/DynamoDB profile descriptor input"
+         (handler/initialize environment (constantly opened))))
+    (is (= 1 @close-calls))))
 
 (deftest snapstart-prime-requires-the-cache-to-converge-test
   (with-redefs [handler/handle-event

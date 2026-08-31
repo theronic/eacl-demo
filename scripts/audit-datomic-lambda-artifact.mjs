@@ -178,14 +178,14 @@ const fixedReaderSmoke = output("java", [
     (assert (= 1 (count (filter #(= :current-db (first %)) @calls))))
     (assert (= [[:select-current-snapshot :read-only-client]]
                (filterv #(= :select-current-snapshot (first %)) @calls)))
-    (assert (= 4 (count exact-calls)))
-    (assert (= ["fixed-authenticated-token" "fixed-authenticated-token"
-                "fixed-authenticated-token" "historical-authenticated-token"]
+    (assert (= 1 (count exact-calls)))
+    (assert (= ["historical-authenticated-token"]
                (mapv #(nth % 2) exact-calls)))
     (assert (= 1 (count (filter #(= :decode-token (first %)) @calls))))
-    (assert (= [424242 424242 424242 400]
+    (assert (= [400]
                (mapv last
                      (filter #(= :issue-exact-token (first %)) @calls))))
+    (assert (every? #(identical? :initial-snapshot (:value %)) snapshots))
     (assert (every? #(= (:basis opened) (:basis %)) snapshots))
     (assert (= {:behavior "request-snapshot"
                 :id "datomic:eacl-demo-datomic-artifact-smoke:eacl-demo:400"
@@ -201,7 +201,7 @@ const fixedReaderSmoke = output("java", [
     (doseq [snapshot snapshots] ((:release! snapshot)))
     ((:release! historical))
     (reader/close-reader! opened)
-    (assert (= 5 (count (filter #(= :snapshot (first %)) @releases))))
+    (assert (= 2 (count (filter #(= :snapshot (first %)) @releases))))
     (assert (= [[:connection :read-only-connection]]
                (filterv #(= :connection (first %)) @releases)))
     (println :datomic-packaged-fixed-reader-pass)))`
