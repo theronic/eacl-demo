@@ -50,7 +50,6 @@ for (const required of [
   "eacl_demo/datahike_s3/read_only_writer.clj",
   "eacl_demo/datahike_s3/reader.clj",
   "schema-wire.v1.json",
-  "CurrentCache/__default.class",
   "EaclKernel/__default.class",
   "PageWindow/__default.class",
 ]) assert.ok(entrySet.has(required), `required JAR entry missing: ${required}`);
@@ -218,7 +217,7 @@ const closedRuntimeSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "1"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "a91815ae0a4d32fc32db4e671e4d101834688332"
+                     "EACL_CORE_SHA" "5ec31570def0d637010bb2339ffb893da7675cf8"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

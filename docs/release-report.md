@@ -1,6 +1,6 @@
 # EACL demo release report
 
-Report ID: `sha256:1e7dccabd39b0ebc6f1a2d29958d2f671bfa41029a188f3326745204cdec54ca`
+Report ID: `sha256:312c3ef4a830e31121f0db9268b2af2f5a9837f7cd2d0ccb88504014cd576fa6`
 
 Status: **pre-release**. This is an honest readiness report, not evidence that a production release exists. Local infrastructure definitions are never described as deployed or verified without live evidence.
 
@@ -9,7 +9,7 @@ Status: **pre-release**. This is an honest readiness report, not evidence that a
 | Source | Status | Immutable SHA |
 | --- | --- | --- |
 | Demo | uncommitted | — |
-| EACL Core | locked | a91815ae0a4d32fc32db4e671e4d101834688332 |
+| EACL Core | locked | 5ec31570def0d637010bb2339ffb893da7675cf8 |
 
 This source pair identifies the report build, not a fleet generation. Every profile deployment below is independently authoritative and may come from a different main-branch run.
 
