@@ -2,7 +2,7 @@
   "$schema": "../schemas/release-report.v1.schema.json",
   "schema": "eacl-demo.release-report.v1",
   "contractVersion": "explorer.v1",
-  "reportId": "sha256:25b11819d08e7df2d5e7d9ed1622dc3382a29ba57fe97678b6e43a6f7b4c7279",
+  "reportId": "sha256:38a2768b1f60001ccb716b9e81c01c1064c3a3bf7422d07c61b3117544fe23af",
   "reportState": "pre-release",
   "release": null,
   "source": {
@@ -14,12 +14,12 @@
     },
     "eacl": {
       "repository": "https://github.com/theronic/eacl.git",
-      "sha": "224da2a3e4c3acc574afad85128c679759d6d0a6",
+      "sha": "9e0105f2dfe9db9f87057c3791abddd9ba511c5e",
       "status": "locked",
       "reason": null,
       "lock": {
         "path": "dependencies/eacl-core.lock.json",
-        "sha256": "4de4d5a5e9409e7657ec4a6b23f8a2941a6d7a53e0c87543a44b263b297af3b8"
+        "sha256": "848d2bf323e8ea00d67390435eac7c667a5f8d2326ed3ad0e7a46f1e4ebc3c95"
       }
     }
   },
