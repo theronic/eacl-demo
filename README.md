@@ -7,9 +7,9 @@ The product uses two explicit selections: an EACL backend followed by a storage 
 Deployment source is always an immutable pair:
 
 - the exact `theronic/eacl-demo` commit being built; and
-- the exact `theronic/eacl` commit in `dependencies/eacl-core.lock.json` committed by that demo revision.
+- the exact `theronic/eacl` commit pinned by the `deps.edn` committed at that demo revision.
 
-Dirty checkouts, local-root dependencies, and branch names are not release identities. Every push to `main` rebuilds and deploys all live demos independently.
+Dirty checkouts, local-root dependencies, and branch names are not release identities. Every push to `production` rebuilds and deploys all live demos independently; `main` is an ordinary development branch.
 
 ## Upgrade EACL
 

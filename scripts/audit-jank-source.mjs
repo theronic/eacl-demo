@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { readEaclCore } from "./lib/eacl-core.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const sourceRoot = path.join(root, "services/jank-memory/src");
+const coreLock = readEaclCore(root);
 const [
   portLock,
-  coreLock,
   builderLock,
-  registry,
   buildUnits,
   dispatcherSource,
   handlersSource,
@@ -22,9 +22,7 @@ const [
   normalizerSource
 ] = await Promise.all([
   json("dependencies/jank-engine-port.v1.json"),
-  json("dependencies/eacl-core.lock.json"),
   json("dependencies/jank-linux-x86_64-builder.v1.json"),
-  json("registry/profile-registry.v1.json"),
   json("build-units.json"),
   text("services/jank-memory/src/eacl_demo/jank_memory/dispatcher.jank"),
   text("services/jank-memory/src/eacl_demo/jank_memory/handlers.jank"),
@@ -299,9 +297,6 @@ assert.equal(portLock.compilerCompatibility.candidateLinuxCompilerCommit, builde
 assert.equal(portLock.compilerCompatibility.candidateLinuxCompilePassed, false);
 assert.equal(builderLock.status, "source-pinned-image-unbuilt");
 assert.equal(buildUnits.units["jank-memory"].deploymentEligible, false);
-const profile = registry.profiles.find(({ id }) => id === "jank-memory");
-assert.equal(profile.state, "unavailable");
-assert.match(profile.reason, /Core|Linux|artifact/u);
 assert.deepEqual(portLock.promotionBlockers.length, 5);
 assert.ok(portLock.promotionBlockers.some((blocker) =>
   blocker.includes("semantic-rebase coverage")

@@ -3,14 +3,14 @@ import { webcrypto } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import { createBenchmarkEvidenceIndex } from "../../packages/explorer-state/src/benchmark-publication.mjs";
-import { createProfilePublication } from "../../packages/explorer-state/src/profile-publication.mjs";
+import { createBaseRegistry, createProfilePublication } from "../../packages/explorer-state/src/profile-publication.mjs";
 
 const readJson = (url: string) => readFile(new URL(url, import.meta.url), "utf8").then(JSON.parse);
-const [baseRegistry, profileDefinitions, artifact] = await Promise.all([
-  readJson("../../registry/profile-registry.v1.json"),
+const [profileDefinitions, artifact] = await Promise.all([
   readJson("../../packages/contracts/profiles.v1.json"),
   readJson("../../dist/datascript-runtime/artifact.json")
 ]);
+const baseRegistry = createBaseRegistry(profileDefinitions);
 const demoSha = "a".repeat(40);
 const dataManifestSha256 = "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a";
 

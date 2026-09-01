@@ -47,7 +47,7 @@ seeded and verified from the canonical fixture. Existing DynamoDB seed approval
 does not authorize that S3 operation. Until then, even if both profiles are
 qualified, the browser uses the deterministic S3 fallback with no speed claim.
 
-Published evidence JSON lives under `registry/benchmark-evidence/`. A separate
+Evidence JSON inputs live under `verification/benchmark-evidence/` and publish to the live site under `registry/benchmark-evidence/`. A separate
 content-addressed `index.v1.json` exposes each raw file digest, content evidence
 ID, timestamp, expiry, and profiles. The browser loads the index and evidence
 through bounded no-store same-origin HTTPS requests, verifies both content

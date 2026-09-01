@@ -85,7 +85,7 @@ test("every authority has an exact immutable custom subject and direct AWS claim
     assert.deepEqual(Object.keys(statement.Condition), ["StringEquals"]);
     assert.equal(statement.Condition.StringEquals["token.actions.githubusercontent.com:sub"], [
       "repo:theronic@1011676/eacl-demo@1345904214",
-      "ref:refs/heads/main",
+      "ref:refs/heads/production",
       `workflow_ref:${workflowRef(manifest, authority)}`,
       `environment:${authority.environment}`,
       `event_name:${authority.eventName}`,

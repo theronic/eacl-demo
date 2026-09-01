@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { DEPS_EDN_PATH, parseEaclCore } from "./eacl-core.mjs";
 
 const SHA1 = /^[0-9a-f]{40}$/u;
 
@@ -20,11 +21,9 @@ export function verifyCheckedOutIdentity(root, expectedDemoSha) {
   } catch {
     throw new Error("checked-out tracked files differ from the triggering demo commit");
   }
-  const lockPath = "dependencies/eacl-core.lock.json";
-  const workingLock = readFileSync(path.join(root, lockPath));
-  const committedLock = git(["show", `${expectedDemoSha}:${lockPath}`], "buffer");
-  if (!workingLock.equals(committedLock)) throw new Error("working EACL lock differs from the lock committed at GITHUB_SHA");
-  const lock = JSON.parse(committedLock.toString("utf8"));
-  if (lock.schema !== "eacl-demo.eacl-core-lock.v1" || lock.repository !== "https://github.com/theronic/eacl.git" || !SHA1.test(lock.sha)) throw new Error("committed EACL lock identity is invalid");
-  return Object.freeze({ demoSha: head, eaclSha: lock.sha });
+  const workingDeps = readFileSync(path.join(root, DEPS_EDN_PATH));
+  const committedDeps = git(["show", `${expectedDemoSha}:${DEPS_EDN_PATH}`], "buffer");
+  if (!workingDeps.equals(committedDeps)) throw new Error("working deps.edn differs from the deps.edn committed at GITHUB_SHA");
+  const core = parseEaclCore(committedDeps.toString("utf8"));
+  return Object.freeze({ demoSha: head, eaclSha: core.sha });
 }

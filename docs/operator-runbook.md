@@ -10,15 +10,16 @@ instance, and data generation before changing external state.
 
 1. Work from a clean `theronic/eacl-demo` commit, not a branch name or dirty
    worktree. Record `git rev-parse HEAD` as `demo-sha`.
-2. Read `dependencies/eacl-core.lock.json`; verify its exact Core commit is
-   reachable and use that value as `eacl-sha`. Never substitute Core `HEAD`.
+2. Derive `eacl-sha` from the committed `deps.edn` (`scripts/lib/eacl-core.mjs`
+   asserts every pin agrees). Never substitute Core `HEAD`.
 3. Confirm the intended AWS account and Region independently before assuming a
    role. Stop on any mismatch.
-4. Read the target profile registry state before changing infrastructure or
-   stateful data. Ordinary deployment updates all five live targets.
+4. Read the live profile documents (`registry/profiles/<id>.json` on the demo
+   origin) before changing infrastructure or stateful data. Ordinary
+   deployment updates all five live targets.
 5. For stateful or temporary-compute work, use only the separately dispatched
-   workflow and exact reviewed confirmation token. A `main` push is never a
-   seed, migration, table-creation, or EC2 authorization.
+   workflow and exact reviewed confirmation token. A `production` push is never
+   a seed, migration, table-creation, or EC2 authorization.
 6. Announce any deliberate alarm transition in advance. Do not create load to
    test Telegram: use one nonce-bearing synthetic notification.
 
@@ -58,9 +59,10 @@ health/bootstrap identity handshake, allow, deny, mutation-route rejection,
 and DataScript's zero-Worker page-local execution.
 
 Profile load, memory, fault, migration, initial-topology, and rollback exercises
-remain available as local tools when useful. They are not `main` deployment
-gates. Stateful generation, seed, publication, and temporary-compute workflows
-remain separately confirmed; their existence is not authorization to run them.
+remain available as local tools when useful. They are not `production`
+deployment gates. Stateful generation, seed, publication, and temporary-compute
+workflows remain separately confirmed; their existence is not authorization to
+run them.
 
 Store reports under `verification/results/` or the profile's evidence
 directory. Evidence must distinguish not-run, unsupported, failed, and passed;
@@ -69,10 +71,12 @@ it must bind immutable source, artifact, runtime, and data identities.
 ## Ordinary deployment
 
 The only automatic deployment trigger is a push to
-`theronic/eacl-demo:refs/heads/main`. It must check out the triggering commit,
-resolve Core solely from the committed lock, and fan out static plus one job per
-server profile. Jobs may finish out of order and one failure must not stop a
-sibling. See `docs/demo-delivery.md` for the delivery contract.
+`theronic/eacl-demo:refs/heads/production` (normally a fast-forward of a
+reviewed `main` commit; `main` itself deploys nothing). It must check out the
+triggering commit, resolve Core solely from the committed `deps.edn`, and fan
+out static plus one job per server profile. Jobs may finish out of order and
+one failure must not stop a sibling. See `docs/demo-delivery.md` for the
+delivery contract.
 
 The workflow contains five independent jobs: static plus DataScript,
 Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each server job builds one
@@ -80,30 +84,16 @@ content-addressed artifact, publishes one immutable Lambda version, moves only
 its `candidate` alias, runs the bounded direct-invoke smoke, and publishes only
 its registry document. A sibling failure does not block or roll back it.
 
-After merge, confirm the registry identity and direct Function URL health for
-each completed job. Then use a real browser network trace to prove the explorer
-uses the same direct origin. CloudFront must receive no `/api/v1/*` request.
+After the deploy, confirm the published profile documents and direct Function
+URL health for each completed job. Then use a real browser network trace to
+prove the explorer uses the same direct origin. CloudFront must receive no
+`/api/v1/*` request.
 
-The merge path must not create data, seed, migrate, start EC2, run load or
+The deployment path must not create data, seed, migrate, start EC2, run load or
 memory sweeps, modify cost controls, send Telegram tests, or retire anything.
 See `docs/demo-delivery.md` for the complete current contract.
 
-## Release report
-
-Run `npm run build:release-report` after changing the profile registry, build
-eligibility, fixture manifests, EACL lock, benchmark evidence, runtime
-memory/platform templates, profile alarm template, DynamoDB cap policy,
-budgets, anomaly threshold, or Telegram routing. Commit both
-`registry/release-report.v1.json` and `docs/release-report.md`, then run
-`npm run verify:release-report` from a clean checkout.
-
-The checked-in report is currently `pre-release`. It must keep the demo SHA,
-release identity, artifact identities, qualified memory evidence, live control
-evidence, and rollback coordinates absent until the exact corresponding
-deployment evidence exists. A template digest proves only what is defined in
-source. It does not prove that an AWS resource exists, an alarm is `OK`, a
-budget is active, Telegram delivery succeeded, or rollback was rehearsed.
-Do not mark OpenSpec task 16.4 complete for the pre-release report.
+## OIDC authority boundary
 
 Before changing repository-wide OIDC subject customization, follow
 `infra/deployment/README.md`. Verify the checked-in policy bundle, update every
@@ -157,7 +147,7 @@ budget.
 
 ## DynamoDB generation and publication
 
-Use only the manual, `main`-ref-restricted workflow for the exact backend:
+Use only the manual, `production`-ref-restricted workflow for the exact backend:
 
 - `.github/workflows/stateful-datahike-dynamodb.yml`
 - `.github/workflows/stateful-datomic-dynamodb.yml`

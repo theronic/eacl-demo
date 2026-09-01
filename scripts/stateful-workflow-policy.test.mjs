@@ -40,7 +40,7 @@ const ordinaryWorkflows = await Promise.all(workflowFiles
 test("stateful Datahike workflow is manual, exact-targeted, and unreachable from merge CI", () => {
   assert.match(workflow, /^\s{2}workflow_dispatch:/mu);
   assert.doesNotMatch(workflow, /^\s{2}(?:push|pull_request|workflow_call|workflow_run):/mu);
-  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/u);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/production'/u);
   assert.match(workflow, /CREATE:\$\{TABLE_NAME\}:\$\{GENERATION_ID\}/u);
   assert.match(workflow, /PUBLISH:\$\{TABLE_NAME\}:\$\{GENERATION_ID\}/u);
   assert.match(workflow, /TABLE_NAME" == eacl-demo-datahike-fixture-v1-green/u);
@@ -63,7 +63,7 @@ test("publication removes the seed role and keeps the table recoverable", () => 
 test("stateful Datomic workflow is manual, exact-targeted, alarm-first, and immutable", () => {
   assert.match(datomicWorkflow, /^\s{2}workflow_dispatch:/mu);
   assert.doesNotMatch(datomicWorkflow, /^\s{2}(?:push|pull_request|workflow_call|workflow_run):/mu);
-  assert.match(datomicWorkflow, /github\.ref == 'refs\/heads\/main'/u);
+  assert.match(datomicWorkflow, /github\.ref == 'refs\/heads\/production'/u);
   assert.match(datomicWorkflow, /TABLE_NAME" == eacl-demo-datomic-fixture-v1-green/u);
   assert.match(datomicWorkflow, /GENERATION_ID" == fixture-v1-green/u);
   for (const token of [
@@ -88,7 +88,7 @@ test("stateful Datomic workflow is manual, exact-targeted, alarm-first, and immu
 test("Datomic seed compute requires preview confirmation and always cleans exact temporary resources", () => {
   assert.match(datomicSeedWorkflow, /^\s{2}workflow_dispatch:/mu);
   assert.doesNotMatch(datomicSeedWorkflow, /^\s{2}(?:push|pull_request|workflow_call|workflow_run):/mu);
-  assert.match(datomicSeedWorkflow, /github\.ref == 'refs\/heads\/main'/u);
+  assert.match(datomicSeedWorkflow, /github\.ref == 'refs\/heads\/production'/u);
   assert.match(datomicSeedWorkflow, /node scripts\/datomic-seed-authorization\.mjs authorize/u);
   assert.match(datomicSeedWorkflow, /CAPABILITY_NAMED_IAM/u);
   assert.match(datomicSeedWorkflow, /AssociatePublicIpAddress=false/u);
@@ -135,7 +135,7 @@ test("the automatic workflow directly deploys every public profile independently
     .map(({ id }) => id)].sort();
   assert.equal(automatic.length, 1, "one automatic workflow must deploy the public demo catalog");
   for (const { name, source } of automatic) {
-    assert.match(source, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- main\s*$/mu, `${name} has a non-exact main trigger`);
+    assert.match(source, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- production\s*$/mu, `${name} has a non-exact production trigger`);
     assert.doesNotMatch(source, /^\s{2}(?:pull_request|workflow_call|workflow_dispatch|workflow_run|schedule):/mu);
     assert.doesNotMatch(source, /\bconcurrency:|cancel-in-progress|max-parallel|latest[-_ ]head/iu);
     if (/\bmatrix:/u.test(source)) assert.match(source, /fail-fast:\s*false/u);

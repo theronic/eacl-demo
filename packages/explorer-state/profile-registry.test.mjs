@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { createBaseRegistry } from "./src/profile-publication.mjs";
 import { validateProfileRegistry } from "./src/profile-registry.mjs";
 
 const readJson = (url) => readFile(new URL(url, import.meta.url), "utf8").then(JSON.parse);
-const [registry, definitions] = await Promise.all([readJson("../../registry/profile-registry.v1.json"), readJson("../contracts/profiles.v1.json")]);
+const definitions = await readJson("../contracts/profiles.v1.json");
+const registry = createBaseRegistry(definitions);
 
-test("the initial independently publishable registry is truthful", () => {
+test("the synthesized fail-closed base registry is truthful", () => {
   assert.equal(validateProfileRegistry(registry, definitions), registry);
   assert.equal(registry.profiles.every(({ deployment, lastOutcome }) => deployment === null && lastOutcome.outcome === "never-deployed"), true);
 });

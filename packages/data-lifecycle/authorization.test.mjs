@@ -15,7 +15,7 @@ const request = {
   accountId: "843761893873",
   region: "us-east-1",
   repositoryId: "1345904214",
-  ref: "refs/heads/main",
+  ref: "refs/heads/production",
   profileId: "datomic-dynamodb",
   operation: "seed",
   tableName: "eacl-demo-datomic-fixture-v1-green",

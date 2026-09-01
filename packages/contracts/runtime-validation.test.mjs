@@ -35,13 +35,15 @@ test("all runtime boundaries accept canonical values", async () => {
   assert.equal(cache.data.provider["exact-hits"], 7);
   assert.equal(validate.fixture({ schema: "eacl-demo.fixture-manifest.v1", fixtureId: "canonical-v1-10000", algorithmVersion: "fixture-v1", seed: "eacl-demo", cutPoint: 10000, logicalResourceCount: 10000, schemaSha256: sha256, manifestSha256: sha256 }).cutPoint, 10000);
   assert.equal(validate.descriptor(descriptor).identity.profileId, "datahike-s3");
-  const registry = JSON.parse(await readFile(new URL("../../registry/profile-registry.v1.json", import.meta.url), "utf8"));
+  const profileDefinitions = JSON.parse(await readFile(new URL("./profiles.v1.json", import.meta.url), "utf8"));
+  const { createBaseRegistry } = await import("../explorer-state/src/profile-publication.mjs");
+  const registry = createBaseRegistry(profileDefinitions);
   assert.equal(validate.registry(registry).profiles.length, 6);
   const publication = { $schema: "../../schemas/profile-publication.v1.schema.json", schema: "eacl-demo.profile-publication.v1", contractVersion: "explorer.v1", publicationId: `sha256:${sha256}`, publishedAt: "2026-08-25T12:00:00Z", gate: { kind: "initial-qualification", evidenceId: `sha256:${sha256}` }, profile: registry.profiles[0] };
   assert.equal(validate.profilePublication(publication).profile.id, "datahike-s3");
   const benchmarkIndex = { $schema: "../../schemas/benchmark-evidence-index.v1.schema.json", schema: "eacl-demo.benchmark-evidence-index.v1", contractVersion: "explorer.v1", indexId: `sha256:${sha256}`, publishedAt: "2026-08-25T12:00:00Z", evidence: [] };
   assert.equal(validate.benchmarkIndex(benchmarkIndex).evidence.length, 0);
-  const release = { schema: "eacl-demo.release-manifest.v1", contractVersion: "explorer.v1", source: { demo: { repository: "https://github.com/theronic/eacl-demo.git", sha: sha1 }, eacl: { repository: "https://github.com/theronic/eacl.git", sha: sha1 } }, fixture: { id: "canonical-v1", manifestSha256: sha256 }, deployment: { provider: "github-actions", repositoryId: "1345904214", runId: "1", runAttempt: 1, ref: "refs/heads/main", identity: `1345904214:1:1:${sha1}` }, artifacts: [{ name: "datahike-s3", path: "dist/datahike-s3/artifact.json", sha256, bytes: 1 }] };
+  const release = { schema: "eacl-demo.release-manifest.v1", contractVersion: "explorer.v1", source: { demo: { repository: "https://github.com/theronic/eacl-demo.git", sha: sha1 }, eacl: { repository: "https://github.com/theronic/eacl.git", sha: sha1 } }, fixture: { id: "canonical-v1", manifestSha256: sha256 }, deployment: { provider: "github-actions", repositoryId: "1345904214", runId: "1", runAttempt: 1, ref: "refs/heads/production", identity: `1345904214:1:1:${sha1}` }, artifacts: [{ name: "datahike-s3", path: "dist/datahike-s3/artifact.json", sha256, bytes: 1 }] };
   assert.equal(validate.release(release).deployment.runId, "1");
 });
 

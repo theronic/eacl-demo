@@ -16,16 +16,16 @@
   "policies": {
     "deploy-static": {
       "authorityClass": "ordinary-deployment",
-      "activation": "every-main-push",
+      "activation": "every-production-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production",
       "eventName": "push",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-production-static",
       "roleVariable": "AWS_STATIC_DEPLOY_ROLE_ARN",
       "permissionScope": "static-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-production-static",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-static:event_name:push:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-static:event_name:push:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -40,11 +40,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-production-static",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-static:event_name:push:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-static:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
               }
             }
@@ -54,16 +54,16 @@
     },
     "deploy-datahike-s3": {
       "authorityClass": "ordinary-deployment",
-      "activation": "every-main-push",
+      "activation": "every-production-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production",
       "eventName": "push",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-production-datahike-s3",
       "roleVariable": "AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN",
       "permissionScope": "datahike-s3-runtime-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-production-datahike-s3",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -78,11 +78,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-production-datahike-s3",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
               }
             }
@@ -92,16 +92,16 @@
     },
     "deploy-datahike-dynamodb": {
       "authorityClass": "ordinary-deployment",
-      "activation": "every-main-push",
+      "activation": "every-production-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production",
       "eventName": "push",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-production-datahike-dynamodb",
       "roleVariable": "AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN",
       "permissionScope": "datahike-dynamodb-runtime-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-production-datahike-dynamodb",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -116,11 +116,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-production-datahike-dynamodb",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
               }
             }
@@ -130,16 +130,16 @@
     },
     "deploy-datomic-dynamodb": {
       "authorityClass": "ordinary-deployment",
-      "activation": "every-main-push",
+      "activation": "every-production-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production",
       "eventName": "push",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-production-datomic-dynamodb",
       "roleVariable": "AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN",
       "permissionScope": "datomic-dynamodb-runtime-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-production-datomic-dynamodb",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -154,11 +154,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-production-datomic-dynamodb",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
               }
             }
@@ -168,16 +168,16 @@
     },
     "deploy-datalevin-memory": {
       "authorityClass": "ordinary-deployment",
-      "activation": "every-main-push",
+      "activation": "every-production-push",
       "workflowFile": ".github/workflows/deploy-demos.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production",
       "eventName": "push",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-production-datalevin-memory",
       "roleVariable": "AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN",
       "permissionScope": "datalevin-memory-runtime-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-production-datalevin-memory",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -192,11 +192,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-production-datalevin-memory",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Deploy EACL demos"
               }
             }
@@ -208,14 +208,14 @@
       "authorityClass": "stateful-maintenance",
       "activation": "manual-only-after-workflow-publication",
       "workflowFile": ".github/workflows/stateful-datahike-dynamodb.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/production",
       "eventName": "workflow_dispatch",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-stateful-datahike-dynamodb",
       "roleVariable": "AWS_STATEFUL_ROLE_ARN",
       "permissionScope": "authorized-datahike-generation-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-stateful-datahike-dynamodb",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/main:environment:demo-stateful-datahike-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/production:environment:demo-stateful-datahike-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -230,11 +230,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-stateful-datahike-dynamodb",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/main:environment:demo-stateful-datahike-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datahike-dynamodb.yml@refs/heads/production:environment:demo-stateful-datahike-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Stateful Datahike DynamoDB generation"
               }
             }
@@ -246,14 +246,14 @@
       "authorityClass": "stateful-maintenance",
       "activation": "manual-only-after-workflow-publication",
       "workflowFile": ".github/workflows/stateful-datomic-dynamodb.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/production",
       "eventName": "workflow_dispatch",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-stateful-datomic-dynamodb",
       "roleVariable": "AWS_STATEFUL_DATOMIC_ROLE_ARN",
       "permissionScope": "authorized-datomic-generation-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-stateful-datomic-dynamodb",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/main:environment:demo-stateful-datomic-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/production:environment:demo-stateful-datomic-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -268,11 +268,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-stateful-datomic-dynamodb",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/main:environment:demo-stateful-datomic-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-dynamodb.yml@refs/heads/production:environment:demo-stateful-datomic-dynamodb:event_name:workflow_dispatch:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Stateful Datomic DynamoDB generation"
               }
             }
@@ -284,14 +284,14 @@
       "authorityClass": "stateful-maintenance",
       "activation": "manual-only-after-workflow-publication",
       "workflowFile": ".github/workflows/stateful-datomic-seed.yml",
-      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/main",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/production",
       "eventName": "workflow_dispatch",
       "runnerEnvironment": "github-hosted",
       "environment": "demo-stateful-datomic-seed",
       "roleVariable": "AWS_STATEFUL_DATOMIC_SEED_ROLE_ARN",
       "permissionScope": "authorized-datomic-seed-compute-only",
       "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-stateful-datomic-seed",
-      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/main:environment:demo-stateful-datomic-seed:event_name:workflow_dispatch:runner_environment:github-hosted",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/production:environment:demo-stateful-datomic-seed:event_name:workflow_dispatch:runner_environment:github-hosted",
       "assumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
@@ -306,11 +306,11 @@
               "StringEquals": {
                 "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                 "token.actions.githubusercontent.com:environment": "demo-stateful-datomic-seed",
-                "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
                 "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
                 "token.actions.githubusercontent.com:repository_id": "1345904214",
                 "token.actions.githubusercontent.com:repository_owner_id": "1011676",
-                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/main:environment:demo-stateful-datomic-seed:event_name:workflow_dispatch:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/stateful-datomic-seed.yml@refs/heads/production:environment:demo-stateful-datomic-seed:event_name:workflow_dispatch:runner_environment:github-hosted",
                 "token.actions.githubusercontent.com:workflow": "Stateful Datomic transactor and seed"
               }
             }

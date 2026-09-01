@@ -20,8 +20,8 @@ Its write-prevention boundary is instead layered and explicit:
 5. packaged transactor key/trust resources, transactor executables,
    peer-server entrypoints, maintenance schema, and seed sources are excluded.
 
-`npm run build:datomic-lambda` prepares the exact EACL Core commit from
-`dependencies/eacl-core.lock.json`, includes its generated formal runtime,
+`npm run build:datomic-lambda` prepares the exact EACL Core commit pinned in
+`deps.edn`, includes its generated formal runtime,
 compiles only the small Java 17 Lambda bridge, and normalizes the JAR.
 `npm run verify:datomic-lambda-artifact` cold-loads that bridge and audits the
 archive. Deployment qualification must rebuild twice on the pinned Linux JDK,

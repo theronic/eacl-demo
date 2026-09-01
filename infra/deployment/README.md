@@ -20,7 +20,7 @@ The desired repository subject template is:
 For example, the Datomic deployment role requires this exact subject:
 
 ```text
-repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
+repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
 ```
 
 The generated AWS policies also compare the current AWS-supported `aud`,

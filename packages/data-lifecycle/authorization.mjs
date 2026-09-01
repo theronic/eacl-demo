@@ -8,7 +8,7 @@ const GENERATION = /^[a-z0-9-]{3,80}$/u;
 const AUTHORIZED_ACCOUNT_ID = "843761893873";
 const AUTHORIZED_REGION = "us-east-1";
 const AUTHORIZED_REPOSITORY_ID = "1345904214";
-const AUTHORIZED_REF = "refs/heads/main";
+const AUTHORIZED_REF = "refs/heads/production";
 const S3_VERSION = /^[A-Za-z0-9._~+/=-]{1,1024}$/u;
 const AUTHORIZED_DURABLE_TARGETS = new Map([
   ["datahike-dynamodb", { tableName: "eacl-demo-datahike-fixture-v1-green", generationId: "fixture-v1-green" }],

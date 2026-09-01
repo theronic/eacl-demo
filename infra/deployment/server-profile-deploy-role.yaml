@@ -35,22 +35,22 @@ Mappings:
       Environment: demo-production-datahike-s3
       RoleVariable: AWS_DATAHIKE_S3_DEPLOY_ROLE_ARN
       ComparisonFunction: eacl-demo-datahike-s3-large
-      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-s3:event_name:push:runner_environment:github-hosted
     datahike-dynamodb:
       Environment: demo-production-datahike-dynamodb
       RoleVariable: AWS_DATAHIKE_DYNAMODB_DEPLOY_ROLE_ARN
       ComparisonFunction: eacl-demo-datahike-dynamodb-large
-      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datahike-dynamodb:event_name:push:runner_environment:github-hosted
     datomic-dynamodb:
       Environment: demo-production-datomic-dynamodb
       RoleVariable: AWS_DATOMIC_DYNAMODB_DEPLOY_ROLE_ARN
       ComparisonFunction: eacl-demo-datomic-dynamodb-large
-      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datomic-dynamodb:event_name:push:runner_environment:github-hosted
     datalevin-memory:
       Environment: demo-production-datalevin-memory
       RoleVariable: AWS_DATALEVIN_MEMORY_DEPLOY_ROLE_ARN
       ComparisonFunction: eacl-demo-datalevin-memory-live
-      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/main:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/main:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted
+      Subject: repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/deploy-demos.yml@refs/heads/production:environment:demo-production-datalevin-memory:event_name:push:runner_environment:github-hosted
 
 Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
@@ -80,7 +80,7 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
                 token.actions.githubusercontent.com:environment: !FindInMap [Profiles, !Ref ProfileId, Environment]
-                token.actions.githubusercontent.com:ref: refs/heads/main
+                token.actions.githubusercontent.com:ref: refs/heads/production
                 token.actions.githubusercontent.com:repository: theronic/eacl-demo
                 token.actions.githubusercontent.com:repository_id: "1345904214"
                 token.actions.githubusercontent.com:repository_owner_id: "1011676"

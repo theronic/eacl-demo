@@ -39,8 +39,8 @@ const expected = Object.freeze({
   }
 });
 
-test("a main push builds and deploys every live demo directly", () => {
-  assert.match(workflow, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- main$/mu);
+test("a production push builds and deploys every live demo directly", () => {
+  assert.match(workflow, /^on:\s*\n\s{2}push:\s*\n\s{4}branches:\s*\n\s{6}- production$/mu);
   const jobs = parseJobs(workflow);
   assert.deepEqual([...jobs.keys()].sort(), Object.keys(expected).sort());
 

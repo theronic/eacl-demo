@@ -8,6 +8,7 @@ import addFormats from "ajv-formats";
 
 import {
   composeProfileRegistry,
+  createBaseRegistry,
   createFailClosedRegistry,
   createProfilePublication,
   loadProfilePublication,
@@ -16,11 +17,11 @@ import {
 } from "./src/profile-publication.mjs";
 
 const readJson = (url) => readFile(new URL(url, import.meta.url), "utf8").then(JSON.parse);
-const [baseRegistry, definitions, publicationSchema] = await Promise.all([
-  readJson("../../registry/profile-registry.v1.json"),
+const [definitions, publicationSchema] = await Promise.all([
   readJson("../contracts/profiles.v1.json"),
   readJson("../../schemas/profile-publication.v1.schema.json")
 ]);
+const baseRegistry = createBaseRegistry(definitions);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validateSchema = ajv.compile(publicationSchema);

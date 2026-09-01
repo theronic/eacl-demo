@@ -7,11 +7,12 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 import { createBenchmarkEvidenceIndex, loadBenchmarkEvidence, verifyBenchmarkEvidenceIndex } from "./src/benchmark-publication.mjs";
-import { composeProfileRegistry, createProfilePublication } from "./src/profile-publication.mjs";
+import { composeProfileRegistry, createBaseRegistry, createProfilePublication } from "./src/profile-publication.mjs";
 import { fastestEvidence } from "./support/fastest-evidence-fixture.mjs";
 
 const readJson = (url) => readFile(new URL(url, import.meta.url), "utf8").then(JSON.parse);
-const [baseRegistry, definitions, schema] = await Promise.all([readJson("../../registry/profile-registry.v1.json"), readJson("../contracts/profiles.v1.json"), readJson("../../schemas/benchmark-evidence-index.v1.schema.json")]);
+const [definitions, schema] = await Promise.all([readJson("../contracts/profiles.v1.json"), readJson("../../schemas/benchmark-evidence-index.v1.schema.json")]);
+const baseRegistry = createBaseRegistry(definitions);
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validateSchema = ajv.compile(schema);
