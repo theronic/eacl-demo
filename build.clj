@@ -4,7 +4,7 @@
 (def datomic-class-dir "target/datomic-dynamodb-lambda/classes")
 (def datomic-uber-file "dist/datomic-dynamodb/function.jar")
 (def datomic-generated-classes-dir
-  "target/eacl-core-source/224da2a3e4c3acc574afad85128c679759d6d0a6/target/formal/java/classes")
+  "target/eacl-core-source/9e0105f2dfe9db9f87057c3791abddd9ba511c5e/target/formal/java/classes")
 (def datomic-source-dirs
   ["packages/contracts/src"
    "services/datomic-dynamodb/src"])
