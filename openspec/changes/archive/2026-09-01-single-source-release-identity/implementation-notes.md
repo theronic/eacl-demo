@@ -88,3 +88,28 @@
 Repo-side complete. Remaining operator steps (tasks 4.3–4.5): update the live
 IAM role trust stacks from the updated templates (AWS auth required), push
 `production`, delete `demos`.
+
+## Live cutover — completed 2026-09-02
+
+- The five deploy-role trust policies were updated in place
+  (`aws iam update-assume-role-policy`) from the regenerated bundle; each live
+  document verified byte-equal to `generated/github-oidc-trust-policies.v1.json`.
+  Stateful roles have never been provisioned (no `AWS_STATEFUL_*` repo
+  variables), so no stateful trust existed to update.
+- Finding not in the design inventory: the five `demo-production-*` GitHub
+  **environments carry custom deployment-branch policies**, a fourth `main`
+  pin besides the workflow trigger, OIDC trust, and docs. The first production
+  push (run 33567477947) failed all five jobs with zero steps executed until
+  each environment's policy was switched from `main` to `production`.
+- Rerun of 33567477947: all five jobs `success`. Live verification:
+  `registry/profiles/datahike-s3.json` shows state `enabled`, deploymentId
+  `production:e44fc3371c07b8a14d6a473f016e23c277f589a4:datahike-s3`, eaclSha
+  `9e0105f2…`, gate `demo-smoke`; the Lambda runtime echoes the same
+  `production:` revision in its response envelopes.
+- `origin/demos` deleted. Remaining flagged cleanup (not executed — needs
+  explicit approval): IAM role `eacl-demo-demos-branch-deploy` + repo variable
+  `DEMO_DEPLOY_ROLE_ARN`, and the `eacl-demo-live-ci-role` CloudFormation
+  stack (its `eacl-demo-main-branch-deploy` role no longer appears in IAM).
+  The `eacl-demo-deploy-datahike-dynamodb` stack now has cosmetic trust drift
+  (live trust updated ahead of its template); the merged template already
+  matches, so the next stack update reconciles it.

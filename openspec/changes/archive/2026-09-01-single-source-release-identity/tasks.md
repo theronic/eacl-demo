@@ -63,14 +63,14 @@ five jobs success, live demos verified, DEPLOY.md runbook added.
 
 - [x] 4.1 Full battery per D4 (node suites + nREPL Clojure + upgrade-eacl
       no-op run). Record results in implementation-notes.md.
-- [ ] 4.2 Commit on this branch, push, open PR; merge to main after review.
+- [x] 4.2 Commit on this branch, push, open PR; merge to main after review.
       Confirm NO deploy fires on the merge (trigger already `production` at
       the pushed SHA).
-- [ ] 4.3 OPERATOR (needs `aws login`): update live IAM trust stacks from the
+- [x] 4.3 OPERATOR (needs `aws login`): update live IAM trust stacks from the
       updated templates (resolve stack names first; follow
       infra/deployment/README.md). BLOCKS 4.4.
-- [ ] 4.4 `git push origin main:production`; `gh run watch` all five jobs
+- [x] 4.4 `git push origin main:production`; `gh run watch` all five jobs
       green; spot-check live health/bootstrap + explorer.
-- [ ] 4.5 `git push origin :demos` (delete legacy branch); confirm main/
+- [x] 4.5 `git push origin :demos` (delete legacy branch); confirm main/
       production protection state with user (none exists today).
-- [ ] 4.6 Update memory + archive this change via `/opsx:archive`.
+- [x] 4.6 Update memory + archive this change via `/opsx:archive`.
