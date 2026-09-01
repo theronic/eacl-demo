@@ -4,15 +4,14 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEPS_EDN_PATH, parseEaclCore } from "./lib/eacl-core.mjs";
 import {
   createDeploymentManifest,
-  validateCoreLock,
   validateDeploymentManifest,
 } from "./lib/deployment-manifest.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
-const lockPath = "dependencies/eacl-core.lock.json";
 const outputPath = resolve(process.argv[2] ?? resolve(repoRoot, "build", "deployment-manifest.json"));
 
 function git(args, encoding = "utf8") {
@@ -31,12 +30,12 @@ try {
   throw new Error("Cannot generate a deployment manifest from an unborn repository; create the reviewed commit first.");
 }
 
-const workingLockBytes = readFileSync(resolve(repoRoot, lockPath));
-const committedLockBytes = git(["show", `${demoSha}:${lockPath}`], "buffer");
-if (!workingLockBytes.equals(committedLockBytes)) {
-  throw new Error("The working Core lock differs from the lock committed at demoSha.");
+const workingDepsBytes = readFileSync(resolve(repoRoot, DEPS_EDN_PATH));
+const committedDepsBytes = git(["show", `${demoSha}:${DEPS_EDN_PATH}`], "buffer");
+if (!workingDepsBytes.equals(committedDepsBytes)) {
+  throw new Error("The working deps.edn differs from the deps.edn committed at demoSha.");
 }
-const coreLock = validateCoreLock(JSON.parse(committedLockBytes.toString("utf8")));
+const core = parseEaclCore(committedDepsBytes.toString("utf8"));
 
 const coreCheckout = process.env.EACL_CORE_CHECKOUT;
 if (!coreCheckout) {
@@ -52,8 +51,8 @@ function coreGit(args) {
   }).trim();
 }
 const coreHead = coreGit(["rev-parse", "--verify", "HEAD"]);
-if (coreHead !== coreLock.sha) {
-  throw new Error(`Core checkout HEAD ${coreHead} does not equal locked sha ${coreLock.sha}.`);
+if (coreHead !== core.sha) {
+  throw new Error(`Core checkout HEAD ${coreHead} does not equal pinned sha ${core.sha}.`);
 }
 const coreStatus = coreGit(["status", "--porcelain=v1", "--untracked-files=all"]);
 if (coreStatus !== "") {
@@ -63,8 +62,8 @@ const normalizeRepository = (url) => url
   .replace(/^git@github[.]com:/u, "https://github.com/")
   .replace(/^ssh:\/\/git@github[.]com\//u, "https://github.com/");
 const coreOrigin = normalizeRepository(coreGit(["remote", "get-url", "origin"]));
-if (coreOrigin !== coreLock.repository) {
-  throw new Error(`Core checkout origin ${coreOrigin} is not canonical ${coreLock.repository}.`);
+if (coreOrigin !== core.repository) {
+  throw new Error(`Core checkout origin ${coreOrigin} is not canonical ${core.repository}.`);
 }
 
 const profiles = (process.env.EACL_DEMO_PROFILES ?? "")
@@ -73,8 +72,8 @@ const profiles = (process.env.EACL_DEMO_PROFILES ?? "")
   .filter(Boolean);
 const manifest = validateDeploymentManifest(createDeploymentManifest({
   demoSha,
-  coreLock,
-  coreLockBytes: committedLockBytes,
+  core,
+  depsEdnBytes: committedDepsBytes,
   generatedAt: process.env.EACL_DEMO_GENERATED_AT ?? new Date().toISOString(),
   profiles,
 }));

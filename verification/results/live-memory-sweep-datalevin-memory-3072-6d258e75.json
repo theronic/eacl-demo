@@ -1,0 +1,177 @@
+{
+  "schema": "eacl-demo.manual-runtime-exercise.v1",
+  "exercise": "memory",
+  "startedAt": "2026-08-27T17:29:31.595Z",
+  "completedAt": "2026-08-27T17:29:56.436Z",
+  "target": {
+    "kind": "lambda-version",
+    "functionArn": "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datalevin-memory-live",
+    "qualifier": "51",
+    "profileId": "datalevin-memory"
+  },
+  "identity": {
+    "profileId": "datalevin-memory",
+    "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+    "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "artifactSha256": "317173a7c8b7b255ea235d66744d8af4fce141c31a926bfc174a8c9b906b048d",
+    "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datalevin-memory",
+    "dataManifestSha256": "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a"
+  },
+  "bounds": {
+    "samples": 20,
+    "minimumHeadroomPercent": 20,
+    "maximumInitializationMs": 10000,
+    "maximumRestoreMs": 10000,
+    "maximumDurationMs": 10000
+  },
+  "load": null,
+  "memory": {
+    "result": "pass",
+    "functionName": "eacl-demo-datalevin-memory-live",
+    "qualifier": "51",
+    "runtime": "java25",
+    "architecture": "arm64",
+    "snapStart": "enabled",
+    "memorySizeMiB": 3072,
+    "maxMemoryUsedMiB": 462,
+    "headroomPercent": 84.961,
+    "maximumDurationMs": 1181.91,
+    "maximumInitializationMs": null,
+    "maximumRestoreMs": 725.82,
+    "reason": null
+  },
+  "cases": [
+    {
+      "id": "memory-sample-1",
+      "status": "passed",
+      "durationMs": 2290.78,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-2",
+      "status": "passed",
+      "durationMs": 2295.175,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-3",
+      "status": "passed",
+      "durationMs": 1140.412,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-4",
+      "status": "passed",
+      "durationMs": 1093.563,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-5",
+      "status": "passed",
+      "durationMs": 1118.279,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-6",
+      "status": "passed",
+      "durationMs": 1080.522,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-7",
+      "status": "passed",
+      "durationMs": 1200.469,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-8",
+      "status": "passed",
+      "durationMs": 1247.143,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-9",
+      "status": "passed",
+      "durationMs": 1209.445,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-10",
+      "status": "passed",
+      "durationMs": 1178.13,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-11",
+      "status": "passed",
+      "durationMs": 1059.976,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-12",
+      "status": "passed",
+      "durationMs": 1130.766,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-13",
+      "status": "passed",
+      "durationMs": 1101.069,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-14",
+      "status": "passed",
+      "durationMs": 1141.522,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-15",
+      "status": "passed",
+      "durationMs": 1077.434,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-16",
+      "status": "passed",
+      "durationMs": 1069.327,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-17",
+      "status": "passed",
+      "durationMs": 1087.272,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-18",
+      "status": "passed",
+      "durationMs": 1121.345,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-19",
+      "status": "passed",
+      "durationMs": 1108.038,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-20",
+      "status": "passed",
+      "durationMs": 1088.539,
+      "reason": null
+    },
+    {
+      "id": "memory-headroom",
+      "status": "passed",
+      "durationMs": 0,
+      "reason": null
+    }
+  ],
+  "evidenceId": "sha256:62c082ae6c8fc285c5d011b07fe898dcad2c63296d9d3912828a131793a9ccef",
+  "result": "pass",
+  "counts": {
+    "passed": 21,
+    "failed": 0
+  }
+}

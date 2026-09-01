@@ -75,7 +75,7 @@
     "eaclSource": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "sha", "lock"],
+      "required": ["repository", "sha", "pin"],
       "properties": {
         "repository": {
           "const": "https://github.com/theronic/eacl.git"
@@ -83,13 +83,13 @@
         "sha": {
           "$ref": "#/$defs/sha1"
         },
-        "lock": {
+        "pin": {
           "type": "object",
           "additionalProperties": false,
           "required": ["path", "sha256", "committedAtDemoSha"],
           "properties": {
             "path": {
-              "const": "dependencies/eacl-core.lock.json"
+              "const": "deps.edn"
             },
             "sha256": {
               "$ref": "#/$defs/sha256"

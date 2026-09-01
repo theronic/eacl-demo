@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { DEPS_EDN_PATH, EACL_REPOSITORY } from "./eacl-core.mjs";
 
 const SHA1 = /^[0-9a-f]{40}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
@@ -19,20 +20,19 @@ export function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-export function validateCoreLock(lock) {
-  exactKeys(lock, ["schema", "repository", "sha", "modules"], "Core lock");
-  invariant(lock.schema === "eacl-demo.eacl-core-lock.v1", "Unsupported Core lock schema");
-  invariant(lock.repository === "https://github.com/theronic/eacl.git", "Core lock repository is not canonical");
-  invariant(SHA1.test(lock.sha), "Core lock sha must be a lowercase 40-hex commit");
-  invariant(Array.isArray(lock.modules) && lock.modules.length > 0, "Core lock modules must be non-empty");
-  invariant(new Set(lock.modules).size === lock.modules.length, "Core lock modules must be unique");
-  return lock;
+export function validateCoreIdentity(core) {
+  exactKeys(core, ["repository", "sha", "modules"], "Core identity");
+  invariant(core.repository === EACL_REPOSITORY, "Core repository is not canonical");
+  invariant(SHA1.test(core.sha), "Core sha must be a lowercase 40-hex commit");
+  invariant(Array.isArray(core.modules) && core.modules.length > 0, "Core modules must be non-empty");
+  invariant(new Set(core.modules).size === core.modules.length, "Core modules must be unique");
+  return core;
 }
 
-export function createDeploymentManifest({ demoSha, coreLock, coreLockBytes, generatedAt, artifacts = [], profiles = [] }) {
-  validateCoreLock(coreLock);
+export function createDeploymentManifest({ demoSha, core, depsEdnBytes, generatedAt, artifacts = [], profiles = [] }) {
+  validateCoreIdentity(core);
   invariant(SHA1.test(demoSha), "demoSha must be a lowercase 40-hex commit");
-  invariant(Buffer.isBuffer(coreLockBytes) || coreLockBytes instanceof Uint8Array, "coreLockBytes must contain the committed lock bytes");
+  invariant(Buffer.isBuffer(depsEdnBytes) || depsEdnBytes instanceof Uint8Array, "depsEdnBytes must contain the committed deps.edn bytes");
   invariant(!Number.isNaN(Date.parse(generatedAt)), "generatedAt must be ISO-8601");
   invariant(Array.isArray(artifacts), "artifacts must be an array");
   invariant(Array.isArray(profiles) && profiles.every((profile) => PROFILE_ID.test(profile)), "profiles must contain closed kebab-case IDs");
@@ -45,18 +45,18 @@ export function createDeploymentManifest({ demoSha, coreLock, coreLockBytes, gen
   return {
     schema: "eacl-demo.deployment-manifest.v1",
     contractVersion: "explorer.v1",
-    deploymentId: `${demoSha.slice(0, 12)}-${coreLock.sha.slice(0, 12)}`,
+    deploymentId: `${demoSha.slice(0, 12)}-${core.sha.slice(0, 12)}`,
     generatedAt,
     demo: {
       repository: "https://github.com/theronic/eacl-demo.git",
       sha: demoSha,
     },
     eacl: {
-      repository: coreLock.repository,
-      sha: coreLock.sha,
-      lock: {
-        path: "dependencies/eacl-core.lock.json",
-        sha256: sha256(coreLockBytes),
+      repository: core.repository,
+      sha: core.sha,
+      pin: {
+        path: DEPS_EDN_PATH,
+        sha256: sha256(depsEdnBytes),
         committedAtDemoSha: true,
       },
     },
@@ -74,13 +74,13 @@ export function validateDeploymentManifest(manifest) {
   exactKeys(manifest.demo, ["repository", "sha"], "Demo source");
   invariant(manifest.demo.repository === "https://github.com/theronic/eacl-demo.git", "Demo repository is not canonical");
   invariant(SHA1.test(manifest.demo.sha), "Demo sha is invalid");
-  exactKeys(manifest.eacl, ["repository", "sha", "lock"], "EACL source");
-  invariant(manifest.eacl.repository === "https://github.com/theronic/eacl.git", "EACL repository is not canonical");
+  exactKeys(manifest.eacl, ["repository", "sha", "pin"], "EACL source");
+  invariant(manifest.eacl.repository === EACL_REPOSITORY, "EACL repository is not canonical");
   invariant(SHA1.test(manifest.eacl.sha), "EACL sha is invalid");
-  exactKeys(manifest.eacl.lock, ["path", "sha256", "committedAtDemoSha"], "EACL lock binding");
-  invariant(manifest.eacl.lock.path === "dependencies/eacl-core.lock.json", "EACL lock path is invalid");
-  invariant(SHA256.test(manifest.eacl.lock.sha256), "EACL lock digest is invalid");
-  invariant(manifest.eacl.lock.committedAtDemoSha === true, "EACL lock must be committed at demo sha");
+  exactKeys(manifest.eacl.pin, ["path", "sha256", "committedAtDemoSha"], "EACL pin binding");
+  invariant(manifest.eacl.pin.path === DEPS_EDN_PATH, "EACL pin path is invalid");
+  invariant(SHA256.test(manifest.eacl.pin.sha256), "EACL pin digest is invalid");
+  invariant(manifest.eacl.pin.committedAtDemoSha === true, "EACL pin must be committed at demo sha");
   invariant(manifest.deploymentId === `${manifest.demo.sha.slice(0, 12)}-${manifest.eacl.sha.slice(0, 12)}`, "Deployment ID does not match source pair");
   invariant(Array.isArray(manifest.artifacts), "Artifacts must be an array");
   invariant(Array.isArray(manifest.profiles) && manifest.profiles.every((profile) => PROFILE_ID.test(profile)), "Profiles are invalid");

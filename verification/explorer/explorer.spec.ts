@@ -10,10 +10,9 @@ let emptyBenchmarkIndex: unknown;
 
 test.beforeAll(async () => {
   const publishedAt = new Date().toISOString();
-  const [baseRegistry, profileDefinitions] = await Promise.all([
-    readFile(new URL("../../registry/profile-registry.v1.json", import.meta.url), "utf8").then(JSON.parse),
-    readFile(new URL("../../packages/contracts/profiles.v1.json", import.meta.url), "utf8").then(JSON.parse)
-  ]);
+  const profileDefinitions = await readFile(new URL("../../packages/contracts/profiles.v1.json", import.meta.url), "utf8").then(JSON.parse);
+  const { createBaseRegistry } = await import("../../packages/explorer-state/src/profile-publication.mjs");
+  const baseRegistry = createBaseRegistry(profileDefinitions);
   baselinePublications = new Map(await Promise.all(baseRegistry.profiles.map(async (profile) => {
     const definition = profileDefinitions.profiles.find(({ id }) => id === profile.id)!;
     const publication = await createProfilePublication({ profile, definition, publishedAt, gate: { kind: "merge-smoke", evidenceId: `sha256:${"8".repeat(64)}` } });

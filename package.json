@@ -50,8 +50,6 @@
     "build:observability-notifier": "python3 scripts/package-observability-notifier.py",
     "build:datahike-dynamodb-probe": "python3 scripts/package-datahike-dynamodb-probe.py",
     "build:temp-compute-watchdog": "python3 scripts/package-temp-compute-watchdog.py",
-    "build:registry": "node scripts/build-profile-registry.mjs",
-    "build:release-report": "node scripts/build-release-report.mjs --write",
     "upgrade:eacl": "node scripts/upgrade-eacl.mjs",
     "generate:runtime-validators": "node scripts/generate-runtime-validators.mjs",
     "verify:runtime-validators": "node scripts/generate-runtime-validators.mjs --check",
@@ -131,7 +129,6 @@
     "test:jank-runtime-api:store": "node scripts/test-jank-runtime-api.mjs --store",
     "test:static-routing-policy": "node --test scripts/static-routing-policy.test.mjs",
     "test:services": "node --test services/**/*.test.mjs",
-    "verify:fixture-golden": "node scripts/check-fixture-golden.mjs",
-    "verify:release-report": "node scripts/build-release-report.mjs --check"
+    "verify:fixture-golden": "node scripts/check-fixture-golden.mjs"
   }
 }

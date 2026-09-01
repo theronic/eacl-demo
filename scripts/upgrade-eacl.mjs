@@ -1,30 +1,25 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { EACL_REPOSITORY, readEaclCore } from "./lib/eacl-core.mjs";
 
 const SHA1 = /^[0-9a-f]{40}$/u;
 const root = path.resolve(import.meta.dirname, "..");
-const lockPath = path.join(root, "dependencies", "eacl-core.lock.json");
 const reference = process.argv[2];
 
 if (!reference || reference.startsWith("-")) {
   throw new Error("usage: npm run upgrade:eacl -- <EACL commit, branch, or tag>");
 }
 
-const lock = JSON.parse(await readFile(lockPath, "utf8"));
-if (lock?.schema !== "eacl-demo.eacl-core-lock.v1" || !SHA1.test(lock.sha)) {
-  throw new Error("dependencies/eacl-core.lock.json is invalid");
-}
-
-const resolved = await resolveReference(lock.repository, reference);
-const oldSha = lock.sha;
+const oldSha = readEaclCore(root).sha;
+const resolved = await resolveReference(EACL_REPOSITORY, reference);
 const changed = [];
 
 for (const relative of trackedFiles()) {
-  if (relative === "dependencies/eacl-core.lock.json" || !isCurrentSource(relative)) continue;
+  if (!isCurrentSource(relative)) continue;
   const absolute = path.join(root, relative);
   if (!existsSync(absolute)) continue;
   const source = await readFile(absolute, "utf8");
@@ -36,17 +31,15 @@ for (const relative of trackedFiles()) {
   }
 }
 
-lock.sha = resolved.sha;
-await writeFile(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-changed.push("dependencies/eacl-core.lock.json");
+const identity = readEaclCore(root);
+if (identity.sha !== resolved.sha) {
+  throw new Error(`deps.edn still pins ${identity.sha} after the rewrite; expected ${resolved.sha}`);
+}
 
 run("node", ["scripts/prepare-eacl-core.mjs"]);
-run("node", ["scripts/build-release-report.mjs", "--write"]);
 
-const stale = trackedFiles().filter((relative) => isCurrentSource(relative))
-  .filter((relative) => existsSync(path.join(root, relative)))
-  .filter((relative) => outputContains(path.join(root, relative), oldSha));
-if (oldSha !== resolved.sha && stale.length > 0) {
+const stale = staleFiles(oldSha, resolved.sha);
+if (stale.length > 0) {
   throw new Error(`old EACL SHA remains in current source: ${stale.join(", ")}`);
 }
 
@@ -54,7 +47,7 @@ process.stdout.write([
   `EACL ${oldSha} -> ${resolved.sha}`,
   `Resolved from ${resolved.remoteRef}`,
   `Updated ${new Set(changed).size} tracked files.`,
-  "Push the resulting commit to main to rebuild and deploy every live demo.",
+  "Merge to main, then fast-forward production to rebuild and deploy every live demo.",
   ""
 ].join("\n"));
 
@@ -110,12 +103,20 @@ function isCurrentSource(relative) {
   return !relative.endsWith(".jar") && !relative.endsWith(".png") && !relative.endsWith(".zip");
 }
 
-function outputContains(file, needle) {
-  const result = spawnSync("rg", ["-q", "--fixed-strings", needle, file], { stdio: "ignore" });
-  if (result.error) throw result.error;
-  if (result.status === 0) return true;
-  if (result.status === 1) return false;
-  throw new Error(`rg failed for ${file} with status ${result.status}`);
+function staleFiles(needle, replacement) {
+  if (needle === replacement) return [];
+  let result;
+  try {
+    result = execFileSync("git",
+      ["grep", "--untracked", "-l", "--fixed-strings", "-e", needle, "--", "."],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch (error) {
+    if (error?.status === 1) return [];
+    throw error;
+  }
+  return result.split("\n").filter(Boolean)
+    .filter((relative) => isCurrentSource(relative))
+    .filter((relative) => existsSync(path.join(root, relative)));
 }
 
 function run(command, args) {

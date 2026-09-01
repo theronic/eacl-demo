@@ -6,16 +6,19 @@ import { createBenchmarkEvidenceIndex } from "../packages/explorer-state/src/ben
 import { evidenceFileDigest } from "../packages/explorer-state/src/profile-registry-node.mjs";
 import { validateFastestEvidence } from "../packages/explorer-state/src/fastest-evidence.mjs";
 
+// Evidence inputs live under verification/benchmark-evidence/ in the
+// repository; the recorded `path` of each record is the live site key under
+// registry/benchmark-evidence/, which the index contract requires.
 const root = path.resolve(import.meta.dirname, "..");
 const requested = process.argv[2];
 const publishedAt = process.argv[3];
-if (!requested || path.isAbsolute(requested) || !/^registry\/benchmark-evidence\/[a-z0-9._-]+\.json$/u.test(requested)) {
-  throw new Error("usage: node scripts/publish-benchmark-evidence.mjs registry/benchmark-evidence/<evidence>.json <published-at>");
+if (!requested || path.isAbsolute(requested) || !/^verification\/benchmark-evidence\/[a-z0-9._-]+\.json$/u.test(requested)) {
+  throw new Error("usage: node scripts/publish-benchmark-evidence.mjs verification/benchmark-evidence/<evidence>.json <published-at>");
 }
 if (!Number.isFinite(Date.parse(publishedAt))) throw new Error("published-at must be an explicit ISO-8601 timestamp");
 
 const target = path.resolve(root, requested);
-if (!target.startsWith(`${path.join(root, "registry", "benchmark-evidence")}${path.sep}`)) throw new Error("evidence path escapes the registry directory");
+if (!target.startsWith(`${path.join(root, "verification", "benchmark-evidence")}${path.sep}`)) throw new Error("evidence path escapes the evidence directory");
 const targetBytes = await readFile(target);
 validateFastestEvidence(JSON.parse(targetBytes));
 

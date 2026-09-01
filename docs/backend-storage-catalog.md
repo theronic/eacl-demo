@@ -2,11 +2,11 @@
 
 `packages/contracts/backend-storage.v1.json` is the closed public catalog. The first selector contains exactly Datahike, Datomic, Datalevin, Jank, and DataScript. The dependent second selector exposes only the relation declared there: Datahike/S3 or DynamoDB; Datomic/DynamoDB; Datalevin/memory; Jank/memory; DataScript/browser memory.
 
-Adding another backend or storage is a contract change requiring schema, registry, routing, capability, fixture, qualification, infrastructure, UI, smoke, and documentation updates. A storage may not appear merely because an adapter library theoretically supports it: it must be an explicit deployed profile in this catalog and registry.
+Adding another backend or storage is a contract change requiring schema, registry, routing, capability, fixture, qualification, infrastructure, UI, smoke, and documentation updates. A storage may not appear merely because an adapter library theoretically supports it: it must be an explicit deployed profile in this catalog and the closed profile contract (`packages/contracts/profiles.v1.json`).
 
 `packages/contracts/profiles.v1.json` provides the stable composite identity for every supported pair: `datahike-s3`, `datahike-dynamodb`, `datomic-dynamodb`, `datalevin-memory`, `jank-memory`, and `datascript-browser-memory`. Code looks up this bijection; it does not synthesize IDs by concatenating selector values.
 
-`registry/profile-registry.v1.json` is the checked-in fail-closed catalog/bootstrap record. It has no enabled profiles and uses `never-deployed` with null identities rather than fabricated placeholders. It is not a shared mutable fleet pointer.
+The fail-closed bootstrap registry is synthesized in code from the closed profile contract (`createBaseRegistry` in `packages/explorer-state`): no enabled profiles, `never-deployed` with null identities rather than fabricated placeholders. It is not a shared mutable fleet pointer.
 
 Each deployment owns exactly one same-origin status object at
 `/registry/profiles/<profile-id>.json`. The content-addressed

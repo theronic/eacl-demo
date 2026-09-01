@@ -1,5 +1,5 @@
 import { jsonPayloadSha256, readBoundedJsonResponse } from "../../contracts/src/http-client.mjs";
-import { validateProfileEntry } from "./profile-entry.mjs";
+import { canonicalProfileRoute, validateProfileEntry } from "./profile-entry.mjs";
 import { deriveStorageDefaults, evidenceSummary, validateProfileRegistry } from "./profile-registry.mjs";
 
 const PUBLICATION_SCHEMA = "eacl-demo.profile-publication.v1";
@@ -46,6 +46,35 @@ export async function verifyProfilePublication(publication, definition, expected
   const expectedId = `sha256:${await jsonPayloadSha256(canonicalJson(unsigned), { cryptoImpl })}`;
   if (publication.publicationId !== expectedId) throw publicationError("publication-digest-mismatch", "profile publication content does not match its digest");
   return publication;
+}
+
+export function createBaseRegistry(profileDefinitions, { now = new Date() } = {}) {
+  const profiles = profileDefinitions.profiles.map(({ id, backend, storage }) => ({
+    id,
+    backend,
+    storage,
+    state: "unavailable",
+    reason: FALLBACK_REASON,
+    route: canonicalProfileRoute(id),
+    deployment: null,
+    lastOutcome: {
+      outcome: "never-deployed",
+      attemptedDemoSha: null,
+      attemptedEaclSha: null,
+      artifactSha256: null,
+      at: null,
+      message: "No consolidated candidate has been deployed."
+    }
+  }));
+  const registry = {
+    $schema: "../schemas/profile-registry.v1.schema.json",
+    schema: "eacl-demo.profile-registry.v1",
+    contractVersion: "explorer.v1",
+    benchmarkEvidence: [],
+    storageDefaults: deriveStorageDefaults(profiles, profileDefinitions, [], now),
+    profiles
+  };
+  return validateProfileRegistry(registry, profileDefinitions, { evidenceRecords: [], now });
 }
 
 export function createFailClosedRegistry(baseRegistry, profileDefinitions, { evidenceRecords = [], now = new Date() } = {}) {

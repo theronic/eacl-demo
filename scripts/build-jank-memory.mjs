@@ -17,6 +17,7 @@ import { spawnSync } from "node:child_process";
 
 import { writeFixtureNdjson } from "../packages/fixture-generator/batching.mjs";
 import { generateFixtureManifest } from "../packages/fixture-generator/generator.mjs";
+import { readEaclCore } from "./lib/eacl-core.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const planOnly = process.argv.includes("--plan");
@@ -25,10 +26,10 @@ for (const argument of process.argv.slice(2)) {
   if (!allowedArguments.has(argument)) throw new Error(`unknown argument: ${argument}`);
 }
 
-const [builderLock, portLock, coreLock, buildUnits] = await Promise.all([
+const coreLock = readEaclCore(root);
+const [builderLock, portLock, buildUnits] = await Promise.all([
   json("dependencies/jank-linux-x86_64-builder.v1.json"),
   json("dependencies/jank-engine-port.v1.json"),
-  json("dependencies/eacl-core.lock.json"),
   json("build-units.json")
 ]);
 const deploymentEligible =

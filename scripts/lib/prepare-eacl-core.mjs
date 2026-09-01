@@ -1,16 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { access, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
+import { readEaclCore } from "./eacl-core.mjs";
 
-const SHA1 = /^[0-9a-f]{40}$/u;
 const EACL_JAVA_RELEASE = 25;
 const EACL_CLASS_MAJOR = EACL_JAVA_RELEASE + 44;
 
 export async function prepareLockedEaclCore(root) {
-  const lock = JSON.parse(await readFile(path.join(root, "dependencies/eacl-core.lock.json"), "utf8"));
-  if (lock?.schema !== "eacl-demo.eacl-core-lock.v1" || !SHA1.test(lock.sha) || !isHttpsGithubRepository(lock.repository)) {
-    throw new Error("dependencies/eacl-core.lock.json does not contain a supported immutable Core identity");
-  }
+  const lock = readEaclCore(root);
 
   const cacheParent = path.join(root, "target", "eacl-core-source");
   const checkout = path.join(cacheParent, lock.sha);
@@ -63,15 +60,6 @@ export async function prepareLockedEaclCore(root) {
   return Object.freeze({ lock, checkout, coreModule, datascriptModule,
     browserKernel, generatedClasses, javaRelease: EACL_JAVA_RELEASE,
     classMajor: EACL_CLASS_MAJOR });
-}
-
-function isHttpsGithubRepository(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname === "github.com" && url.pathname === "/theronic/eacl.git";
-  } catch {
-    return false;
-  }
 }
 
 async function exists(candidate) {

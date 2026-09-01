@@ -4,10 +4,11 @@ import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import baseRegistry from "../registry/profile-registry.v1.json" with { type: "json" };
 import profileDefinitions from "../packages/contracts/profiles.v1.json" with { type: "json" };
+import { canonicalProfileRoute } from "../packages/explorer-state/src/profile-entry.mjs";
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
 import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
+import { committedEaclCore } from "./lib/eacl-core.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const target = process.argv[2];
@@ -184,7 +185,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
 
   const current = awsJson(["lambda", "get-function-configuration",
                            "--function-name", profile.functionName]);
-  const deploymentId = `main:${demoSha()}:${profileId}`;
+  const deploymentId = `production:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
     EACL_ARTIFACT_SHA256: artifactSha,
     EACL_CORE_SHA: eaclSha(),
@@ -239,7 +240,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
     const promoted = awsJson(["lambda", "update-alias", "--function-name",
       profile.functionName, "--name", "candidate",
       "--function-version", update.Version,
-      "--description", `main:${demoSha()}:${artifactSha}`,
+      "--description", `production:${demoSha()}:${artifactSha}`,
       "--revision-id", priorAlias.RevisionId]);
     try {
       await smokeFunctionUrl(profileId, profile.apiOrigin ?? definitionFor(profileId).apiOrigin,
@@ -651,21 +652,22 @@ function assertHealthy(profileId, response) {
 
 async function publishProfile({ profileId, artifactKind, artifactSha,
   artifactVersion, dataManifestSha, evidence }) {
-  const base = baseRegistry.profiles.find((candidate) => candidate.id === profileId);
   const definition = profileDefinitions.profiles.find((candidate) => candidate.id === profileId);
-  if (!base || !definition) throw new Error(`unknown publication profile: ${profileId}`);
+  if (!definition) throw new Error(`unknown publication profile: ${profileId}`);
   const deployedAt = new Date().toISOString();
   const deployment = {
     demoSha: demoSha(), eaclSha: eaclSha(),
     artifact: { kind: artifactKind, sha256: artifactSha, version: artifactVersion },
-    deploymentId: `main:${demoSha()}:${profileId}`,
+    deploymentId: `production:${demoSha()}:${profileId}`,
     dataManifestSha256: dataManifestSha, deployedAt
   };
-  const profile = { ...structuredClone(base), state: "enabled", reason: null,
+  const profile = { id: definition.id, backend: definition.backend,
+    storage: definition.storage, route: canonicalProfileRoute(profileId),
+    state: "enabled", reason: null,
     deployment,
     lastOutcome: { outcome: "succeeded", attemptedDemoSha: demoSha(),
       attemptedEaclSha: eaclSha(), artifactSha256: artifactSha, at: deployedAt,
-      message: "The main-branch build and bounded live smoke passed." }
+      message: "The production-branch build and bounded live smoke passed." }
   };
   const publication = await createProfilePublication({ profile, definition,
     publishedAt: deployedAt,
@@ -769,10 +771,7 @@ function demoSha() {
 }
 
 function eaclSha() {
-  const lock = JSON.parse(spawnSync("git", ["show", `${demoSha()}:dependencies/eacl-core.lock.json`],
-    { cwd: root, encoding: "utf8" }).stdout);
-  if (!/^[0-9a-f]{40}$/.test(lock.sha)) throw new Error("locked EACL SHA is invalid");
-  return lock.sha;
+  return committedEaclCore(root, demoSha()).sha;
 }
 
 function required(name) {

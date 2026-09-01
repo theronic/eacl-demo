@@ -1,6 +1,6 @@
 # Demo delivery
 
-`theronic/eacl-demo` is the sole deployment source. A push to `main` starts
+`theronic/eacl-demo` is the sole deployment source. A push to `production` starts
 five independent build-and-deploy jobs immediately:
 
 - the main explorer and separate DataScript static artifact;
@@ -12,7 +12,7 @@ five independent build-and-deploy jobs immediately:
 Jank is not an active deployment job. The workflow has no
 concurrency group, latest-head guard, cross-run ordering rule, or fleet-wide
 success barrier. A job deploys the exact demo commit that triggered it and the
-exact EACL commit locked by that revision. Sibling failures do not roll back a
+exact EACL commit pinned by that revision’s `deps.edn`. Sibling failures do not roll back a
 successful job.
 
 Each job checks out once, builds its demo in the same runner, assumes only that

@@ -5,29 +5,28 @@ demo serves it". The authoritative contracts live in
 [docs/demo-delivery.md](docs/demo-delivery.md) (delivery),
 [docs/operator-runbook.md](docs/operator-runbook.md) (operations, rollback,
 incidents), and [docs/dependency-locks.md](docs/dependency-locks.md)
-(lock policy); this file sequences them.
+(pin policy); this file sequences them.
 
-## 1. Bump the EACL Core lock
+## 1. Bump the EACL Core pin
 
-One command rewrites every pinned SHA, refreshes
-`dependencies/eacl-core.lock.json`, stages the locked Core source and its
-generated kernel classes under `target/eacl-core-source/<sha>/`, regenerates
-the release report, and fails if the old SHA survives anywhere in current
-source:
+One command rewrites every pinned SHA in tracked sources, stages the pinned
+Core source and its generated kernel classes under
+`target/eacl-core-source/<sha>/`, and fails if the old SHA survives anywhere
+in current source:
 
 ```sh
 npm run upgrade:eacl -- <eacl commit, branch, or tag>
 ```
 
 Notes:
-- Requires ripgrep (`rg`) on PATH for the final stale-SHA sweep.
 - The reference is resolved against `https://github.com/theronic/eacl.git`;
   the commit must be pushed there first.
-- Never hand-edit SHAs: `deps.edn`, `build.clj`, Lambda handler tests, the
-  jank engine port manifest, and the release registry all carry the pin and
-  must move together (the script enforces this).
-- `dependencies/eacl-core.lock.json` is the sole product-version lock; demos
-  build and deploy from exactly that Core commit — never Core `HEAD`.
+- Never hand-edit SHAs: `deps.edn`, `build.clj`, Lambda handler tests, and the
+  jank engine port manifest all carry the pin and must move together (the
+  script enforces this, and `scripts/lib/eacl-core.mjs` fails any build where
+  the `deps.edn` pins disagree).
+- `deps.edn` is the sole source of truth for the Core commit; demos build and
+  deploy from exactly that pin — never Core `HEAD`.
 
 ## 2. Verify locally
 
@@ -57,16 +56,23 @@ Run the profile-specific guards for anything the bump plausibly touches
 (for example `verify:datomic-artifact-determinism`,
 `verify:datahike-s3-artifact-determinism`).
 
-## 3. Ship: PR, then push to `main`
+## 3. Ship: PR to `main`, then fast-forward `production`
 
-Commit the bump on a branch, open a PR, and merge. The **only** automatic
-deployment trigger is a push to `theronic/eacl-demo:refs/heads/main`
-(`.github/workflows/deploy-demos.yml`). It fans out five independent
-build-and-deploy jobs — static + DataScript, Datahike/S3,
-Datahike/DynamoDB, Datomic/DynamoDB, Datalevin/memory — each building the
-triggering commit, resolving Core solely from the committed lock,
-publishing one immutable artifact, and running its bounded smoke. Jobs are
-independent: one failure neither stops nor rolls back a sibling.
+Commit the bump on a branch, open a PR, and merge to `main`. Pushes to `main`
+deploy nothing — it is the ordinary development branch. The **only** automatic
+deployment trigger is a push to `theronic/eacl-demo:refs/heads/production`
+(`.github/workflows/deploy-demos.yml`):
+
+```sh
+git fetch origin && git push origin origin/main:production
+```
+
+That push fans out five independent build-and-deploy jobs — static +
+DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, Datalevin/memory
+— each building the triggering commit, deriving Core solely from the committed
+`deps.edn`, publishing one immutable Lambda version, moving `candidate`
+aliases, and running its bounded smoke. Jobs are independent: one failure
+neither stops nor rolls back a sibling.
 
 Watch it:
 
@@ -79,10 +85,10 @@ gh run watch --repo theronic/eacl-demo
 - Spot-check the explorer at the live origin and one server profile's
   health/bootstrap handshake (docs/demo-delivery.md describes the routing
   and origins).
-- A `main` push is **never** a seed, migration, table creation, or
+- A `production` push is **never** a seed, migration, table creation, or
   temporary-compute authorization — stateful work stays behind the
-  separately dispatched, confirmation-token workflows
-  (`stateful-*.yml`).
+  separately dispatched, confirmation-token workflows (`stateful-*.yml`),
+  which are themselves dispatched on the `production` ref.
 - Rollback and incident procedures: docs/operator-runbook.md §Rollback.
   Deployment is by immutable versions and aliases, so rolling back a
   profile is an alias move, not a rebuild.

@@ -1,0 +1,177 @@
+{
+  "schema": "eacl-demo.manual-runtime-exercise.v1",
+  "exercise": "memory",
+  "startedAt": "2026-08-27T17:22:45.166Z",
+  "completedAt": "2026-08-27T17:23:32.538Z",
+  "target": {
+    "kind": "lambda-version",
+    "functionArn": "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datahike-dynamodb-live",
+    "qualifier": "9",
+    "profileId": "datahike-dynamodb"
+  },
+  "identity": {
+    "profileId": "datahike-dynamodb",
+    "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+    "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+    "artifactSha256": "7bbbc21e2aa6bd4fc70f442da413dfcd06f6c7d80cd2e61437f605db4c9631a6",
+    "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datahike-dynamodb",
+    "dataManifestSha256": "718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0"
+  },
+  "bounds": {
+    "samples": 20,
+    "minimumHeadroomPercent": 20,
+    "maximumInitializationMs": 10000,
+    "maximumRestoreMs": 10000,
+    "maximumDurationMs": 10000
+  },
+  "load": null,
+  "memory": {
+    "result": "fail",
+    "functionName": "eacl-demo-datahike-dynamodb-live",
+    "qualifier": "9",
+    "runtime": "java25",
+    "architecture": "arm64",
+    "snapStart": "disabled",
+    "memorySizeMiB": 1536,
+    "maxMemoryUsedMiB": 366,
+    "headroomPercent": 76.172,
+    "maximumDurationMs": 13642.01,
+    "maximumInitializationMs": null,
+    "maximumRestoreMs": null,
+    "reason": "duration 13642.01ms exceeds 10000ms; no cold initialization sample was observed"
+  },
+  "cases": [
+    {
+      "id": "memory-sample-1",
+      "status": "passed",
+      "durationMs": 25373.735,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-2",
+      "status": "passed",
+      "durationMs": 1605.035,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-3",
+      "status": "passed",
+      "durationMs": 1279.909,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-4",
+      "status": "passed",
+      "durationMs": 1177.637,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-5",
+      "status": "passed",
+      "durationMs": 1118.863,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-6",
+      "status": "passed",
+      "durationMs": 1139.381,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-7",
+      "status": "passed",
+      "durationMs": 1116.702,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-8",
+      "status": "passed",
+      "durationMs": 1147.203,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-9",
+      "status": "passed",
+      "durationMs": 1120.427,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-10",
+      "status": "passed",
+      "durationMs": 1094.048,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-11",
+      "status": "passed",
+      "durationMs": 1166.546,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-12",
+      "status": "passed",
+      "durationMs": 1131.949,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-13",
+      "status": "passed",
+      "durationMs": 1104.517,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-14",
+      "status": "passed",
+      "durationMs": 1102.493,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-15",
+      "status": "passed",
+      "durationMs": 1092.9,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-16",
+      "status": "passed",
+      "durationMs": 1125.966,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-17",
+      "status": "passed",
+      "durationMs": 1075.767,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-18",
+      "status": "passed",
+      "durationMs": 1137.101,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-19",
+      "status": "passed",
+      "durationMs": 1140.542,
+      "reason": null
+    },
+    {
+      "id": "memory-sample-20",
+      "status": "passed",
+      "durationMs": 1118.566,
+      "reason": null
+    },
+    {
+      "id": "memory-headroom",
+      "status": "failed",
+      "durationMs": 0,
+      "reason": "duration 13642.01ms exceeds 10000ms; no cold initialization sample was observed"
+    }
+  ],
+  "evidenceId": "sha256:a9ecb989068b8c2358e172fed5f40a0b91dbbc90f5161a63bfd9f5eb80bf6b7d",
+  "result": "fail",
+  "counts": {
+    "passed": 20,
+    "failed": 1
+  }
+}

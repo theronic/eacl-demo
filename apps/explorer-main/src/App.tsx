@@ -7,11 +7,11 @@ import {
   type JSX,
 } from "solid-js";
 import catalogData from "../../../packages/contracts/backend-storage.v1.json";
-import availabilityData from "../../../registry/profile-registry.v1.json";
 import profileData from "../../../packages/contracts/profiles.v1.json";
 import { choicesForBackend } from "../../../packages/explorer-state/src/availability.mjs";
 import {
   composeProfileRegistry,
+  createBaseRegistry,
   createFailClosedRegistry,
   loadProfilePublications,
 } from "../../../packages/explorer-state/src/profile-publication.mjs";
@@ -34,6 +34,8 @@ import {
 } from "./profile-api";
 import { readPreferences, writePreferences } from "./preferences";
 import { AppStateProvider } from "./state";
+
+const availabilityData = createBaseRegistry(profileData);
 
 type BackendId = "datahike" | "datomic" | "datalevin" | "jank" | "datascript";
 type StorageId = "s3" | "dynamodb" | "embedded" | "memory" | "browser-memory";

@@ -4,7 +4,7 @@
   "authorizedAccountId": "843761893873",
   "authorizedRegion": "us-east-1",
   "authorizedRepositoryId": "1345904214",
-  "authorizedRef": "refs/heads/main",
+  "authorizedRef": "refs/heads/production",
   "scope": {
     "durableGenerations": [
       {
