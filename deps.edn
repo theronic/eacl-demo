@@ -12,18 +12,18 @@
    {org.clojure/clojurescript {:mvn/version "1.12.145"}
     dev.eacl/eacl-datascript
     {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
+     :git/sha "876b8303ca3609a12dcbf6431710a7cc1c2892d0"
      :deps/root "modules/eacl-datascript"}}}
   :datahike-s3
   {:extra-paths
    ["services/datahike-s3/src"
     "fixtures"
-    "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/target/formal/java/classes"]
+    "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/target/formal/java/classes"]
    :extra-deps
    {org.clojure/data.json {:mvn/version "2.5.2"}
     dev.eacl/eacl-datahike
     {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
+     :git/sha "876b8303ca3609a12dcbf6431710a7cc1c2892d0"
      :deps/root "modules/eacl-datahike"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
@@ -44,11 +44,11 @@
   {:extra-paths
    ["services/datahike-dynamodb/src"
     "fixtures"
-    "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/target/formal/java/classes"]
+    "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/target/formal/java/classes"]
    :extra-deps
    {dev.eacl/eacl-datahike
     {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
+     :git/sha "876b8303ca3609a12dcbf6431710a7cc1c2892d0"
      :deps/root "modules/eacl-datahike"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
@@ -67,12 +67,12 @@
                  "services/datahike-dynamodb/src"
                  "infra/data"
                  "fixtures"
-                 "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/target/formal/java/classes"]
+                 "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/target/formal/java/classes"]
    :extra-deps
    {org.clojure/data.json {:mvn/version "2.5.2"}
     dev.eacl/eacl-datahike
     {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
+     :git/sha "876b8303ca3609a12dcbf6431710a7cc1c2892d0"
      :deps/root "modules/eacl-datahike"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
@@ -95,11 +95,11 @@
   {:extra-paths
    ["services/datomic-dynamodb/src"
     "fixtures"
-    "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/target/formal/java/classes"]
+    "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/target/formal/java/classes"]
    :extra-deps
    {dev.eacl/eacl-datomic
     {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
+     :git/sha "876b8303ca3609a12dcbf6431710a7cc1c2892d0"
      :deps/root "modules/eacl-datomic"}
     com.datomic/peer {:mvn/version "1.0.7705"}
     software.amazon.awssdk/dynamodb
@@ -128,7 +128,7 @@
   {:extra-paths
    ["services/datalevin-memory/src"
     "fixtures"
-    "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/target/formal/java/classes"]
+    "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/target/formal/java/classes"]
    :jvm-opts ["--enable-native-access=ALL-UNNAMED"
               "--add-opens=java.base/java.lang=ALL-UNNAMED"
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
@@ -144,4 +144,4 @@
    {org.clojure/data.json {:mvn/version "2.5.2"}
     dev.eacl/eacl-datalevin
     {:local/root
-     "target/eacl-core-source/c356e4d9f148cf028af2643d61b3d9ecd17043d5/modules/eacl-datalevin"}}}}}
+     "target/eacl-core-source/876b8303ca3609a12dcbf6431710a7cc1c2892d0/modules/eacl-datalevin"}}}}}

@@ -26,7 +26,7 @@ test("EACL Core preparation targets the exact Java 25 class directory packaged b
   assert.match(prepare, /major !== EACL_CLASS_MAJOR/u);
 
   assert.match(build,
-    /target\/eacl-core-source\/c356e4d9f148cf028af2643d61b3d9ecd17043d5\/target\/formal\/java\/classes/u);
+    /target\/eacl-core-source\/876b8303ca3609a12dcbf6431710a7cc1c2892d0\/target\/formal\/java\/classes/u);
   assert.equal((build.match(/scripts\/prepare-eacl-core\.mjs/gu) ?? []).length, 6,
     "every current JVM artifact build must prepare and validate the same Core closure");
 });
