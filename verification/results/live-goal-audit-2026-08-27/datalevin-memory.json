@@ -1,0 +1,223 @@
+{
+  "qualification": {
+    "cases": [
+      {
+        "category": "identity",
+        "details": {
+          "contractRevision": 2,
+          "fixtureId": "eacl-demo-fixture-v1"
+        },
+        "durationMs": 764.775,
+        "id": "bootstrap-identity",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "contract",
+        "details": {
+          "basisId": "datalevin:16",
+          "status": "ready"
+        },
+        "durationMs": 706.064,
+        "id": "health-ready",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 267.863,
+        "id": "authorization-direct-owner-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 248.133,
+        "id": "authorization-direct-owner-deny",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 303.771,
+        "id": "authorization-platform-arrow-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 270.835,
+        "id": "authorization-team-arrow-permission-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 262.401,
+        "id": "authorization-vpc-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 265.203,
+        "id": "authorization-recursive-parent-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 256.454,
+        "id": "authorization-cycle-allow-terminates",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 258.518,
+        "id": "authorization-cycle-deny-terminates",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 2
+        },
+        "durationMs": 707.592,
+        "id": "relationship-filter-and-shape",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 1
+        },
+        "durationMs": 259.685,
+        "id": "reverse-relationship-discovery",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "pagination-cursor",
+        "details": {
+          "firstItems": 1,
+          "secondItems": 1,
+          "tamperRejected": true
+        },
+        "durationMs": 790.148,
+        "id": "pagination-cursor-scope",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cache",
+        "details": {
+          "behavior": "environment-local",
+          "stableDecision": true
+        },
+        "durationMs": 765.81,
+        "id": "cache-semantic-equivalence",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency",
+        "details": {
+          "modes": "current"
+        },
+        "durationMs": 253.694,
+        "id": "advertised-consistency-modes",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency-failure",
+        "details": {
+          "rejectedMode": "minimize"
+        },
+        "durationMs": 237.941,
+        "id": "unsupported-consistency-rejection",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "failure-redaction",
+        "details": {
+          "code": "validation-error",
+          "reflectedInput": false
+        },
+        "durationMs": 248.567,
+        "id": "validation-failure-redaction",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cleanup",
+        "details": {},
+        "durationMs": 0,
+        "id": "cancellation-cleanup",
+        "reason": "This transport does not expose an initial-qualification cleanup probe.",
+        "status": "unsupported"
+      }
+    ],
+    "completedAt": "2026-08-27T16:57:43.916Z",
+    "counts": {
+      "failed": 0,
+      "passed": 17,
+      "unsupported": 1
+    },
+    "descriptorIdentity": {
+      "artifactSha256": "317173a7c8b7b255ea235d66744d8af4fce141c31a926bfc174a8c9b906b048d",
+      "dataManifestSha256": "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a",
+      "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+      "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datalevin-memory",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datalevin-memory"
+    },
+    "identity": {
+      "artifactSha256": "317173a7c8b7b255ea235d66744d8af4fce141c31a926bfc174a8c9b906b048d",
+      "dataManifestSha256": "b537a6755026fbbc36f68289dc0f35d09a7cd965397d67d9380a6f820963294a",
+      "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+      "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datalevin-memory",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datalevin-memory"
+    },
+    "releaseOutcome": "released",
+    "result": "pass",
+    "schema": "eacl-demo.qualification-report.v1",
+    "startedAt": "2026-08-27T16:57:37.047Z",
+    "target": {
+      "kind": "direct-function-url",
+      "origin": "https://n56bfv3ompn6h4cqnxsi5bhavm0gwfrm.lambda-url.us-east-1.on.aws",
+      "path": "/api/v1/datalevin-memory",
+      "profileId": "datalevin-memory"
+    }
+  },
+  "workload": null
+}

@@ -1,0 +1,223 @@
+{
+  "qualification": {
+    "cases": [
+      {
+        "category": "identity",
+        "details": {
+          "contractRevision": 2,
+          "fixtureId": "eacl-demo-fixture-v1"
+        },
+        "durationMs": 772.234,
+        "id": "bootstrap-identity",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "contract",
+        "details": {
+          "basisId": "datomic:eacl-demo-datomic-fixture-v1-green:eacl-demo:1018628",
+          "status": "ready"
+        },
+        "durationMs": 687.263,
+        "id": "health-ready",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 245.791,
+        "id": "authorization-direct-owner-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 238.719,
+        "id": "authorization-direct-owner-deny",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 445.476,
+        "id": "authorization-platform-arrow-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 281.025,
+        "id": "authorization-team-arrow-permission-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 255.336,
+        "id": "authorization-vpc-relation-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 273.05,
+        "id": "authorization-recursive-parent-allow",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": true
+        },
+        "durationMs": 284.938,
+        "id": "authorization-cycle-allow-terminates",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "authorization",
+        "details": {
+          "allowed": false
+        },
+        "durationMs": 244.466,
+        "id": "authorization-cycle-deny-terminates",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 2
+        },
+        "durationMs": 362.751,
+        "id": "relationship-filter-and-shape",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "relationship",
+        "details": {
+          "items": 1
+        },
+        "durationMs": 249.788,
+        "id": "reverse-relationship-discovery",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "pagination-cursor",
+        "details": {
+          "firstItems": 1,
+          "secondItems": 1,
+          "tamperRejected": true
+        },
+        "durationMs": 3055.501,
+        "id": "pagination-cursor-scope",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cache",
+        "details": {
+          "behavior": "environment-local",
+          "stableDecision": true
+        },
+        "durationMs": 721.411,
+        "id": "cache-semantic-equivalence",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency",
+        "details": {
+          "modes": "minimize"
+        },
+        "durationMs": 278.915,
+        "id": "advertised-consistency-modes",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "consistency-failure",
+        "details": {
+          "rejectedMode": "current"
+        },
+        "durationMs": 237.605,
+        "id": "unsupported-consistency-rejection",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "failure-redaction",
+        "details": {
+          "code": "validation-error",
+          "reflectedInput": false
+        },
+        "durationMs": 242.298,
+        "id": "validation-failure-redaction",
+        "reason": null,
+        "status": "passed"
+      },
+      {
+        "category": "cleanup",
+        "details": {},
+        "durationMs": 0,
+        "id": "cancellation-cleanup",
+        "reason": "This transport does not expose an initial-qualification cleanup probe.",
+        "status": "unsupported"
+      }
+    ],
+    "completedAt": "2026-08-27T16:55:13.620Z",
+    "counts": {
+      "failed": 0,
+      "passed": 17,
+      "unsupported": 1
+    },
+    "descriptorIdentity": {
+      "artifactSha256": "3362ebce85a93479e0f15f284b2f6508044b947b281fdcb28bea0cdc12a263db",
+      "dataManifestSha256": "718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
+      "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+      "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datomic-dynamodb",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datomic-dynamodb"
+    },
+    "identity": {
+      "artifactSha256": "3362ebce85a93479e0f15f284b2f6508044b947b281fdcb28bea0cdc12a263db",
+      "dataManifestSha256": "718ab977cb401db80329e560723e181578469d6ae360641ef3ea620ab370cfb0",
+      "demoSha": "6d258e75c8fceeb6017aa77b7f73a79bc0542afd",
+      "deploymentId": "demos:6d258e75c8fceeb6017aa77b7f73a79bc0542afd:datomic-dynamodb",
+      "eaclSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
+      "profileId": "datomic-dynamodb"
+    },
+    "releaseOutcome": "released",
+    "result": "pass",
+    "schema": "eacl-demo.qualification-report.v1",
+    "startedAt": "2026-08-27T16:55:04.742Z",
+    "target": {
+      "kind": "direct-function-url",
+      "origin": "https://kfhndav4wq4rtmyugoriekcztm0mjrza.lambda-url.us-east-1.on.aws",
+      "path": "/api/v1/datomic-dynamodb",
+      "profileId": "datomic-dynamodb"
+    }
+  },
+  "workload": null
+}

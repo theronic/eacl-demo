@@ -74,7 +74,7 @@ export JAVA_HOME=/opt/eacl-jdk
 export PATH="/opt/eacl-node/bin:/opt/eacl-jdk/bin:/usr/local/bin:/usr/bin:/bin"
 git config --global --add safe.directory /workspace
 git config --global --add safe.directory \
-  /workspace/target/eacl-core-source/84a864a830dda84c883863d88b0d21f816dde33a
+  /workspace/target/eacl-core-source/4139bb0d5caa5a5701e1e679e7c7959deceeca03
 
 node --version
 npm --version

@@ -209,7 +209,7 @@
     "witnesses": [
       "dev.eacl/eacl-datascript",
       "cljs.core",
-      "84a864a830dda84c883863d88b0d21f816dde33a"
+      "4139bb0d5caa5a5701e1e679e7c7959deceeca03"
     ]
   }
 }
