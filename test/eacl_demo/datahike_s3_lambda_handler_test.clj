@@ -5,7 +5,7 @@
             [eacl-demo.datahike-s3.lambda-handler :as handler]
             [eacl.datahike.core :as datahike-eacl]))
 
-(def baked-eacl-sha "9e0105f2dfe9db9f87057c3791abddd9ba511c5e")
+(def baked-eacl-sha "c356e4d9f148cf028af2643d61b3d9ecd17043d5")
 (use-fixtures :each
   (fn [run]
     (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
@@ -20,7 +20,7 @@
    "EACL_MAXIMUM_CONCURRENCY" "1"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "9e0105f2dfe9db9f87057c3791abddd9ba511c5e"
+   "EACL_CORE_SHA" "c356e4d9f148cf028af2643d61b3d9ecd17043d5"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
