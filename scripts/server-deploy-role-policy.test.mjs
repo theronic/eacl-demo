@@ -22,16 +22,20 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
   for (const action of [
     "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject",
     "lambda:GetAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:GetFunctionConcurrency", "lambda:InvokeFunction",
-    "lambda:DeleteFunctionConcurrency", "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
+    "lambda:DeleteFunctionConcurrency", "lambda:ListVersionsByFunction", "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
     "cloudfront:CreateInvalidation"
   ]) assert.ok(source.includes(`- ${action}`));
+  assert.equal((source.match(/Action: lambda:DeleteFunction$/gmu) ?? []).length, 2);
+  assert.match(source, /DeleteExactStaleLambdaVersions[\s\S]*function:\$\{FunctionName\}:\*"/u);
+  assert.match(source, /DeleteExactStaleComparisonLambdaVersions[\s\S]*function:\$\{ComparisonFunctionName\}:\*"/u);
+  assert.doesNotMatch(source, /Action: lambda:DeleteFunction[\s\S]{0,180}function:\$\{(?:FunctionName|ComparisonFunctionName)\}"/u);
   for (const resource of [
     "${ArtifactBucketName}/artifacts/${ProfileId}/*",
     "${StaticBucketName}/registry/profiles/${ProfileId}.json",
     "function:${FunctionName}*",
     "distribution/${DistributionId}"
   ]) assert.ok(source.includes(resource));
-  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:DeleteFunction(?:\s|$)|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
+  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
 });
 
 test("only profiles with deployed comparisons may promote their exact comparison runtimes", () => {
@@ -43,12 +47,23 @@ test("only profiles with deployed comparisons may promote their exact comparison
     assert.match(source, new RegExp(name, "u"));
   }
   assert.match(source, /ReconcileExactSharedEc2Runtime[\s\S]*Action: ssm:SendCommand[\s\S]*document\/AWS-RunShellScript[\s\S]*instance\/\$\{DatomicEc2InstanceId\}/u);
-  assert.match(deploySource, /deployDatomicPlatforms[\s\S]*datomic-dynamodb-large[\s\S]*deployDatomicEc2[\s\S]*deployProfile\("datomic-dynamodb", profiles\["datomic-dynamodb"\]/u);
+  assert.match(deploySource, /deployDatomicPlatforms[\s\S]*const comparison = deployProfile[\s\S]*datomic-dynamodb-large[\s\S]*beforePublish: async \(\) => deployDatomicEc2\(await comparison\)[\s\S]*Promise\.all/u);
+  assert.match(deploySource, /deployDatahikePlatforms[\s\S]*const comparison = deployProfile[\s\S]*beforePublish: async \(\) => \{ await comparison; \}[\s\S]*Promise\.all/u);
   assert.match(deploySource, /deployDatalevinPlatforms[\s\S]*beforePublish: deployDatalevinEc2[\s\S]*https:\/\/datalevin\.demo\.eacl\.dev/u);
   assert.doesNotMatch(source, /ssm:(?:StartSession|GetParameter|PutParameter)|cloudformation:|iam:PassRole/u);
 });
 
+test("successful deployments retain only the three newest published Lambda packages", () => {
+  assert.match(deploySource, /await prunePublishedVersions\(profile\.functionName\)/u);
+  assert.match(deploySource, /function prunePublishedVersions\(functionName, retain = 3\)/u);
+  assert.match(deploySource, /"lambda", "list-versions-by-function"/u);
+  assert.match(deploySource, /stalePublishedVersions\(response\.Versions \?\? \[\], retain\)/u);
+  assert.match(deploySource, /const deleteBatchSize = 5/u);
+  assert.match(deploySource, /stale\.slice\(offset, offset \+ deleteBatchSize\)/u);
+  assert.match(deploySource, /"lambda", "delete-function"[\s\S]*"--qualifier", version/u);
+});
+
 test("successful empty AWS JSON output represents an absent optional setting", () => {
-  assert.match(deploySource, /const output = aws\(\[\.\.\.args, "--output", "json"\]\)\.trim\(\);/u);
+  assert.match(deploySource, /const output = \(await aws\(\[\.\.\.args, "--output", "json"\]\)\)\.trim\(\);/u);
   assert.match(deploySource, /return output === "" \? \{\} : JSON\.parse\(output\);/u);
 });
