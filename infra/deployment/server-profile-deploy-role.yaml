@@ -112,12 +112,15 @@ Resources:
                   - lambda:GetFunctionConcurrency
                   - lambda:InvokeFunction
                   - lambda:DeleteFunctionConcurrency
-                  - lambda:ListVersionsByFunction
                   - lambda:PublishVersion
                   - lambda:UpdateAlias
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
                 Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}*"
+              - Sid: ListExactLambdaVersions
+                Effect: Allow
+                Action: lambda:ListVersionsByFunction
+                Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}"
               - Sid: DeleteExactStaleLambdaVersions
                 Effect: Allow
                 Action: lambda:DeleteFunction
@@ -133,13 +136,21 @@ Resources:
                     - lambda:GetFunctionConcurrency
                     - lambda:InvokeFunction
                     - lambda:DeleteFunctionConcurrency
-                    - lambda:ListVersionsByFunction
                     - lambda:PublishVersion
                     - lambda:UpdateAlias
                     - lambda:UpdateFunctionCode
                     - lambda:UpdateFunctionConfiguration
                   Resource: !Sub
                     - "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${ComparisonFunctionName}*"
+                    - ComparisonFunctionName: !FindInMap [Profiles, !Ref ProfileId, ComparisonFunction]
+                - !Ref AWS::NoValue
+              - !If
+                - HasComparisonPlatform
+                - Sid: ListExactComparisonLambdaVersions
+                  Effect: Allow
+                  Action: lambda:ListVersionsByFunction
+                  Resource: !Sub
+                    - "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${ComparisonFunctionName}"
                     - ComparisonFunctionName: !FindInMap [Profiles, !Ref ProfileId, ComparisonFunction]
                 - !Ref AWS::NoValue
               - !If

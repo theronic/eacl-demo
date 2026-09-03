@@ -22,9 +22,13 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
   for (const action of [
     "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject",
     "lambda:GetAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:GetFunctionConcurrency", "lambda:InvokeFunction",
-    "lambda:DeleteFunctionConcurrency", "lambda:ListVersionsByFunction", "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
+    "lambda:DeleteFunctionConcurrency", "lambda:PublishVersion", "lambda:UpdateAlias", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
     "cloudfront:CreateInvalidation"
   ]) assert.ok(source.includes(`- ${action}`));
+  assert.equal((source.match(/Action: lambda:ListVersionsByFunction$/gmu) ?? []).length, 2);
+  assert.match(source, /ListExactLambdaVersions[\s\S]*function:\$\{FunctionName\}"/u);
+  assert.match(source, /ListExactComparisonLambdaVersions[\s\S]*function:\$\{ComparisonFunctionName\}"/u);
+  assert.doesNotMatch(source, /Action: lambda:ListVersionsByFunction[\s\S]{0,180}function:\$\{(?:FunctionName|ComparisonFunctionName)\}[*:]/u);
   assert.equal((source.match(/Action: lambda:DeleteFunction$/gmu) ?? []).length, 2);
   assert.match(source, /DeleteExactStaleLambdaVersions[\s\S]*function:\$\{FunctionName\}:\*"/u);
   assert.match(source, /DeleteExactStaleComparisonLambdaVersions[\s\S]*function:\$\{ComparisonFunctionName\}:\*"/u);
