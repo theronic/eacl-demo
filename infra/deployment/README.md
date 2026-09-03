@@ -63,11 +63,12 @@ definition for Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and the future
 Datalevin/memory target. `Activation` defaults to `disabled`. An enabled stack
 instance binds one exact profile OIDC subject, function/qualified-version ARN,
 content-addressed artifact prefix, versioned profile-status key, and staged and
-production distribution ARNs. It may publish code/versions and update aliases,
-but cannot create functions, alter Function URLs or permissions, invalidate or
-modify distributions, access stateful data, start compute, pass roles, delete
-objects, or use KMS. This local definition is not evidence that any role or
-ordinary workflow is live.
+production distribution ARNs. It may publish code/versions, update aliases,
+and delete stale qualified versions of those exact functions after retaining
+the newest three packages. It cannot create or delete an unqualified function,
+alter Function URLs or permissions, invalidate or modify distributions, access
+stateful data, start compute, pass roles, delete objects, or use KMS. This local
+definition is not evidence that any role or ordinary workflow is live.
 
 Generate or verify the deterministic policy bundle with:
 

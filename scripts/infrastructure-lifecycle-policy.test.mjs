@@ -63,7 +63,7 @@ test("per-profile alias rollback cannot target a sibling or shared static resour
     assert.equal((source.match(/Type: AWS::Lambda::Version$/gmu) ?? []).length, 1, `${profileId} version count drifted`);
     assert.equal((source.match(/Type: AWS::Lambda::Alias$/gmu) ?? []).length, 1, `${profileId} alias count drifted`);
   }
-  assert.match(directDeploy, /const priorAlias = awsJson\(\["lambda", "get-alias"/u);
+  assert.match(directDeploy, /const priorAlias = await awsJson\(\["lambda", "get-alias"/u);
   assert.match(directDeploy, /"--revision-id", priorAlias\.RevisionId/u);
   assert.match(directDeploy, /function rollbackAlias\(functionName, promoted, prior\)/u);
   assert.match(directDeploy, /"--revision-id", promoted\.RevisionId/u);
