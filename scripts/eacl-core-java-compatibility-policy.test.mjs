@@ -6,7 +6,7 @@ import test from "node:test";
 const root = path.resolve(import.meta.dirname, "..");
 const read = (relative) => readFile(path.join(root, relative), "utf8");
 
-test("EACL Core preparation targets the exact Java 25 class directory packaged by the JVM builds", async () => {
+test("EACL Core preparation uses the upstream Java 25 default and validates the packaged classes", async () => {
   const [prepare, build, toolchain] = await Promise.all([
     read("scripts/lib/prepare-eacl-core.mjs"),
     read("build.clj"),
@@ -15,18 +15,18 @@ test("EACL Core preparation targets the exact Java 25 class directory packaged b
 
   assert.equal(toolchain.jvm.javaRuntimeRelease, "25.0.4.1");
   assert.equal(toolchain.jvm.javaRuntimeBuild, "1");
-  assert.match(prepare, /const EACL_JAVA_RELEASE = 25;/u);
-  assert.match(prepare, /const EACL_CLASS_MAJOR = EACL_JAVA_RELEASE \+ 44;/u);
+  assert.doesNotMatch(prepare, /EACL_JAVA_RELEASE/u);
+  assert.match(prepare, /const REQUIRED_CLASS_MAJOR = 69;/u);
   assert.match(prepare,
     /path\.join\(checkout, "target", "formal", "java", "classes"\)/u);
   assert.match(prepare,
-    /EACL_JAVA_RELEASE: String\(EACL_JAVA_RELEASE\)/u);
+    /run\("clojure", \["-T:build", "prep"\], coreModule\);/u);
   assert.match(prepare, /const classFiles = await filesBelow\(generatedClasses, "\.class"\);/u);
   assert.match(prepare, /for \(const classFile of classFiles\)/u);
-  assert.match(prepare, /major !== EACL_CLASS_MAJOR/u);
+  assert.match(prepare, /major !== REQUIRED_CLASS_MAJOR/u);
 
   assert.match(build,
-    /target\/eacl-core-source\/340b355915bf752afb0ee52a323c3c89e11f247e\/target\/formal\/java\/classes/u);
+    /target\/eacl-core-source\/21e661e09988dca6e416454dd7a29321076c17ac\/target\/formal\/java\/classes/u);
   assert.equal((build.match(/scripts\/prepare-eacl-core\.mjs/gu) ?? []).length, 6,
     "every current JVM artifact build must prepare and validate the same Core closure");
 });
