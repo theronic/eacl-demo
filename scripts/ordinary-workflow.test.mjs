@@ -49,6 +49,9 @@ test("a production push builds and deploys every live demo directly", () => {
     assert.match(source, new RegExp(`^\\s{4}environment: ${definition.environment}$`, "mu"));
     assert.match(source, /id-token:\s*write/u);
     assert.match(source, /persist-credentials: false/u);
+    assert.match(source,
+      /actions\/setup-java@[0-9a-f]{40}[\s\S]*?cache: maven[\s\S]*?cache-dependency-path: deps\.edn/u,
+      `${jobId} must cache Maven dependencies using the locked Clojure dependency file`);
     assert.match(source, new RegExp(`role-to-assume: \\$\\{\\{ vars\\.${definition.role} \\}\\}`, "u"));
     const install = source.indexOf("npm ci");
     const build = source.indexOf(definition.build);
