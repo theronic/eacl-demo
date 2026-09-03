@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -9,6 +9,7 @@ import { canonicalProfileRoute } from "../packages/explorer-state/src/profile-en
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
 import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 import { committedEaclCore } from "./lib/eacl-core.mjs";
+import { stalePublishedVersions } from "./lib/lambda-version-retention.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const target = process.argv[2];
@@ -78,19 +79,27 @@ async function deployDatomicPlatforms() {
   // Comparisons must be ready before the primary deployment publishes the new
   // registry identity. Otherwise the explorer would advertise stale targets
   // or briefly accept unlike artifacts as a valid performance comparison.
-  const comparison = await deployProfile(
+  const comparison = deployProfile(
     "datomic-dynamodb",
     profiles["datomic-dynamodb-large"],
     "datomic-dynamodb-large"
   );
-  await deployDatomicEc2(comparison);
-  await deployProfile("datomic-dynamodb", profiles["datomic-dynamodb"], "datomic-dynamodb");
+  const primary = deployProfile(
+    "datomic-dynamodb",
+    profiles["datomic-dynamodb"],
+    "datomic-dynamodb",
+    { beforePublish: async () => deployDatomicEc2(await comparison) }
+  );
+  await Promise.all([comparison, primary]);
 }
 
 async function deployDatahikePlatforms(profileId) {
   const largeId = `${profileId}-large`;
-  await deployProfile(profileId, profiles[largeId], largeId);
-  await deployProfile(profileId, profiles[profileId], profileId);
+  const comparison = deployProfile(profileId, profiles[largeId], largeId);
+  const primary = deployProfile(profileId, profiles[profileId], profileId, {
+    beforePublish: async () => { await comparison; }
+  });
+  await Promise.all([comparison, primary]);
 }
 
 async function deployDatalevinPlatforms() {
@@ -113,7 +122,7 @@ async function deployStatic() {
     const absolute = path.join(root, "dist/static-site", file.path);
     const digest = createHash("sha256").update(await readFile(absolute)).digest("hex");
     if (digest !== file.sha256) throw new Error(`static digest mismatch: ${file.path}`);
-    aws([
+    await aws([
       "s3api", "put-object", "--bucket", bucket, "--key", file.path,
       "--body", absolute, "--content-type", contentType(file.path),
       "--cache-control", file.cacheClass === "immutable"
@@ -123,7 +132,7 @@ async function deployStatic() {
       "--metadata", `sha256=${digest},demo-sha=${demoSha()}`
     ]);
   }
-  aws(["cloudfront", "create-invalidation", "--distribution-id", distribution,
+  await aws(["cloudfront", "create-invalidation", "--distribution-id", distribution,
        "--paths", "/index.html", "/datascript/index.html"]);
   await smokeStaticSecurityHeaders("https://demo.eacl.dev");
   const runtimePath = manifest.entries.datascriptRuntime;
@@ -176,14 +185,14 @@ async function deployProfile(profileId, profile, targetId = profileId,
   const artifactPath = path.join(root, profile.artifact);
   const artifactSha = createHash("sha256").update(await readFile(artifactPath)).digest("hex");
   const key = `artifacts/${profileId}/${demoSha()}/${artifactSha}.jar`;
-  const uploaded = awsJson([
+  const uploaded = await awsJson([
     "s3api", "put-object", "--bucket", artifactBucket, "--key", key,
     "--body", artifactPath, "--server-side-encryption", "AES256",
     "--metadata", `artifact-sha256=${artifactSha},demo-sha=${demoSha()},eacl-sha=${eaclSha()}`
   ]);
   if (!uploaded.VersionId) throw new Error("artifact bucket must be versioned");
 
-  const current = awsJson(["lambda", "get-function-configuration",
+  const current = await awsJson(["lambda", "get-function-configuration",
                            "--function-name", profile.functionName]);
   const deploymentId = `production:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
@@ -201,34 +210,34 @@ async function deployProfile(profileId, profile, targetId = profileId,
       "--environment", `file://${environmentFile}`,
       "--memory-size", String(profile.memorySize),
       "--snap-start", `ApplyOn=${profile.snapStart ? "PublishedVersions" : "None"}`];
-    aws(configuration);
-    aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
-    deleteReservedConcurrency(profile.functionName);
-    assertMutableConfiguration(profile);
-    const update = awsJson([
+    await aws(configuration);
+    await aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
+    await deleteReservedConcurrency(profile.functionName);
+    await assertMutableConfiguration(profile);
+    const update = await awsJson([
       "lambda", "update-function-code", "--function-name", profile.functionName,
       "--s3-bucket", artifactBucket, "--s3-key", key,
       "--s3-object-version", uploaded.VersionId, "--publish"
     ]);
     if (!/^[1-9][0-9]*$/.test(update.Version)) throw new Error("Lambda did not publish a version");
-    aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
+    await aws(["lambda", "wait", "function-updated-v2", "--function-name", profile.functionName]);
     if (profile.snapStart) {
-      waitForPublishedVersion(profile.functionName, update.Version);
-      const published = awsJson(["lambda", "get-function-configuration",
+      await waitForPublishedVersion(profile.functionName, update.Version);
+      const published = await awsJson(["lambda", "get-function-configuration",
         "--function-name", profile.functionName, "--qualifier", update.Version]);
       if (published.SnapStart?.ApplyOn !== "PublishedVersions" ||
           published.SnapStart?.OptimizationStatus !== "On") {
         throw new Error(`${profileId} SnapStart version is not optimized`);
       }
     }
-    const publishedConfiguration = awsJson(["lambda", "get-function-configuration",
+    const publishedConfiguration = await awsJson(["lambda", "get-function-configuration",
       "--function-name", profile.functionName, "--qualifier", update.Version]);
     if (publishedConfiguration.MemorySize !== profile.memorySize ||
         publishedConfiguration.SnapStart?.ApplyOn !==
           (profile.snapStart ? "PublishedVersions" : "None")) {
       throw new Error(`${profileId} published configuration violates the production runtime policy`);
     }
-    const priorAlias = awsJson(["lambda", "get-alias", "--function-name",
+    const priorAlias = await awsJson(["lambda", "get-alias", "--function-name",
       profile.functionName, "--name", "candidate"]);
     const smoke = await smokeProfile(profileId, profile.functionName, temporary, {
       profileId,
@@ -237,7 +246,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
       artifactSha256: artifactSha,
       deploymentId
     }, { qualifier: update.Version, snapStart: profile.snapStart });
-    const promoted = awsJson(["lambda", "update-alias", "--function-name",
+    const promoted = await awsJson(["lambda", "update-alias", "--function-name",
       profile.functionName, "--name", "candidate",
       "--function-version", update.Version,
       "--description", `production:${demoSha()}:${artifactSha}`,
@@ -265,9 +274,10 @@ async function deployProfile(profileId, profile, targetId = profileId,
         });
       }
     } catch (error) {
-      rollbackAlias(profile.functionName, promoted, priorAlias);
+      await rollbackAlias(profile.functionName, promoted, priorAlias);
       throw error;
     }
+    await prunePublishedVersions(profile.functionName);
     process.stdout.write(`deployed ${targetId} version ${update.Version} sha256:${artifactSha}\n`);
     return {
       artifactKey: key,
@@ -302,7 +312,7 @@ async function deployDatomicEc2(release) {
   try {
     const parametersFile = path.join(temporary, "parameters.json");
     await writeFile(parametersFile, `${JSON.stringify({ commands: [`bash -ceu ${shellQuote(script)}`] })}\n`, { mode: 0o600 });
-    const response = awsJson([
+    const response = await awsJson([
       "ssm", "send-command",
       "--document-name", "AWS-RunShellScript",
       "--instance-ids", instanceId,
@@ -351,7 +361,7 @@ async function deployDatalevinEc2(release) {
   try {
     const parametersFile = path.join(temporary, "parameters.json");
     await writeFile(parametersFile, `${JSON.stringify({ commands: [`bash -ceu ${shellQuote(script)}`] })}\n`, { mode: 0o600 });
-    const response = awsJson([
+    const response = await awsJson([
       "ssm", "send-command",
       "--document-name", "AWS-RunShellScript",
       "--instance-ids", instanceId,
@@ -440,7 +450,7 @@ async function invokeProfile({ profileId, functionName, temporary, qualifier,
     body: input === null ? null : JSON.stringify(input)
   }));
   const started = Date.now();
-  aws(["lambda", "invoke", "--function-name", `${functionName}:${qualifier}`,
+  await aws(["lambda", "invoke", "--function-name", `${functionName}:${qualifier}`,
        "--cli-binary-format", "raw-in-base64-out", "--payload", `fileb://${eventFile}`,
        outputFile]);
   const response = JSON.parse(await readFile(outputFile, "utf8"));
@@ -622,8 +632,8 @@ async function smokeDatomicAdmissionQueueUrl(origin) {
   );
 }
 
-function rollbackAlias(functionName, promoted, prior) {
-  aws(["lambda", "update-alias", "--function-name", functionName,
+async function rollbackAlias(functionName, promoted, prior) {
+  await aws(["lambda", "update-alias", "--function-name", functionName,
        "--name", "candidate", "--function-version", prior.FunctionVersion,
        "--description", prior.Description || `restored ${prior.FunctionVersion}`,
        "--revision-id", promoted.RevisionId]);
@@ -676,12 +686,12 @@ async function publishProfile({ profileId, artifactKind, artifactSha,
   try {
     const file = path.join(temporary, `${profileId}.json`);
     await writeFile(file, `${JSON.stringify(publication, null, 2)}\n`);
-    aws(["s3api", "put-object", "--bucket", required("STATIC_BUCKET"),
+    await aws(["s3api", "put-object", "--bucket", required("STATIC_BUCKET"),
          "--key", `registry/profiles/${profileId}.json`, "--body", file,
          "--content-type", "application/json; charset=utf-8",
          "--cache-control", "no-cache,no-store,must-revalidate",
          "--server-side-encryption", "AES256"]);
-    aws(["cloudfront", "create-invalidation", "--distribution-id",
+    await aws(["cloudfront", "create-invalidation", "--distribution-id",
          required("CLOUDFRONT_DISTRIBUTION_ID"), "--paths",
          `/registry/profiles/${profileId}.json`]);
   } finally {
@@ -689,36 +699,39 @@ async function publishProfile({ profileId, artifactKind, artifactSha,
   }
 }
 
-function aws(args) {
-  const result = spawnSync("aws", ["--cli-connect-timeout", "30",
-    "--cli-read-timeout", "330", "--region", required("AWS_REGION"), ...args], {
-    cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"]
+async function aws(args) {
+  return new Promise((resolve, reject) => {
+    execFile("aws", ["--cli-connect-timeout", "30", "--cli-read-timeout", "330",
+      "--region", required("AWS_REGION"), ...args], {
+      cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024
+    }, (error, stdout, stderr) => {
+      if (stderr) process.stderr.write(stderr);
+      if (error) reject(new Error(`aws ${args[0]} failed`, { cause: error }));
+      else resolve(stdout);
+    });
   });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`aws ${args[0]} failed with ${result.status}`);
-  return result.stdout;
 }
 
-function awsJson(args) {
-  const output = aws([...args, "--output", "json"]).trim();
+async function awsJson(args) {
+  const output = (await aws([...args, "--output", "json"])).trim();
   return output === "" ? {} : JSON.parse(output);
 }
 
-function deleteReservedConcurrency(functionName) {
-  const current = awsJson(["lambda", "get-function-concurrency",
+async function deleteReservedConcurrency(functionName) {
+  const current = await awsJson(["lambda", "get-function-concurrency",
     "--function-name", functionName]);
   if (current.ReservedConcurrentExecutions !== undefined) {
-    aws(["lambda", "delete-function-concurrency", "--function-name", functionName]);
+    await aws(["lambda", "delete-function-concurrency", "--function-name", functionName]);
   }
-  const observed = awsJson(["lambda", "get-function-concurrency",
+  const observed = await awsJson(["lambda", "get-function-concurrency",
     "--function-name", functionName]);
   if (observed.ReservedConcurrentExecutions !== undefined) {
     throw new Error(`${functionName} still has reserved concurrency`);
   }
 }
 
-function assertMutableConfiguration(profile) {
-  const configuration = awsJson(["lambda", "get-function-configuration",
+async function assertMutableConfiguration(profile) {
+  const configuration = await awsJson(["lambda", "get-function-configuration",
     "--function-name", profile.functionName]);
   if (configuration.MemorySize !== profile.memorySize ||
       configuration.SnapStart?.ApplyOn !==
@@ -727,9 +740,9 @@ function assertMutableConfiguration(profile) {
   }
 }
 
-function waitForPublishedVersion(functionName, version) {
+async function waitForPublishedVersion(functionName, version) {
   try {
-    aws(["lambda", "wait", "published-version-active", "--function-name",
+    await aws(["lambda", "wait", "published-version-active", "--function-name",
          functionName, "--qualifier", version]);
   } catch (waitError) {
     // The waiter reports only that `State` became `Failed`. Preserve the
@@ -737,7 +750,7 @@ function waitForPublishedVersion(functionName, version) {
     // failed SnapStart image can be diagnosed without console access.
     let diagnostic = {};
     try {
-      const configuration = awsJson(["lambda", "get-function-configuration",
+      const configuration = await awsJson(["lambda", "get-function-configuration",
         "--function-name", functionName, "--qualifier", version]);
       diagnostic = {
         functionName,
@@ -762,6 +775,24 @@ function waitForPublishedVersion(functionName, version) {
     process.stderr.write(`published version failed: ${JSON.stringify(diagnostic)}\n`);
     throw waitError;
   }
+}
+
+async function prunePublishedVersions(functionName, retain = 3) {
+  const response = await awsJson([
+    "lambda", "list-versions-by-function", "--function-name", functionName
+  ]);
+  const { retained, stale } = stalePublishedVersions(response.Versions ?? [], retain);
+  const deleteBatchSize = 5;
+  for (let offset = 0; offset < stale.length; offset += deleteBatchSize) {
+    await Promise.all(stale.slice(offset, offset + deleteBatchSize).map((version) => aws([
+      "lambda", "delete-function", "--function-name", functionName,
+      "--qualifier", version
+    ])));
+  }
+  process.stdout.write(
+    `${functionName} retained ${retained.length} Lambda packages` +
+    `${stale.length === 0 ? "" : `; deleted ${stale.length}`}\n`
+  );
 }
 
 function demoSha() {
