@@ -17,6 +17,7 @@ const workflowDirectory = new URL(".github/workflows/", root);
 const workflowFileNames = (await readdir(workflowDirectory)).filter((name) => name.endsWith(".yml")).sort();
 const workflowSources = new Map(await Promise.all(workflowFileNames.map(async (name) => [name, await readFile(new URL(name, workflowDirectory), "utf8")])));
 const privilegedActions = new Set([
+  "actions/cache",
   "actions/checkout",
   "actions/setup-node",
   "actions/setup-java",
