@@ -218,7 +218,7 @@ const closedRouteSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "2"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "340b355915bf752afb0ee52a323c3c89e11f247e"
+                     "EACL_CORE_SHA" "21e661e09988dca6e416454dd7a29321076c17ac"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

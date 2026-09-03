@@ -19,7 +19,7 @@
     "runtimeCoreBaselinePullRequest": 145,
     "runtimeCoreBaseSha": "0bb0845139af1acd4dc36fa5676e3cd68c6d7356",
     "assuranceModelCoreSha": "8dc3b16498788dd822b68e1c4fe25b37a8e8879f",
-    "requiredReleaseCoreSha": "340b355915bf752afb0ee52a323c3c89e11f247e",
+    "requiredReleaseCoreSha": "21e661e09988dca6e416454dd7a29321076c17ac",
     "runtimeMatchesRequiredReleaseCore": false,
     "assuranceIdentityIsNotRuntimeIdentity": true
   },

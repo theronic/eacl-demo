@@ -3,8 +3,7 @@ import { access, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { readEaclCore } from "./eacl-core.mjs";
 
-const EACL_JAVA_RELEASE = 25;
-const EACL_CLASS_MAJOR = EACL_JAVA_RELEASE + 44;
+const REQUIRED_CLASS_MAJOR = 69;
 
 export async function prepareLockedEaclCore(root) {
   const lock = readEaclCore(root);
@@ -35,15 +34,12 @@ export async function prepareLockedEaclCore(root) {
   const generatedClasses = path.join(checkout, "target", "formal", "java", "classes");
   const representativeClass = path.join(generatedClasses, "EaclKernel", "__default.class");
   if (!await exists(browserKernel) ||
-      await classMajorOrNull(representativeClass) !== EACL_CLASS_MAJOR) {
+      await classMajorOrNull(representativeClass) !== REQUIRED_CLASS_MAJOR) {
     // Upstream's formal launcher accepts EACL_FORMAL_CACHE, but its Java smoke
     // compiler deliberately resolves DafnyRuntime.jar from the checkout-local
     // target/formal-tools path. Keep the whole cache in the exact checkout so
     // every pinned build script observes the same immutable source/tool root.
-    run("clojure", ["-T:build", "prep"], coreModule, {
-      ...process.env,
-      EACL_JAVA_RELEASE: String(EACL_JAVA_RELEASE),
-    });
+    run("clojure", ["-T:build", "prep"], coreModule);
   }
   if (!await exists(browserKernel)) throw new Error("the pinned EACL Core prep task did not produce EaclKernel.browser.js");
   const classFiles = await filesBelow(generatedClasses, ".class");
@@ -52,14 +48,13 @@ export async function prepareLockedEaclCore(root) {
   }
   for (const classFile of classFiles) {
     const major = await classMajorOrNull(classFile);
-    if (major !== EACL_CLASS_MAJOR) {
-      throw new Error(`generated EACL class ${path.relative(generatedClasses, classFile)} has classfile major ${major ?? "invalid"}; expected ${EACL_CLASS_MAJOR} for Java ${EACL_JAVA_RELEASE}`);
+    if (major !== REQUIRED_CLASS_MAJOR) {
+      throw new Error(`generated EACL class ${path.relative(generatedClasses, classFile)} has classfile major ${major ?? "invalid"}; expected ${REQUIRED_CLASS_MAJOR} for the Java 25 runtime`);
     }
   }
 
   return Object.freeze({ lock, checkout, coreModule, datascriptModule,
-    browserKernel, generatedClasses, javaRelease: EACL_JAVA_RELEASE,
-    classMajor: EACL_CLASS_MAJOR });
+    browserKernel, generatedClasses });
 }
 
 async function exists(candidate) {
