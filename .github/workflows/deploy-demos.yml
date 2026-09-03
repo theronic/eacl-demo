@@ -36,6 +36,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 25.0.4+101.0.LTS
+          cache: maven
+          cache-dependency-path: deps.edn
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
           cli: 1.12.5.1664
@@ -69,6 +71,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 25.0.4+101.0.LTS
+          cache: maven
+          cache-dependency-path: deps.edn
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
           cli: 1.12.5.1664
@@ -102,6 +106,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 25.0.4+101.0.LTS
+          cache: maven
+          cache-dependency-path: deps.edn
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
           cli: 1.12.5.1664
@@ -137,6 +143,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 25.0.4+101.0.LTS
+          cache: maven
+          cache-dependency-path: deps.edn
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
           cli: 1.12.5.1664
@@ -187,6 +195,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 25.0.4+101.0.LTS
+          cache: maven
+          cache-dependency-path: deps.edn
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
           cli: 1.12.5.1664
