@@ -29,7 +29,8 @@
   [connection {:keys [seed-id manifest-digest schema-source metadata-schema]
                :as options}]
   (validate-seed-options options)
-  @(d/transact connection (into datomic-schema/v7-schema metadata-schema))
+  (datomic-schema/install! connection)
+  @(d/transact connection metadata-schema)
   (let [existing (checkpoint-state (d/db connection) seed-id)
         client (datomic-eacl/make-client
                 connection

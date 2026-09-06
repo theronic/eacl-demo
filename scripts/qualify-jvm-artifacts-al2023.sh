@@ -73,8 +73,9 @@ chmod 755 /usr/local/bin/clojure /usr/local/bin/clj
 export JAVA_HOME=/opt/eacl-jdk
 export PATH="/opt/eacl-node/bin:/opt/eacl-jdk/bin:/usr/local/bin:/usr/bin:/bin"
 git config --global --add safe.directory /workspace
+qualification_core_sha="$(cd /workspace && node --input-type=module -e 'import { readEaclCore } from "./scripts/lib/eacl-core.mjs"; process.stdout.write(readEaclCore(process.cwd()).sha);')"
 git config --global --add safe.directory \
-  /workspace/target/eacl-core-source/21e661e09988dca6e416454dd7a29321076c17ac
+  "/workspace/target/eacl-core-source/${qualification_core_sha}"
 
 node --version
 npm --version

@@ -8,7 +8,7 @@
   "1cbf80c7aaf4bfcf2564d2bf30135794ff406383")
 
 (def required-release-core-sha
-  "21e661e09988dca6e416454dd7a29321076c17ac")
+  "a1dfc4bdd93ccefdf24da4ea51b3ed0427f7187a")
 
 (defn- fail!
   [field]

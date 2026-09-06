@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { readEaclCore } from "./lib/eacl-core.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const archive = path.join(root, "dist/datomic-dynamodb/function.jar");
@@ -218,7 +219,7 @@ const closedRouteSmoke = output("java", [
                      "EACL_MAXIMUM_CONCURRENCY" "2"
                      "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
                      "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-                     "EACL_CORE_SHA" "21e661e09988dca6e416454dd7a29321076c17ac"
+                     "EACL_CORE_SHA" "${readEaclCore(root).sha}"
                      "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
                      "EACL_DEPLOYMENT_ID" "artifact-smoke"
                      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}

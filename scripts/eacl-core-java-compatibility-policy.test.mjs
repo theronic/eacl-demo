@@ -25,8 +25,9 @@ test("EACL Core preparation uses the upstream Java 25 default and validates the 
   assert.match(prepare, /for \(const classFile of classFiles\)/u);
   assert.match(prepare, /major !== REQUIRED_CLASS_MAJOR/u);
 
-  assert.match(build,
-    /target\/eacl-core-source\/21e661e09988dca6e416454dd7a29321076c17ac\/target\/formal\/java\/classes/u);
+  assert.match(build, /\/target\/formal\/java\/classes/u);
+  assert.doesNotMatch(build, /[0-9a-f]{40}/u,
+    "build paths must use the dependency lock instead of a duplicated commit pin");
   assert.equal((build.match(/scripts\/prepare-eacl-core\.mjs/gu) ?? []).length, 6,
     "every current JVM artifact build must prepare and validate the same Core closure");
 });

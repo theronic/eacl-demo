@@ -6,6 +6,11 @@ export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "/",
   plugins: [solid()],
+  server: {
+    host: "127.0.0.1",
+    port: 5176,
+    proxy: { "/api/local": "http://127.0.0.1:8788" }
+  },
   build: {
     outDir: fileURLToPath(new URL("../../dist/explorer-main/static", import.meta.url)),
     emptyOutDir: true,

@@ -1,10 +1,14 @@
 (ns build
-  (:require [clojure.tools.build.api :as b]))
+  (:require [clojure.edn :as edn]
+            [clojure.tools.build.api :as b]))
 
 (def datomic-class-dir "target/datomic-dynamodb-lambda/classes")
 (def datomic-uber-file "dist/datomic-dynamodb/function.jar")
 (def datomic-generated-classes-dir
-  "target/eacl-core-source/21e661e09988dca6e416454dd7a29321076c17ac/target/formal/java/classes")
+  (str "target/eacl-core-source/"
+       (get-in (edn/read-string (slurp "deps.edn"))
+               [:aliases :datomic-dynamodb :extra-deps 'dev.eacl/eacl-datomic :git/sha])
+       "/target/formal/java/classes"))
 (def datomic-source-dirs
   ["packages/contracts/src"
    "services/datomic-dynamodb/src"])

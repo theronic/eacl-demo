@@ -129,10 +129,10 @@
     (d/create-database uri)
     (let [connection (d/connect uri)]
       (try
+        (datomic-schema/install! connection)
         @(d/transact connection
-                     (into datomic-schema/v7-schema
-                           (edn/read-string
-                            (slurp "infra/data/datomic-demo-metadata-schema.edn"))))
+                     (edn/read-string
+                      (slurp "infra/data/datomic-demo-metadata-schema.edn")))
         (let [client (datomic-eacl/make-client connection
                                                {:security-key cursor-key})]
           (eacl/write-schema! client (slurp "fixtures/schema.v1.zed"))

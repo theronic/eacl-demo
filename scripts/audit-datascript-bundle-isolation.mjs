@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { readEaclCore } from "./lib/eacl-core.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const mainRoot = path.join(root, "dist", "explorer-main", "static");
 const runtimePath = path.join(root, "dist", "datascript-runtime", "datascript-runtime.js");
-const evidencePath = path.join(root, "verification", "datascript", "bundle-isolation.latest.json");
+const evidencePath = path.join(root, "target", "verification", "datascript", "bundle-isolation.json");
+const runtimeWitnesses = ["dev.eacl/eacl-datascript", "cljs.core", readEaclCore(root).sha];
 const forbiddenSourceFragments = [
   "__vite-browser-external",
   "apps/explorer-datascript",
@@ -62,7 +64,7 @@ for (const relative of maps) {
 
 const runtimeBytes = await readFile(runtimePath);
 const runtimeText = runtimeBytes.toString("utf8");
-for (const marker of ["dev.eacl/eacl-datascript", "cljs.core", "21e661e09988dca6e416454dd7a29321076c17ac"]) {
+for (const marker of runtimeWitnesses) {
   if (!runtimeText.includes(marker)) throw new Error(`dedicated DataScript runtime is missing expected isolation witness: ${marker}`);
 }
 
@@ -84,9 +86,10 @@ const evidence = {
     path: "dist/datascript-runtime/datascript-runtime.js",
     bytes: runtimeBytes.length,
     sha256: sha256(runtimeBytes),
-    witnesses: ["dev.eacl/eacl-datascript", "cljs.core", "21e661e09988dca6e416454dd7a29321076c17ac"]
+    witnesses: runtimeWitnesses
   }
 };
+await mkdir(path.dirname(evidencePath), { recursive: true });
 await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(`DataScript bundle isolation passed: main ${evidence.main.scriptBytes} bytes, runtime ${evidence.dedicatedRuntime.bytes} bytes`);
 

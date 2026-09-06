@@ -31,3 +31,47 @@ CloudFront serves only the private static explorer and the separate DataScript
 entry. The shared explorer calls the selected server profile's public,
 alias-qualified Lambda Function URL directly. See `docs/architecture.md` for
 the exact profile, runtime, storage, and request paths.
+
+## Local Caveats and expiry playground
+
+The local playground uses the sibling `../core` checkout through the `:local-dev`
+alias, including `eacl-caveats-jvm`. It supports writable Datomic `:dev` and
+Datahike S3 backed by a dedicated MinIO container. Prepare Core's generated
+runtime with `clojure -T:build prep` from `../core/modules/eacl` first.
+
+Start these commands in three terminals, in order:
+
+```sh
+bash scripts/local-dev.sh infra
+bash scripts/local-dev.sh api
+bash scripts/local-dev.sh ui
+```
+
+Wait for the transactor's `System started` before starting the API. Open
+[the playground](http://127.0.0.1:5176/caveats.html) and select either backend.
+The Datomic distribution defaults to `~/datomic/1.0.7705`; override
+`EACL_LOCAL_DATOMIC_HOME` if needed. Docker, Python 3, Clojure, Java, and the
+installed npm dependencies are required.
+
+Seeded examples give Alice unconditional access to `public`, region-qualified
+access to `regional`, and a 60-second grant to `temporary`. Try region `za`,
+region `us`, and an empty context. To renew a grant, delete it, set a new expiry,
+and create it again. Enable repeated checks to watch expiry without a database
+write. Lookup/count results include conditional entries; schema and Relationship
+editors operate on the selected local backend.
+
+Local ports are 5176 (UI), 8788 (API), 7821 (nREPL), 14334/14335 (Datomic),
+and 19400/19401 (MinIO API/console). Local credentials and the Datahike store ID
+are generated under ignored `target/local-dev/`; Datomic data lives there too.
+MinIO data persists in the `eacl-v8-playground-minio` Docker volume. Keep the
+credentials and store ID when restarting. These services bind to loopback and
+do not use the deployed read-only service entry points.
+
+Run the native integration test through the running local nREPL:
+
+```sh
+clj-nrepl-eval -p 7821 "(require 'clojure.test 'eacl-demo.local-test :reload) (clojure.test/run-tests 'eacl-demo.local-test)"
+```
+
+Stop the three terminal processes with Ctrl-C and run
+`docker stop eacl-v8-playground-minio` to stop MinIO. Stopping preserves both stores.
