@@ -5,7 +5,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
 ## What Changes
 
 - Establish the public `theronic/eacl-demo` repository and local `eacl-demo` workspace as the owner of the shared SolidJS UI, compact explorer contract, direct DataScript browser runtime, deterministic fixtures, backend services, infrastructure, CI/CD, deployment manifests, and operating documentation.
-- Serve `https://demo.eacl.dev` from a private S3 origin through CloudFront, with a separately built DataScript entry at `https://demo.eacl.dev/datascript/` so ClojureScript/DataScript do not inflate the main application.
+- Serve `https://demo.eacl.dev` from a private S3 origin through CloudFront, with a conditionally loaded DataScript runtime at the root application so server-profile visits do not download ClojureScript/DataScript.
 - Replace a composite-profile UI control with explicit product and execution dimensions:
   1. select the EACL backend (`Datahike`, `Datomic`, `Datalevin`, `Jank`, or `DataScript`); and
   2. select one deployed storage layer supported by that backend; then
@@ -18,7 +18,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
   - Datomic Pro/DynamoDB using a temporary provisioning transactor, history-preserving storage, a SnapStarted Lambda read-only Peer that serves all EACL consistency selections over the fixed database value captured at initialization without synchronization, and a separately identified shared-EC2 historical-exact topology;
   - Datalevin/embedded LMDB using approximately ten thousand deterministic resources in a 1769 MiB managed Java Lambda whose ready `/tmp` database state is captured in a qualified published-version SnapStart snapshot, plus a separately identified shared-EC2 service with a durable embedded path;
   - Jank using its bundled in-memory Datomic-like conformance store in a Linux x86_64 `provided.al2023` Lambda custom runtime with no SnapStart claim or dependency; and
-  - DataScript running directly in the browser page at `/datascript/`.
+  - DataScript running directly in the browser page at `/`, with automatic 10,000-resource restoration and additive local seeding.
 - Keep Jank registered and fail-closed but park it outside the active rollout. Datahike, Datomic, Datalevin, DataScript, and their shared static/data/infrastructure units SHALL become deployable without waiting for Jank; Jank re-enters ordinary deployment only after an explicit unpark decision and its existing Linux qualification gates pass.
 - Make every public server profile read-only. Durable schema installation and one-million-resource seeding use private workflows and temporary compute, never public routes or ordinary merge deployment.
 - Record the user's preauthorization to create the two dedicated DynamoDB datasets and temporary EC2 seed, transactor, or Jank-build compute. Each run still resolves exact resources, forecasts cost, installs alarms first, and guarantees teardown; material scope expansion requires new authorization.
@@ -29,7 +29,7 @@ EACL's public demonstrations are split across incompatible sites, repositories, 
 - Require mixed-generation compatibility because the rollout is intentionally non-atomic. The UI and APIs support capability-driven N/N-1 operation. Each server profile's Function URL is its namespace and exposes only root operation names, with no `/api`, version, backend, storage, or profile path prefix.
 - Reuse the existing Datahike/S3 dataset, Lambda work, UI behavior, and Telegram implementation where provenance and focused qualification prove them safe. Do not duplicate the one-million-resource S3 store merely to change the hostname.
 - **BREAKING**: change `demo.eacl.dev` from the legacy EC2/Datahike application at `/datahike/` to the canonical CloudFront explorer. Preserve tested fallbacks and rollback windows; legacy deletion remains separately approved.
-- Replace `explorer.eacl.dev` as the canonical DataScript destination with `/datascript/`, retaining a compatibility route during migration.
+- Replace `explorer.eacl.dev` as the canonical DataScript destination with `/`, retaining `/datascript/` as a compatibility document alias.
 
 ## Capabilities
 

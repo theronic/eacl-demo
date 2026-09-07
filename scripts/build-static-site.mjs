@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, cp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -9,7 +9,6 @@ const generated = await run(node, ["scripts/generate-runtime-validators.mjs", "-
 if (generated.code !== 0) throw new Error(`runtime validator verification failed with exit ${generated.code}`);
 const builds = [
   [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-main/vite.config.ts"]],
-  [node, ["node_modules/vite/bin/vite.js", "build", "--config", "apps/explorer-datascript/vite.config.ts"]],
   [node, ["scripts/build-datascript-runtime.mjs"]]
 ];
 
@@ -19,39 +18,20 @@ if (failed) throw new Error(`static constituent build failed with exit ${failed.
 
 const target = path.join(root, "dist", "static-site");
 const main = path.join(root, "dist", "explorer-main", "static");
-const datascript = path.join(root, "dist", "datascript-entry", "static");
 const runtime = path.join(root, "dist", "datascript-runtime", "datascript-runtime.js");
 const runtimeArtifact = JSON.parse(await readFile(path.join(root, "dist", "datascript-runtime", "artifact.json"), "utf8"));
 const runtimeRelative = `datascript/assets/datascript-runtime-${runtimeArtifact.artifact.sha256}.js`;
-const [mainManifest, datascriptManifest] = await Promise.all([
-  readFile(path.join(main, ".vite", "manifest.json"), "utf8").then(JSON.parse),
-  readFile(path.join(datascript, ".vite", "manifest.json"), "utf8").then(JSON.parse),
-]);
-const mainCss = mainManifest["index.html"]?.css ?? [];
-const datascriptCss = datascriptManifest["index.html"]?.css ?? [];
-if (JSON.stringify(mainCss) !== JSON.stringify(datascriptCss) || mainCss.length !== 1) {
-  throw new Error("main and DataScript entries must emit the same single canonical stylesheet");
-}
-const [mainCssBytes, datascriptCssBytes] = await Promise.all([
-  readFile(path.join(main, mainCss[0])),
-  readFile(path.join(datascript, datascriptCss[0])),
-]);
-if (!mainCssBytes.equals(datascriptCssBytes)) {
-  throw new Error("main and DataScript canonical stylesheet bytes differ");
-}
 await rm(target, { recursive: true, force: true });
 await cp(main, target, { recursive: true, errorOnExist: true, force: false });
-await cp(datascript, path.join(target, "datascript"), { recursive: true, errorOnExist: true, force: false });
+await mkdir(path.join(target, "datascript", "assets"), { recursive: true });
 await copyFile(runtime, path.join(target, runtimeRelative));
-const datascriptIndex = path.join(target, "datascript", "index.html");
-const datascriptHtml = await readFile(datascriptIndex, "utf8");
-if (!datascriptHtml.includes('<script type="module"')) throw new Error("DataScript entry has no module script");
-await writeFile(
-  datascriptIndex,
-  datascriptHtml.replace('<script type="module"', `<script defer src="/${runtimeRelative}"></script>\n    <script type="module"`),
-);
+const mainIndex = path.join(target, "index.html");
+const html = (await readFile(mainIndex, "utf8")).replace("</head>",
+  `<meta name="eacl-datascript-runtime" content="/${runtimeRelative}">\n</head>`);
+await writeFile(mainIndex, html);
+// Compatibility document, with the exact same app, assets and inert metadata.
+await writeFile(path.join(target, "datascript", "index.html"), html);
 await rm(path.join(target, ".vite"), { recursive: true, force: true });
-await rm(path.join(target, "datascript", ".vite"), { recursive: true, force: true });
 
 const files = [];
 for (const relative of await enumerate(target)) {
@@ -76,11 +56,11 @@ const manifest = {
   result: "assembled",
   uploadRoot: "dist/static-site",
   entries: { main: "index.html", datascript: "datascript/index.html", datascriptRuntime: runtimeRelative },
-  sourceBuilds: ["explorer-main", "datascript-entry", "datascript-runtime"],
+  sourceBuilds: ["explorer-main", "datascript-runtime"],
   files
 };
 await writeFile(path.join(target, "site-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`static-site\t${files.length} files\tmain + direct /datascript/ runtime\tone upload root`);
+console.log(`static-site\t${files.length} files\tmain + conditional DataScript runtime\tone upload root`);
 
 function run(command, args) {
   return new Promise((resolve, reject) => {

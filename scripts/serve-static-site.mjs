@@ -11,7 +11,7 @@ const server = createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://127.0.0.1").pathname);
     const relative = ["/", "/datahike", "/datahike/"].includes(pathname)
       ? "index.html"
-      : pathname === "/datascript/"
+      : ["/datascript", "/datascript/"].includes(pathname)
         ? "datascript/index.html"
         : pathname.slice(1);
     const candidate = path.resolve(root, relative);

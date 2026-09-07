@@ -27,7 +27,7 @@ or artifact-handoff gate in this path.
 
 ## Delivery topology
 
-CloudFront serves only the private static explorer and the separate DataScript
+CloudFront serves the shared private static explorer and its conditional DataScript
 entry. The shared explorer calls the selected server profile's public,
 alias-qualified Lambda Function URL directly. See `docs/architecture.md` for
 the exact profile, runtime, storage, and request paths.
@@ -75,3 +75,5 @@ clj-nrepl-eval -p 7821 "(require 'clojure.test 'eacl-demo.local-test :reload) (c
 
 Stop the three terminal processes with Ctrl-C and run
 `docker stop eacl-v8-playground-minio` to stop MinIO. Stopping preserves both stores.
+
+DataScript opens at `/` with 10,000 logical resources automatically restored. Use **Add resources** to append browser-local data up to 100,000 resources. Switching away or reloading resets that session. Explicit server-backend URLs skip the DataScript runtime download. Existing `/datascript/` links remain compatible.

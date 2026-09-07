@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://demo.eacl.dev/schemas/datascript-local-seed.v1.schema.json",
+  "description": "Browser-local extension; never accepted by server request validators. Manifest identity denotes initial fixture provenance; modified describes the current local dataset.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "input"
+      ],
+      "properties": {
+        "operation": {
+          "const": "seed-start"
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "resourceCount"
+          ],
+          "properties": {
+            "resourceCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "input"
+      ],
+      "properties": {
+        "operation": {
+          "enum": [
+            "seed-status",
+            "seed-retry"
+          ]
+        },
+        "input": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "resourcesAdded",
+        "resourcesCompleted",
+        "resourcesTarget",
+        "totalResources",
+        "totalServers"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ready",
+            "seeding",
+            "error"
+          ]
+        },
+        "resourcesAdded": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "resourcesCompleted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "resourcesTarget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "totalResources": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "totalServers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "error": {
+          "type": "string",
+          "maxLength": 320
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumResources",
+        "modified",
+        "progress"
+      ],
+      "properties": {
+        "maximumResources": {
+          "const": 100000
+        },
+        "modified": {
+          "type": "boolean"
+        },
+        "progress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "resourcesAdded",
+            "resourcesCompleted",
+            "resourcesTarget",
+            "totalResources",
+            "totalServers"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "ready",
+                "seeding",
+                "error"
+              ]
+            },
+            "resourcesAdded": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "resourcesCompleted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "resourcesTarget": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "totalResources": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "totalServers": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "error": {
+              "type": "string",
+              "maxLength": 320
+            }
+          }
+        }
+      }
+    }
+  ]
+}

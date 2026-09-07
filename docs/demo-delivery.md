@@ -3,7 +3,7 @@
 `theronic/eacl-demo` is the sole deployment source. A push to `production` starts
 five independent build-and-deploy jobs immediately:
 
-- the main explorer and separate DataScript static artifact;
+- the shared explorer and conditionally loaded DataScript runtime;
 - Datahike with S3;
 - Datahike with DynamoDB;
 - Datomic with DynamoDB; and
@@ -22,8 +22,9 @@ for a separate readiness decision.
 
 ## Static delivery
 
-The static job builds the main explorer and DataScript from the same shared
-components. It uploads only the assembled manifest files to the private,
+The static job builds one explorer application with a conditionally loaded
+DataScript runtime. Root and legacy DataScript URLs serve the same application.
+It uploads only the assembled manifest files to the private,
 versioned, AWS-owned-encryption S3 bucket, then invalidates the two entry
 documents. It does not delete bucket contents or touch server artifacts.
 

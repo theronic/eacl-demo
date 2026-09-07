@@ -16,6 +16,9 @@ export function Header(): JSX.Element {
   const [seedError, setSeedError] = createSignal<unknown>();
   const bootstrap = () => app.bootstrapData();
   const ready = () => Boolean(bootstrap());
+  const localSeed = () => bootstrap()?.data.localSeed;
+  const unit = () => localSeed() ? "resources" : "servers";
+  const resourceTotal = () => app.seedProgress()?.totalResources ?? bootstrap()?.data.totals.resources ?? 0;
   const serverTotal = () => (ready() ? (bootstrap()?.data.totals.servers ?? 0) : 0);
 
   const seed = async (event: SubmitEvent) => {
@@ -25,6 +28,10 @@ export function Header(): JSX.Element {
       setSeedError(new Error("Seed size must be a positive whole number."));
       return;
     }
+    if (localSeed() && resourceTotal() + value > localSeed()!.maximumResources) {
+      setSeedError(new Error(`The browser limit is ${formatInteger(localSeed()!.maximumResources)} resources.`));
+      return;
+    }
     setSeedError(undefined);
     app.setSeedProgress({
       status: "seeding",
@@ -32,12 +39,14 @@ export function Header(): JSX.Element {
       serversCompleted: 0,
       serversTarget: value,
       totalServers: serverTotal(),
-      label: "Preparing Datahike transactions",
+      totalResources: resourceTotal(),
+      unit: localSeed() ? "resources" : undefined,
+      label: "Preparing local resources",
     });
     try {
       const result = await seedRequest.run<SeedProgress>("/seed", {
         method: "POST",
-        body: JSON.stringify({ serverCount: value }),
+        body: JSON.stringify({ resourceCount: value }),
       });
       app.setSeedProgress(result.data);
     } catch (error) {
@@ -90,11 +99,11 @@ export function Header(): JSX.Element {
               <Show
                 when={app.seeding()}
                 fallback={ready()
-                  ? `${formatInteger(serverTotal())} servers`
+                  ? `${formatInteger(localSeed() ? resourceTotal() : serverTotal())} ${unit()}`
                   : "Server total unavailable"}
               >
                 {formatInteger(app.seedProgress()?.serversCompleted ?? 0)} /{" "}
-                {formatInteger(app.seedProgress()?.serversTarget ?? 0)} servers
+                {formatInteger(app.seedProgress()?.serversTarget ?? 0)} {unit()}
               </Show>
             </strong>
           </div>
@@ -103,7 +112,7 @@ export function Header(): JSX.Element {
             <select
               class="page-size-control__select"
               aria-label="Page size"
-              disabled={!ready()}
+              disabled={!ready() || app.seeding()}
               value={String(app.pageSize())}
               onChange={(event) =>
                 app.setPageSize(Number(event.currentTarget.value) as PageSize)
@@ -118,10 +127,11 @@ export function Header(): JSX.Element {
             <form class="seed-controls" aria-busy={app.seeding()} onSubmit={seed}>
             <input
               class="seed-input"
-              aria-label="Servers to seed"
+              aria-label="Additional resources"
               type="number"
               min="1"
               step="1"
+              max={localSeed() ? localSeed()!.maximumResources - resourceTotal() : undefined}
               disabled={app.seeding() || !ready()}
               value={seedSize()}
               onInput={(event) => setSeedSize(event.currentTarget.value)}
@@ -135,9 +145,11 @@ export function Header(): JSX.Element {
               <Show when={app.seeding()}>
                 <ButtonSpinner />
               </Show>
-              {app.seeding() ? "Seeding…" : "Seed DB"}
+              {app.seeding() ? "Seeding…" : "Add resources"}
             </button>
             </form>
+            <small class="seed-limit">Limit: {formatInteger(localSeed()?.maximumResources ?? 0)} resources</small>
+            <Show when={localSeed()?.modified}><span class="seed-local-note">Locally modified · resets when leaving DataScript</span></Show>
           </Show>
           <button
             class="graph-toggle"

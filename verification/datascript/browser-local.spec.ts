@@ -81,7 +81,7 @@ test("fixture initialization and authorization stay in the direct browser runtim
   }));
 
   const startupStartedAt = Date.now();
-  await page.goto(process.env.EACL_DATASCRIPT_URL ?? "http://127.0.0.1:4174/datascript/");
+  await page.goto(process.env.EACL_DATASCRIPT_URL ?? "http://127.0.0.1:4174/");
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
@@ -104,7 +104,7 @@ test("fixture initialization and authorization stay in the direct browser runtim
   expect(requests.some(({ url }) => url.endsWith(`/registry/profiles/datascript-browser-memory.json`))).toBe(true);
   expect(requests.some(({ url }) => url.endsWith(`/datascript/assets/datascript-runtime-${artifact.artifact.sha256}.js`))).toBe(true);
   expect(await page.evaluate(() => (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount)).toBe(0);
-  await expect(page.getByText(/Starting DataScript|10,000 resources/iu)).toHaveCount(0);
+  await expect(page.getByText("10,000 resources", { exact: true })).toBeVisible();
 
   const defaults = await page.evaluate(async () => {
     const runtime = (globalThis as typeof globalThis & { EaclDataScriptRuntime?: { request: (operation: string, input: Record<string, unknown>, requestId: string) => Promise<any> } }).EaclDataScriptRuntime;

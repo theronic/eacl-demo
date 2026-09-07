@@ -7,6 +7,7 @@ const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
   testDir: ".",
+  outputDir: "../../test-results/datascript-network",
   testMatch: "main-network-isolation.spec.ts",
   timeout: 30_000,
   workers: 1,

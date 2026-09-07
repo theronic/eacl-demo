@@ -140,6 +140,8 @@ export interface SeedProgress {
   serversCompleted: number;
   serversTarget: number;
   totalServers: number;
+  totalResources?: number;
+  unit?: "resources";
   elapsedMs?: number;
   label?: string | null;
   error?: string | null;
@@ -149,6 +151,7 @@ export interface Bootstrap {
   status: "ready" | "seeding";
   seed: SeedProgress;
   totals: Record<string, number>;
+  localSeed?: { maximumResources: number; modified: boolean };
   schema: SchemaInfo;
   quickSubjects: Array<{ id: string; label: string }>;
   pageSizeOptions: PageSize[];

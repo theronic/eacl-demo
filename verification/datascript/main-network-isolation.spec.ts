@@ -4,7 +4,7 @@ test("an explicit server-profile entry does not load DataScript assets", async (
   const requests: string[] = [];
   page.on("request", (request) => requests.push(request.url()));
   const base = process.env.EACL_MAIN_URL ?? "http://127.0.0.1:4175/";
-  await page.goto(new URL("?backend=datahike&storage=s3&platform=lambda-1024", base).href);
+  await page.goto(new URL("?backend=datahike&storage=s3&platform=lambda-1769", base).href);
   await expect(page.getByRole("heading", { name: /EACL Explorer/u })).toBeVisible();
 
   const loadedResources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));

@@ -180,33 +180,16 @@ test("consistency controls retain the original Explorer vocabulary", () => {
 });
 
 test("DataScript has no independent presentation component or stylesheet", () => {
-  assert.equal(
-    file(resolve(repository, "apps/explorer-datascript/index.html")),
-    file(resolve(repository, "apps/explorer-main/index.html")),
-  );
-  const app = file(resolve(datascriptSource, "App.tsx"));
-  assert.match(app, /import ExplorerApp from "\.\.\/\.\.\/explorer-main\/src\/App";/u);
-  assert.match(app, /<ExplorerApp\s/u);
-  for (const forbidden of [
-    "packages/ui",
-    "ServerExplorer",
-    "ExplorerHeader",
-    "PanelBoundary",
-    "ThemeControl",
-    "class=",
-  ]) assert.doesNotMatch(app, new RegExp(escapeRegExp(forbidden), "u"), forbidden);
-
-  const entry = file(resolve(datascriptSource, "main.tsx"));
-  assert.match(entry, /import "\.\.\/\.\.\/explorer-main\/src\/styles\.css";/u);
-  assert.equal((entry.match(/\.css";/gu) ?? []).length, 1);
-  assert.equal(existsSync(resolve(datascriptSource, "styles.css")), false);
+  for (const relative of ["index.html", "src/App.tsx", "src/main.tsx", "src/styles.css", "vite.config.ts"]) {
+    assert.equal(existsSync(resolve(repository, "apps/explorer-datascript", relative)), false);
+  }
   assert.equal(existsSync(resolve(demoSource, "ServerExplorer.tsx")), false);
 });
 
 test("both deployments instantiate the canonical Explorer through one App", () => {
   const app = file(resolve(demoSource, "App.tsx"));
-  assert.match(app, /entry\?: "server" \| "datascript"/u);
-  assert.match(app, /createDataScriptTransport\?:/u);
+  assert.match(app, /createDataScriptProfileTransport/u);
+  assert.doesNotMatch(app, /window\.location\.(assign|replace)/u);
   assert.match(app, /const api = createProfileApi\(props\.profile, \{ transport: props\.transport \}\)/u);
   assert.equal((app.match(/<Explorer\s/gu) ?? []).length, 1);
   assert.doesNotMatch(app, /packages\/ui|ServerExplorer/u);

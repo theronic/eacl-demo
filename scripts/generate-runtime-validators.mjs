@@ -8,6 +8,7 @@ import addFormats from "ajv-formats";
 const root = new URL("../", import.meta.url);
 const outputUrl = new URL("packages/contracts/src/generated/runtime-validators.mjs", root);
 const schemaNames = [
+  "datascript-local-seed.v1",
   "artifact-digests.v1",
   "error-codes.v1",
   "explorer.v1",
@@ -23,6 +24,7 @@ const schemaNames = [
 ];
 
 const validatorIds = Object.freeze({
+  localSeed: "https://demo.eacl.dev/schemas/datascript-local-seed.v1.schema.json",
   client: "https://demo.eacl.dev/schemas/explorer-client-request.v1.schema.json",
   server: "https://demo.eacl.dev/schemas/explorer-response.v1.schema.json",
   fixture: "https://demo.eacl.dev/schemas/fixture-manifest-boundary.v1.schema.json",

@@ -5,7 +5,7 @@ under `/Users/petrus/code/eacl/openspec/changes`. It does not edit, complete, or
 archive those changes and does not turn their dirty local worktrees into release
 inputs. The consolidated repository consumes EACL Core only through
 the single `deps.edn` pin, currently
-`a1dfc4bdd93ccefdf24da4ea51b3ed0427f7187a`.
+`c429227a96af10ed404632bbfb2f127fb0f0422e`.
 
 ## Decision matrix
 

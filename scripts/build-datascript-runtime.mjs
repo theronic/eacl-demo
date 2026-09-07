@@ -30,7 +30,9 @@ const snapshotProgram = `
          '[eacl.datascript.core :as eacl-datascript]
          '[eacl.datascript.schema :as eacl-datascript-schema])
 (let [source-id "eacl-demo-fixture-v1"
-      connection (ds/create-conn (eacl-datascript-schema/merge-schema))
+      connection (with-redefs [clojure.core/random-uuid
+                               (constantly (java.util.UUID/fromString "00000000-0000-0000-0000-000000000001"))]
+                   (eacl-datascript/create-conn))
       _ (alter-meta! connection assoc :eacl.datascript/source-id source-id)
       _ (ds/transact! connection
                       [{:eacl/id "datascript-metadata"
@@ -77,8 +79,8 @@ execFileSync("clojure", [
 
 const snapshot = await readFile(snapshotOutput);
 const parsedSnapshot = JSON.parse(snapshot.toString("utf8"));
-if (!parsedSnapshot || parsedSnapshot.count !== 87_435 ||
-    parsedSnapshot.eavt?.length !== 87_435 || parsedSnapshot["max-eid"] !== 10_104) {
+if (!parsedSnapshot || parsedSnapshot.count !== 87_437 ||
+    parsedSnapshot.eavt?.length !== 87_437 || parsedSnapshot["max-eid"] !== 10_104) {
   throw new Error("generated DataScript snapshot does not contain the exact fixture database");
 }
 const compiled = await readFile(output);

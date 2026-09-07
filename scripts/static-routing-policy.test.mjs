@@ -26,7 +26,7 @@ const directOrigins = [
   "datalevin.demo.eacl.dev",
 ];
 
-test("CloudFront serves only the two static Explorer entries", () => {
+test("CloudFront serves the shared Explorer and legacy static alias", () => {
   const patterns = [...template.matchAll(/^\s+- PathPattern: ([^\n]+)$/gmu)].map((entry) => entry[1]);
   assert.deepEqual(patterns, ["datascript/*"]);
   assert.equal((template.match(/TargetOriginId: static/gu) ?? []).length, 2);
@@ -36,7 +36,7 @@ test("CloudFront serves only the two static Explorer entries", () => {
   assert.match(template, /PathPattern: datascript\/\*[\s\S]*CachePolicyId: !Ref StaticCachePolicy[\s\S]*TargetOriginId: static/u);
 });
 
-test("static route rewrites preserve the two canonical entries only", () => {
+test("static route rewrites preserve root and legacy document aliases", () => {
   for (const uri of ["/datahike", "/datahike/"]) assert.equal(context.handler(request(uri)).uri, "/index.html");
   for (const uri of ["/datascript", "/datascript/"]) assert.equal(context.handler(request(uri)).uri, "/datascript/index.html");
   const api = request("/health");

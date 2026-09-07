@@ -174,7 +174,7 @@
             },
             "snapshotBehavior": {"enum": ["fixed-environment", "request-snapshot", "page-lifecycle", "rebuild-lifecycle"]},
             "cacheBehavior": {"enum": ["none", "request-local", "environment-local", "browser-page-local", "shared-read-through"]},
-            "mutationLocality": {"enum": ["none", "private-seed-workflow", "initialization-before-ready", "browser-initialization"]},
+            "mutationLocality": {"enum": ["none", "private-seed-workflow", "initialization-before-ready", "browser-initialization", "browser-local"]},
             "limitations": {
               "type": "array", "maxItems": 16, "uniqueItems": true,
               "items": {"enum": ["read-only", "fixed-current-snapshot", "no-synchronization", "no-history-api", "ephemeral", "browser-local", "no-durability", "datomic-like-not-datomic-pro", "no-datalog-api", "no-distribution", "not-production-database", "unequal-dataset-scale", "no-snapstart", "eventual-storage-read", "lifecycle-rebuild", "unsupported-consistency"]}

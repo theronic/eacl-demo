@@ -13,11 +13,14 @@
 (def ^:private maximum-cursors 4096)
 (def ^:private default-page-size 25)
 (def ^:private default-count-ceiling 1000)
+(def ^:private maximum-resources 100000)
+(def ^:private seed-batch-size 100)
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
     "list-relationships" "reverse-relationships" "check-permission"
     "lookup-resources" "lookup-subjects" "count-resources"
-    "get-schema" "get-cache-info" "count-objects"})
+    "get-schema" "get-cache-info" "count-objects"
+    "seed-start" "seed-status" "seed-retry"})
 (def ^:private unsupported-consistency
   #{"exact" "at-least" "authoritative" "historical-date"})
 (def ^:private identity-keys
@@ -30,7 +33,7 @@
 
 (defn- basis [runtime]
   {:behavior "page-lifecycle"
-   :id (str profile-id ":page-tx-" (:max-tx (ds/db (:connection runtime))))
+   :id (str profile-id ":" (:owner @lifecycle) ":page-tx-" (:max-tx (ds/db (:connection runtime))))
    :capturedAt (:captured-at runtime)
    :fixedForEnvironment false})
 
@@ -44,7 +47,7 @@
                 (:deploymentId (deployment-identity)))
     :requestId (:requestId request)
     :elapsedMs (max 0 (- (.now js/performance) (:startedAt request)))}
-   cache-status (assoc :cacheStatus cache-status)))
+    cache-status (assoc :cacheStatus cache-status)))
 
 (defn- success
   ([request runtime data]
@@ -70,15 +73,18 @@
     :consistencyModes ["minimize"]
     :snapshotBehavior "page-lifecycle"
     :cacheBehavior "browser-page-local"
-    :mutationLocality "browser-initialization"
+    :mutationLocality "browser-local"
     :limitations ["browser-local" "ephemeral" "no-durability" "unequal-dataset-scale" "unsupported-consistency"]}
    :limits [{:name "message-bytes" :value maximum-message-bytes}
             {:name "page-size" :value 1000}
             {:name "fixture-resources" :value fixture/small-resource-count}]
    :dataset {:fixtureId fixture/fixture-id
-             :logicalResourceCount fixture/small-resource-count
-             :serverCount 9922
+             :logicalResourceCount (:resource-count runtime)
+             :serverCount (:server-count runtime)
              :manifestSha256 fixture/small-manifest-sha256}
+   :localSeed {:maximumResources maximum-resources
+               :modified (> (:resource-count runtime) fixture/small-resource-count)
+               :progress (:seed runtime)}
    :basis (basis runtime)})
 
 (defn- health-data [runtime]
@@ -248,6 +254,8 @@
   (let [page-info (:page-info result)
         items (mapv #(wire-object runtime %) (:data result))
         has-next (true? (:has-next-page? page-info))]
+    (when (and has-next (:end-cursor page-info))
+      (swap! (:eacl-cursors runtime) conj (:end-cursor page-info)))
     {:items items
      :pageInfo {:hasNextPage has-next
                 :endCursor (when has-next (:end-cursor page-info))
@@ -346,9 +354,18 @@
    :operations (operation-metrics-snapshot runtime)
    :capturedAt (.toISOString (js/Date.))})
 
+(declare start-seed! retry-seed!)
+
 (defn- dispatch [request runtime]
   (try
+    (when (and (contains? #{"lookup-resources" "lookup-subjects"} (:operation request))
+               (get-in request [:input :cursor])
+               (not (contains? @(:eacl-cursors runtime) (get-in request [:input :cursor]))))
+      (throw (ex-info "Stale cursor" {:code "cursor-invalid"})))
     (case (:operation request)
+      "seed-start" (success request runtime (start-seed! runtime (:input request)))
+      "seed-retry" (success request runtime (retry-seed! runtime))
+      "seed-status" (success request runtime (:seed runtime))
       "health" (success request runtime (health-data runtime))
       "bootstrap" (success request runtime (bootstrap-data runtime))
       "list-subjects" (success request runtime (list-subjects-data runtime (:input request)))
@@ -377,6 +394,7 @@
     (catch :default error
       (let [code (:code (ex-data error))]
         (case code
+          "validation-error" (failure request runtime code (ex-message error))
           "cursor-invalid" (failure request runtime code "The cursor is invalid or expired.")
           "cursor-scope-mismatch" (failure request runtime code "The cursor belongs to another query or lifecycle.")
           (failure request runtime "internal-error"
@@ -395,7 +413,8 @@
     (let [object (normalized-object record)
           key [(:type object) (:id object)]]
       (cond-> (assoc-in accumulator [:objects key] object)
-        (= :subject (:role record)) (update :subjects conj object)))
+        (and (= :subject (:role record))
+             (not (contains? (:objects accumulator) key))) (update :subjects conj object)))
 
     :relationship
     (update accumulator :relationships conj record)
@@ -414,6 +433,12 @@
                             records)
         runtime {:connection connection
                  :client client
+                 :resource-count fixture/small-resource-count
+                 :server-count 9922
+                 :seed {:status "ready" :resourcesAdded 0 :resourcesCompleted 0
+                        :resourcesTarget 0 :totalResources fixture/small-resource-count
+                        :totalServers 9922}
+                 :eacl-cursors (atom #{})
                  :cursors (atom {:by-token {} :order []})
                  :operation-metrics (atom {})
                  :captured-at (.toISOString (js/Date.))
@@ -425,7 +450,7 @@
     runtime))
 
 (defn- ensure-runtime! []
-  (let [{:keys [runtime initialization]} @lifecycle]
+  (let [{:keys [runtime initialization owner]} @lifecycle]
     (cond
       runtime (js/Promise.resolve runtime)
       initialization initialization
@@ -436,15 +461,123 @@
                (js/setTimeout
                 (fn []
                   (try
+                    (when (not= owner (:owner @lifecycle))
+                      (throw (js/Error. "DataScript session was released.")))
                     (let [runtime (build-runtime)]
                       (swap! lifecycle assoc :runtime runtime :initialization nil)
                       (resolve runtime))
                     (catch :default error
-                      (swap! lifecycle assoc :runtime nil :initialization nil)
+                      (when (= owner (:owner @lifecycle))
+                        (swap! lifecycle assoc :runtime nil :initialization nil))
                       (reject error))))
                 0)))]
         (swap! lifecycle assoc :initialization promise)
         promise))))
+
+(defn- relationship [record]
+  (eacl/->Relationship
+   (eacl/spice-object (keyword (get-in record [:subject :type]))
+                      (get-in record [:subject :id]))
+   (keyword (:relation record))
+   (eacl/spice-object (keyword (get-in record [:resource :type]))
+                      (get-in record [:resource :id]))))
+
+(defn- commit-seed-batch [runtime bundles]
+  ;; Build against a private connection. Only publish after both the database
+  ;; and the auxiliary indexes succeed, so a failed batch has no partial commit.
+  (let [records (mapcat :records bundles)
+        connection (ds/conn-from-db (ds/db (:connection runtime)))
+        client (eacl-datascript/make-client connection {:security-key (random-token)})
+        objects (into [] (comp (filter #(= :object (:kind %))))
+                      records)
+        relationships (into [] (comp (filter #(= :relationship (:kind %))))
+                            records)
+        accumulator (reduce add-record runtime records)
+        added (count bundles)
+        servers (count (filter #(= "server" (get-in % [:resource :type])) bundles))
+        completed (+ (get-in runtime [:seed :resourcesCompleted]) added)
+        total (+ (:resource-count runtime) added)
+        total-servers (+ (:server-count runtime) servers)]
+    (ds/transact! connection (mapv (fn [record] {:eacl/id (get-in record [:object :id])}) objects))
+    (eacl/create-relationships! client (mapv relationship relationships))
+    (assoc accumulator
+           :connection connection :client client
+           :resource-count total :server-count total-servers
+           :captured-at (.toISOString (js/Date.))
+           :cursors (atom {:by-token {} :order []}) :eacl-cursors (atom #{})
+           :seed (assoc (:seed runtime)
+                        :resourcesAdded completed :resourcesCompleted completed
+                        :totalResources total :totalServers total-servers))))
+
+(defn- run-seed-batches! [owner remaining]
+  (js/setTimeout
+   (fn []
+     (when (= owner (:owner @lifecycle))
+       (let [runtime (:runtime @lifecycle)]
+         (when (= "seeding" (get-in runtime [:seed :status]))
+           (try
+             (let [bundles (vec (take seed-batch-size remaining))
+                   next-runtime (commit-seed-batch runtime bundles)
+                   more (drop (count bundles) remaining)
+                   done? (= (get-in next-runtime [:seed :resourcesCompleted])
+                            (get-in next-runtime [:seed :resourcesTarget]))
+                   next-runtime (cond-> next-runtime done?
+                                        (assoc-in [:seed :status] "ready"))]
+               (swap! lifecycle assoc :runtime next-runtime)
+               (when-not done? (run-seed-batches! owner more)))
+             (catch :default _
+               (swap! lifecycle update :runtime
+                      #(-> %
+                           (assoc-in [:seed :status] "error")
+                           (assoc-in [:seed :error] "Local seeding failed. Retry the remaining resources.")))))))))
+   0))
+
+(defn- local-resource-bundle [ordinal]
+  ;; Bound endpoint fan-out: the current writer guards entire endpoint records.
+  ;; Extending the canonical fixture's large account makes those guards grow on
+  ;; every write. Local additions instead use one account per 100 new servers.
+  (let [group (quot ordinal 101)
+        account-id (str "local-account-" group)]
+    (if (zero? (mod ordinal 101))
+      {:resource (fixture/object "account" account-id)
+       :records [(fixture/object-record :resource "account" account-id)
+                 (fixture/relationship-record "platform" "platform" "platform" "account" account-id)
+                 (fixture/relationship-record "user" "user-1" "owner" "account" account-id)]}
+      (let [server-id (str "local-server-" ordinal)]
+        {:resource (fixture/object "server" server-id)
+         :records [(fixture/object-record :resource "server" server-id)
+                   (fixture/relationship-record "account" account-id "account" "server" server-id)]}))))
+
+(defn- schedule-seed! [runtime]
+  (let [completed (:resource-count runtime)
+        remaining (- (get-in runtime [:seed :resourcesTarget])
+                     (get-in runtime [:seed :resourcesCompleted]))]
+    (run-seed-batches! (:owner @lifecycle)
+                       (map local-resource-bundle
+                            (range (- completed fixture/small-resource-count)
+                                   (+ (- completed fixture/small-resource-count) remaining))))
+    (:seed runtime)))
+
+(defn- start-seed! [runtime input]
+  (let [amount (:resourceCount input)]
+    (when (or (= "seeding" (get-in runtime [:seed :status]))
+              (> (+ (:resource-count runtime) amount) maximum-resources))
+      (throw (ex-info "A seed job is active or the browser resource limit would be exceeded."
+                      {:code "validation-error"})))
+    (let [next-runtime (assoc runtime :seed
+                              {:status "seeding" :resourcesAdded 0 :resourcesCompleted 0
+                               :resourcesTarget amount :totalResources (:resource-count runtime)
+                               :totalServers (:server-count runtime)})]
+      (swap! lifecycle assoc :runtime next-runtime)
+      (schedule-seed! next-runtime))))
+
+(defn- retry-seed! [runtime]
+  (when-not (= "error" (get-in runtime [:seed :status]))
+    (throw (ex-info "There is no failed seed job to resume." {:code "validation-error"})))
+  (let [next-runtime (-> runtime (assoc-in [:seed :status] "seeding")
+                         (update :seed dissoc :error))]
+    (swap! lifecycle assoc :runtime next-runtime)
+    (schedule-seed! next-runtime)))
 
 (defn- valid-request-id? [value]
   (and (string? value)
@@ -481,6 +614,11 @@
   (let [input (:input request)
         keys (set (keys input))]
     (case (:operation request)
+      "seed-status" (empty? keys)
+      "seed-retry" (empty? keys)
+      "seed-start" (and (= keys #{:resourceCount})
+                        (js/Number.isSafeInteger (:resourceCount input))
+                        (<= 1 (:resourceCount input) maximum-resources))
       "health" (empty? keys)
       "bootstrap" (empty? keys)
       "list-subjects"
@@ -601,22 +739,25 @@
        (<= 1 (count (:deploymentId identity)) 256)
        (= fixture/small-manifest-sha256 (:dataManifestSha256 identity))))
 
-(defn- initialize! [raw-identity]
+(defn- initialize! [raw-identity owner]
   (let [identity (js->clj raw-identity :keywordize-keys true)]
     (if-not (deployment-identity-valid? identity)
       (js/Promise.reject
        (js/Error. "The DataScript runtime identity does not match its compiled EACL and fixture closure."))
       (do
-        (reset! lifecycle {:identity identity :runtime nil :initialization nil})
+        (reset! lifecycle {:identity identity :runtime nil :initialization nil
+                           :owner (or owner (random-token))})
         (js/Promise.resolve true)))))
 
-(defn- request! [operation raw-input request-id]
-  (let [request {:operation operation
+(defn- request! [operation raw-input request-id owner]
+  (let [generation (:owner @lifecycle)
+        request {:operation operation
                  :input (js->clj raw-input :keywordize-keys true)
                  :requestId request-id
                  :startedAt (.now js/performance)}]
     (cond
-      (nil? (:identity @lifecycle))
+      (or (nil? (:identity @lifecycle))
+          (and owner (not= owner generation)))
       (js/Promise.reject (js/Error. "The DataScript runtime has not been initialized."))
 
       (contains? unsupported-consistency (get-in request [:input :consistency]))
@@ -636,6 +777,8 @@
       (let [request (update request :input #(normalize-operation-input (assoc request :input %)))]
         (-> (ensure-runtime!)
             (.then (fn [runtime]
+                     (when (not= generation (:owner @lifecycle))
+                       (throw (js/Error. "DataScript session was released.")))
                      (let [response (dispatch request runtime)]
                        (record-operation! runtime request response)
                        (clj->js response))))
@@ -644,9 +787,11 @@
                        (failure request nil "internal-error"
                                 "The browser-local fixture could not be initialized.")))))))))
 
-(defn- release! []
-  (reset! lifecycle {:identity nil :runtime nil :initialization nil})
-  true)
+(defn- release! [owner]
+  (if (and owner (not= owner (:owner @lifecycle)))
+    false
+    (do (reset! lifecycle {:identity nil :runtime nil :initialization nil :owner nil})
+        true)))
 
 (gobj/set js/window "EaclDataScriptRuntime"
           #js {:initialize initialize!

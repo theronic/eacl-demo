@@ -38,6 +38,7 @@ const MUTATION_PRESENTATION = Object.freeze({
   none: notice("none", "No data mutation", "Neither public requests nor initialization mutate the dataset."),
   "private-seed-workflow": notice("private-seed-workflow", "Private publication workflow", "Dataset creation and publication happen only in a separate privileged workflow; the public explorer is read-only."),
   "initialization-before-ready": notice("initialization-before-ready", "Initialization before readiness", "The environment creates and verifies its private fixture before public read operations become ready."),
+  "browser-local": notice("browser-local", "Browser-local mutations", "Fixture restoration and additional seeding affect only the active browser session, never a shared server dataset."),
   "browser-initialization": notice("browser-initialization", "Browser-local initialization", "Fixture initialization affects only the current browser page and never a shared server dataset.")
 });
 

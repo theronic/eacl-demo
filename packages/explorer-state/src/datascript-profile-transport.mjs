@@ -1,8 +1,10 @@
+import { localSeed as validateLocalSeed } from "../../contracts/src/generated/runtime-validators.mjs";
+import { loadDataScriptRuntime } from "./datascript-runtime-loader.mjs";
 import { validateDescriptorHandshake } from "../../contracts/src/descriptor-handshake.mjs";
 
 export function createDataScriptProfileTransport({
   profile,
-  runtimeProvider = () => globalThis.EaclDataScriptRuntime,
+  runtimeProvider = loadDataScriptRuntime,
   cryptoImpl = globalThis.crypto,
 }) {
   if (!profile || profile.id !== "datascript-browser-memory" || profile.state !== "enabled" || !profile.deployment) {
@@ -12,21 +14,27 @@ export function createDataScriptProfileTransport({
     throw identityError("The DataScript profile does not identify its static browser runtime.");
   }
   let runtime;
-  let initialized = false;
+  let initialization;
+  const owner = requestId(cryptoImpl);
   let bootstrapped = false;
   let released = false;
 
   async function bootstrap({ signal } = {}) {
     assertOpen();
     throwIfAborted(signal);
-    runtime ??= runtimeProvider();
+    runtime ??= await runtimeProvider();
+    assertOpen();
+    throwIfAborted(signal);
     if (!runtime || typeof runtime.initialize !== "function" || typeof runtime.request !== "function") {
       throw identityError("The DataScript browser runtime did not load.");
     }
-    if (!initialized) {
-      await runtime.initialize(identity(profile));
-      initialized = true;
-    }
+    initialization ??= Promise.resolve(runtime.initialize(identity(profile), owner)).catch((error) => {
+      initialization = undefined;
+      throw error;
+    });
+    await initialization;
+    assertOpen();
+    throwIfAborted(signal);
     const [bootstrapResponse, healthResponse] = await Promise.all([
       directRequest("bootstrap", {}, signal),
       directRequest("health", {}, signal),
@@ -34,9 +42,10 @@ export function createDataScriptProfileTransport({
     if (bootstrapResponse.error || healthResponse.error) {
       throw identityError("The DataScript browser runtime did not complete its descriptor handshake.");
     }
+    if (!validateLocalSeed(bootstrapResponse.data.localSeed)) throw identityError("Invalid local seed descriptor.");
     const handshake = validateDescriptorHandshake({
       registryProfile: profile,
-      route: "/datascript/",
+      route: "/",
       health: healthResponse.data,
       bootstrap: bootstrapResponse.data,
     });
@@ -54,8 +63,13 @@ export function createDataScriptProfileTransport({
   }
 
   async function directRequest(operation, input, signal) {
+    assertOpen();
     throwIfAborted(signal);
-    const response = await runtime.request(operation, input, requestId(cryptoImpl));
+    const local = ["seed-start", "seed-status", "seed-retry"].includes(operation);
+    if (local && !validateLocalSeed({ operation, input })) throw new Error("Invalid local seed input.");
+    const response = await runtime.request(operation, input, requestId(cryptoImpl), owner);
+    if (local && response.data && !validateLocalSeed(response.data)) throw new Error("Invalid local seed progress.");
+    assertOpen();
     throwIfAborted(signal);
     return response;
   }
@@ -64,8 +78,8 @@ export function createDataScriptProfileTransport({
     if (released) return false;
     released = true;
     bootstrapped = false;
-    initialized = false;
-    return runtime?.release?.() ?? true;
+    initialization = undefined;
+    return runtime?.release?.(owner) ?? true;
   }
 
   function assertOpen() {

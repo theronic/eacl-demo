@@ -6,7 +6,7 @@ See `proposal.md` for motivation. The audited estate is fragmented in both runti
 | --- | --- | --- |
 | `demo.eacl.dev/datahike/` | SolidJS plus Datahike/S3 on EC2, one million resources | Owns current DNS; retain as fallback through cutover |
 | `serverless-datahike.demo.eacl.dev/datahike/` | Java arm64 Lambda/SnapStart reader against the same S3 store | Strongest deployed serverless baseline; adopt without reseeding |
-| `explorer.eacl.dev` | Browser DataScript explorer | Old EACL/UI; preserve concept and migrate to isolated `/datascript/` artifact |
+| `explorer.eacl.dev` | Browser DataScript explorer | Old EACL/UI; preserve concept and migrate to conditionally loaded runtime in `/` |
 | `eacl-datomic-solidjs` | Newer SolidJS permission-detail behavior and current EACL v8 Datomic integration | Development startup writes/seeds and is not a read-only Lambda topology |
 | `eacl-datalevin-solidjs` | Current adapter/lifecycle experiments | Repository remote is not an independent GitHub release authority; native/SnapStart topology needs initial qualification |
 | `eacl-jank` | Native engine, in-memory demo, and macOS arm64 evidence | Remote is not yet a published release baseline; macOS artifacts cannot run on Lambda |
@@ -74,7 +74,7 @@ The first selector is a stable backend ID. The second is its supported storage. 
 | Datomic | DynamoDB | managed Java Lambda read-only Peer at 1769/4096 MiB with published-version SnapStart; separately identified shared-EC2 historical-exact service | exactly 1,000,000 |
 | Datalevin | embedded LMDB | managed Java 25 arm64 Lambda at 1769 MiB with ephemeral `/tmp` and published-version SnapStart; separately identified shared-EC2 durable service | exactly 10,000 |
 | Jank | bundled in-memory Datomic-like store | Linux x86_64 `provided.al2023` ZIP | exactly 10,000 |
-| DataScript | browser memory | direct ClojureScript page runtime | exactly 10,000 prebuilt |
+| DataScript | browser memory | direct ClojureScript page runtime | 10,000 prebuilt; local additions up to 100,000 |
 
 The internal product key remains a composite profile ID such as `datahike-dynamodb`; execution selection resolves that product to one exact origin. Routes, IAM, aliases, cursors, caches, and evidence stay execution-scoped. The canonical URL uses separate `backend`, `storage`, and `platform` parameters. Datahike is the neutral landing backend because a global speed comparison across unequal datasets/topologies is invalid.
 
@@ -99,7 +99,7 @@ CloudFront has one private S3 origin and serves only the two static entries:
 ```text
 /                                  static main shell
 /assets/*                          immutable main assets
-/datascript/                       separate DataScript entry
+/datascript/                       compatibility alias of the shared app
 /datascript/assets/*               DataScript-only assets
 ```
 
@@ -253,9 +253,9 @@ Lambda REPORT/EMF and EC2 CloudWatch/process/service signals own the surrounding
 memory and lifecycle observations. Full current semantic/load/headroom evidence
 for both advertised topologies remains the open Datalevin qualification gate.
 
-### 10. DataScript remains a separate direct static entry
+### 10. DataScript loads conditionally in the shared application
 
-`/datascript/` shares the exact UI/state/contract/fixture source but loads ClojureScript, EACL DataScript, DataScript, and its direct browser runtime only from its own build graph. There is no Web Worker, Blob loader, independent worker protocol, or duplicated presentation. The page owns the database/client/cache/cursor lifecycle. The build creates a DataScript-native serialized database from the exact 10,000-resource generator and embeds it in the content-addressed runtime; startup restores that database rather than replaying the fixture in every browser. The main bundle has a material-change qualification assertion proving those dependencies are unreachable.
+The root application shares UI/state/contract/fixture code across all profiles and loads the content-addressed DataScript/CLJS runtime only upon DataScript selection. Legacy `/datascript/` documents serve the same application and canonicalize through history replacement. No Worker, Blob loader, or separate presentation is used. The runtime restores the canonical 10,000-resource snapshot once per activation; local additive seeding publishes coherent batches up to the displayed browser limit. Downloads are reused but connections, cursors, caches, and seed jobs are released on profile changes. Conditional graph/network qualification proves server visits do not fetch the payload. See `integrate-datascript-landing-page` for session, seed, and failure requirements.
 
 ### 11. Jank targets `provided.al2023` x86_64 and does not use SnapStart
 
@@ -296,7 +296,7 @@ The descriptor labels the store as a bundled in-memory Datomic-like conformance 
 
 ### 12. One `main` branch triggers uncoordinated maximum-parallel deployment
 
-`theronic/eacl-demo:main` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Every push starts five independent jobs: static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each job checks out the same immutable commit, installs the pinned toolchain and dependencies, builds only its target, assumes only its target-specific OIDC role, deploys, and runs the bounded live smoke in one job. There is no certification job, readiness ledger, generated workflow, artifact handoff, global barrier, matrix, or sibling dependency. The static job produces main and DataScript entries together to avoid conflicting S3-prefix writes. Parked Jank remains catalogued and unavailable without being queued or gating the five live targets.
+`theronic/eacl-demo:main` is the only deployment trigger. Its commit contains the exact EACL Core dependency lock, so a run needs no second branch lookup or cross-repository event. Every push starts five independent jobs: static/DataScript, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and Datalevin/memory. Each job checks out the same immutable commit, installs the pinned toolchain and dependencies, builds only its target, assumes only its target-specific OIDC role, deploys, and runs the bounded live smoke in one job. There is no certification job, readiness ledger, generated workflow, artifact handoff, global barrier, matrix, or sibling dependency. The static job produces the main app, compatibility document, and conditional DataScript runtime together to avoid conflicting S3-prefix writes. Parked Jank remains catalogued and unavailable without being queued or gating the five live targets.
 
 There are deliberately no GitHub concurrency groups, cancel-in-progress settings, latest-head guards, or cross-run ordering. Every job deploys the exact `demo-sha` and locked `eacl-sha` checked out for that run. If two pushes overlap, either run may finish last for a profile. That user-approved trade-off maximizes speed and simplicity; descriptors always reveal the actually deployed identities.
 

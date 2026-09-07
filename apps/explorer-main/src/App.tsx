@@ -22,8 +22,9 @@ import {
   profileForPlatform,
 } from "../../../packages/explorer-state/src/platforms.mjs";
 import { selectBackend as transitionBackend } from "../../../packages/explorer-state/src/selection.mjs";
-import { parseCanonicalUrl, serializeCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
+import { parseCanonicalUrl } from "../../../packages/explorer-state/src/url-state.mjs";
 import { createUrlStateController } from "../../../packages/explorer-state/src/url-controller.mjs";
+import { createDataScriptProfileTransport } from "../../../packages/explorer-state/src/datascript-profile-transport.mjs";
 import { ApiProvider } from "./api";
 import { ProfileSelector } from "./components/ProfileSelector";
 import { Explorer, ExplorerFooter } from "./Explorer";
@@ -88,19 +89,10 @@ const catalog = catalogData as {
   storages: Array<{ id: StorageId; label: string }>;
 };
 
-export interface ExplorerAppProps {
-  entry?: "server" | "datascript";
-  createDataScriptTransport?: (profile: ExplorerProfile) => ExplorerTransport;
-}
-
-export default function App(props: ExplorerAppProps): JSX.Element {
+export default function App(): JSX.Element {
   const initialBackend = catalog.backends.find(({ id }) => id === catalog.defaultBackend) ?? catalog.backends[0];
   const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
-  const [selection, setSelection] = createSignal<Selection>(
-    props.entry === "datascript"
-      ? { backend: "datascript", storage: "browser-memory", platform: "browser" }
-      : fromUrl,
-  );
+  const [selection, setSelection] = createSignal<Selection>(fromUrl);
   const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
   const [registryLoaded, setRegistryLoaded] = createSignal(false);
   let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
@@ -108,9 +100,8 @@ export default function App(props: ExplorerAppProps): JSX.Element {
   let urlController: any;
 
   onMount(() => {
-    if (props.entry !== "datascript" && selection().backend === "datascript") {
-      window.location.replace(`/datascript/${window.location.search}`);
-      return;
+    if (/^\/datascript\/?$/.test(window.location.pathname)) {
+      window.history.replaceState(window.history.state, "", `/${window.location.search}${window.location.hash}`);
     }
     urlController = (createUrlStateController as any)({
       catalog,
@@ -119,16 +110,6 @@ export default function App(props: ExplorerAppProps): JSX.Element {
       eventTarget: window,
       onState: (state: unknown) => setSelection(state as Selection),
     });
-    if (props.entry === "datascript") {
-      const next = {
-        ...(parseCanonicalUrl(window.location.search, catalog).state as Selection),
-        backend: "datascript" as const,
-        storage: "browser-memory" as const,
-        platform: "browser" as const,
-      };
-      setSelection(next);
-      urlController.navigate(next, { replace: true });
-    }
     void refreshProfilePublications();
   });
   onCleanup(() => {
@@ -158,16 +139,6 @@ export default function App(props: ExplorerAppProps): JSX.Element {
     registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
 
   const selectBackend = (backend: BackendId) => {
-    if (backend === "datascript" && props.entry !== "datascript") {
-      window.location.assign("/datascript/");
-      return;
-    }
-    if (backend !== "datascript" && props.entry === "datascript") {
-      const product = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend));
-      const next = { ...product, platform: normalizePlatform(product, selection().platform) } as Selection;
-      window.location.assign(`/${serializeCanonicalUrl(next, catalog)}`);
-      return;
-    }
     shouldApplyRegistryDefault = false;
     const product = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend));
     const next = { ...product, platform: normalizePlatform(product, selection().platform) } as Selection;
@@ -256,9 +227,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
     <Show
       keyed
       when={configuredProfile()?.state === "enabled" && configuredProfile()?.deployment
-        ? selection().backend === "datascript" && !props.createDataScriptTransport
-          ? { kind: "datascript-link" as const }
-          : { kind: "explorer" as const, profile: configuredProfile() as ExplorerProfile }
+        ? { profile: configuredProfile() as ExplorerProfile }
         : null}
       fallback={
         <StandaloneExplorer
@@ -270,15 +239,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
         />
       }
     >
-      {(entry) => entry.kind === "datascript-link" ? (
-        <StandaloneExplorer
-          backendLabel={selectedBackend().label}
-          storageLabel={storageLabel()}
-          selector={selector()}
-          execution={executionForPlatform(selection().platform)}
-          datascript
-        />
-      ) : (
+      {(entry) => (
         <ConfiguredExplorer
           profile={entry.profile}
           execution={executionForPlatform(selection().platform)}
@@ -286,7 +247,7 @@ export default function App(props: ExplorerAppProps): JSX.Element {
           storageLabel={storageLabel()}
           selector={selector()}
           transport={entry.profile.backend === "datascript"
-            ? props.createDataScriptTransport?.(entry.profile)
+            ? (createDataScriptProfileTransport as any)({ profile: entry.profile })
             : undefined}
         />
       )}
@@ -323,7 +284,6 @@ function StandaloneExplorer(props: {
   storageLabel: string;
   selector: JSX.Element;
   execution: "lambda" | "ec2" | "browser";
-  datascript?: boolean;
   pending?: boolean;
 }): JSX.Element {
   const [theme, setTheme] = createSignal(readPreferences().theme);
@@ -361,14 +321,7 @@ function StandaloneExplorer(props: {
       <main class="loading-grid">
         <div class="panel-card">
           <Show when={props.pending} fallback={
-            <Show
-              when={props.datascript}
-              fallback={<p class="empty-state">The selected demo is not available.</p>}
-            >
-              <a class="graph-toggle" href="/datascript/">
-                Open DataScript explorer
-              </a>
-            </Show>
+            <p class="empty-state">The selected demo is not available.</p>
           }>
             <section class="startup-status" role="status" aria-live="polite">
               <span class="button-spinner" aria-hidden="true" />

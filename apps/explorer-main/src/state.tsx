@@ -191,15 +191,16 @@ export const AppStateProvider: ParentComponent = (props) => {
     new Set(preferences.expanded),
   );
   const seeding = createMemo(() => seedProgress()?.status === "seeding");
-  const retrySeedPoll = () => {
+  const retrySeedPoll = async () => {
     const current = seedProgress();
     if (!current || current.status !== "error") return;
-    setSeedProgress({
-      ...current,
-      status: "seeding",
-      error: null,
-      label: "Reconnecting to seed status",
-    });
+    try {
+      const result = await seedPollRequest.run<SeedProgress>("/seed",
+        bootstrapData()?.data.localSeed ? { method: "POST", body: JSON.stringify({ retry: true }) } : {});
+      setSeedProgress(result.data);
+    } catch (error) {
+      setSeedProgress({ ...current, error: error instanceof Error ? error.message : String(error) });
+    }
   };
 
   const runQuery = async <T,>(
@@ -376,10 +377,10 @@ export const AppStateProvider: ParentComponent = (props) => {
         if (!active) return;
         setSeedProgress(result.data);
         if (result.data.status === "seeding") {
-          // Each Datahike transaction advances the database revision. Keep
+          // Each batch advances the database revision. Keep
           // already-open EACL pages pinned while the batch is moving instead
           // of aborting and restarting them on every progress poll.
-          timer = window.setTimeout(poll, 1000);
+          timer = window.setTimeout(poll, 100);
         } else {
           if (result.meta.revision !== mutationRevision()) {
             applyMutationRevision(result.meta.revision);

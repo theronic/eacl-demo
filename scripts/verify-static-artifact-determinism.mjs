@@ -23,7 +23,6 @@ async function buildAndSnapshot() {
   });
   return snapshotRoots([
     "dist/explorer-main/static",
-    "dist/datascript-entry/static",
     "dist/datascript-runtime",
     "dist/static-site"
   ]);

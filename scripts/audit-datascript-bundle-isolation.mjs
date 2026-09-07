@@ -25,8 +25,7 @@ const forbiddenBundleMarkers = [
   "eacl.datascript.core",
   "datascript.core",
   "cljs.core",
-  "EaclKernel.browser",
-  "datascript-runtime"
+  "EaclKernel.browser"
 ];
 
 const manifest = JSON.parse(await readFile(path.join(mainRoot, ".vite", "manifest.json"), "utf8"));

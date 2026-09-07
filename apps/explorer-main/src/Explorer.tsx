@@ -24,10 +24,10 @@ function SeedProgress(): JSX.Element {
   return (
     <section class="seed-progress-banner" aria-live="polite">
       <div class="seed-progress-banner__copy">
-        <strong>Seeding Datahike</strong>
+        <strong>Seeding local data</strong>
         <span>
           {formatInteger(progress()?.serversCompleted ?? 0)} / {" "}
-          {formatInteger(progress()?.serversTarget ?? 0)} servers
+          {formatInteger(progress()?.serversTarget ?? 0)} {progress()?.unit ?? "servers"}
         </span>
         <span class="seed-progress-card__label">
           {progress()?.label ?? "Applying managed EACL relationships"}
@@ -83,7 +83,7 @@ export function Explorer(props: {
     <div class="app-shell" data-theme={app.theme()}>
       <Header />
       {props.profileSelector}
-      <Show when={app.health()?.data.identityWarning}>
+      <Show when={!app.health.error && !app.health.loading && app.health()?.data.identityWarning}>
         {(warning) => (
           <DeploymentWarning backendLabel={props.backendLabel} warning={warning()} />
         )}
@@ -148,31 +148,33 @@ export function Explorer(props: {
         <Show when={app.seedProgress()?.status === "error"}>
           <section class="request-error-banner">
             <ErrorBlock
-              label="Seed status request failed"
+              label="Seeding failed"
               error={app.seedProgress()?.error ?? "Seed status is unavailable."}
               retry={app.retrySeedPoll}
             />
           </section>
         </Show>
-        <SchemaPanel />
-        <CachePanel />
-        <ConsistencyPanel />
-        <main class="panel-grid">
-          <section class="panel-host">
-            <SubjectsPanel />
-          </section>
-          <section class="panel-host">
-            <ResourceTreePanel />
-          </section>
-          <section class="panel-host">
-            <DetailPanel />
-          </section>
-        </main>
+        <div inert={app.seeding()} aria-busy={app.seeding()}>
+          <SchemaPanel />
+          <CachePanel />
+          <ConsistencyPanel />
+          <main class="panel-grid">
+            <section class="panel-host">
+              <SubjectsPanel />
+            </section>
+            <section class="panel-host">
+              <ResourceTreePanel />
+            </section>
+            <section class="panel-host">
+              <DetailPanel />
+            </section>
+          </main>
+        </div>
       </Show>
       <Show when={!app.permission()}>
         <EmptyState>No permission is available in the active schema.</EmptyState>
       </Show>
-      <Show when={app.bootstrapData()}>
+      <Show when={app.bootstrapData() && !app.seeding()}>
         <CanPermissionFooter
           subjectTypes={[...new Set([
             ...app.bootstrapData()!.data.schema.nodes.map(({ id }) => id),

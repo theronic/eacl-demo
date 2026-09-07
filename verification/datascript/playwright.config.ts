@@ -2,12 +2,13 @@ import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 
 const externalUrl = process.env.EACL_DATASCRIPT_URL?.trim();
-const localUrl = "http://127.0.0.1:4174/datascript/";
+const localUrl = "http://127.0.0.1:4174/";
 const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "browser-local.spec.ts",
+  outputDir: "../../test-results/datascript-browser",
+  testMatch: ["browser-local.spec.ts", "landing-seeding.spec.ts"],
   timeout: 90_000,
   fullyParallel: false,
   workers: 1,

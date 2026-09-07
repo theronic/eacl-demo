@@ -20,6 +20,7 @@ import type {
   RelationshipPage,
   ResourceCount,
   SchemaInfo,
+  SeedProgress,
 } from "./types";
 
 export interface ExplorerProfile {
@@ -63,7 +64,32 @@ interface ProfileDescriptor {
     limitations: string[];
   };
   dataset: { logicalResourceCount: number; serverCount: number };
+  localSeed?: { maximumResources: number; modified: boolean; progress: LocalSeedProgress };
   basis: { id: string; capturedAt: string; behavior: string; fixedForEnvironment: boolean };
+}
+
+interface LocalSeedProgress {
+  status: "ready" | "seeding" | "error";
+  resourcesAdded: number;
+  resourcesCompleted: number;
+  resourcesTarget: number;
+  totalResources: number;
+  totalServers: number;
+  error?: string;
+}
+
+function presentLocalSeed(progress: LocalSeedProgress): SeedProgress {
+  return {
+    status: progress.status,
+    serversAdded: progress.resourcesAdded,
+    serversCompleted: progress.resourcesCompleted,
+    serversTarget: progress.resourcesTarget,
+    totalServers: progress.totalServers,
+    totalResources: progress.totalResources,
+    unit: "resources",
+    error: progress.error,
+    label: "Adding browser-local resources",
+  };
 }
 
 interface WireEnvelope<T> {
@@ -220,6 +246,20 @@ export function createProfileApi(
     }
 
     const active = await loadDescriptor(signal);
+    if (url.pathname === "/seed") {
+      if (profile.backend !== "datascript" || !active.localSeed) {
+        throw new ApiError(403, { error: { code: "unsupported-operation", message: "This profile is read-only." } });
+      }
+      const operation = options.method === "POST" ? body.retry === true ? "seed-retry" : "seed-start" : "seed-status";
+      const result = await wire<LocalSeedProgress>(operation,
+        operation === "seed-start" ? { resourceCount: body.resourceCount } : {}, signal);
+      // A following bootstrap must read the current local basis and counts.
+      if (result.data!.status !== "seeding") {
+        descriptor = undefined;
+        subjectCursors.clear();
+      }
+      return wireEnvelope(presentLocalSeed(result.data!), result) as ApiSuccess<T>;
+    }
     const selectedConsistency = consistencyMode(body.consistency);
     const exactSnapshotInput = selectedConsistency === "at-exact-snapshot"
       && active.capabilities.consistencyModes.includes("historical-date")
@@ -418,14 +458,15 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
   const fullyConsistent = supported.includes("fully-consistent");
   return {
     status: "ready",
-    seed: {
+    seed: descriptor.localSeed ? presentLocalSeed(descriptor.localSeed.progress) : {
       status: "ready",
       serversAdded: 0,
       serversCompleted: 0,
       serversTarget: 0,
       totalServers: descriptor.dataset.serverCount,
     },
-    totals: { servers: descriptor.dataset.serverCount },
+    totals: { servers: descriptor.dataset.serverCount, resources: descriptor.dataset.logicalResourceCount },
+    ...(descriptor.localSeed ? { localSeed: descriptor.localSeed } : {}),
     schema,
     quickSubjects: [
       { id: "super-user", label: "Super user" },
@@ -444,7 +485,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
       atExactSnapshotDateSelection: descriptor.capabilities.consistencyModes.includes("historical-date"),
       atExactSnapshotDateSelectionReason: "Historical date selection is not advertised by this profile.",
     },
-    capabilities: { schemaWrite: false, seedWrite: false, cacheEvict: false },
+    capabilities: { schemaWrite: false, seedWrite: descriptor.profile.backend === "datascript" && Boolean(descriptor.localSeed), cacheEvict: false },
   };
 }
 

@@ -92,8 +92,8 @@ Every profile SHALL expose advertised common components for subject selection, r
 - **WHEN** the user changes the Resources page size to any supported value
 - **THEN** resource requests SHALL use that value while the Subjects panel continues to request exactly 25 subjects per page
 
-### Requirement: Separate DataScript entry and payload
-`https://demo.eacl.dev/datascript/` SHALL be a distinct static entry that reuses the exact shared explorer source while loading EACL v8, the DataScript adapter, DataScript, and its direct browser runtime only from DataScript-specific artifacts. The main entry's initial/server dependency graphs MUST NOT contain those browser database artifacts.
+### Requirement: Conditional DataScript payload
+`https://demo.eacl.dev/` SHALL load EACL v8, the DataScript adapter, DataScript, and its direct browser runtime from DataScript-specific artifacts only when DataScript is selected. The main entry's initial/server dependency graphs MUST NOT contain those browser database artifacts.
 
 #### Scenario: Main explorer loads
 - **WHEN** a user loads `/` and uses only server profiles
@@ -101,7 +101,7 @@ Every profile SHALL expose advertised common components for subject selection, r
 
 #### Scenario: DataScript is selected
 - **WHEN** the user selects DataScript
-- **THEN** the browser SHALL navigate to `/datascript/` with compatible portable intent and the entry SHALL identify browser memory as its only storage
+- **THEN** the shared application SHALL select DataScript without document navigation, preserve compatible portable intent, and identify browser memory as its only storage
 
 ### Requirement: Accessible resilient interaction states
 The explorer SHALL meet WCAG 2.2 AA for principal flows, support keyboard navigation and visible focus, respect reduced motion, remain usable across mobile/desktop widths, and announce readiness, initialization, results, failures, and deployment lag. Loading/failure in one panel MUST NOT erase valid unrelated results.

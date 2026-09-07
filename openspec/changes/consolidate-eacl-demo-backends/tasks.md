@@ -14,7 +14,7 @@
 
 - [x] 2.1 Create clear app, package, fixture, service, infrastructure, verification, and documentation boundaries in eacl-demo.
 - [x] 2.2 Pin Node, package manager, Java, Clojure, ClojureScript, Jank, native compiler, infrastructure, formatter, and test tool versions.
-- [x] 2.3 Add independently callable builds for the main explorer, DataScript entry and direct browser runtime, each Lambda artifact, fixture manifests, and infrastructure plans.
+- [x] 2.3 Add independently callable builds for the main explorer, conditional DataScript runtime, each Lambda artifact, fixture manifests, and infrastructure plans.
 - [x] 2.4 Add isolated dependency locks or reproducible resolution records for JVM, JavaScript, native, and infrastructure dependencies.
 - [x] 2.5 Generate artifact digests and a closed release-manifest format containing both repository SHAs, fixture identity, contract version, and deployment identity.
 - [x] 2.6 Add deterministic clean-build checks and record any unavoidable nondeterministic fields.
@@ -71,7 +71,7 @@
 - [x] 5.11 Publish benchmark evidence to the registry and prevent incomparable datasets or configurations from determining a fastest default.
 - [x] 5.12 Document immutable blue-green fixture publication and prohibit mutation of an accepted data manifest.
 
-## 6. Shared SolidJS explorer and DataScript entry
+## 6. Shared SolidJS explorer and DataScript runtime
 
 - [x] 6.1 Inventory and reconcile the current Datahike, Datomic, Datalevin, and Jank explorer components, state, API types, preferences, and styles.
 - [x] 6.2 Implement a backend-neutral explorer state package and mock transports for every advertised capability combination.
@@ -82,15 +82,15 @@
 - [x] 6.7 Implement light and dark themes, reduced motion, visible focus, durable async focus, and responsive layouts.
 - [x] 6.8 Add component and state tests for capabilities, unavailable profiles, validation failures, stale responses, and selector changes.
 - [x] 6.9 Add accessibility and principal desktop/mobile browser qualification outside the ordinary merge deployment gate.
-- [x] 6.10 Build /datascript/ as a separate SolidJS entry with a direct ClojureScript browser runtime and EACL v8 DataScript adapter.
+- [x] 6.10 Build the direct ClojureScript runtime and EACL v8 DataScript adapter; root conditional loading supersedes the separate entry in `integrate-datascript-landing-page`.
 - [x] 6.11 Implement compact direct operation dispatch, request IDs, deterministic serialized fixture restoration, page-local lifecycle, and cleanup without a worker protocol.
 - [x] 6.12 Prove DataScript authorization and fixture data remain browser-local and public network calls are not made for its operations.
 - [x] 6.13 Prove DataScript, the ClojureScript browser runtime, and DataScript-only dependencies are absent from the main server-profile bundle.
-- [x] 6.14 Build the main and DataScript static entries into one static artifact in the same unprivileged job so they never race on the static bucket prefix.
+- [x] 6.14 Build the shared app and DataScript runtime into one static artifact in the same unprivileged job so they never race on the static bucket prefix.
 - [x] 6.15 Restore the original Explorer consistency labels and compact Datomic permission response shape, leaving deployment identity in the validated health/bootstrap handshake.
 - [x] 6.16 Remove the DataScript Web Worker, verified Blob loader, worker schemas, worker transport, progress protocol, and worker-specific build unit.
-- [x] 6.17 Navigate between the main and DataScript entries when the user selects a backend owned by the other entry.
-- [x] 6.18 Show execution-aware `Waiting for <backend> Lambda to start... <timer>` or `Connecting to <backend> EC2... <timer>` status from the first render after every valid server-profile switch, remove DataScript/fixture progress, and verify `The selected demo is not available.` never appears during a pending registry/bootstrap transition.
+- [x] 6.17 Select backends within the shared root app; the old cross-document transition is superseded by `integrate-datascript-landing-page`.
+- [x] 6.18 Show execution-aware `Waiting for <backend> Lambda to start... <timer>` or `Connecting to <backend> EC2... <timer>` status from the first render after every valid server-profile switch, avoid synthetic DataScript startup progress, and verify `The selected demo is not available.` never appears during a pending registry/bootstrap transition.
 - [x] 6.19 Rename Read Basis to Consistency Semantics and remove its redundant visible field label.
 - [x] 6.20 Remove the backend/storage eyebrow and restore the exact open-source Explorer footer.
 - [x] 6.21 Remove the visible Spice Schema label, active-subject summary, and Subjects permission selector; rename the panel Subjects and move Permission into Resources.
@@ -189,7 +189,7 @@ decision as well as the existing qualification evidence.
 
 - [x] 12.1 Implement independently deployable foundation, static, per-profile runtime, per-profile data, seed compute, observability, and legacy compatibility stacks.
 - [x] 12.2 Configure a private versioned static S3 bucket with public-access block, AWS-owned encryption, lifecycle policy, and CloudFront origin access control.
-- [x] 12.3 Configure demo.eacl.dev CloudFront with only the private static S3 origin and static main/DataScript entries; remove every Lambda/API origin, behavior, request/cache policy, OAC, and invoke permission.
+- [x] 12.3 Configure demo.eacl.dev CloudFront with only the private static S3 origin and shared app and compatibility documents; remove every Lambda/API origin, behavior, request/cache policy, OAC, and invoke permission.
 - [x] 12.4 Configure each enabled alias Function URL for direct public read-only invocation with exact demo.eacl.dev CORS and prove preflight, direct identity, allow, deny, and mutation rejection live.
 - [x] 12.5 Add infrastructure and client checks for exact direct Function URL catalog binding, CSP allowlisting, no same-origin API requests, no CloudFront signing hash, no wildcard CORS, HTTPS, and descriptor identity.
 - [x] 12.6 Create per-profile least-privilege serving roles and separate stateful maintenance roles with automated wildcard and cross-profile denial checks.
