@@ -1,0 +1,29 @@
+{
+  "account": "843761893873",
+  "region": "us-east-1",
+  "authorization": "User requested completion of v8 storage migration for all demo platforms on 2026-09-08.",
+  "generation": "fixture-v8",
+  "maximumSourceBytes": 3221225472,
+  "maximumTargetBytes": 6442450944,
+  "migrationReadUnits": 250,
+  "migrationWriteUnits": 1000,
+  "exportWriteUnitsPerSecond": 500,
+  "servingWriteUnits": 1,
+  "profiles": {
+    "datahike-s3": {
+      "source": "demo-eacl-datahike-v2-843761893873-us-east-1",
+      "target": "eacl-demo-datahike-v8-843761893873-us-east-1",
+      "storeId": "4e67bb31-557d-4f49-8b4c-699d39577310"
+    },
+    "datahike-dynamodb": {
+      "source": "eacl-demo-datahike-fixture-v1-green",
+      "target": "eacl-demo-datahike-fixture-v8",
+      "storeId": "2d692f8e-0778-49bf-aed7-241e93d63b2f"
+    },
+    "datomic-dynamodb": {
+      "source": "eacl-demo-datomic-fixture-v1-green",
+      "target": "eacl-demo-datomic-fixture-v8",
+      "database": "eacl-demo"
+    }
+  }
+}

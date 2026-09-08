@@ -317,6 +317,44 @@
           }
         ]
       }
+    },
+    "storage-v8-migration": {
+      "authorityClass": "stateful-maintenance",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowFile": ".github/workflows/migrate-storage-v8.yml",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/migrate-storage-v8.yml@refs/heads/production",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-storage-v8-migration",
+      "roleVariable": "AWS_STORAGE_V8_MIGRATION_ROLE_ARN",
+      "permissionScope": "reviewed-v8-migration-generations-only",
+      "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-storage-v8-migration",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/migrate-storage-v8.yml@refs/heads/production:environment:demo-storage-v8-migration:event_name:workflow_dispatch:runner_environment:github-hosted",
+      "assumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "ExactGitHubOidcAuthority",
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:environment": "demo-storage-v8-migration",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
+                "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
+                "token.actions.githubusercontent.com:repository_id": "1345904214",
+                "token.actions.githubusercontent.com:repository_owner_id": "1011676",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/migrate-storage-v8.yml@refs/heads/production:environment:demo-storage-v8-migration:event_name:workflow_dispatch:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:workflow": "Migrate demo storage to v8"
+              }
+            }
+          }
+        ]
+      }
     }
   }
 }

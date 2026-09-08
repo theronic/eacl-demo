@@ -31,7 +31,8 @@ const workflowFiles = (await readdir(workflowDirectory)).filter((name) => name.e
 const statefulWorkflowFiles = new Set([
   "stateful-datahike-dynamodb.yml",
   "stateful-datomic-dynamodb.yml",
-  "stateful-datomic-seed.yml"
+  "stateful-datomic-seed.yml",
+  "migrate-storage-v8.yml"
 ]);
 const ordinaryWorkflows = await Promise.all(workflowFiles
   .filter((name) => !statefulWorkflowFiles.has(name))

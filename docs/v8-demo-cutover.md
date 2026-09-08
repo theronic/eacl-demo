@@ -35,7 +35,7 @@ The existing durable source inventory is:
 
 | Profile | Serving source |
 | --- | --- |
-| Datahike/S3 | Bucket `demo-eacl-datahike-v2-843761893873-us-east-1`, store `4e67bb31-5480-4734-bb55-9c33e35953bf` |
+| Datahike/S3 | Bucket `demo-eacl-datahike-v2-843761893873-us-east-1`, store `4e67bb31-557d-4f49-8b4c-699d39577310` |
 | Datahike/DynamoDB | Table `eacl-demo-datahike-fixture-v1-green`, store `2d692f8e-0778-49bf-aed7-241e93d63b2f` |
 | Datomic/DynamoDB | Table `eacl-demo-datomic-fixture-v1-green`, database `eacl-demo` |
 
@@ -45,6 +45,11 @@ authorization for a retained backup or new blue/green generation; ordinary demo
 deployment grants no storage mutation privileges. Keep the current serving
 generation available until the new generation passes checks. Do not mutate an
 accepted immutable generation through a serving role.
+
+The operator subsequently authorized completion of the durable v8 migration.
+Follow [the dedicated migration workflow](storage-v8-migration.md) for the exact
+retained copies, migration identities, and CI cutover. The source S3 store ID
+above was refreshed against the actual serving alias.
 
 On the approved writable, quiesced target, use the pinned Core maintenance entry
 point: `eacl.datahike.migrations.relationships-v7-to-v8/migrate!` or
