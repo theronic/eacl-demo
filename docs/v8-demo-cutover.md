@@ -16,6 +16,14 @@ artifact download, JVM loading and fixture preparation. A fast CloudFront error
 response does not shorten that startup window. Publication still requires the
 exact candidate identity, ready status and browser CORS response.
 
+Datalevin authorization operations use the live EACL client so resource cursors
+can continue across HTTP requests at fresh trusted times. Physical fixture
+inspection retains its request-owned native snapshot. An explicit EACL snapshot
+also pins evaluation time; a fresh explicit snapshot on page two is a different
+temporal view and cannot resume page one's pinned cursor. The serving fixture is
+immutable, so the live authorization operation and physical inspection share its
+unchanged database revision. No clock is frozen or cursor validation weakened.
+
 The live durable readers inspected on 2026-09-08 report Core revision
 `21e661e09988dca6e416454dd7a29321076c17ac`, whose relationship format uses four-slot
 `eacl.v7.relationship` tuples. The new v8 readers require five-slot tuples and a

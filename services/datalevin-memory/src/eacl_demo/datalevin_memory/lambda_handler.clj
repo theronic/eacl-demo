@@ -110,6 +110,10 @@
                 handlers (operations/create-handlers
                           {:descriptor descriptor
                            :cursor-key cursor-key
+                           ;; EACL snapshots pin evaluation time as well as data.
+                           ;; Cross-request cursors use live authorization time;
+                           ;; the outer snapshot owns raw fixture inspection.
+                           :authorization-reader (:client opened)
                            :cache-stats #(datalevin-eacl/cache-stats
                                           (:client opened))
                            :operation-metrics operation-metrics})]

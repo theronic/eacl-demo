@@ -26,6 +26,37 @@ test("common cases cover every qualification category and keep unsupported clean
   for (const category of ["contract", "authorization", "relationship", "pagination-cursor", "cache", "consistency", "consistency-failure", "failure-redaction", "cleanup", "identity"]) assert.equal(categories.has(category), true, category);
 });
 
+test("resource qualification traverses every page and detects cross-request failures", async () => {
+  const pagination = commonQualificationCases(exemplars)
+    .find(({ id }) => id.startsWith("resource-pagination-"));
+  for (const mode of ["complete", "second-page-error", "duplicate"]) {
+    let requests = 0;
+    const transport = {
+      async request(operation, input) {
+        assert.equal(operation, "lookup-resources");
+        requests += 1;
+        const offset = Number(input.cursor ?? 0);
+        if (offset > 0 && mode === "second-page-error") throw new Error("second page failed");
+        const end = Math.min(offset + input.pageSize, 64);
+        return { data: {
+          items: Array.from({ length: end - offset }, (_, index) => ({
+            type: "server", id: `item-${mode === "duplicate" ? index : offset + index}`
+          })),
+          pageInfo: { hasNextPage: end < 64, endCursor: end < 64 ? String(end) : null,
+            pageSize: end - offset }
+        } };
+      }
+    };
+    const run = () => pagination.run({ transport, descriptor });
+    if (mode === "complete") {
+      assert.deepEqual(await run(), { items: 64, pages: 22 });
+      assert.equal(requests, 22);
+    } else {
+      await assert.rejects(run(), mode === "duplicate" ? /repeated an item/u : /second page failed/u);
+    }
+  }
+});
+
 function fixtureTransport() {
   const cursors = new Set(["cursor-1"]);
   return {
