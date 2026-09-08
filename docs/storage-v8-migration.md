@@ -65,3 +65,11 @@ available for immutable fixture inspection. Datomic historical requests pass the
 boundary-selected database token to that live reader; cursor continuation keeps
 its authenticated evaluation context. Tests exercise both regular and historical
 pagination while the trusted clock advances, and denial at the expiration boundary.
+
+The maintenance JVM has a 12 GiB heap for full relationship certificates. The
+Datomic peer object cache is explicitly capped at 2 GiB instead of taking half
+the heap; the separate transactor has a 2 GiB heap. This leaves room for native
+index caches and proof sets on the 16 GiB runner. Minute-by-minute heap and GC
+statistics distinguish verification progress from memory pressure. Interrupted
+Datomic maintenance resumes the existing unpublished target from its committed
+migration checkpoint; it does not restore another copy or skip verification.

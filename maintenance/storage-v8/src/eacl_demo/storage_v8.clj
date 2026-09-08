@@ -3,12 +3,30 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [clojure.string :as str])
-  (:import [java.security MessageDigest]
+  (:import [java.lang.management ManagementFactory]
+           [java.security MessageDigest]
            [java.util Date UUID]))
 
 (defn emit! [value]
-  (println (json/write-str value))
-  (flush))
+  (locking *out*
+    (println (json/write-str value))
+    (flush)))
+
+(defn- runtime-statistics []
+  (let [heap (.getHeapMemoryUsage (ManagementFactory/getMemoryMXBean))]
+    {:kind "jvm-heartbeat" :heapUsedBytes (.getUsed heap) :heapMaxBytes (.getMax heap)
+     :gcTimeMs (reduce + (map #(max 0 (.getCollectionTime %))
+                              (ManagementFactory/getGarbageCollectorMXBeans)))}))
+
+(defn- start-heartbeat! []
+  (doto (Thread. (fn []
+                   (loop []
+                     (Thread/sleep 60000)
+                     (emit! (runtime-statistics))
+                     (recur)))
+                 "storage-migration-heartbeat")
+    (.setDaemon true)
+    (.start)))
 
 (defn application-signature
   "Digest application datoms independently of the relationship certificate."
@@ -43,7 +61,8 @@
                        conn {:quiesced? true :batch-size 1000
                              :on-progress #(emit! {:kind "relationship-progress" :report %})})
         after-db (db conn)
-        after (application-signature (rows after-db) #(ident after-db %))]
+        after (application-signature (rows after-db) #(ident after-db %))
+        _ (emit! {:kind "application-after" :signature after})]
     (when-not (and (= :complete (:state relationships))
                    (= 8 (:storage-version relationships))
                    (= before after))
@@ -111,6 +130,7 @@
       (finally ((r 'datomic.api/release) conn)))))
 
 (defn -main [& [backend path store-id]]
+  (start-heartbeat!)
   (try
     (case backend
       "datahike" (datahike! path store-id)

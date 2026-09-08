@@ -19,7 +19,8 @@ const aliases = profile === "datomic-dynamodb"
 const classpath = execFileSync("clojure", ["-Spath", `-M${aliases}`],
   { cwd: root, encoding: "utf8" }).trim();
 await writeFile(path.join(work, "java-command.json"), JSON.stringify([
-  "java", "-Xms1g", profile === "datomic-dynamodb" ? "-Xmx8g" : "-Xmx12g",
+  "java", "-Xms1g", "-Xmx12g",
+  ...(profile === "datomic-dynamodb" ? ["-Ddatomic.objectCacheMax=2g"] : []),
   "-cp", classpath, "clojure.main", "-m", "eacl-demo.storage-v8"
 ]));
 if (profile === "datomic-dynamodb") {
