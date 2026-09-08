@@ -35,11 +35,20 @@
      :clock #(Instant/parse "2026-08-25T12:00:00Z")}
     overrides)))
 
-(deftest historical-revision-cannot-advance-past-retained-db-test
-  (is (= 1018630
-         (#'reader/bounded-as-of-revision 1018630 1018640)))
-  (is (= 1018629
-         (#'reader/bounded-as-of-revision 1018630 1018629))))
+(deftest unavailable-historical-basis-is-unsupported-and-releases-its-lease-test
+  (let [opened (open-fixed-reader
+                {:resolve-as-of (constantly {:revision nil :captured-at nil})})]
+    (try
+      (is (= "unsupported-consistency"
+             (try ((:capture-snapshot opened)
+                   {:consistency "historical-date"
+                    :atExactSnapshotAt "2026-08-25T00:00:00Z"})
+                  :unexpected-success
+                  (catch clojure.lang.ExceptionInfo error (:code (ex-data error))))))
+      (let [snapshot ((:capture-snapshot opened))]
+        (is (= :fixed-snapshot (:value snapshot)))
+        ((:release! snapshot)))
+      (finally (reader/close-reader! opened)))))
 
 (deftest historical-token-retains-scope-and-authenticates-the-resolved-revision-test
   (let [options (#'reader/token-format-options (:security-key config))

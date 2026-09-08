@@ -83,26 +83,20 @@
        (assoc :revision revision :exact-locator revision)
        (dissoc :issued-at :expires-at))))
 
-(defn- bounded-as-of-revision
-  [fixed-revision requested-revision]
-  ;; Datomic maps a Date after the retained DB basis to a future logical T.
-  ;; That T is a valid as-of cutoff, but it is not a transaction in this
-  ;; immutable DB value and therefore has no :db/txInstant.  An exact snapshot
-  ;; served by this reader can never advance beyond the retained basis.
-  (min fixed-revision requested-revision))
-
 (defn- resolve-as-of
   [database instant]
-  (let [historical-db (d/as-of database (Date/from instant))
-        fixed-revision (d/basis-t database)
-        requested-revision (or (.asOfT ^datomic.Database historical-db)
-                               fixed-revision)
-        revision (bounded-as-of-revision fixed-revision requested-revision)
-        captured-at (some-> (d/entity database (d/t->tx revision))
-                            :db/txInstant
-                            (.toInstant))]
-    {:revision revision
-     :captured-at captured-at}))
+  (let [date (Date/from instant)
+        historical-db (d/as-of database date)
+        ;; A Date cutoff can fall in a gap between transaction IDs. Select
+        ;; a real transaction inside Datomic's native as-of view, preserving
+        ;; its same-millisecond semantics and the retained database boundary.
+        transaction (first (d/index-pull historical-db
+                                         {:index :avet
+                                          :selector [:db/id :db/txInstant]
+                                          :start [:db/txInstant date]
+                                          :reverse true}))]
+    {:revision (some-> transaction :db/id d/tx->t)
+     :captured-at (some-> transaction :db/txInstant (.toInstant))}))
 
 (defn- release-once
   "Wraps one acquired resource release. A failed release remains retryable."
@@ -141,6 +135,11 @@
   (let [snapshot (eacl/snapshot client (consistency/at-exact-snapshot token))]
     (try
       (let [database (datomic-eacl/db snapshot)]
+        ;; Reject an unfinished historical generation before traversing its
+        ;; filtered relationship indexes for the full native admission check.
+        (when-not (= :complete (:phase (datomic-storage/read-state database)))
+          (throw (ex-info "Historical requests require a completed v8 storage revision."
+                          {:code "unsupported-consistency"})))
         (datomic-storage/assert-compatible! database)
         (when-not (contains? #{:expression :none}
                              (datomic-schema/permission-storage-shape database))
@@ -286,7 +285,8 @@
                        (throw
                         (ex-info
                          "Datomic historical basis could not be resolved."
-                         {:type :eacl-demo/historical-basis-unavailable})))
+                         {:type :eacl-demo/historical-basis-unavailable
+                          :code "unsupported-consistency"})))
                      (let [token
                            (issue-exact-token
                             format-options fixed-token-scope revision)

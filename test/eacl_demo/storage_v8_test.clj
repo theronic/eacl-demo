@@ -9,6 +9,7 @@
             [eacl.datahike.migrations.relationships-v7-to-v8 :as dh-relationships]
             [eacl.datomic.core :as dt-eacl]
             [eacl.datomic.schema :as dt-schema]
+            [eacl.datomic.storage :as dt-storage]
             [eacl.migrations.v7-to-v8 :as dt-permissions]
             [eacl.datomic.migrations.relationships-v7-to-v8 :as dt-relationships]
             [eacl.relationships.legacy-v7 :as legacy]
@@ -122,16 +123,63 @@
               snapshot (eacl/snapshot client)
               options (#'reader/token-format-options key)
               scope (#'reader/decode-token options (eacl/basis-token snapshot))
-              old-token (#'reader/issue-exact-token options scope old-revision)]
+              old-token (#'reader/issue-exact-token options scope old-revision)
+              full-admissions (atom 0)
+              assert-compatible! dt-storage/assert-compatible!]
           (try
-            (is (= "unsupported-consistency"
-                   (try (#'reader/select-supported-historical-snapshot client old-token)
-                        :unexpected-success
-                        (catch clojure.lang.ExceptionInfo error (:code (ex-data error))))))
+            (with-redefs [dt-storage/assert-compatible!
+                          (fn [database]
+                            (swap! full-admissions inc)
+                            (assert-compatible! database))]
+              (is (= "unsupported-consistency"
+                     (try (#'reader/select-supported-historical-snapshot client old-token)
+                          :unexpected-success
+                          (catch clojure.lang.ExceptionInfo error (:code (ex-data error))))))
+              (is (zero? @full-admissions)))
             (let [historical (#'reader/select-supported-historical-snapshot client (eacl/basis-token snapshot))]
               (try
                 (is (true? (eacl/can? historical (eacl/spice-object :user "alice") :view
                                       (eacl/spice-object :document "document"))))
                 (finally (eacl/release! historical))))
             (finally (eacl/release! snapshot)))))
+      (finally (dt/release conn) (dt/delete-database uri)))))
+
+(deftest historical-dates-resolve-real-transactions-without-changing-the-native-view
+  (let [uri (str "datomic:mem://demo-history-gaps-" (random-uuid))
+        _ (dt/create-database uri)
+        conn (dt/connect uri)
+        instant #(java.time.Instant/parse %)
+        date #(java.util.Date/from (instant %))
+        transact-at (fn [at operations]
+                      (:db-after @(dt/transact conn
+                                               (into [{:db/id "datomic.tx" :db/txInstant (date at)}]
+                                                     operations))))
+        facts (fn [database]
+                (mapv (fn [datom] [(:e datom) (:a datom) (:v datom) (:tx datom)])
+                      (dt/datoms database :eavt)))]
+    (try
+      (let [first-db (transact-at "2026-09-01T00:00:00Z"
+                                  [{:db/ident :history-test/name :db/valueType :db.type/string
+                                    :db/cardinality :db.cardinality/one}])
+            second-db (transact-at "2026-09-03T00:00:00Z"
+                                   (for [i (range 50)]
+                                     {:db/id (dt/tempid :db.part/user) :history-test/name (str i)}))
+            _ (transact-at "2026-09-05T00:00:00Z" [])
+            fixed-db (transact-at "2026-09-05T00:00:00Z" [])
+            gap-db (dt/as-of fixed-db (date "2026-09-04T00:00:00Z"))]
+        ;; Allocated entity IDs leave a logical cutoff that is not a transaction.
+        (is (nil? (:db/txInstant (dt/entity fixed-db (dt/t->tx (.asOfT ^datomic.Database gap-db))))))
+        (doseq [[at expected] [["2026-09-01T00:00:00Z" (dt/basis-t first-db)]
+                              ["2026-09-02T00:00:00Z" (dt/basis-t first-db)]
+                              ["2026-09-03T00:00:00Z" (dt/basis-t second-db)]
+                              ["2026-09-04T00:00:00Z" (dt/basis-t second-db)]
+                              ["2026-09-05T00:00:00Z" nil]
+                              ["2026-09-06T00:00:00Z" (dt/basis-t fixed-db)]]]
+          (let [{:keys [revision captured-at]} (#'reader/resolve-as-of fixed-db (instant at))]
+            (when expected (is (= expected revision) at))
+            (is (<= revision (dt/basis-t fixed-db)) at)
+            (is (= captured-at (.toInstant ^java.util.Date
+                                          (:db/txInstant (dt/entity fixed-db (dt/t->tx revision))))))
+            (is (= (facts (dt/as-of fixed-db (date at)))
+                   (facts (dt/as-of fixed-db revision))) at))))
       (finally (dt/release conn) (dt/delete-database uri)))))
