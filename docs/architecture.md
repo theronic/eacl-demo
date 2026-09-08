@@ -1,5 +1,14 @@
 # Demo architecture
 
+As of 2026-09-08, every enabled platform uses native v8 storage. The durable
+targets are `eacl-demo-datahike-v8-843761893873-us-east-1`,
+`eacl-demo-datahike-fixture-v8` and `eacl-demo-datomic-fixture-v8`; see the
+[migration and retirement record](storage-v8-migration.md) for exact identities.
+The older inspection below is historical: its pre-v8 data sources and legacy
+EC2 fallback have since been deleted. `serverless-datahike.demo.eacl.dev` now
+redirects to `demo.eacl.dev`; the shared cache and notification secret remain
+managed in their original stacks.
+
 `demo.eacl.dev` has one shared explorer source and two delivery paths. The
 browser downloads static files through CloudFront, then calls the selected
 server profile's alias-qualified Lambda Function URL directly. CloudFront does
