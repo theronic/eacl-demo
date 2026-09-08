@@ -133,6 +133,18 @@
       "environment": "demo-storage-v8-migration",
       "roleVariable": "AWS_STORAGE_V8_MIGRATION_ROLE_ARN",
       "permissionScope": "reviewed-v8-migration-generations-only"
+    },
+    {
+      "id": "legacy-demo-redirect",
+      "authorityClass": "manual-transition",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Redirect legacy EACL demo",
+      "workflowFile": ".github/workflows/redirect-legacy-demo.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-legacy-redirect",
+      "roleVariable": "AWS_LEGACY_REDIRECT_ROLE_ARN",
+      "permissionScope": "exact-legacy-hostname-redirect-only"
     }
   ]
 }
