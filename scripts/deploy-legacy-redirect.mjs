@@ -31,7 +31,8 @@ const change = aws('cloudformation', 'create-change-set', '--stack-name', stackA
   '--template-body', 'file://infra/legacy/serverless-datahike-redirect.json',
   '--parameters', 'ParameterKey=DomainName,UsePreviousValue=true', 'ParameterKey=HostedZoneId,UsePreviousValue=true');
 wait('cloudformation', 'wait', 'change-set-create-complete', '--change-set-name', change.Id);
-const preview = aws('cloudformation', 'describe-change-set', '--change-set-name', change.Id);
+// Resolve property values so unchanged dependent DNS aliases are omitted.
+const preview = aws('cloudformation', 'describe-change-set', '--change-set-name', change.Id, '--include-property-values');
 const allowed = new Map([
   ['StaticSiteBucket', 'Remove'], ['StaticSiteBucketPolicy', 'Remove'],
   ['StaticSiteOriginAccessControl', 'Remove'], ['StaticSiteRewriteFunction', 'Modify'],
