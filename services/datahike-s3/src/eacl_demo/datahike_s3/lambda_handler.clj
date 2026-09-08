@@ -83,6 +83,7 @@
                  handlers (operations/create-handlers
                            {:descriptor descriptor
                             :cursor-key (:security-key reader-config)
+                            :authorization-reader (:client opened)
                             :refresh-snapshot! (:refresh-snapshot! opened)
                             :cache-stats #(datahike-eacl/cache-stats
                                            (:client opened))

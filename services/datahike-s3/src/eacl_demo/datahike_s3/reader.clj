@@ -78,7 +78,7 @@
               {:source-lifecycle
                ;; Provisioned for this history; share across workers and restarts.
                ;; Rotate on history replacement. Store identity remains separate.
-               #uuid "cb4cede1-79d9-470b-8d58-5fc2da251fdc"
+               #uuid "8d11be38-f7c0-4a6e-bc93-9738b4596a06"
                :read-only? true
                :security-key (:security-key config)})
              create-snapshot

@@ -33,7 +33,7 @@
                     {:type :eacl-demo/missing-wire-schema}))))
 
 (defn create-handlers
-  [{:keys [descriptor cursor-key clock cache-stats operation-metrics]
+  [{:keys [descriptor cursor-key clock cache-stats operation-metrics authorization-reader]
     :or {clock #(System/currentTimeMillis)
          cache-stats (constantly {:unavailable true})
          operation-metrics (cache-metrics/create-operation-metrics)}}]
@@ -116,7 +116,7 @@
      (guarded
       (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [page (eacl/read-relationships
-                    snapshot
+                    (or authorization-reader snapshot)
                     (relationship-query input remaining-ms
                                         {:resource/type (keyword (:resourceType input))
                                          :resource/id (:resourceId input)}))]
@@ -128,7 +128,7 @@
      (guarded
       (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [page (eacl/read-relationships
-                    snapshot
+                    (or authorization-reader snapshot)
                     (relationship-query input remaining-ms
                                         {:subject/type (keyword (:subjectType input))
                                          :subject/id (:subjectId input)}))]
@@ -146,7 +146,7 @@
       (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [decision
               (eacl/check-permission
-               snapshot
+               (or authorization-reader snapshot)
                {:subject (eacl/spice-object
                           (keyword (:subjectType input))
                           (:subjectId input))
@@ -170,7 +170,7 @@
       (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [result
               (eacl/lookup-resources
-               snapshot
+               (or authorization-reader snapshot)
                (cond->
                 {:subject (eacl/spice-object (keyword (:subjectType input))
                                              (:subjectId input))
@@ -196,7 +196,7 @@
       (fn [{:keys [snapshot input check-active! remaining-ms]}]
         (let [result
               (eacl/lookup-subjects
-               snapshot
+               (or authorization-reader snapshot)
                (cond->
                 {:resource (eacl/spice-object (keyword (:resourceType input))
                                               (:resourceId input))
@@ -223,7 +223,7 @@
         (let [ceiling (or (:ceiling input) default-count-ceiling)
               result
               (eacl/count-resources
-               snapshot
+               (or authorization-reader snapshot)
                {:subject (eacl/spice-object (keyword (:subjectType input))
                                             (:subjectId input))
                 :permission (keyword (:permission input))
@@ -277,11 +277,11 @@
     (when-not snapshot (fail! "internal-error"))
     (when-not (http/freshness-floor-available? input public-basis)
       (fail! "freshness-unavailable"))
-    ;; The boundary has already selected the request's immutable snapshot and
-    ;; rejected an unsatisfied freshness floor. Minting a token from that same
-    ;; snapshot only to authenticate it back to itself cannot select a fresher
-    ;; value; it adds secure-format and HMAC work to every cache hit.
-    consistency/minimize-latency))
+    ;; A live reader captures fresh trusted time for each operation. Historical
+    ;; requests still select the exact database chosen by the HTTP boundary.
+    (if (= "historical-date" (:consistency input))
+      (consistency/at-exact-snapshot (eacl/basis-token snapshot))
+      consistency/minimize-latency)))
 
 (defn- relationship-query
   [input remaining-ms anchor]

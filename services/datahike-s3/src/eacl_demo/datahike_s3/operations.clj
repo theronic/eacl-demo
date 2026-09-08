@@ -101,7 +101,7 @@
 
 (defn create-handlers
   [{:keys [descriptor cursor-key clock refresh-snapshot! cache-stats
-           operation-metrics]
+           operation-metrics authorization-reader]
     :or {clock #(System/currentTimeMillis)
          cache-stats (constantly {:unavailable true})
          operation-metrics (cache-metrics/create-operation-metrics)}}]
@@ -179,7 +179,7 @@
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
         (let [page (eacl/read-relationships
-                    snapshot
+                    (or authorization-reader snapshot)
                     (relationship-query input
                                         {:resource/type
                                          (keyword (:resourceType input))
@@ -192,7 +192,7 @@
      (guarded
       (fn [{:keys [snapshot input check-active!]}]
         (let [page (eacl/read-relationships
-                    snapshot
+                    (or authorization-reader snapshot)
                     (relationship-query input
                                         {:subject/type
                                          (keyword (:subjectType input))
@@ -216,7 +216,7 @@
                                               (:resourceId input) nil)
               decision (when (and subject-known? resource-known?)
                          (eacl/check-permission
-                          snapshot
+                          (or authorization-reader snapshot)
                           {:subject (eacl/spice-object
                                      (keyword (:subjectType input))
                                      (:subjectId input))
@@ -239,7 +239,7 @@
       (fn [{:keys [snapshot input check-active!]}]
         (let [result
               (eacl/lookup-resources
-               snapshot
+               (or authorization-reader snapshot)
                (cond->
                 {:subject (eacl/spice-object (keyword (:subjectType input))
                                              (:subjectId input))
@@ -264,7 +264,7 @@
       (fn [{:keys [snapshot input check-active!]}]
         (let [result
               (eacl/lookup-subjects
-               snapshot
+               (or authorization-reader snapshot)
                (cond->
                 {:resource (eacl/spice-object (keyword (:resourceType input))
                                               (:resourceId input))
@@ -290,7 +290,7 @@
         (let [ceiling (or (:ceiling input) default-count-ceiling)
               result
               (eacl/count-resources
-               snapshot
+               (or authorization-reader snapshot)
                {:subject (eacl/spice-object (keyword (:subjectType input))
                                             (:subjectId input))
                 :permission (keyword (:permission input))

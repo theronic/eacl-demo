@@ -126,7 +126,8 @@
                     "s3:PutEncryptionConfiguration",
                     "s3:PutBucketVersioning",
                     "s3:GetBucketVersioning",
-                    "s3:PutLifecycleConfiguration"
+                    "s3:PutLifecycleConfiguration",
+                    "s3:GetBucketPublicAccessBlock"
                   ],
                   "Resource": [
                     "arn:aws:s3:::eacl-demo-datahike-v8-843761893873-us-east-1"
@@ -203,6 +204,36 @@
                   "Resource": [
                     "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1",
                     "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1/*"
+                  ]
+                },
+                {
+                  "Sid": "AdmitOnlyReviewedReaders",
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PutRolePolicy"
+                  ],
+                  "Resource": [
+                    "arn:aws:iam::843761893873:role/eacl-demo-datahike-s3-live-ExecutionRole-dRRxJB2SVTNH",
+                    "arn:aws:iam::843761893873:role/eacl-demo-datahike-s3-large-ExecutionRole-QkshPtgq7pI7",
+                    "arn:aws:iam::843761893873:role/eacl-demo-datahike-dynamodb-live-ExecutionRole-obMEIrQe5s9a",
+                    "arn:aws:iam::843761893873:role/eacl-demo-datahike-dynamodb-large-ExecutionRole-q714BlhOuOzL",
+                    "arn:aws:iam::843761893873:role/eacl-demo-datomic-dynamodb-serving-role-ServingRole-peAk0YTs5as8",
+                    "arn:aws:iam::843761893873:role/eacl-demo-datomic-dynamodb-ec2-InstanceRole-wbSCDHV1rAoh"
+                  ]
+                },
+                {
+                  "Sid": "VerifyReaderRoleBindings",
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:GetFunctionConfiguration"
+                  ],
+                  "Resource": [
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datahike-s3-live",
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datahike-s3-large",
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datahike-dynamodb-live",
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datahike-dynamodb-large",
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datomic-dynamodb-live",
+                    "arn:aws:lambda:us-east-1:843761893873:function:eacl-demo-datomic-dynamodb-large"
                   ]
                 }
               ]

@@ -38,9 +38,14 @@ itself to 500 units/second. The retained source read budget leaves capacity for
 serving. These are short-lived migration limits; serving returns to a one-unit
 write cap with read-only reader identities. Keep old generations for rollback.
 
-After all migrations succeed, grant the serving identities read access to their
-exact target, bind both Lambda sizes and the Datomic EC2 reader to the migrated
-generation, and rotate lifecycle UUIDs. The normal production CI deployment must
+After all migrations succeed, dispatch the same workflow with action
+`publish-readers`, `PUBLISH-V8:<profile>` confirmation, and the successful
+migration run ID. It requires that production workflow's exact profile artifact,
+checks the native v8 certificate and recovery protections, lowers the DynamoDB
+write cap, and grants only the listed reader roles read access to that target.
+A partial reader-grant failure leaves the generation unpublished and is retryable.
+The next ordinary release binds both Lambda sizes and the Datomic EC2 reader
+to the migrated generation and rotates lifecycle UUIDs. The normal production CI deployment must
 pass before registry promotion. Verify health/version identity, allow and deny,
 complete pagination, and Datomic historical requests within the v8 era. Earlier
 historical databases retain their old physical format and must fail closed.
@@ -50,3 +55,10 @@ copy for rollback is separate from rebuilding fixtures for space savings. No
 bucket, table, backup, or old generation is deleted by this operation. Remove the
 temporary migration authority after cutover and retain the old generation until
 the upgraded demos have been accepted.
+
+Durable authorization handlers pass the live EACL reader into every authorization
+operation so v8 expiration uses fresh trusted time. The retained snapshot remains
+available for immutable fixture inspection. Datomic historical requests pass the
+boundary-selected database token to that live reader; cursor continuation keeps
+its authenticated evaluation context. Tests exercise both regular and historical
+pagination while the trusted clock advances, and denial at the expiration boundary.

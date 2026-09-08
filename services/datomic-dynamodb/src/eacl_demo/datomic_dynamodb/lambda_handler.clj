@@ -108,6 +108,7 @@
              handlers (operations/create-handlers
                        {:descriptor descriptor
                         :cursor-key (:security-key reader-config)
+                            :authorization-reader (:client opened)
                         :cache-stats #(datomic-eacl/cache-stats (:client opened))
                         :operation-metrics operation-metrics})]
          {:reader opened

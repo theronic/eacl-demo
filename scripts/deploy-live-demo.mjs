@@ -11,6 +11,7 @@ import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-
 import { committedEaclCore } from "./lib/eacl-core.mjs";
 import { smokeFunctionUrl } from "./lib/public-readiness.mjs";
 import { stalePublishedVersions } from "./lib/lambda-version-retention.mjs";
+import { storageV8Environment } from "./lib/storage-v8.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const target = process.argv[2];
@@ -197,6 +198,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
                            "--function-name", profile.functionName]);
   const deploymentId = `production:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
+    ...storageV8Environment(profileId),
     EACL_ARTIFACT_SHA256: artifactSha,
     EACL_CORE_SHA: eaclSha(),
     EACL_DEMO_SHA: demoSha(),
@@ -300,8 +302,9 @@ async function deployDatomicEc2(release) {
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
-    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote(`s|^EACL_DATOMIC_TABLE=.*|EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
     `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
+    `grep -Fx -- ${shellQuote(`EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}`)} /etc/eacl-demo-datomic.env.next`,
     "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
     "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
     "systemctl restart eacl-demo-datomic.service",

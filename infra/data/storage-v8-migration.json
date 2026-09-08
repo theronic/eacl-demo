@@ -25,5 +25,19 @@
       "target": "eacl-demo-datomic-fixture-v8",
       "database": "eacl-demo"
     }
+  },
+  "readerRoles": {
+    "datahike-s3": [
+      "eacl-demo-datahike-s3-live-ExecutionRole-dRRxJB2SVTNH",
+      "eacl-demo-datahike-s3-large-ExecutionRole-QkshPtgq7pI7"
+    ],
+    "datahike-dynamodb": [
+      "eacl-demo-datahike-dynamodb-live-ExecutionRole-obMEIrQe5s9a",
+      "eacl-demo-datahike-dynamodb-large-ExecutionRole-q714BlhOuOzL"
+    ],
+    "datomic-dynamodb": [
+      "eacl-demo-datomic-dynamodb-serving-role-ServingRole-peAk0YTs5as8",
+      "eacl-demo-datomic-dynamodb-ec2-InstanceRole-wbSCDHV1rAoh"
+    ]
   }
 }
