@@ -4,6 +4,8 @@
             [eacl.causal-token :as causal-token]
             [eacl.core :as eacl]
             [eacl.datomic.core :as datomic-eacl]
+            [eacl.datomic.schema :as datomic-schema]
+            [eacl.datomic.storage :as datomic-storage]
             [eacl.secure-format :as secure]
             [eacl.spicedb.consistency :as consistency])
   (:import [java.nio.charset StandardCharsets]
@@ -134,6 +136,27 @@
         (reader-closed!))
       stamp)))
 
+(defn- select-supported-historical-snapshot
+  [client token]
+  (let [snapshot (eacl/snapshot client (consistency/at-exact-snapshot token))]
+    (try
+      (let [database (datomic-eacl/db snapshot)]
+        (datomic-storage/assert-compatible! database)
+        (when-not (contains? #{:expression :none}
+                             (datomic-schema/permission-storage-shape database))
+          (throw (ex-info "Historical permission storage predates v8."
+                          {:type :eacl/permission-storage-version}))))
+      snapshot
+      (catch Throwable error
+        (try (eacl/release! snapshot)
+             (catch Throwable cleanup-error
+               (.addSuppressed error cleanup-error)))
+        (if (contains? #{:eacl/storage-version :eacl/permission-storage-version}
+                       (:type (ex-data error)))
+          (throw (ex-info "Historical requests require a completed v8 storage revision."
+                          {:code "unsupported-consistency"} error))
+          (throw error))))))
+
 (defn open-reader!
   "Connects without a transactor, retains exactly one current DB value, and
   lends that immutable EACL Snapshot to ordinary requests. Historical-date
@@ -146,9 +169,7 @@
      :basis-t d/basis-t
      :make-client datomic-eacl/make-client
      :select-current-snapshot eacl/snapshot
-     :select-exact-snapshot
-     (fn [client token]
-       (eacl/snapshot client (consistency/at-exact-snapshot token)))
+     :select-exact-snapshot select-supported-historical-snapshot
      :snapshot-db datomic-eacl/db
      :snapshot-token eacl/basis-token
      :resolve-as-of resolve-as-of

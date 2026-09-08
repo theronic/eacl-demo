@@ -12,7 +12,8 @@
             [eacl.migrations.v7-to-v8 :as dt-permissions]
             [eacl.datomic.migrations.relationships-v7-to-v8 :as dt-relationships]
             [eacl.relationships.legacy-v7 :as legacy]
-            [eacl-demo.storage-v8 :as migration]))
+            [eacl-demo.storage-v8 :as migration]
+            [eacl-demo.datomic-dynamodb.reader :as reader]))
 
 (def schema "definition user {}\ndefinition document {\n relation viewer: user\n permission view = viewer\n}\n")
 
@@ -102,3 +103,35 @@
           (is (some? (dh-eacl/make-client reopened {:source-lifecycle (random-uuid) :read-only? true})))
           (finally (dh/release reopened))))
       (finally (dh/release conn) (dh/delete-database config)))))
+
+
+(deftest historical-reader-rejects-pre-migration-database
+  (let [uri (str "datomic:mem://demo-migration-history-" (random-uuid))
+        _ (dt/create-database uri)
+        conn (dt/connect uri)
+        key (str (random-uuid))
+        adapter {:db dt/db :transact #(deref (dt/transact %1 %2))
+                 :entid dt/entid :write-schema dt-schema/write-schema!}]
+    (try
+      @(dt/transact conn dt-schema/v7-schema)
+      (seed! conn adapter)
+      (let [old-revision (dt/basis-t (dt/db conn))]
+        (dt-permissions/migrate! conn)
+        (dt-relationships/migrate! conn {:quiesced? true})
+        (let [client (dt-eacl/make-client conn {:source-lifecycle (random-uuid) :security-key key})
+              snapshot (eacl/snapshot client)
+              options (#'reader/token-format-options key)
+              scope (#'reader/decode-token options (eacl/basis-token snapshot))
+              old-token (#'reader/issue-exact-token options scope old-revision)]
+          (try
+            (is (= "unsupported-consistency"
+                   (try (#'reader/select-supported-historical-snapshot client old-token)
+                        :unexpected-success
+                        (catch clojure.lang.ExceptionInfo error (:code (ex-data error))))))
+            (let [historical (#'reader/select-supported-historical-snapshot client (eacl/basis-token snapshot))]
+              (try
+                (is (true? (eacl/can? historical (eacl/spice-object :user "alice") :view
+                                      (eacl/spice-object :document "document"))))
+                (finally (eacl/release! historical))))
+            (finally (eacl/release! snapshot)))))
+      (finally (dt/release conn) (dt/delete-database uri)))))
