@@ -279,6 +279,71 @@ def restore_datomic(config):
     emit("restore-ready", table=target, bytes=table.get("TableSizeBytes"))
 
 
+def publish_readers(profile, config, work):
+    report = json.loads((work / "verified-migration/complete.json").read_text())
+    relationships = report.get("relationships", {})
+    if (report.get("status") != "ready" or report.get("storageVersion") != 8 or
+            relationships.get("state") != "complete" or not relationships.get("source-count") or
+            not relationships.get("source-digest") or not report.get("application", {}).get("sha256")):
+        raise RuntimeError("Migration artifact does not certify completion")
+    iam = client("iam")
+    lambdas = client("lambda")
+    functions = [f"eacl-demo-{profile}-live", f"eacl-demo-{profile}-large"]
+    role_names = set()
+    for function in functions:
+        value = lambdas.get_function_configuration(FunctionName=function)
+        role = value["Role"].split("/")[-1]
+        if role not in PLAN["readerRoles"][profile]:
+            raise RuntimeError("Serving role changed since the reviewed plan")
+        role_names.add(role)
+    role_names.update(PLAN["readerRoles"][profile])  # includes Datomic's EC2 reader
+    if profile == "datahike-s3":
+        s3 = client("s3")
+        observed_tags = {v["Key"]: v["Value"] for v in s3.get_bucket_tagging(Bucket=config["target"])["TagSet"]}
+        if (observed_tags.get("Generation") != PLAN["generation"] or
+                observed_tags.get("PublicationPhase") not in {"migrating", "ready"}):
+            raise RuntimeError("Unexpected publication generation or phase")
+        protections = s3.get_public_access_block(Bucket=config["target"])["PublicAccessBlockConfiguration"]
+        if not all(protections.get(k) for k in ["BlockPublicAcls", "IgnorePublicAcls", "BlockPublicPolicy", "RestrictPublicBuckets"]):
+            raise RuntimeError("Target public access protections are missing")
+        if s3.get_bucket_versioning(Bucket=config["target"]).get("Status") != "Enabled":
+            raise RuntimeError("Target version recovery protection is missing")
+        bucket = "arn:aws:s3:::" + config["target"]
+        statements = [
+            {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": bucket},
+            {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+             "Resource": bucket + "/" + config["storeId"] + "_*"},
+        ]
+    else:
+        ddb = client("dynamodb")
+        table = ddb.describe_table(TableName=config["target"])["Table"]
+        observed_tags = {v["Key"]: v["Value"] for v in ddb.list_tags_of_resource(ResourceArn=table["TableArn"])["Tags"]}
+        if (observed_tags.get("Generation") != PLAN["generation"] or
+                observed_tags.get("PublicationPhase") not in {"migrating", "ready"}):
+            raise RuntimeError("Unexpected publication generation or phase")
+        pitr = ddb.describe_continuous_backups(TableName=config["target"])["ContinuousBackupsDescription"]
+        if (not table.get("DeletionProtectionEnabled") or
+                pitr["PointInTimeRecoveryDescription"]["PointInTimeRecoveryStatus"] != "ENABLED"):
+            raise RuntimeError("Target recovery protections are missing")
+        throughput = {"MaxReadRequestUnits": PLAN["migrationReadUnits"],
+                      "MaxWriteRequestUnits": PLAN["servingWriteUnits"]}
+        if table.get("OnDemandThroughput") != throughput:
+            ddb.update_table(TableName=config["target"], OnDemandThroughput=throughput)
+            ddb.get_waiter("table_exists").wait(TableName=config["target"])
+        statements = [{"Effect": "Allow", "Action": ["dynamodb:BatchGetItem", "dynamodb:DescribeTable",
+                       "dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan"], "Resource": table["TableArn"]}]
+    for role in sorted(role_names):
+        iam.put_role_policy(RoleName=role, PolicyName="v8-migrated-generation-read",
+                            PolicyDocument=json.dumps({"Version": "2012-10-17", "Statement": statements}))
+    if profile == "datahike-s3":
+        client("s3").put_bucket_tagging(Bucket=config["target"], Tagging={"TagSet": tags(profile, "ready")})
+    else:
+        ddb.tag_resource(ResourceArn=table["TableArn"], Tags=tags(profile, "ready"))
+    emit("readers-admitted", profile=profile, target=config["target"], roles=sorted(role_names))
+    (work / "complete.json").write_text(json.dumps({"status": "ready", "profile": profile,
+                                                    "target": config["target"], "readerRoles": sorted(role_names)}))
+
+
 def main():
     profile = sys.argv[1]
     if profile not in PLAN["profiles"] or os.environ.get("GITHUB_REF") != "refs/heads/production":
@@ -289,6 +354,12 @@ def main():
     config = PLAN["profiles"][profile]
     work = ROOT / "target/storage-v8" / profile
     work.mkdir(parents=True, exist_ok=True)
+    action = sys.argv[2] if len(sys.argv) > 2 else "migrate"
+    if action == "publish-readers":
+        publish_readers(profile, config, work)
+        return
+    if action != "migrate":
+        raise RuntimeError("Unsupported migration action")
     if profile == "datomic-dynamodb":
         restore_datomic(config)
         subprocess.run(["bash", "scripts/storage-v8-transactor.sh", str(work)], check=True)

@@ -90,7 +90,7 @@
               connection
               {:source-lifecycle
                ;; Share across workers and restarts; rotate on history replacement.
-               #uuid "9433b537-7d85-4594-aa28-2ed487b5ffb9"
+               #uuid "615eb510-7fcf-497d-adde-6ada5fba5a2c"
                ;; Do not construct EACL's writer role in the serving process.
                ;; The Datahike writer and Konserve protocol implementations
                ;; still fail closed because Datahike needs those protocols to

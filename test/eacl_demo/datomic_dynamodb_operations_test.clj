@@ -41,13 +41,18 @@
                     (is (= snapshot actual))
                     (swap! calls inc)
                     "basis-token")]
-      (doseq [mode ["minimize" "authoritative" "at-least" "exact"
-                    "historical-date"]]
+      (doseq [mode ["minimize" "authoritative" "at-least" "exact"]]
         (is (= consistency/minimize-latency
                (#'operations/eacl-consistency
                 {:eacl-demo/snapshot snapshot :consistency mode}))))
       (is (zero? @calls)
           "a consistency-selected snapshot must not mint a token to assert against itself"))))
+
+(deftest historical-operations-select-the-boundary-database-on-the-live-reader
+  (with-redefs [eacl/basis-token (fn [snapshot] (is (= ::historical snapshot)) "historical-token")]
+    (is (= (consistency/at-exact-snapshot "historical-token")
+           (#'operations/eacl-consistency {:eacl-demo/snapshot ::historical
+                                           :consistency "historical-date"})))))
 
 (deftest same-basis-identity-satisfies-cross-environment-freshness-floor-test
   (let [input {:eacl-demo/snapshot ::snapshot

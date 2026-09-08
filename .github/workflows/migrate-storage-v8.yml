@@ -3,14 +3,24 @@ name: Migrate demo storage to v8
 on:
   workflow_dispatch:
     inputs:
+      action:
+        description: Migrate an isolated copy, or admit readers after a successful migration run
+        required: true
+        default: migrate
+        type: choice
+        options: [migrate, publish-readers]
       profile:
         description: Exact retained source to copy and migrate
         required: true
         type: choice
         options: [datahike-s3, datahike-dynamodb, datomic-dynamodb]
       confirmation:
-        description: MIGRATE-V8 followed by a colon and the selected profile
+        description: MIGRATE-V8 or PUBLISH-V8 followed by a colon and the selected profile
         required: true
+        type: string
+      migration_run:
+        description: Successful migration run ID required only for publishing reader access
+        required: false
         type: string
 
 permissions:
@@ -28,11 +38,14 @@ jobs:
     environment: demo-storage-v8-migration
     permissions:
       contents: read
+      actions: read
       id-token: write
     env:
       AWS_REGION: us-east-1
       PROFILE: ${{ inputs.profile }}
       CONFIRMATION: ${{ inputs.confirmation }}
+      ACTION: ${{ inputs.action }}
+      MIGRATION_RUN: ${{ inputs.migration_run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -41,8 +54,12 @@ jobs:
       - name: Validate the explicitly requested migration
         run: |
           set -euo pipefail
-          [[ "$CONFIRMATION" == "MIGRATE-V8:${PROFILE}" ]]
           case "$PROFILE" in datahike-s3|datahike-dynamodb|datomic-dynamodb) ;; *) exit 64;; esac
+          case "$ACTION" in
+            migrate) [[ "$CONFIRMATION" == "MIGRATE-V8:${PROFILE}" && -z "$MIGRATION_RUN" ]] ;;
+            publish-readers) [[ "$CONFIRMATION" == "PUBLISH-V8:${PROFILE}" && "$MIGRATION_RUN" =~ ^[1-9][0-9]+$ ]] ;;
+            *) exit 64 ;;
+          esac
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: .node-version
@@ -59,9 +76,23 @@ jobs:
           cli: 1.12.5.1664
       - name: Prepare pinned maintenance code before acquiring AWS credentials
         run: |
-          node scripts/prepare-storage-v8.mjs "$PROFILE"
+          if [[ "$ACTION" == migrate ]]; then node scripts/prepare-storage-v8.mjs "$PROFILE"; fi
           python3 -m venv target/storage-v8/venv
           target/storage-v8/venv/bin/pip install boto3==1.42.49
+      - name: Bind publication to a completed migration run and its exact profile artifact
+        if: inputs.action == 'publish-readers'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "target/storage-v8/$PROFILE/verified-migration"
+          gh run view "$MIGRATION_RUN" --json conclusion,event,workflowName,headBranch > "target/storage-v8/$PROFILE/verified-run.json"
+          python3 - "$PROFILE" <<'PY'
+          import json,sys
+          from pathlib import Path
+          value=json.loads(Path(f"target/storage-v8/{sys.argv[1]}/verified-run.json").read_text())
+          assert value == {"conclusion":"success", "event":"workflow_dispatch", "workflowName":"Migrate demo storage to v8", "headBranch":"production"}, value
+          PY
+          gh run download "$MIGRATION_RUN" --name "storage-v8-$PROFILE-$MIGRATION_RUN" --dir "target/storage-v8/$PROFILE/verified-migration"
       - name: Capture signature-verified allowlisted OIDC claims
         env:
           EACL_OIDC_AUTHORITY_ID: storage-v8-migration
@@ -83,7 +114,7 @@ jobs:
       - name: Copy retained source, run native migrations, and verify content
         run: |
           export PATH="$PWD/target/storage-v8/venv/bin:$PATH"
-          python3 scripts/migrate-storage-v8.py "$PROFILE"
+          python3 scripts/migrate-storage-v8.py "$PROFILE" "$ACTION"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

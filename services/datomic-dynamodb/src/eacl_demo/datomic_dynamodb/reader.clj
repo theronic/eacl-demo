@@ -190,7 +190,7 @@
               connection
               {:source-lifecycle
                ;; Share across workers and restarts; rotate on history replacement.
-               #uuid "bb87a17e-e68d-4e0e-938d-0db731da83f7"
+               #uuid "744a0882-13ec-450a-ad28-ec73495f974d"
                :read-only? true
                :security-key (:security-key config)})
              fixed-snapshot (select-current-snapshot client)
