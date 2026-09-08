@@ -16,7 +16,7 @@ The explorer SHALL provide a large resource pane and a narrower resource access 
 - **THEN** principal selection, resource navigation, consistency controls, and the access inspector SHALL be usable without horizontal page overflow or inaccessible controls
 
 ### Requirement: Principal picker preserves subject discovery
-The principal picker SHALL retain quick-subject selection and known-user browsing, including exactly 25 users per known-user page, loading, empty, retry, and first/previous/next-page behavior independent of resource page size. Any local filter SHALL identify its loaded scope and MUST NOT imply unbounded server search. Changing the principal SHALL invalidate principal-scoped results and announce the new context. Existing user subject support MUST NOT be misrepresented as arbitrary group or subject-type support.
+The principal picker SHALL retain quick-subject selection and known-user browsing, including exactly 25 users per known-user page, loading, empty, retry, and first/previous/next-page behavior independent of resource page size. The redesign MUST NOT introduce a new known-user text-filter feature. Changing the principal SHALL invalidate principal-scoped results and announce the new context. Existing user subject support MUST NOT be misrepresented as arbitrary group or subject-type support.
 
 #### Scenario: User chooses a principal from a later page
 - **WHEN** a visitor opens the picker, advances the known-user list, and selects a user
@@ -57,18 +57,18 @@ Resource rows SHALL provide distinct expansion and selection actions. Square plu
 - **THEN** ancestor cycles SHALL terminate with an explicit cycle indication, and independent non-cyclic occurrences SHALL retain path-specific expansion without duplicate appearances inflating dataset totals
 
 ### Requirement: Tree presentation preserves navigation context
-The tree SHALL provide hierarchy guides, stable aligned metadata columns, a visible selection, and an independent keyboard focus indicator. Cosmetic branch state SHALL survive collapse/reopen and normal preference restoration without persisting authorization results. Filtering loaded resources SHALL retain matching ancestors, temporarily reveal relevant branches, and restore ordinary expansion when cleared. The UI MUST NOT claim that filtering loaded pages searched unloaded resources.
+The tree SHALL provide hierarchy guides, prominent counts with immediately adjacent timings/cache status, a visible selection, and an independent keyboard focus indicator. Cosmetic branch state SHALL survive collapse/reopen and normal preference restoration without persisting authorization results. The redesign MUST NOT add browser-only resource filtering or imply a new EACL text-search capability.
 
-#### Scenario: Filter is cleared
-- **WHEN** a visitor filters loaded rows and then clears the filter
-- **THEN** the normal stored expansion state SHALL return, and filter-specific expansion changes SHALL NOT overwrite it
+#### Scenario: A queried branch is collapsed
+- **WHEN** a visitor collapses a branch whose count has been returned
+- **THEN** its count and associated latency/cache metadata SHALL remain visible together in the branch row
 
 #### Scenario: Keyboard exploration
 - **WHEN** the tree has keyboard focus
 - **THEN** Up/Down SHALL move through visible rows, Right SHALL expand or enter a branch, Left SHALL collapse or move to its parent, Home/End SHALL reach the first/last visible row, and Enter SHALL activate selection or group expansion as appropriate
 
 #### Scenario: Focused descendant disappears
-- **WHEN** collapse, filtering, or a scoped result transition removes the focused row
+- **WHEN** collapse or a scoped result transition removes the focused row
 - **THEN** focus SHALL move to a visible ancestor or a valid root rather than remaining on a hidden or detached node
 
 ### Requirement: Access inspector retains independent reverse lookups and decisions
@@ -83,7 +83,7 @@ The inspector SHALL identify the selected resource by type and ID, preserve its 
 - **THEN** the inspector SHALL clear the selection or explicitly revalidate a retained selection before presenting it as part of the new exploration, and old principal decisions SHALL not appear as current
 
 ### Requirement: Consistency remains explicit and semantically unchanged
-All four named consistency modes SHALL remain directly visible above exploration, with the active mode selected and unavailable modes disabled with an adjacent reason. Mode selection MUST NOT be hidden behind a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
+All four named consistency modes SHALL remain directly visible in a compact native-radio row above exploration, with the active mode selected and unavailable modes visibly disabled and labelled unavailable with their reason accessible. Large descriptive mode cards MUST NOT displace query results. Mode selection MUST NOT be hidden behind a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
 
 #### Scenario: Relative freshness floor
 - **WHEN** a visitor sets an at-least-as-fresh relative floor
@@ -106,7 +106,7 @@ All four named consistency modes SHALL remain directly visible above exploration
 - **THEN** those actions SHALL remain distinct and the UI SHALL NOT imply that a new request necessarily advanced the source basis
 
 ### Requirement: Query evidence is attributable and truthful
-Query latency and measured cache outcomes SHALL appear directly beside resource lookups, independent counts, permission decisions, and reverse subject lookups, not solely in activity or diagnostics. Count completeness and basis information SHALL remain attributable to the operation and context that produced them. A visible evidence summary SHALL distinguish observed hits, misses, and disabled reads from the independent cache read/populate preferences. Missing measurements SHALL remain explicitly unavailable. Any bounded query activity view SHALL hold sanitized summaries and be reset across incompatible profile/basis contexts. Existing qualified storage comparison rules SHALL continue to apply; unequal dataset sizes MUST NOT be presented as a fair backend benchmark.
+Query latency and cache outcomes SHALL appear immediately beside the specific lookup result, count, permission decision, or reverse lookup that produced them. Counts SHALL remain prominent and inseparable from their own latency/cache metadata. Page counts and total counts SHALL retain their separate query timings. The redesign MUST NOT add a separate latency/cache column, global live-evidence strip, last-query summary, or query-activity dashboard. Missing measurements SHALL remain unavailable; served basis and query context SHALL stay attached to the corresponding metadata. Existing qualified storage-comparison rules SHALL remain unchanged.
 
 #### Scenario: Cache preference is enabled
 - **WHEN** the cache preference is on but a response has no cache-hit measurement
@@ -132,7 +132,7 @@ The redesign SHALL retain backend/storage/execution selection and availability r
 - **THEN** the existing identity validation, request abortion, portable selection rules, and isolation of basis, cursor, cache, seed, and error state SHALL remain intact
 
 ### Requirement: Accessible and resilient visual system
-The explorer SHALL retain the 🦅 eagle emoji logo, EACL Explorer title, and original ReBAC library subtitle verbatim, and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
+The explorer SHALL retain the 🦅 eagle emoji logo, EACL Explorer title, and user-supplied factual subtitle verbatim, and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, native radio buttons for mutually exclusive choices, explicit unavailable labels rather than color alone, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
 
 #### Scenario: A panel fails
 - **WHEN** a reverse lookup fails while the resource page remains valid
@@ -160,9 +160,16 @@ The redesign SHALL preserve the existing permission schema, wire schema, resourc
 - **WHEN** the original fixture includes a parent cycle
 - **THEN** authorization SHALL still use the original EACL engine and schema, while the visual tree SHALL stop at repeated ancestors without deleting or rewriting the relationship
 
-### Requirement: Backend capabilities are visible without dropdowns
-The explorer SHALL show the current public backend catalog and its supported storage names without requiring a dropdown to discover them. Storage and execution choices SHALL use visible controls with active selection and unsupported reasons. Registry availability and current profile semantics SHALL remain authoritative; visible options MUST NOT imply unavailable deployments are connected.
+### Requirement: Preserve the original profile-selector model
+Backend, Storage, and Execution SHALL each occupy a separate stable native-radio row. Backend labels SHALL contain backend names only. Storage and execution options, availability, defaults, and compatible-choice retention SHALL follow the original selector. Unavailable choices SHALL be visibly disabled, explicitly labelled unavailable, and retain their reason. No dropdowns or repeated storage descriptions inside backend choices SHALL be introduced.
 
-#### Scenario: Visitor opens the default browser profile
-- **WHEN** the explorer first renders its profile controls
-- **THEN** DataScript, Datahike, Datomic, and Datalevin and their respective browser memory, S3/DynamoDB, DynamoDB, and embedded disk storage names SHALL be visible along with execution choices and active-profile availability
+#### Scenario: Backend changes
+- **WHEN** the visitor changes backend at a fixed viewport size
+- **THEN** the three selector rows and following panel SHALL retain their positions, storage choices SHALL update in the Storage row, and a compatible storage/execution selection SHALL be preserved according to the existing transition rules
+
+### Requirement: Factual copy and information density
+The redesign SHALL prioritize query performance information, information density, and usability over decorative cards or marketing copy. The header SHALL use EACL Explorer and this subtitle verbatim: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
+
+#### Scenario: The explorer renders its header
+- **WHEN** a visitor opens the demo
+- **THEN** the factual subtitle and eagle logo SHALL appear without an invented tagline

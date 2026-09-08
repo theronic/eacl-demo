@@ -1,4 +1,6 @@
 // Design shell over the unmodified canonical EACL DataScript runtime.
+import { selectBackend as transitionBackend } from '/selection.mjs';
+import { normalizePlatform } from '/platforms.mjs';
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -33,8 +35,8 @@ const state = {
   principal: 'user-1', permission: 'view', selected: null, reversePermission: 'view',
   backend: 'datascript', storage: 'browser-memory', execution: 'browser', ready: false,
   epoch: 0, inspectorEpoch: 0, checkEpoch: 0, expanded: new Set(['root:account']), pages: new Map(),
-  focusKey: 'root:account', filter: '', filterOverrides: new Map(), compact: preferences.compact === true, view: 'explorer',
-  cache: true, populateCache: true, hits: 0, misses: 0, disabled: 0, activity: [],
+  focusKey: 'root:account', compact: preferences.compact === true, view: 'explorer',
+  cache: true, populateCache: true,
   decisions: {}, reverse: null, subjects: { items: [], cursor: null, history: [], index: 0 },
   theme: ['light', 'dark'].includes(requestedTheme) ? requestedTheme : preferences.theme === 'dark' ? 'dark' : 'light',
 };
@@ -50,33 +52,17 @@ const authInput = (type, id, permission = state.permission, principal = state.pr
 const ms = (value) => typeof value === 'number' && Number.isFinite(value) ? `${value < 0.01 ? '<0.01' : value.toFixed(2)} ms` : '—';
 const cacheBadge = (meta) => `<span class="cache-badge ${escapeHtml(meta?.cacheStatus || 'unreported')}">${escapeHtml(meta?.cacheStatus || 'not reported')}</span>`;
 function evidence(meta, label = '') {
-  if (!meta) return '<span class="unmeasured">Not queried</span>';
-  return `<span class="operation-evidence" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}">${label ? `<small>${escapeHtml(label)}</small>` : ''}<b>${ms(meta.elapsedMs)}</b>${cacheBadge(meta)}</span>`;
+  if (!meta) return '';
+  return `<span class="operation-evidence" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}">${label ? `<small>${escapeHtml(label)}</small>` : ''}<b>${ms(meta.elapsedMs)}</b>${meta.cacheStatus ? cacheBadge(meta) : ''}</span>`;
 }
 function notify(message) {
   $('#toast').textContent = message; $('#toast').hidden = false;
   $('#announcement').textContent = message; clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500);
 }
-function updateCounters() {
-  $('#cache-hits').textContent = state.hits; $('#cache-misses').textContent = state.misses;
-  $('#cache-other').textContent = `${state.disabled} disabled`; $('#activity-count').textContent = state.activity.length;
-}
 async function request(operation, input = {}, epoch = state.epoch) {
   if (!connected()) throw new Error('This profile is not connected in the local design preview.');
   const response = await window.EaclDataScriptRuntime.request(operation, input, crypto.randomUUID(), owner);
-  if (epoch === state.epoch) {
-    const { meta } = response;
-    state.activity.unshift({ operation, input, ...response }); state.activity = state.activity.slice(0, 100);
-    if (meta?.cacheStatus === 'hit') state.hits++;
-    if (meta?.cacheStatus === 'miss') state.misses++;
-    if (meta?.cacheStatus === 'disabled') state.disabled++;
-    if (['lookup-resources', 'lookup-subjects', 'count-resources', 'check-permission'].includes(operation)) {
-      $('#latest-latency').textContent = ms(meta?.elapsedMs);
-      $('#latest-operation').textContent = `${operation} · ${meta?.cacheStatus || 'cache not reported'}`;
-    }
-    updateCounters(); if (state.view === 'activity') renderActivity();
-  }
   if (response.error) { const error = new Error(response.error.message); error.meta = response.meta; throw error; }
   return response;
 }
@@ -92,36 +78,30 @@ function applyTheme() {
 function renderEnvironment() {
   const { catalog } = metadata;
   const storageLabel = (id) => catalog.storages.find((entry) => entry.id === id).label;
-  // Mirror the production selector, whose public backend list excludes Jank.
-  $('#backend-options').innerHTML = catalog.backends.filter((entry) => entry.id !== 'jank').map((entry) =>
-    `<button class="backend-card ${entry.id === state.backend ? 'active' : ''}" data-backend="${entry.id}" aria-pressed="${entry.id === state.backend}"><span class="radio-dot"></span><span><strong>${entry.label}</strong><small>${entry.storages.map(storageLabel).join(' / ')}</small></span>${entry.id === 'datascript' ? '<span class="live-pill">LOCAL</span>' : ''}</button>`).join('');
+  const choice = (kind, entry, selected) => `<label class="profile-option" title="${escapeHtml(entry.reason || entry.label)}"><input type="radio" name="explorer-${kind}" value="${entry.id}" ${selected === entry.id ? 'checked' : ''} ${entry.selectable === false ? 'disabled' : ''}><span class="option-label"><span>${escapeHtml(entry.label)}</span>${entry.selectable === false ? '<small class="option-status">unavailable</small>' : ''}</span></label>`;
+  // Use the same public backend list and dependent options as the original selector.
+  $('#backend-options').innerHTML = catalog.backends.filter((entry) => entry.id !== 'jank').map((entry) => choice('backend', entry, state.backend)).join('');
   const backend = catalog.backends.find((entry) => entry.id === state.backend);
-  $('#storage-options').innerHTML = backend.storages.map((id) => `<button class="choice ${id === state.storage ? 'active' : ''}" data-storage="${id}" aria-pressed="${id === state.storage}">${storageLabel(id)}</button>`).join('');
+  $('#storage-options').innerHTML = backend.storages.map((id) => choice('storage', { id, label: storageLabel(id) }, state.storage)).join('');
   const activeExecution = metadata.platforms[`${state.backend}/${state.storage}`];
-  const allExecution = [metadata.platforms['datascript/browser-memory'][0], ...metadata.platforms['datomic/dynamodb']].map((entry) => activeExecution.find((option) => option.id === entry.id) || { ...entry, selectable: false, reason: entry.id === 'browser' ? 'Select DataScript for browser execution.' : 'Select a server backend for this execution option.' });
-  $('#execution-options').innerHTML = allExecution.map((entry) => `<button class="choice ${entry.id === state.execution ? 'active' : ''}" data-execution="${entry.id}" aria-pressed="${entry.id === state.execution}" ${entry.selectable ? '' : 'disabled'} title="${escapeHtml(entry.reason || entry.label)}">${escapeHtml(entry.label)}</button>`).join('');
-  $('.performance-title strong').textContent = connected() ? 'Live query evidence' : 'Query evidence';
-  $('.performance-title small').textContent = connected() ? 'Local DataScript · operation latency' : 'Connect a profile to measure latency';
-  $('.performance-title .status-dot').hidden = !connected();
-  $('#runtime-status').innerHTML = connected() ? '<span class="status-dot"></span>Live in your browser' : state.backend === 'datascript' ? 'Starting local DataScript…' : '<span class="offline-pill">Layout preview</span> This profile is not connected locally';
-  const modes = [
-    ['Minimize latency', 'Use the available local basis', 'minimize-latency'],
-    ['At least as fresh', 'Set a relative or absolute freshness floor', 'at-least-as-fresh'],
-    ['Exact snapshot', 'Read an immutable snapshot at a chosen time', 'at-exact-snapshot'],
-    ['Fully consistent', 'Require an authoritative current read', 'fully-consistent'],
-  ];
-  $('#consistency-options').innerHTML = modes.map(([title, detail, id], index) => `<button class="consistency-card ${index === 0 && connected() ? 'active' : ''}" ${index > 0 || !connected() ? 'disabled' : ''} aria-pressed="${index === 0 && connected()}" title="${index === 0 ? detail : 'Unavailable in this local DataScript preview; support comes from the active runtime descriptor.'}" data-consistency="${id}"><span class="radio-dot"></span><span><strong>${title}</strong><small>${detail}</small>${index > 0 ? '<em>Unavailable in this local runtime</em>' : '<em>minimize-latency</em>'}</span></button>`).join('');
-  $('#basis-summary').innerHTML = connected() ? `<span class="basis-label">PAGE-LIFECYCLE BASIS</span><code title="${escapeHtml(bootstrap.basis.id)}">${escapeHtml(bootstrap.basis.id.split(':').at(-1))}</code><span>Historical / external synchronization unavailable</span>` : 'Select DataScript for live local queries. Server-profile connections remain part of the connected implementation.';
+  $('#execution-options').innerHTML = activeExecution.map((entry) => choice('execution', entry, state.execution)).join('');
+  // Reserve only the height needed by the original server options at this width.
+  // These inert sizing spans keep subsequent content still when Browser is the sole option.
+  $('#execution-sizing').innerHTML = metadata.platforms['datomic/dynamodb'].map((entry) => `<span class="profile-option"><span class="radio-size"></span><span class="option-label"><span>${escapeHtml(entry.label)}</span><small class="option-status">unavailable</small></span></span>`).join('');
+  $('#runtime-status').innerHTML = connected() ? '<span class="status-dot"></span>Live in your browser' : state.backend === 'datascript' ? 'Starting local DataScript…' : 'Profile not connected';
+  const modes = ['minimize-latency', 'at-least-as-fresh', 'at-exact-snapshot', 'fully-consistent'];
+  const reason = 'DataScript supports minimize-latency only; historical and externally synchronized reads are unavailable.';
+  $('#consistency-options').innerHTML = modes.map((mode, index) => `<label class="consistency-radio" title="${index ? reason : 'Use the current browser-local basis'}"><input type="radio" name="consistency-semantics" value="${mode}" ${index === 0 && connected() ? 'checked' : ''} ${index > 0 || !connected() ? 'disabled' : ''}><span class="option-label"><span>${mode}</span>${index > 0 || !connected() ? '<small class="option-status">unavailable</small>' : ''}</span></label>`).join('');
+  $('#basis-summary').innerHTML = connected() ? `<span>Browser basis</span><code title="${escapeHtml(bootstrap.basis.id)}">${escapeHtml(bootstrap.basis.id.split(':').at(-1))}</code><span>DataScript supports minimize-latency only.</span>` : 'Profile not connected. Select DataScript for local queries.';
   $('#requery').disabled = !connected();
   $('#check-form button[type=submit]').disabled = !connected();
 }
 function resetScope() {
   state.epoch++; state.inspectorEpoch++; state.checkEpoch++; state.pages.clear(); state.selected = null;
-  state.expanded = new Set([...state.expanded].filter((key) => !key.includes('/'))); state.filterOverrides.clear();
-  state.decisions = {}; state.reverse = null; state.hits = 0; state.misses = 0; state.disabled = 0; state.activity = [];
-  $('#latest-latency').textContent = '—'; $('#latest-operation').textContent = 'Waiting for a query';
+  state.expanded = new Set([...state.expanded].filter((key) => !key.includes('/')));
+  state.decisions = {}; state.reverse = null;
   $('#check-result').textContent = 'Ready to check · latency and cache outcome appear here.';
-  updateCounters(); renderExplorer(); renderActivity();
+  renderExplorer();
   for (const type of resourceTypes()) if (isOpen(`root:${type}`)) loadGroup({ kind: 'root', key: `root:${type}`, type });
 }
 function setPrincipal(id) {
@@ -133,16 +113,16 @@ function resourceTypes() { return schema?.types.filter((type) => type.permission
 function relationships(resource) {
   return schema.types.flatMap((type) => type.relations.filter((relation) => relation.subjectTypes.includes(resource.type)).map((relation) => ({ type: type.name, relation: relation.name })));
 }
-const isOpen = (key) => state.filter ? state.filterOverrides.get(key) ?? state.expanded.has(key) : state.expanded.has(key);
-function resourceNode(resource, parent, ancestors) {
+const isOpen = (key) => state.expanded.has(key);
+function resourceNode(resource, parent, ancestors, decision) {
   const identity = `${resource.type}:${resource.id}`;
-  return { key: `${parent}/object:${identity}`, kind: 'resource', type: resource.type, label: resource.id, resource, ancestors: [...ancestors, identity], cycle: ancestors.includes(identity) };
+  return { key: `${parent}/object:${identity}`, kind: 'resource', type: resource.type, label: resource.id, resource, decision, ancestors: [...ancestors, identity], cycle: ancestors.includes(identity) };
 }
 function children(node) {
   if (node.kind === 'resource') return node.cycle ? [] : relationships(node.resource).map((group) => ({
     key: `${node.key}/relation:${group.type}:${group.relation}`, kind: 'relation', label: typeNames[group.type], ...group, resource: node.resource, ancestors: node.ancestors,
   }));
-  return (state.pages.get(node.key)?.items || []).map((resource) => resourceNode(resource, node.key, node.ancestors || []));
+  return (state.pages.get(node.key)?.items || []).map((resource) => resourceNode(resource, node.key, node.ancestors || [], state.pages.get(node.key)?.checks?.find((check) => check.id === resource.id)));
 }
 async function loadGroup(node, direction = 'first') {
   if (!connected() || (node.kind !== 'root' && node.kind !== 'relation')) return;
@@ -163,7 +143,7 @@ async function loadGroup(node, direction = 'first') {
       Object.assign(page, response.data, { meta: response.meta });
       if (direction === 'first') {
         try {
-          const count = await request('count-resources', { ...query, ceiling: 1000 }, epoch);
+          const count = await request('count-resources', { ...query, ceiling: previous?.count?.ceiling || 1000 }, epoch);
           if (epoch !== state.epoch) return;
           page.count = count.data; page.countMeta = count.meta; page.countError = null;
         } catch (error) { page.countError = error.message; }
@@ -171,41 +151,51 @@ async function loadGroup(node, direction = 'first') {
     } else {
       const response = await request('reverse-relationships', { subjectType: node.resource.type, subjectId: node.resource.id, relation: node.relation, pageSize: pageSize(), ...(cursor ? { cursor } : {}), ...cacheInput() }, epoch);
       if (epoch !== state.epoch) return;
-      page.meta = response.meta; page.pageInfo = response.data.pageInfo;
+      page.meta = response.meta; page.pageInfo = response.data.pageInfo; page.candidateCount = response.data.items.length;
       page.checks = [];
       for (const resource of response.data.items.filter((item) => item.type === node.type)) {
         const decision = await request('check-permission', { ...authInput(resource.type, resource.id), ...cacheInput() }, epoch);
         if (epoch !== state.epoch) return;
-        page.checks.push(decision.meta);
+        page.checks.push({ id: resource.id, meta: decision.meta, allowed: decision.data.allowed });
         if (decision.data.allowed) page.items.push(resource);
       }
     }
   } catch (error) { if (epoch === state.epoch) { page.error = error.message; page.meta = error.meta; } }
   if (epoch === state.epoch) { page.loading = false; renderTree(); }
 }
+async function increaseCount(key) {
+  const node = treeNodes.get(key), page = state.pages.get(key), epoch = state.epoch;
+  if (!node || !page?.count || page.count.exact || page.countLoading || !connected()) return;
+  const ceiling = Math.min(30000, page.count.ceiling * 2);
+  page.countLoading = true; renderTree();
+  try {
+    const response = await request('count-resources', { ...authInput(node.type), ...cacheInput(), ceiling }, epoch);
+    if (epoch !== state.epoch || state.pages.get(key) !== page) return;
+    page.count = response.data; page.countMeta = response.meta; page.countError = null;
+  } catch (error) { if (epoch === state.epoch) page.countError = error.message; }
+  if (epoch === state.epoch && state.pages.get(key) === page) { page.countLoading = false; renderTree(); }
+}
 function disclosure(open) { return `<svg viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="2" width="14" height="14" rx="3"/><path d="M5 9h8${open ? '' : 'M9 5v8'}"/></svg>`; }
 function nodeHtml(node, level = 1, parent = null) {
   const page = state.pages.get(node.key);
-  const childNodes = children(node);
-  const query = state.filter.trim().toLowerCase();
-  const matches = node.label?.toLowerCase().includes(query);
-  const childHtml = childNodes.map((child) => nodeHtml(child, level + 1, node.key)).join('');
-  if (query && node.kind === 'resource' && !matches && !childHtml.includes('resource-row')) return '';
   treeNodes.set(node.key, { ...node, parent, level });
-  const expandable = !node.cycle && (node.kind !== 'resource' || childNodes.length > 0);
-  const filterReveal = !!query && childHtml.includes('resource-row') && !state.filterOverrides.has(node.key);
-  const open = expandable && (isOpen(node.key) || filterReveal);
+  const expandable = !node.cycle && (node.kind !== 'resource' || relationships(node.resource).length > 0);
+  const open = expandable && isOpen(node.key);
   const selected = node.kind === 'resource' && state.selected?.type === node.type && state.selected?.id === node.resource.id;
   const key = escapeHtml(node.key);
   const permissionSupported = supports(node.type, state.permission);
-  const count = page?.count ? `${page.count.value.toLocaleString()}${page.count.exact ? '' : '+'}` : page?.loading ? '…' : '—';
+  const count = page?.count ? `${page.count.value.toLocaleString()}${page.count.exact ? '' : '+'}` : '…';
+  const operation = node.kind === 'root' ? 'lookup-resources' : 'reverse-relationships';
+  const query = node.kind === 'resource'
+    ? node.decision ? `<span class="query-result"><code>check-permission</code><span>✓ ${state.permission}</span>${evidence(node.decision.meta)}</span>` : ''
+    : `<span class="query-result"><code>${operation}</code>${page && !page.loading && !page.error ? `<strong>${node.kind === 'root' ? page.items.length : page.candidateCount} ${node.kind === 'root' ? 'on page' : page.candidateCount === 1 ? 'candidate' : 'candidates'}</strong>` : ''}${!permissionSupported ? '<span>Permission unavailable</span>' : page?.loading ? '<span>Querying…</span>' : evidence(page?.meta)}</span>`;
+  const countResult = node.kind === 'root' && (page?.count || page?.loading)
+    ? `<div class="query-detail"><code>count-resources</code><span class="count-measure">${page.count && !page.count.exact && page.count.ceiling < 30000 ? `<button class="count-value count-action" data-increase-count="${key}" title="Count up to ${Math.min(30000, page.count.ceiling * 2).toLocaleString()}" ${page.countLoading ? 'disabled' : ''}>${count}</button>` : `<strong class="count-value">${count}</strong>`}${page.loading ? '<span>Querying…</span>' : evidence(page.countMeta)}</span>${page.countLoading ? '<span>Counting…</span>' : ''}</div>` : '';
   return `<li role="treeitem" class="tree-item" data-key="${key}" aria-level="${level}" ${expandable ? `aria-expanded="${open}"` : ''} ${node.kind === 'resource' ? `aria-selected="${selected}"` : ''} aria-label="${escapeHtml(node.label || typeNames[node.type])}${node.cycle ? ', cycle boundary' : ''}" tabindex="${node.key === state.focusKey ? 0 : -1}">
     <div class="tree-row ${node.kind}-row ${selected ? 'selected' : ''}" style="--level:${level}">
-      <div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${escapeHtml(node.label || typeNames[node.type])}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><strong>${escapeHtml(node.label || typeNames[node.type])}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : node.kind === 'root' ? `<small>${node.type} · lookup-resources</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}</div>
-      <span class="count-column">${node.kind === 'root' ? `<b>${permissionSupported ? count : 'N/A'}</b>${page?.count ? '<small>count-resources</small>' : ''}` : node.kind === 'relation' && page ? `<b>${page.items.length}</b><small>in this page</small>` : selected ? '✓' : ''}</span>
-      <span class="timing-column">${node.kind !== 'resource' ? (page?.loading ? '<span class="loading-label">Querying…</span>' : evidence(page?.meta, node.kind === 'root' ? 'lookup' : 'traverse')) + (node.kind === 'root' && page?.countMeta ? evidence(page.countMeta, 'count') : '') : ''}</span>
+      <div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${escapeHtml(node.label || typeNames[node.type])}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><div class="row-content"><div class="row-line"><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><strong>${escapeHtml(node.label || typeNames[node.type])}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}${query}</div>${countResult}</div></div>
     </div>
-    ${open ? `<ul role="group">${!permissionSupported ? '<li role="none" class="tree-hint">This type has no such permission in the canonical schema.</li>' : page?.error ? `<li role="none" class="tree-hint error">${escapeHtml(page.error)} <button class="text-button" data-retry="${key}">Retry from first page</button></li>` : node.kind === 'resource' ? childHtml : `${page?.checks ? `<li role="none" class="traversal-evidence">Authorization checks: ${page.checks.length} · ${ms(page.checks.reduce((sum, meta) => sum + meta.elapsedMs, 0))} total · ${page.checks.filter((meta) => meta.cacheStatus === 'hit').length} hits / ${page.checks.filter((meta) => meta.cacheStatus === 'miss').length} misses${page.checks.some((meta) => meta.cacheStatus === 'disabled') ? ' · cache disabled' : ''}</li>` : ''}${childHtml}${page && !page.loading && !page.items.length ? '<li role="none" class="tree-hint">No authorized results in this page.</li>' : ''}${page?.countError ? `<li role="none" class="tree-hint error">Count unavailable: ${escapeHtml(page.countError)}</li>` : ''}${page && !page.loading ? `<li role="none" class="pagination"><span>Page ${page.history.length + 1} · ${page.items.length} loaded</span><button class="text-button" data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'}>First</button><button class="text-button" data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></li>` : ''}`}</ul>` : ''}
+    ${open ? `<ul role="group">${!permissionSupported ? '<li role="none" class="tree-hint">This type has no such permission in the canonical schema.</li>' : page?.error ? `<li role="none" class="tree-hint error">${escapeHtml(page.error)} <button class="text-button" data-retry="${key}">Retry from first page</button></li>` : `${children(node).map((child) => nodeHtml(child, level + 1, node.key)).join('')}${node.kind !== 'resource' && page && !page.loading && !page.items.length ? '<li role="none" class="tree-hint">No authorized results in this page.</li>' : ''}${page?.countError ? `<li role="none" class="tree-hint error">Count unavailable: ${escapeHtml(page.countError)}</li>` : ''}${node.kind !== 'resource' && page && !page.loading ? `<li role="none" class="pagination"><span>Page ${page.history.length + 1}</span><button class="text-button" data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'}>First</button><button class="text-button" data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></li>` : ''}`}</ul>` : ''}
   </li>`;
 }
 function renderTree() {
@@ -228,13 +218,13 @@ function focusTree(key, scroll = true) {
 function toggle(key, desired) {
   const node = treeNodes.get(key); if (!node || node.cycle) return;
   const next = desired ?? !isOpen(key);
-  if (state.filter) state.filterOverrides.set(key, next); else if (next) state.expanded.add(key); else state.expanded.delete(key);
+  if (next) state.expanded.add(key); else state.expanded.delete(key);
   state.focusKey = key; renderTree(); focusTree(key);
   if (next && node.kind !== 'resource' && !state.pages.has(key)) loadGroup(node);
 }
 function renderExplorer() {
   $('#scope-caption').textContent = `${state.principal} · ${state.permission} permission`;
-  $$('[data-permission]').forEach((button) => { button.classList.toggle('active', button.dataset.permission === state.permission); button.setAttribute('aria-pressed', button.dataset.permission === state.permission); });
+  $$('input[name="resource-permission"]').forEach((input) => { input.checked = input.value === state.permission; });
   renderTree(); renderInspector();
 }
 async function selectResource(resource) {
@@ -263,21 +253,22 @@ async function loadReverse(direction = 'first') {
 }
 function renderInspector() {
   const resource = state.selected;
-  if (!resource) { $('#access-pane').innerHTML = `<div class="inspector-empty"><span class="empty-icon">${icon('shield')}</span><p class="eyebrow">WHO CAN SEE WHAT?</p><h2 id="access-title" tabindex="-1">Select a resource</h2><p>See permission decisions and the principals who have access.</p><span class="operation-label">lookup-subjects</span></div>`; return; }
+  if (!resource) { $('#access-pane').innerHTML = `<div class="inspector-empty"><h2 id="access-title" tabindex="-1">Select a resource</h2><p>Inspect its permissions and who has access.</p></div>`; return; }
   const reverse = state.reverse;
-  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><p class="eyebrow">RESOURCE ACCESS</p><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions for <code>${escapeHtml(state.principal)}</code></h3><div class="decision-list">${permissions(resource.type).map(({ name }) => { const result = state.decisions[name]; return `<div class="decision"><div><strong>${name}</strong><span class="decision-value ${result?.data?.allowed ? 'allowed' : result?.data ? 'denied' : ''}">${result?.error ? 'Error' : result?.data ? result.data.allowed ? '✓ Allowed' : '− Denied' : 'Checking…'}</span></div>${result?.error ? `<span class="error">${escapeHtml(result.error)}</span>` : evidence(result?.meta, 'check')}<small class="operation-label">check-permission</small></div>`; }).join('')}</div><div class="reverse-heading"><h3>Who has access?</h3><span class="operation-label">lookup-subjects</span></div><div class="segmented reverse-permissions">${permissions(resource.type).map(({ name }) => `<button data-reverse-permission="${name}" class="${name === state.reversePermission ? 'active' : ''}" aria-pressed="${name === state.reversePermission}">Can ${name}</button>`).join('')}</div><div class="reverse-evidence">${reverse?.loading ? 'Looking up subjects…' : evidence(reverse?.meta, 'lookup')}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button class="text-button" data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" aria-label="Explore as ${escapeHtml(subject.id)}" title="Explore as ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}${reverse && !reverse.loading ? `<div class="pagination reverse-pagination"><span>${reverse.items.length} on page ${reverse.history.length + 1}</span><button class="text-button" data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></div>` : ''}<details class="object-details"><summary>Resource attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
+  const decisionRows = permissions(resource.type).map(({ name }) => {
+    const result = state.decisions[name];
+    return `<div class="decision"><strong>${name}</strong><span class="decision-value ${result?.data?.allowed ? 'allowed' : result?.data ? 'denied' : ''}">${result?.error ? 'Error' : result?.data ? result.data.allowed ? '✓ Allowed' : '− Denied' : 'Checking…'}</span>${result?.error ? `<span class="error">${escapeHtml(result.error)}</span>` : evidence(result?.meta)}</div>`;
+  }).join('');
+  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions for <code>${escapeHtml(state.principal)}</code></h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who has access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-evidence query-result"><code>lookup-subjects</code>${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length} on page</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button class="text-button" data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" aria-label="Explore as ${escapeHtml(subject.id)}" title="Explore as ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}${reverse && !reverse.loading ? `<div class="pagination reverse-pagination"><span>Page ${reverse.history.length + 1}</span><button class="text-button" data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></div>` : ''}<details class="object-details"><summary>Resource attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
 }
 function renderSchema() {
   $('#schema-view').innerHTML = `<header class="schema-heading"><div><p class="eyebrow">CANONICAL STRESS-TEST SCHEMA</p><h2>Permission schema</h2><p>6 definitions · 13 relations · 9 permissions</p></div><span class="schema-digest">SHA-256 <code>${schema.sha256.slice(0, 16)}…</code></span></header><p>Recursive account and server parents, permission arrows, shared administration, and intentionally cyclic fixture relationships are preserved.</p><div class="schema-grid">${schema.types.map((type) => `<article class="schema-card"><h3>${icon(type.name)}${type.name}</h3><h4>Relations</h4>${type.relations.length ? type.relations.map((relation) => `<p><code>${relation.name}</code><span>→ ${relation.subjectTypes.join(' | ')}</span></p>`).join('') : '<p class="muted">No relations</p>'}<h4>Permissions</h4>${type.permissions.length ? type.permissions.map((permission) => `<div class="schema-expression"><strong>${permission.name}</strong><code>${escapeHtml(permission.expression)}</code></div>`).join('') : '<p class="muted">Subject type</p>'}</article>`).join('')}</div><details class="schema-source" open><summary>Exact source · fixtures/schema.v1.zed</summary><pre>${escapeHtml(metadata.schemaSource)}</pre></details>`;
 }
-function renderActivity() {
-  $('#activity-view').innerHTML = `<header class="pane-heading"><div><h2>Query activity</h2><p>Latest 100 responses in the current scope · local runtime operation latency</p></div></header><div class="activity-table"><table><thead><tr><th>Operation / target</th><th>Latency</th><th>Cache outcome</th><th>Result</th><th>Request / basis</th></tr></thead><tbody>${state.activity.map((entry) => `<tr><td><strong>${entry.operation}</strong><small>${escapeHtml([entry.input.subjectId, entry.input.permission, entry.input.resourceType, entry.input.resourceId].filter(Boolean).join(' · '))}</small></td><td class="numeric">${ms(entry.meta?.elapsedMs)}</td><td>${cacheBadge(entry.meta)}</td><td>${entry.error ? escapeHtml(entry.error.message) : entry.data?.allowed !== undefined ? entry.data.allowed ? 'Allowed' : 'Denied' : entry.data?.value !== undefined ? `${entry.data.value}${entry.data.exact ? ' exact' : '+'}` : entry.data?.items ? `${entry.data.items.length} items` : 'OK'}</td><td><code>${escapeHtml(entry.meta?.requestId || '')}</code><small>${escapeHtml(entry.meta?.revision || '')}</small></td></tr>`).join('') || '<tr><td colspan="5">No queries in this scope.</td></tr>'}</tbody></table></div>`;
-}
 function showView(view) {
   if (!schema) { notify('The canonical runtime is still starting.'); return; }
-  state.view = view; for (const name of ['explorer', 'schema', 'activity']) $(`#${name}-view`).hidden = name !== view;
+  state.view = view; for (const name of ['explorer', 'schema']) $(`#${name}-view`).hidden = name !== view;
   $$('[data-view]').forEach((button) => { button.classList.toggle('active', button.dataset.view === view); if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); });
-  if (view === 'activity') renderActivity(); if (view === 'schema') renderSchema();
+  if (view === 'schema') renderSchema();
 }
 async function loadSubjects(direction = 'first') {
   if (!connected() || state.subjects.loading) return;
@@ -286,26 +277,25 @@ async function loadSubjects(direction = 'first') {
   if (direction === 'first') history.length = 0;
   const page = { items: [], history, cursor, loading: true }; state.subjects = page;
   const epoch = state.epoch; renderPrincipalPicker();
-  try { const result = await request('list-subjects', { type: 'user', pageSize: 25, ...(cursor ? { cursor } : {}) }, epoch); Object.assign(page, result.data); }
+  try { const result = await request('list-subjects', { type: 'user', pageSize: 25, ...(cursor ? { cursor } : {}) }, epoch); Object.assign(page, result.data, { meta: result.meta }); }
   catch (error) { page.error = error.message; }
   page.loading = false; if ($('#detail-dialog').dataset.view === 'principal' && $('#detail-dialog').open) renderPrincipalPicker();
 }
 function renderPrincipalPicker() {
   const page = state.subjects;
-  $('#dialog-body').innerHTML = `<p>Select a known user from the canonical fixture.</p><div class="quick-subjects">${quickSubjects.map((id) => `<button class="choice ${state.principal === id ? 'active' : ''}" data-principal="${id}">${id}</button>`).join('')}</div><label class="search-field"><span data-icon="search"></span><input type="search" id="principal-search" placeholder="Filter these 25 known users…" aria-label="Filter loaded principals"></label><div class="principal-list">${page.loading ? '<p>Loading known users…</p>' : page.error ? `<p class="error">${escapeHtml(page.error)} <button data-subject-page="first">Retry</button></p>` : page.items.map((subject) => `<button class="principal-option" data-principal="${escapeHtml(subject.id)}"><span class="small-avatar">U</span><code>${escapeHtml(subject.id)}</code>${state.principal === subject.id ? '<span>✓</span>' : ''}</button>`).join('')}</div><div class="pagination"><span>${page.items.length} of 80 known users · page ${page.history.length + 1}</span><button class="text-button" data-subject-page="first" ${page.history.length && !page.loading ? '' : 'disabled'}>First</button><button class="text-button" data-subject-page="previous" ${page.history.length && !page.loading ? '' : 'disabled'}>Previous</button><button class="text-button" data-subject-page="next" ${page.pageInfo?.hasNextPage && !page.loading ? '' : 'disabled'}>Next →</button></div>`;
+  $('#dialog-body').innerHTML = `<p>Select a known user from the canonical fixture.</p><div class="quick-subjects">${quickSubjects.map((id) => `<button class="choice ${state.principal === id ? 'active' : ''}" data-principal="${id}">${id}</button>`).join('')}</div><div class="principal-list">${page.loading ? '<p>Loading known users…</p>' : page.error ? `<p class="error">${escapeHtml(page.error)} <button data-subject-page="first">Retry</button></p>` : page.items.map((subject) => `<button class="principal-option" data-principal="${escapeHtml(subject.id)}"><span class="small-avatar">U</span><code>${escapeHtml(subject.id)}</code>${state.principal === subject.id ? '<span>✓</span>' : ''}</button>`).join('')}</div><div class="pagination"><span>${page.items.length} known users ${evidence(page.meta)} · page ${page.history.length + 1}</span><button class="text-button" data-subject-page="first" ${page.history.length && !page.loading ? '' : 'disabled'}>First</button><button class="text-button" data-subject-page="previous" ${page.history.length && !page.loading ? '' : 'disabled'}>Previous</button><button class="text-button" data-subject-page="next" ${page.pageInfo?.hasNextPage && !page.loading ? '' : 'disabled'}>Next →</button></div>`;
   hydrateIcons();
 }
 async function openDialog(name, trigger) {
   if (!bootstrap) { notify('The canonical runtime is still starting.'); return; }
   const dialog = $('#detail-dialog'); if (!dialog.open) previousDialogFocus = trigger; dialog.dataset.view = name;
-  const titles = { principal: 'Explore as a principal', consistency: 'Consistency semantics', cache: 'Cache & diagnostics', dataset: 'Canonical dataset', identity: 'Local runtime identity', about: 'About this design' };
+  const titles = { principal: 'Explore as a principal', consistency: 'Consistency semantics', cache: 'Cache & diagnostics', dataset: 'Canonical dataset', identity: 'Local runtime identity' };
   $('#dialog-title').textContent = titles[name]; $('#dialog-body').innerHTML = '';
   if (!dialog.open) dialog.showModal();
   if (name === 'principal') { renderPrincipalPicker(); if (!state.subjects.items.length) loadSubjects(); }
-  if (name === 'consistency') $('#dialog-body').innerHTML = `<p>All four consistency choices remain visible in the main workspace. The active browser runtime advertises only <strong>minimize-latency</strong>; its immutable basis lasts for the page lifecycle.</p><p>Re-query reuses that basis and the current cache options. This runtime has no snapshot-refresh operation and cannot promise exact historical reads, an external freshness floor, or fully consistent authoritative reads.</p><p>The connected implementation must retain the existing relative/absolute freshness controls, exact datetime selection, at-or-before resolution, and independent snapshot refresh for profiles that support them.</p><pre>${escapeHtml(JSON.stringify({ basis: bootstrap.basis, consistencyModes: bootstrap.capabilities.consistencyModes, limitations: bootstrap.capabilities.limitations }, null, 2))}</pre>`;
+  if (name === 'consistency') $('#dialog-body').innerHTML = `<p>All four consistency choices remain visible in a compact radio row. The active browser runtime advertises only <strong>minimize-latency</strong>; its immutable basis lasts for the page lifecycle.</p><p>Re-query reuses that basis and the current cache options. This runtime has no snapshot-refresh operation and cannot promise exact historical reads, an external freshness floor, or fully consistent authoritative reads.</p><p>The connected implementation must retain the existing relative/absolute freshness controls, exact datetime selection, at-or-before resolution, and independent snapshot refresh for profiles that support them.</p><pre>${escapeHtml(JSON.stringify({ basis: bootstrap.basis, consistencyModes: bootstrap.capabilities.consistencyModes, limitations: bootstrap.capabilities.limitations }, null, 2))}</pre>`;
   if (name === 'dataset') $('#dialog-body').innerHTML = `<p>The original <strong>10,000-resource</strong> browser fixture is loaded by the compiled EACL runtime. It contains 80 subjects and 38,613 relationships. Identifiers, schema, recursive parent chains, and intentional cycles are unchanged.</p><pre>${escapeHtml(JSON.stringify(metadata.manifest, null, 2))}</pre>`;
-  if (name === 'identity') $('#dialog-body').innerHTML = `<p>Live queries run in the browser using the repository's compiled DataScript runtime. Other backend cards preview the catalog's existing options; this page makes no remote profile requests.</p><pre>${escapeHtml(JSON.stringify({ identity: metadata.identity, basis: bootstrap.basis, runtime: bootstrap.runtime, profile: bootstrap.profile }, null, 2))}</pre>`;
-  if (name === 'about') $('#dialog-body').innerHTML = '<p>An isolated local design shell over the real EACL DataScript runtime and canonical stress-test fixture.</p><p>Latency comes directly from each response’s <code>elapsedMs</code>: operation dispatch time in this browser, not a network measurement or cross-backend benchmark. Cache outcomes come from <code>cacheStatus</code>; “not reported” means the operation supplies no cache outcome. Read and populate preferences are separate from measured hits and misses.</p><p>The production explorer and its other supported profiles, schema graph controls, local seeding, expiry/caveats playground, and snapshot tooling remain in the existing application. Their preservation is mandatory in the OpenSpec implementation tasks.</p>';
+  if (name === 'identity') $('#dialog-body').innerHTML = `<p>Live queries run in the browser using the repository's compiled DataScript runtime. Other backend choices show the catalog's existing options; this page makes no remote profile requests.</p><pre>${escapeHtml(JSON.stringify({ identity: metadata.identity, basis: bootstrap.basis, runtime: bootstrap.runtime, profile: bootstrap.profile }, null, 2))}</pre>`;
   if (name === 'cache') {
     $('#dialog-body').innerHTML = '<p>Reading cache diagnostics…</p>';
     try {
@@ -330,7 +320,7 @@ async function runCheck(event) {
     await request('get-object', { type: 'user', id: principal }, epoch);
     await request('get-object', { type: resourceType, id: resourceId }, epoch);
     const response = await request('check-permission', { ...authInput(resourceType, resourceId, permission, principal), ...cacheInput() }, epoch);
-    if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<strong class="${response.data.allowed ? 'allowed' : 'denied'}">${response.data.allowed ? '✓ Allowed' : '− Denied'}</strong>${evidence(response.meta, 'check-permission')}`;
+    if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="query-result"><code>check-permission</code><strong class="${response.data.allowed ? 'allowed' : 'denied'}">${response.data.allowed ? '✓ Allowed' : '− Denied'}</strong>${evidence(response.meta)}</span>`;
   } catch (error) { if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="error">${escapeHtml(error.message)}</span>${error.meta ? evidence(error.meta) : ''}`; }
 }
 document.addEventListener('click', (event) => {
@@ -338,30 +328,42 @@ document.addEventListener('click', (event) => {
   const data = button.dataset;
   if (data.dialog) openDialog(data.dialog, button);
   if (data.view) showView(data.view);
-  if (data.backend) { state.backend = data.backend; state.storage = metadata.catalog.backends.find((entry) => entry.id === data.backend).storages[0]; state.execution = metadata.platforms[`${state.backend}/${state.storage}`][0].id; renderEnvironment(); resetScope(); }
-  if (data.storage) { state.storage = data.storage; state.execution = metadata.platforms[`${state.backend}/${state.storage}`][0].id; renderEnvironment(); resetScope(); }
-  if (data.execution) { state.execution = data.execution; renderEnvironment(); resetScope(); }
-  if (data.permission && data.permission !== state.permission) { state.permission = data.permission; resetScope(); }
   if (data.toggle) toggle(data.toggle);
   if (data.select) { const node = treeNodes.get(data.select); state.focusKey = node.key; selectResource(node.resource); }
   if (data.page) loadGroup(treeNodes.get(data.group), data.page);
   if (data.retry) loadGroup(treeNodes.get(data.retry));
+  if (data.increaseCount) increaseCount(data.increaseCount);
   if (data.principal || data.exploreAs) { $('#detail-dialog').close(); setPrincipal(data.principal || data.exploreAs); }
   if (data.subjectPage) loadSubjects(data.subjectPage);
-  if (data.reversePermission && data.reversePermission !== state.reversePermission) { state.reversePermission = data.reversePermission; state.reverse = null; loadReverse(); }
   if (data.reversePage) loadReverse(data.reversePage);
+});
+document.addEventListener('change', (event) => {
+  if (event.target.name === 'resource-permission') { state.permission = event.target.value; resetScope(); return; }
+  if (event.target.name === 'reverse-permission') { state.reversePermission = event.target.value; state.reverse = null; loadReverse(); $$('.reverse-permissions input').find((input) => input.value === state.reversePermission)?.focus({ preventScroll: true }); return; }
+  const input = event.target.closest('.profile-option input');
+  if (!input || input.disabled) return;
+  const kind = input.name.replace('explorer-', '');
+  if (kind === 'backend') {
+    const next = transitionBackend(metadata.catalog, state, input.value);
+    state.backend = next.backend; state.storage = next.storage;
+    state.execution = normalizePlatform(next, state.execution);
+  } else if (kind === 'storage') {
+    state.storage = input.value;
+    state.execution = normalizePlatform(state, state.execution);
+  } else if (kind === 'execution') state.execution = input.value;
+  else return;
+  renderEnvironment(); resetScope();
+  $$('.profile-option input').find((candidate) => candidate.name === input.name && candidate.value === input.value)?.focus({ preventScroll: true });
 });
 $('#theme-toggle').addEventListener('click', () => { state.theme = state.theme === 'light' ? 'dark' : 'light'; applyTheme(); });
 $('#principal-trigger').addEventListener('click', (event) => openDialog('principal', event.currentTarget));
 $('#close-dialog').addEventListener('click', () => $('#detail-dialog').close());
 $('#detail-dialog').addEventListener('close', () => { if (previousDialogFocus?.isConnected) previousDialogFocus.focus(); });
-document.addEventListener('input', (event) => { if (event.target.id === 'principal-search') { const query = event.target.value.toLowerCase(); $$('.principal-option').forEach((element) => { element.hidden = !element.dataset.principal.toLowerCase().includes(query); }); } });
-$('#resource-filter').addEventListener('input', (event) => { state.filter = event.target.value; state.filterOverrides.clear(); renderTree(); });
 $('#page-size').addEventListener('change', resetScope);
 $('#cache-read').addEventListener('change', (event) => { state.cache = event.target.checked; resetScope(); });
 $('#cache-populate').addEventListener('change', (event) => { state.populateCache = event.target.checked; resetScope(); });
 $('#density-toggle').addEventListener('click', () => { state.compact = !state.compact; savePreferences(); $('#density-toggle').setAttribute('aria-label', `Use ${state.compact ? 'comfortable' : 'compact'} rows`); renderTree(); });
-$('#collapse-all').addEventListener('click', () => { state.expanded.clear(); state.filterOverrides.clear(); state.filter = ''; $('#resource-filter').value = ''; state.focusKey = 'root:account'; renderTree(); });
+$('#collapse-all').addEventListener('click', () => { state.expanded.clear(); state.focusKey = 'root:account'; renderTree(); });
 $('#requery').addEventListener('click', requery);
 $('#view-access').addEventListener('click', () => { $('#access-title').focus(); $('#access-pane').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 $('#check-form').addEventListener('submit', runCheck);
@@ -380,7 +382,6 @@ $('#resource-tree').addEventListener('keydown', (event) => {
   if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', ' '].includes(event.key)) event.preventDefault();
   if (next) focusTree(next);
 });
-document.addEventListener('keydown', (event) => { if (event.key === '/' && !$('#detail-dialog').open && !['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) { event.preventDefault(); $('#resource-filter').focus(); } });
 async function initialize() {
   applyTheme(); hydrateIcons();
   try {
@@ -391,7 +392,7 @@ async function initialize() {
     state.ready = true;
     const schemaResult = await request('get-schema'); schema = schemaResult.data;
     if (schema.sha256 !== metadata.schema.sha256 || bootstrap.dataset.manifestSha256 !== metadata.identity.dataManifestSha256) throw new Error('Canonical schema or fixture identity mismatch.');
-    $('#dataset-stats').innerHTML = `<div><strong>${metadata.manifest.counts.objects.resources.total.toLocaleString()}</strong><span>resources</span></div><div><strong>${metadata.manifest.counts.relationships.total.toLocaleString()}</strong><span>relationships</span></div><div><strong>${metadata.manifest.counts.objects.subjects.total}</strong><span>principals</span></div><button class="text-button" data-dialog="dataset">Canonical browser fixture ↗</button>`;
+    $('#dataset-stats').innerHTML = `<div><strong>${metadata.manifest.counts.objects.resources.total.toLocaleString()}</strong><span>resources</span></div><div><strong>${metadata.manifest.counts.relationships.total.toLocaleString()}</strong><span>relationships</span></div><div><strong>${metadata.manifest.counts.objects.subjects.total}</strong><span>principals</span></div>`;
     $('#check-type').innerHTML = resourceTypes().map((type) => `<option ${type === 'server' ? 'selected' : ''}>${type}</option>`).join('');
     renderEnvironment(); renderSchema(); renderExplorer();
     await loadGroup({ kind: 'root', key: 'root:account', type: 'account' });

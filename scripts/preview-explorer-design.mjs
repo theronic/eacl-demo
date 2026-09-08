@@ -29,6 +29,8 @@ const files = new Map([
   ['/index.html', ['docs/design-preview/index.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['docs/design-preview/styles.css', 'text/css; charset=utf-8']],
   ['/app.js', ['docs/design-preview/app.js', 'text/javascript; charset=utf-8']],
+  ['/selection.mjs', ['packages/explorer-state/src/selection.mjs', 'text/javascript; charset=utf-8']],
+  ['/platforms.mjs', ['packages/explorer-state/src/platforms.mjs', 'text/javascript; charset=utf-8']],
 ]);
 const server = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://127.0.0.1').pathname;
