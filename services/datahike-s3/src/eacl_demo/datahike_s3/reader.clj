@@ -5,7 +5,6 @@
             [eacl.datahike.core :as datahike-eacl]
             [eacl-demo.datahike-s3.boundary :as boundary]
             [eacl-demo.datahike-s3.konserve :as read-only-store]
-            [eacl-demo.datahike-s3.read-only-writer :as read-only-writer]
             [konserve-s3.core :as konserve-s3])
   (:import [java.time Instant]
            [java.util UUID]))
@@ -33,7 +32,10 @@
         (validate-config config)]
     {:store {:backend read-only-store/backend
              :bucket bucket :region region :id store-id}
-     :writer read-only-writer/config
+     ;; Native v8 publication semantics, with this immutable generation pinned.
+     ;; The EACL client, Konserve facade, SDK membrane and IAM remain read-only.
+     :writer {:backend :self :writer-ownership :exclusive
+              :transaction-queue-size 1 :commit-queue-size 1}
      :schema-flexibility :write
      :attribute-refs? true
      :keep-history? false

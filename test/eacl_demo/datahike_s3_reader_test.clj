@@ -22,7 +22,9 @@
   (let [database (reader/database-config config)]
     (is (= read-only-store/backend (get-in database [:store :backend])))
     (is (= (:store-id config) (get-in database [:store :id])))
-    (is (= read-only-writer/config (:writer database)))
+    (is (= {:backend :self :writer-ownership :exclusive
+            :transaction-queue-size 1 :commit-queue-size 1}
+           (:writer database)))
     (is (false? (:keep-history? database)))
     (is (true? (:attribute-refs? database)))
     (is (thrown? clojure.lang.ExceptionInfo
