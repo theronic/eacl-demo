@@ -6,7 +6,8 @@
   (:require [eacl-demo.contracts.build-identity :as build-identity])
   (:import (java.math BigInteger)
            (java.nio.charset StandardCharsets)
-           (java.security MessageDigest)))
+           (java.security MessageDigest)
+           (java.util UUID)))
 
 (def maximum-exact-integer 9007199254740991)
 (def maximum-state-bytes 16384)
@@ -421,7 +422,8 @@
           (deref [_] final-revision))]
     {:native-source-id (:nativeSourceId state)
      :eacl-client-options
-     {:source-lifecycle (:sourceLifecycle state)
+     ;; JSON remains textual. Validation above precedes this explicit API conversion.
+     {:source-lifecycle (UUID/fromString (:sourceLifecycle state))
       :revision-watermark watermark
       :advance-revision-watermark!
       (fn [revision]

@@ -82,6 +82,7 @@
     (is (= "datahike:536872941:locator-1"
            (get-in captured [:basis :id])))
     (is (= [:connect :make-client :snapshot] (mapv first @calls)))
+    (is (uuid? (get-in (second @calls) [2 :source-lifecycle])))
     (is (true? (get-in (second @calls) [2 :read-only?])))
     ((:release! captured))
     (is (zero? @releases))

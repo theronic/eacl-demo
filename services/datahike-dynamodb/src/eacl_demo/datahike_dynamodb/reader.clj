@@ -89,10 +89,8 @@
              (make-client
               connection
               {:source-lifecycle
-               {:application :eacl-demo
-                :profile :datahike-dynamodb
-                :store-backend :dynamodb
-                :store-id (str (:store-id config))}
+               ;; Share across workers and restarts; rotate on history replacement.
+               #uuid "9433b537-7d85-4594-aa28-2ed487b5ffb9"
                ;; Do not construct EACL's writer role in the serving process.
                ;; The Datahike writer and Konserve protocol implementations
                ;; still fail closed because Datahike needs those protocols to

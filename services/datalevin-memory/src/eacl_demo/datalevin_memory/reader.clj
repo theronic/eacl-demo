@@ -240,7 +240,9 @@
                          (datalevin-schema/ensure-physical-schema! conn))
             client (datalevin-eacl/make-client
                     conn
-                    {:source-lifecycle "eacl-demo-datalevin-memory-v1"
+                    ;; Persisted deployment identity for replicas of this fixture.
+                    ;; Rotate on history replacement; never regenerate per worker.
+                    {:source-lifecycle #uuid "66d773e4-2d69-4edb-a150-b58c6fbc4334"
                      :revision-watermark watermark
                      :advance-revision-watermark! #(swap! watermark max %)
                      :security-key security-key})

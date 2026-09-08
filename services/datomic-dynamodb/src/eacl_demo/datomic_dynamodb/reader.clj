@@ -189,11 +189,8 @@
              (make-client
               connection
               {:source-lifecycle
-               {:application :eacl-demo
-                :profile :datomic-dynamodb
-                :store-backend :dynamodb
-                :table (:table config)
-                :database (:database config)}
+               ;; Share across workers and restarts; rotate on history replacement.
+               #uuid "bb87a17e-e68d-4e0e-938d-0db731da83f7"
                :read-only? true
                :security-key (:security-key config)})
              fixed-snapshot (select-current-snapshot client)

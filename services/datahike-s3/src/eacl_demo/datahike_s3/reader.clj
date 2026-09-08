@@ -76,10 +76,9 @@
              (make-client
               conn
               {:source-lifecycle
-               {:application :eacl-demo
-                :profile :datahike-s3
-                :store-backend read-only-store/backend
-                :store-id (str (:store-id config))}
+               ;; Provisioned for this history; share across workers and restarts.
+               ;; Rotate on history replacement. Store identity remains separate.
+               #uuid "cb4cede1-79d9-470b-8d58-5fc2da251fdc"
                :read-only? true
                :security-key (:security-key config)})
              create-snapshot
