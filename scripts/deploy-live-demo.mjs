@@ -435,6 +435,24 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
       mutation.envelope.error?.code !== "route-not-found") {
     throw new Error(`${profileId} mutation denial smoke failed`);
   }
+  if (profileId === "datalevin-memory") {
+    const input = { subjectType: "user", subjectId: "user-1", resourceType: "server",
+      permission: "view", pageSize: 20, consistency: "minimize" };
+    const first = await invokeProfile({ profileId, functionName, temporary,
+      qualifier, operation: "lookup-resources", method: "POST", input });
+    const cursor = first.envelope.data?.pageInfo?.endCursor;
+    if (first.statusCode !== 200 || first.envelope.data?.items?.length !== 20 ||
+        first.envelope.data?.pageInfo?.hasNextPage !== true || typeof cursor !== "string") {
+      throw new Error("Datalevin resource first-page smoke failed");
+    }
+    const second = await invokeProfile({ profileId, functionName, temporary,
+      qualifier, operation: "lookup-resources", method: "POST", input: { ...input, cursor } });
+    if (second.statusCode !== 200 || second.envelope.data?.items?.length !== 20 ||
+        new Set([...first.envelope.data.items, ...second.envelope.data.items]
+          .map(({ type, id }) => JSON.stringify([type, id]))).size !== 40) {
+      throw new Error("Datalevin resource continuation smoke failed");
+    }
+  }
   return summarizeDemoSmoke({ profileId, expectedIdentity, health, bootstrap, decisions, mutation });
 }
 

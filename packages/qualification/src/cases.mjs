@@ -10,6 +10,7 @@ export function commonQualificationCases(exemplars) {
     relationshipCase(),
     reverseRelationshipCase(),
     paginationAndCursorCase(),
+    ...exemplars.cases.filter(({ kind }) => kind === "pagination").map(resourcePaginationCase),
     cacheCase(decisions[0]),
     consistencyCase(decisions[0]),
     unsupportedConsistencyCase(decisions[0]),
@@ -74,6 +75,35 @@ function paginationAndCursorCase() {
     const tampered = mutateCursor(first.pageInfo.endCursor);
     await expectFailure(() => transport.request("list-subjects", { type: "user", pageSize: 1, cursor: tampered }), "cursor-invalid");
     return { firstItems: first.items.length, secondItems: second.items.length, tamperRejected: true };
+  });
+}
+
+function resourcePaginationCase(exemplar) {
+  return operationCase(`resource-pagination-${exemplar.id}`, "pagination-cursor", ["lookup-resources"], async ({ transport, descriptor }) => {
+    const { subject, permission, resourceType, pageSize } = exemplar.query;
+    const expectedCount = exemplar.expected.concatenatedCount;
+    const seen = new Set();
+    let cursor = null;
+    const maximumPages = Math.ceil(expectedCount / pageSize) + 1;
+    for (let pageNumber = 0; pageNumber < maximumPages; pageNumber += 1) {
+      const page = successfulData(await transport.request("lookup-resources", {
+        subjectType: subject.type, subjectId: subject.id, permission, resourceType,
+        pageSize, consistency: advertisedConsistency(descriptor),
+        ...(cursor === null ? {} : { cursor })
+      }), "lookup-resources");
+      assertPage(page, pageSize);
+      for (const item of page.items) {
+        const key = `${item.type}:${item.id}`;
+        if (seen.has(key)) throw new Error("resource cursor repeated an item across HTTP requests");
+        seen.add(key);
+      }
+      if (!page.pageInfo.hasNextPage) {
+        if (seen.size !== expectedCount) throw new Error("resource cursor did not enumerate the expected fixture grants");
+        return { items: seen.size, pages: pageNumber + 1 };
+      }
+      cursor = page.pageInfo.endCursor;
+    }
+    throw new Error("resource cursor did not terminate within the fixture page bound");
   });
 }
 

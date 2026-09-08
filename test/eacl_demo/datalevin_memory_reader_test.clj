@@ -8,6 +8,7 @@
             [eacl-demo.datalevin-memory.operations :as operations]
             [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader]
+            [eacl.datalevin.core :as datalevin-eacl]
             [eacl.core :as eacl])
   (:import [java.nio.file Files]
            [java.util UUID]))
@@ -119,6 +120,44 @@
       (finally
         (reader/close-reader! opened)
         (delete-tree! directory)))))
+
+(deftest resource-cursors-continue-across-request-snapshots-test
+  (let [directory (Files/createTempDirectory
+                   "eacl-demo-datalevin-live-cursor-"
+                   (make-array java.nio.file.attribute.FileAttribute 0))
+        trusted-time (atom 1000000)
+        make-client datalevin-eacl/make-client]
+    (try
+      (with-redefs [datalevin-eacl/make-client
+                    (fn [conn options]
+                      (make-client conn (assoc options :clock #(deref trusted-time))))]
+        (let [opened (reader/open-reader! {:security-key security-key
+                                          :database-directory directory})
+              handlers (operations/create-handlers
+                        {:descriptor {:identity {}} :cursor-key security-key
+                         :authorization-reader (:client opened)})
+              query {:subjectType "user" :subjectId "user-1"
+                     :resourceType "server" :permission "view" :pageSize 20
+                     :cache true :populateCache true :consistency "minimize"}
+              request (fn [input]
+                        (let [{:keys [value basis release!]}
+                              ((:capture-snapshot opened))]
+                          (try
+                            (invoke handlers value basis input)
+                            (finally (release!)))))]
+          (try
+            (let [first-page (request query)
+                  _ (swap! trusted-time + 1000)
+                  second-page (request
+                                (assoc query :cursor
+                                       (get-in first-page [:pageInfo :endCursor])))]
+              (is (= 20 (count (:items first-page))))
+              (is (= 20 (count (:items second-page))))
+              (is (= "account-1-server-4" (get-in second-page [:items 0 :id])))
+              (is (= 40 (count (set (map :id (concat (:items first-page)
+                                                     (:items second-page))))))))
+            (finally (reader/close-reader! opened)))))
+      (finally (delete-tree! directory)))))
 
 (deftest embedded-fixture-reopens-without-reseeding-test
   (let [directory (Files/createTempDirectory
