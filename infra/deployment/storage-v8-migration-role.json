@@ -1,0 +1,235 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Temporary CI authority for the explicitly requested EACL v8 storage migration. No retained-source writes or deletes.",
+  "Resources": {
+    "MigrationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "eacl-demo-storage-v8-migration",
+        "MaxSessionDuration": 18000,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ExactGitHubOidcAuthority",
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:environment": "demo-storage-v8-migration",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/production",
+                  "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
+                  "token.actions.githubusercontent.com:repository_id": "1345904214",
+                  "token.actions.githubusercontent.com:repository_owner_id": "1011676",
+                  "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/migrate-storage-v8.yml@refs/heads/production:environment:demo-storage-v8-migration:event_name:workflow_dispatch:runner_environment:github-hosted",
+                  "token.actions.githubusercontent.com:workflow": "Migrate demo storage to v8"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "exact-v8-migration-generations",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "ReadRetainedDynamoSources",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Scan",
+                    "dynamodb:GetItem",
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:DescribeContinuousBackups"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datahike-fixture-v1-green",
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v1-green"
+                  ]
+                },
+                {
+                  "Sid": "RestoreExactDatomicGeneration",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:RestoreTableToPointInTime"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v1-green",
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v8"
+                  ]
+                },
+                {
+                  "Sid": "ReadRetainedS3Source",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1/4e67bb31-557d-4f49-8b4c-699d39577310_*"
+                  ]
+                },
+                {
+                  "Sid": "ListRetainedS3Source",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1"
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": "4e67bb31-557d-4f49-8b4c-699d39577310_*"
+                    }
+                  }
+                },
+                {
+                  "Sid": "WriteOnlyNewDynamoGenerations",
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:CreateTable",
+                    "dynamodb:DescribeTable",
+                    "dynamodb:ListTagsOfResource",
+                    "dynamodb:TagResource",
+                    "dynamodb:UpdateTable",
+                    "dynamodb:UpdateContinuousBackups",
+                    "dynamodb:DescribeContinuousBackups",
+                    "dynamodb:BatchWriteItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datahike-fixture-v8",
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v8"
+                  ]
+                },
+                {
+                  "Sid": "CreateOnlyNewS3Generation",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:CreateBucket",
+                    "s3:ListBucket",
+                    "s3:GetBucketTagging",
+                    "s3:PutBucketTagging",
+                    "s3:PutBucketPublicAccessBlock",
+                    "s3:PutEncryptionConfiguration",
+                    "s3:PutBucketVersioning",
+                    "s3:GetBucketVersioning",
+                    "s3:PutLifecycleConfiguration"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::eacl-demo-datahike-v8-843761893873-us-east-1"
+                  ]
+                },
+                {
+                  "Sid": "WriteOnlyNewS3Generation",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::eacl-demo-datahike-v8-843761893873-us-east-1/4e67bb31-557d-4f49-8b4c-699d39577310_*"
+                  ]
+                },
+                {
+                  "Sid": "MigrationEvidence",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::eacl-demo-foundation-artifactbucket-xxzglw0b0v6t/evidence/storage-v8/*"
+                  ]
+                },
+                {
+                  "Sid": "ExactGenerationAlarms",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricAlarm",
+                    "cloudwatch:DescribeAlarms"
+                  ],
+                  "Resource": [
+                    "arn:aws:cloudwatch:us-east-1:843761893873:alarm:eacl-demo-storage-v8-*"
+                  ]
+                },
+                {
+                  "Sid": "ProjectCostTagPreflight",
+                  "Effect": "Allow",
+                  "Action": [
+                    "ce:ListCostAllocationTags"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Sid": "RetainedSourcesCannotBeModified",
+                  "Effect": "Deny",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:BatchWriteItem",
+                    "dynamodb:DeleteTable",
+                    "dynamodb:UpdateTable"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datahike-fixture-v1-green",
+                    "arn:aws:dynamodb:us-east-1:843761893873:table/eacl-demo-datomic-fixture-v1-green"
+                  ]
+                },
+                {
+                  "Sid": "RetainedSourceObjectsCannotBeModified",
+                  "Effect": "Deny",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:DeleteObjectVersion",
+                    "s3:DeleteBucket"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1",
+                    "arn:aws:s3:::demo-eacl-datahike-v2-843761893873-us-east-1/*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-demo"
+          },
+          {
+            "Key": "Lifecycle",
+            "Value": "temporary-migration"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "RoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MigrationRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

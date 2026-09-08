@@ -121,6 +121,18 @@
       "environment": "demo-stateful-datomic-seed",
       "roleVariable": "AWS_STATEFUL_DATOMIC_SEED_ROLE_ARN",
       "permissionScope": "authorized-datomic-seed-compute-only"
+    },
+    {
+      "id": "storage-v8-migration",
+      "authorityClass": "stateful-maintenance",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowName": "Migrate demo storage to v8",
+      "workflowFile": ".github/workflows/migrate-storage-v8.yml",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-storage-v8-migration",
+      "roleVariable": "AWS_STORAGE_V8_MIGRATION_ROLE_ARN",
+      "permissionScope": "reviewed-v8-migration-generations-only"
     }
   ]
 }
