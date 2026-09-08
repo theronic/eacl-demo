@@ -61,3 +61,34 @@ The temporary redirect role grants only the exact domain deployment operations;
 storage/service cleanup has separate, explicit resource manifests. Remove the
 role and repository variable after CI completes. Record exact deletions and
 post-retirement live checks under ignored `target/legacy-retirement/`.
+
+## Completed retirement
+
+[PR #91](https://github.com/theronic/eacl-demo/pull/91) added the redirect and
+its deployment controls. [PR #92](https://github.com/theronic/eacl-demo/pull/92)
+made the CloudFormation preview resolve property values before checking changes;
+the resource and replacement restrictions remain unchanged.
+[Redirect CI](https://github.com/theronic/eacl-demo/actions/runs/34260303151)
+and all five
+[ordinary deployment jobs](https://github.com/theronic/eacl-demo/actions/runs/34260303404)
+passed at demo commit `3272d9b283c6c38491f49b43d52b28d7de6d7ea1`.
+
+Both listed obsolete S3 buckets and all their versions, the old reader,
+dedicated monitoring, stopped EC2 instance, 20 GiB volume and unused network
+have been removed. The old Elastic IP was released. The old reader's
+`eacl-cache/latest.nippy` object was removed from the shared cache bucket;
+the four current `cache/v1/<profile>/latest` entries remain. This cache prefix
+describes the cache transport format, not the EACL storage version.
+
+The reader stack now owns only `ReaderCacheBucket`; the monitoring stack owns
+only `TelegramBotToken`, which the current notification service still uses.
+The temporary redirect IAM role, its bootstrap stack and repository variable
+have been removed. The domain stack continues to manage the edge redirect,
+certificate and DNS aliases. Another manual redirect deployment would require
+deliberately bootstrapping its narrowly scoped role again.
+
+After deletion, public redirect checks passed and all nine current HTTP
+endpoints passed health, exact build identity, allow/deny and pagination checks.
+The v8 DynamoDB tables remain protected with PITR enabled. Exact manifests,
+byte counts and verification results are in the local retirement report under
+ignored `target/legacy-retirement/`.

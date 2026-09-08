@@ -114,13 +114,31 @@ noncurrent static-site versions were pruned. Current releases and artifacts
 still referenced by CloudFormation templates or parameters were retained.
 Future artifact cleanup must resolve those references before deleting them.
 
-The old `demo-eacl-datahike-v2-843761893873-us-east-1` bucket also serves the
-public legacy demo at `serverless-datahike.demo.eacl.dev`. It is therefore not
-an unreferenced rollback copy. Its retirement requires resolving the legacy
-hostname and service first. The legacy reader stack owns the S3 Express cache
-bucket still used by the consolidated v8 demos; deleting that stack wholesale
-would remove a live dependency. The stopped legacy EC2 instance remains part
-of that separate legacy-retirement decision.
+The operator then authorized redirecting `serverless-datahike.demo.eacl.dev`
+to `https://demo.eacl.dev/` and retiring the obsolete service and storage.
+[Redirect CI](https://github.com/theronic/eacl-demo/actions/runs/34260303151)
+deployed the permanent GET/HEAD redirect after review in PRs #91 and #92.
+Other methods return 410. Old paths, query strings and request bodies are not
+forwarded. The old domain's certificate and DNS aliases remain in place.
+
+After the redirect and all five
+[deployment jobs](https://github.com/theronic/eacl-demo/actions/runs/34260303404)
+passed, the old Datahike store and static-site buckets were emptied, including
+all object versions, and deleted. The old Lambda reader, dedicated monitoring,
+stopped EC2 instance, its 20 GiB volume and unused network were retired. Its
+Elastic IP was released. The obsolete reader cache object was removed.
+
+The shared S3 Express cache bucket remains managed in the old reader stack,
+and the notification secret remains managed in the old monitoring stack.
+Those stacks now contain only their respective shared resource. Current v8
+storage, cache entries, notification access and the current EC2 service remain.
+Post-retirement checks passed all nine HTTP endpoints for build identity,
+health, allow/deny decisions and two nonoverlapping resource pages; all five
+published profile registries identify the deployed build. Both v8 DynamoDB
+tables retain PITR and deletion protection. The temporary redirect role and
+repository variable were removed after CI completed.
 
 Exact resource inventories, deletion manifests, API results, and post-cleanup
-checks are retained locally under ignored `target/rollback-cleanup/` output.
+checks are retained locally under ignored `target/rollback-cleanup/` and
+`target/legacy-retirement/` output. See also the
+[legacy retirement record](../infra/legacy/README.md).
