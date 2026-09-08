@@ -58,6 +58,7 @@
     (is (= {:snapshot 1} (:value captured)))
     (is (= "datahike:42:locator-1" (get-in captured [:basis :id])))
     (is (= [:connect :make-client :snapshot] (mapv first @calls)))
+    (is (uuid? (get-in (second @calls) [2 :source-lifecycle])))
     (is (true? (get-in (second @calls) [2 :read-only?])))
     (is (= (:security-key config)
            (get-in (second @calls) [2 :security-key])))

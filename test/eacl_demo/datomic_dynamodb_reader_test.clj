@@ -45,7 +45,7 @@
   (let [options (#'reader/token-format-options (:security-key config))
         scope {:backend :datomic
                :source-id {:database-id "fixture-db"}
-               :source-lifecycle {:application :eacl-demo}
+               :source-lifecycle #uuid "bb87a17e-e68d-4e0e-938d-0db731da83f7"
                :branch nil}
         fixed-token
         (causal-token/issue
@@ -169,6 +169,7 @@
              (Instant/parse "2026-08-24T10:00:00Z")]]
            (filterv #(= :resolve-as-of (first %)) @calls)))
     (let [[_ _ options] (first (filter #(= :make-client (first %)) @calls))]
+      (is (uuid? (:source-lifecycle options)))
       (is (true? (:read-only? options)))
       (is (= (:security-key config) (:security-key options))))
     (is (true? ((:release! first-snapshot))))

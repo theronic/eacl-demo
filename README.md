@@ -20,10 +20,31 @@ prepares the exact Core checkout, and regenerates the release report:
 npm run upgrade:eacl -- <commit-or-ref>
 ```
 
-Commit the result and push it to `main`. The deployment workflow builds and
+Merge the upgrade through a PR to `main`, then fast-forward `production` to the
+reviewed commit. The deployment workflow builds and
 smoke-tests the static, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and
 Datalevin/memory demos. There is no readiness ledger, qualification workflow,
 or artifact-handoff gate in this path.
+
+The v8 readers provision native UUID lifecycle values in their source configuration.
+Keep each value across replicas and restarts; rotate it when replacing that
+source's history. Backend source IDs remain separate. The Datalevin control-plane
+JSON retains UUID strings and converts the validated lifecycle to a native UUID
+at the EACL client boundary. Datalevin fixture replicas share their provisioned
+lifecycle and manifest-derived source ID.
+
+This upgrade retires previous basis tokens, pagination cursors, and cache snapshots.
+Reload the browser and start fresh pagination after deployment. Preserve the
+databases and Datalevin watermark; lifecycle UUIDs do not migrate relationship
+storage. A rollback needs fresh old-format artifacts and must not reuse a retired
+lifecycle. The candidate is pinned by Git SHA for demo testing before the separate
+Core spec archival and Clojars release.
+
+The durable profiles currently serve the older four-slot relationship layout.
+Their upgrade also requires the explicit v7-to-v8 relationship migration on an
+approved quiesced generation. Ordinary deployment cannot perform that stateful
+operation; its candidate smoke must pass before promotion. See
+[the v8 demo cutover](docs/v8-demo-cutover.md).
 
 ## Delivery topology
 

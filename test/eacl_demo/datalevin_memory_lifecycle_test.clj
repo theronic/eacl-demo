@@ -330,7 +330,8 @@
     (is (= #{:source-lifecycle :revision-watermark
              :advance-revision-watermark!}
            (set (keys client-options))))
-    (is (= (:sourceLifecycle valid-state)
+    (is (uuid? (:source-lifecycle client-options)))
+    (is (= (java.util.UUID/fromString (:sourceLifecycle valid-state))
            (:source-lifecycle client-options)))
     (is (= 42 @(:revision-watermark client-options)))
     (is (= 42 (advance! 42)))
