@@ -7,7 +7,7 @@
 ## 2. Shared shell and principal selection
 
 - [ ] 2.1 Reconcile the preservation map against current source and the active consolidation change before implementation; verify every existing control has a named destination and no unrelated active artifact is overwritten.
-- [ ] 2.2 Retain the 🦅 eagle logo and introduce shared green color, spacing, focus, and row-density styles with at least 16px resource identifiers and 14px timings; verify light/dark screenshots and computed contrast for normal, selected, disabled, and error states.
+- [ ] 2.2 Retain the 🦅 eagle logo, EACL Explorer title and original ReBAC subtitle, and introduce shared green color, spacing, focus, and row-density styles with at least 16px resource identifiers and 14px timings; verify light/dark screenshots and computed contrast for normal, selected, disabled, and error states.
 - [ ] 2.3 Extract quick subjects and the known-user browser into the top-right principal picker; verify 25-user pagination, error/retry, quick selection, Escape, focus restoration, and independence from resource page size.
 - [ ] 2.4 Convert the connected shell to two desktop columns and a narrow stacked layout; verify the active principal stays visible and the updated inspector is reachable on a 390px viewport without page overflow.
 - [ ] 2.5 Wire picker transitions through existing state setters and clear inspector selection; verify pending old-principal results cannot repopulate pages, counts, decisions, metadata, or errors after a switch.

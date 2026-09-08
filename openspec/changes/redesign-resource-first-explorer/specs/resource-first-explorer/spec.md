@@ -132,7 +132,7 @@ The redesign SHALL retain backend/storage/execution selection and availability r
 - **THEN** the existing identity validation, request abortion, portable selection rules, and isolation of basis, cursor, cache, seed, and error state SHALL remain intact
 
 ### Requirement: Accessible and resilient visual system
-The explorer SHALL retain the 🦅 eagle emoji logo and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
+The explorer SHALL retain the 🦅 eagle emoji logo, EACL Explorer title, and original ReBAC library subtitle verbatim, and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
 
 #### Scenario: A panel fails
 - **WHEN** a reverse lookup fails while the resource page remains valid
