@@ -3,6 +3,8 @@
             [clojure.test :refer [deftest is testing use-fixtures]]
             [datalevin.core :as d]
             [eacl-demo.fixture :as fixture]
+            [eacl-demo.contracts.build-identity :as build-identity]
+            [eacl-demo.datalevin-memory.lambda-handler :as handler]
             [eacl-demo.datalevin-memory.operations :as operations]
             [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader]
@@ -43,6 +45,29 @@
     :basis basis
     :input input
     :check-active! (fn [])}))
+
+(deftest runtime-upgrade-preserves-the-legacy-directory-test
+  (let [directory (Files/createTempDirectory
+                   "eacl-demo-datalevin-upgrade-"
+                   (make-array java.nio.file.attribute.FileAttribute 0))
+        legacy-file (io/file (str directory) "data.mdb")
+        environment {"EACL_CURSOR_KEY" security-key
+                     "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
+                     "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
+                     "EACL_DEPLOYMENT_ID" "fixture-upgrade-test"
+                     "EACL_DATALEVIN_DIRECTORY" (str directory)
+                     "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"}]
+    (spit legacy-file "retained incompatible fixture")
+    (try
+      (with-redefs [build-identity/eacl-sha (constantly (apply str (repeat 40 "c")))]
+        (let [opened (handler/initialize environment)]
+          (try
+            (is (= "retained incompatible fixture" (slurp legacy-file)))
+            (is (= "datalevin:17" (get-in opened [:descriptor :basis :id])))
+            (is (.isDirectory (.toFile (:database-directory
+                                        (handler/parse-environment environment)))))
+            (finally (reader/close-reader! (:reader opened))))))
+      (finally (delete-tree! directory)))))
 
 (deftest immutable-fixture-has-stable-source-identity-and-pages-test
   (let [directory (Files/createTempDirectory
