@@ -34,7 +34,7 @@ data-dir=$work_dir/data
 log-dir=$work_dir/log
 pid-file=$work_dir/transactor.pid
 EOF
-"$work_dir/datomic-pro-1.0.7705/bin/transactor" -Xms512m -Xmx3g \
+"$work_dir/datomic-pro-1.0.7705/bin/transactor" -Xms512m -Xmx2g \
   "$work_dir/transactor.properties" > "$work_dir/transactor.log" 2>&1 &
 transactor_pid=$!
 for attempt in {1..120}; do
