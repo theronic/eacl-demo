@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>EACL — Resource-first explorer · Design preview</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#resource-tree">Skip to resource tree</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="EACL design preview home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><strong>EACL</strong><span class="brand-divider"></span><span class="brand-product">Explorer</span></a>
+    <div class="top-actions">
+      <span class="preview-label"><span class="status-dot"></span> Local design preview</span>
+      <button class="icon-button" id="theme-toggle" aria-label="Switch to dark theme" title="Switch theme"></button>
+      <button class="principal-trigger" id="principal-trigger" aria-haspopup="dialog"><span class="avatar">U1</span><span><small>Explore as</small><strong id="principal-name">User 1</strong></span><span class="chevron" aria-hidden="true">⌄</span></button>
+    </div>
+  </header>
+  <main class="workspace">
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">RELATIONSHIP-BASED ACCESS CONTROL</p><h1 id="page-title">Every resource. The right access.</h1><p class="intro-copy">Explore what a principal can access. Select a resource to see who else can.</p></div>
+      <div class="sample-scale"><strong id="resource-total">40</strong><span>illustrative resources</span><button class="text-button" data-dialog="dataset">Explore the dataset <span aria-hidden="true">↗</span></button></div>
+    </section>
+
+    <section class="environment-bar" aria-label="Demo environment preview">
+      <label><span class="field-label">Backend</span><select id="backend"><option>DataScript</option><option>Datahike</option><option>Datomic</option><option>Datalevin</option></select></label>
+      <span class="environment-arrow" aria-hidden="true">/</span>
+      <label><span class="field-label">Storage</span><select id="storage"><option>Browser memory</option></select></label>
+      <span class="environment-arrow" aria-hidden="true">/</span>
+      <label><span class="field-label">Execution</span><select id="execution"><option>Browser</option></select></label>
+      <div class="environment-note"><span class="sample-pill">SAMPLE DATA</span><span>Interaction study · no backend connected</span></div>
+    </section>
+
+    <section class="consistency-bar" aria-label="Active consistency semantics">
+      <span class="shield-icon" data-icon="shield"></span>
+      <label><span class="field-label">Consistency</span><select id="consistency"><option value="minimize-latency">Minimize latency</option><option value="at-least-as-fresh">At least as fresh</option><option value="at-exact-snapshot">Exact snapshot</option><option value="fully-consistent" disabled>Fully consistent · unavailable in sample</option></select></label>
+      <span class="basis-summary" id="basis-summary">Sample snapshot <b>01</b></span>
+      <button class="text-button" data-dialog="consistency">Inspect semantics</button>
+      <div class="consistency-actions"><button class="quiet-button" id="requery"><span data-icon="refresh"></span> Re-query</button><button class="quiet-button" id="snapshot-refresh">Refresh snapshot</button></div>
+    </section>
+
+    <nav class="workspace-tabs" aria-label="Explorer views"><div><button class="workspace-tab active" data-view="explorer" aria-current="page"><span data-icon="tree"></span> Resources</button><button class="workspace-tab" data-view="schema"><span data-icon="schema"></span> Schema</button><button class="workspace-tab" data-view="activity"><span data-icon="activity"></span> Query activity <span class="tab-count" id="activity-count">0</span></button></div><button class="text-button cache-trigger" data-dialog="cache"><span data-icon="layers"></span><span id="cache-summary">Cache on</span><span aria-hidden="true">⌄</span></button></nav>
+
+    <div id="explorer-view" class="two-columns">
+      <section class="resource-pane" aria-labelledby="resources-title">
+        <header class="pane-heading"><div><div class="heading-line"><h2 id="resources-title">Accessible resources</h2><span class="operation-label">lookup-resources</span></div><p id="scope-caption">User 1 · resources with view permission</p></div><button class="icon-button" id="density-toggle" aria-label="Use compact rows" title="Toggle row density"><span data-icon="density"></span></button></header>
+        <div class="resource-tools"><label class="search-field"><span data-icon="search"></span><input id="resource-filter" type="search" placeholder="Filter loaded resources…" aria-label="Filter loaded resources"><kbd>/</kbd></label><div class="segmented" aria-label="Resource permission"><button class="active" data-permission="view" aria-pressed="true">View</button><button data-permission="admin" aria-pressed="false">Admin</button></div></div>
+        <div class="tree-table-heading"><span>RESOURCE / RELATIONSHIP</span><span>RESULTS</span></div>
+        <div id="resource-tree" class="tree" role="tree" aria-label="Accessible resource types and relationships" tabindex="0"></div>
+        <footer class="tree-footer"><button class="text-button" id="collapse-all">Collapse all</button><span>Counts apply to this principal + permission</span><button class="text-button mobile-access" id="view-access">View access ↓</button><label>Page size <select id="page-size"><option>5</option><option selected>20</option><option>50</option><option>100</option></select></label></footer>
+      </section>
+
+      <aside class="access-pane" id="access-pane" aria-labelledby="access-title"></aside>
+    </div>
+
+    <section id="schema-view" class="alternate-view" hidden aria-labelledby="schema-title"></section>
+    <section id="activity-view" class="alternate-view" hidden aria-labelledby="activity-title"></section>
+
+    <section class="query-lab" aria-labelledby="query-title">
+      <header><div class="heading-line"><span class="terminal-mark" aria-hidden="true">&gt;_</span><h2 id="query-title">Try a permission check</h2><span class="operation-label">check-permission</span></div><span class="muted">Ask any principal, permission, resource combination</span></header>
+      <form id="check-form"><span class="query-word">Can</span><label><span class="sr-only">Check principal</span><select id="check-principal"></select></label><label><span class="sr-only">Check permission</span><select id="check-permission"><option value="view">view</option><option value="admin">admin</option></select></label><label class="check-resource-label"><span class="sr-only">Check resource</span><select id="check-resource"></select></label><span class="query-word">?</span><button class="primary-button" type="submit">Run check <span aria-hidden="true">↵</span></button><output id="check-result" aria-live="polite">Ready to check</output></form>
+    </section>
+
+    <section class="evidence-strip" aria-label="Query measurement context"><div><span class="status-dot"></span><strong id="query-summary">Ready to explore</strong><small>Illustrative interaction only</small></div><div><span>Query latency</span><b>—</b></div><div><span>Cache result</span><b>Unmeasured</b></div><div><span>Basis</span><b id="evidence-basis">Sample 01</b></div><button class="text-button" data-dialog="evidence">How to read the evidence <span aria-hidden="true">↗</span></button></section>
+    <footer class="page-footer"><span>EACL <span class="footer-dot">·</span> Authorization you can explore.</span><div><button class="text-button" data-dialog="about">About this design</button><a href="https://github.com/theronic/eacl">EACL source ↗</a><a href="https://github.com/theronic/eacl-demo">Demo source ↗</a></div></footer>
+  </main>
+  <dialog id="detail-dialog" aria-labelledby="dialog-title"><header class="dialog-heading"><h2 id="dialog-title"></h2><button class="icon-button" id="close-dialog" aria-label="Close dialog"><span data-icon="close"></span></button></header><div id="dialog-body"></div></dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
