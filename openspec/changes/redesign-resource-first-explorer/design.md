@@ -25,13 +25,13 @@ The reference repositories are read-only for this change. No financial data, com
 **Goals:**
 
 - Make the forward/reverse query relationship understandable from the two-pane arrangement and language.
-- Keep query context near the result, with consistency visible and detailed controls one action away.
+- Keep query context near the result, with all consistency modes visible above exploration and latency/cache evidence beside each result.
 - Reuse validated operations and request lifecycles while changing presentation and navigation.
 - Provide a reviewable local prototype before converting the connected explorer.
 
 **Non-Goals:**
 
-- A new authorization engine, backend optimization, cache policy, server search API, or wire-contract change.
+- A new authorization engine, backend optimization, cache policy, server search API, wire-contract change, schema change, fixture replacement, renamed resources, or simplified stress-test topology.
 - Unbounded expand-all, speculative descendant prefetch, or whole-dataset browser materialization.
 - A fabricated benchmark dashboard or a ranking of different backends at different scales.
 - Redesigning eDrive, Peach, or 0tx, deploying the site, or replacing the independent local caveats/expiry playground.
@@ -40,9 +40,9 @@ The reference repositories are read-only for this change. No financial data, com
 
 ### 1. One coherent workspace with two visual treatments
 
-Use a neutral pale background, white panels, deep green accent, small type-specific icon treatments, restrained borders, and a corresponding dark palette. The header contains EACL branding and the top-right principal trigger. A concise introduction sits above a compact backend/storage/execution bar and a consistency strip. Resource navigation receives approximately three quarters of available desktop width; the inspector uses a bounded 285–350px rail. On smaller screens the inspector follows the tree with an explicit reachable selection target.
+Use a neutral pale background, white panels, deep green accent, small type-specific icon treatments, restrained borders, and a corresponding dark palette. The header retains the existing 🦅 eagle emoji logo and top-right principal trigger. A concise introduction sits above always-visible backend cards, storage and execution choices, and a prominent four-card consistency panel. All supported backend/storage names must be visible without opening a dropdown. Execution choices remain visible with unsupported combinations disabled and explained. The live shell must retain descriptor-driven availability; local preview cards for server profiles explicitly say they are not connected. Resource navigation receives approximately three quarters of available desktop width; the inspector uses a bounded 300–370px rail. On smaller screens the inspector follows the tree with an explicit reachable selection target.
 
-The prototype offers light/dark and comfortable/compact variants of one interaction model. Multiple unrelated dashboard concepts would dilute the review; these variants let the user assess density and visual character while comparing identical functionality. A draggable divider is deferred because it adds interaction and preference complexity without being necessary to establish the layout.
+Use at least 16px resource identifiers and 14px operation timing in either density; compact mode reduces padding, not those font sizes. Use at least 12px cache badges and readable supporting text. The prototype offers light/dark and comfortable/compact variants of one interaction model. Multiple unrelated dashboard concepts would dilute the review; these variants let the user assess density and visual character while comparing identical functionality. A draggable divider is deferred because it adds interaction and preference complexity without being necessary to establish the layout.
 
 ### 2. Extract the principal picker without changing subject discovery
 
@@ -56,7 +56,7 @@ Keep `ResourceTypeGroup`, `RelationshipGroup`, `ResourceNode`, `LatestRequest`, 
 
 A resource has distinct label selection and square disclosure. A resource's children are labelled schema relation groups such as `Servers via :account`; those groups reveal paginated authorized children. Type-root counts are unique authorized objects of that type. Relation-group counts are scoped to that relationship. Counts must never be summed across appearances to imply a unique dataset count.
 
-Retain the current count escalation from 1,000 toward its 30,000 UI ceiling, independent page/count requests and timing, exact/lower-bound presentation, observed-range correction, explicit first/previous/next controls, and invalid-cursor recovery. The prototype's simple Show next sample interaction is illustrative; it does not authorize dropping the production pagination controls.
+Retain the current count escalation from 1,000 toward its 30,000 UI ceiling, independent page/count requests and timing, exact/lower-bound presentation, observed-range correction, explicit first/previous/next controls, and invalid-cursor recovery. The local preview uses actual first/previous/next cursors and bounded counts at 1,000. Production count escalation and advanced recovery remain mandatory apply tasks.
 
 Key expansion by a bounded traversal path including root, object identity, and relation identity; maintain an ancestry set for cycle termination. Keep one roving keyboard focus key and reconstruct the visible-row sequence from rendered, expanded pages. Do not conflate selection and expansion. Implement Collapse all as a presentation action with focus repair. Do not implement recursive Expand all: EACL's relationship graph and million-resource profiles make eager traversal inappropriate.
 
@@ -70,9 +70,9 @@ The inspector identifies type, name, ID, and selected traversal context. A compa
 
 The narrow rail must not squeeze away IDs, attributes, decision evidence, or pagination. Use an Inspect resource disclosure/dialog for full attributes and overflow details. A labelled Explore as action on a reverse result changes the principal; simply inspecting a holder does not silently impersonate it. Do not turn an observed relationship path into a “why allowed” proof without backend explanation evidence.
 
-### 5. Consistency strip plus full semantics panel
+### 5. Consistency modes stay front and center
 
-Keep the active mode and distinct Re-query/Refresh Snapshot actions always visible. Open the existing detailed semantics in a compact expansion or dialog. Preserve all current controls and explanatory text, including:
+Render all four named modes as visible options above the tree, with the active mode selected and unsupported modes disabled with a visible reason. Do not put mode selection behind a dropdown or a settings dialog. Keep distinct Re-query/Refresh Snapshot actions visible. Expose the existing detailed semantics in a compact expansion or dialog; supporting freshness/date inputs appear adjacent to the selected mode in the connected implementation. Preserve all current controls and explanatory text, including:
 
 - The ordered mode set: minimize-latency, at-least-as-fresh, at-exact-snapshot, fully-consistent.
 - Descriptor-driven availability and fully-consistent limitation immediately discoverable beside the selector.
@@ -88,11 +88,11 @@ Do not change `state.tsx`'s basis semantics to suit a simpler UI. Treat selected
 | Existing surface | Proposed home | Preservation acceptance |
 | --- | --- | --- |
 | Header quick/known subjects | Top-right principal picker | Quick subjects; fixed 25-user pages; first/previous/next; errors/retry; focus |
-| Backend/storage/execution selectors | Compact environment bar | Registry availability/reasons, dependent choices, conditional browser runtime, canonical navigation |
+| Backend/storage/execution selectors | Always-visible backend cards and storage/execution choices | All supported names discoverable without dropdowns; registry availability/reasons, dependent choices, conditional browser runtime, canonical navigation |
 | Startup, health, deployment warning | Environment status and local status banners | Actual startup elapsed time, failure/retry, identity mismatch blocks readiness |
 | SchemaPanel / SchemaGraph | Schema workspace view or expandable panel | All nodes, relations/permission expressions, graph toggles/preferences, actual supported editing |
-| CachePanel | Cache & diagnostics panel from visible cache summary | Independent read/populate switches, refresh, captured metrics, raw data, capability-gated eviction |
-| ConsistencyPanel | Persistent summary strip + detailed semantics | Entire behavior listed above |
+| CachePanel | Visible read/populate switches and measured hit/miss counters; detailed diagnostics panel | Independent read/populate switches, refresh, captured metrics, raw data, capability-gated eviction |
+| ConsistencyPanel | Prominent four-mode panel + detailed semantics | Entire behavior listed above |
 | ResourceTreePanel | Large resource pane | Type roots, permissions, child paths, cycle handling, bounded counts, page navigation, independent timing/retry |
 | DetailPanel | Right access inspector | Every permission decision and paginated reverse lookup, independent failures, resource details |
 | CanPermissionFooter | Full-width permission checker below panes | Independent arbitrary check inputs, schema-supported types/permissions, cache/consistency, metadata/cancellation |
@@ -106,17 +106,25 @@ During apply, audit the current code again against this table. If any existing a
 
 ### 7. Evidence rather than decorative performance claims
 
-Keep inline operation timing near pages/counts/decisions and add a bounded, ephemeral Query activity view for inspection. Feed it sanitized summaries after validated responses settle, not raw bodies or native values. Distinguish backend-supplied elapsed time from separately labelled client round-trip duration. Keep exact operation, principal/resource scope, returned count/completeness, cache metadata, and served basis associated.
+Keep latency and cache outcomes directly beside pages, counts, independent permission decisions, and reverse lookups. A persistent evidence row shows the latest operation and measured hit/miss/disabled counters for the current query scope. Root evidence stays visible while scrolling its loaded page. Add a bounded, ephemeral Query activity view for inspection; neither activity nor a diagnostics dialog is the sole place to find performance evidence. Feed it sanitized summaries after validated responses settle, not raw bodies or native values. Distinguish backend-supplied elapsed time from separately labelled client round-trip duration. Keep exact operation, principal/resource scope, returned count/completeness, cache metadata, and served basis associated.
 
 The evidence view can expose existing profile, manifest, runtime, and deployment/source identity. It must not create new aggregate performance claims. Retain the existing current, comparable qualified-storage evidence policy. A cache-enabled preference is never rendered as a cache hit. Clear the activity scope across incompatible profile changes; any historical records retained within a session must be unmistakably historical and bounded.
 
-### 8. An isolated local preview makes the proposal reviewable
+### 8. An isolated local preview over the canonical runtime
 
-`docs/design-preview/index.html`, `styles.css`, and `app.js` implement the interaction study. `scripts/preview-explorer-design.mjs` serves only those allowlisted assets on `127.0.0.1:5198` (override with `EACL_DESIGN_PORT`). It uses built-in Node APIs, no dependencies, no production endpoints, and no build changes.
+`docs/design-preview/index.html`, `styles.css`, and `app.js` provide the review shell. Build the existing browser runtime with `npm run build:datascript-runtime`, then run `node scripts/preview-explorer-design.mjs`. The loopback server at `127.0.0.1:5198` (override with `EACL_DESIGN_PORT`) allowlists the three preview assets, the compiled runtime, and one metadata document. It verifies the runtime SHA-256 and canonical schema digest before serving. Metadata comes from the checked-in schema, fixture manifest, backend/storage catalog, and existing platform-selection module. No external service, package dependency, production entry point, schema, fixture, or runtime source is changed.
 
-The preview contains 40 illustrative resources and five principals. Its deterministic sample decisions are deliberately not an EACL engine. The environment controls demonstrate layout only, and consistency actions demonstrate control/state presentation only. Latency is unavailable, never invented. The full schema expressions displayed in the preview are sourced from `fixtures/schema.v1.zed`, but the sample decision helper does not execute that schema.
+The preview calls `window.EaclDataScriptRuntime` using the pinned EACL Core artifact and the original 10,000-resource browser snapshot: 80 principals, 38,613 relationships, all six definitions, 13 relations, and nine permissions. Resource IDs are displayed unchanged. There is no replacement fixture or local decision helper. The schema view displays the runtime wire schema and exact `fixtures/schema.v1.zed` source. Intentional account/server cycles and parent chains remain intact; the tree detects repeated ancestors only to bound visual traversal.
 
-The preview does not implement connected pagination, network failures, cursor cryptography, historical basis selection, cache metrics/eviction, local seeding, arbitrary schema evaluation, deployment handshakes, or canonical profile URLs. Those are mandatory apply tasks, not completed work. The original connected application and local playground remain untouched in this proposal.
+Root queries use actual lookup/count operations; nested groups adapt the runtime's reverse relationship traversal by checking each candidate's permission, preserving bounded page cursors. Traversal latency and authorization-check totals remain separately labelled. Independent permission checks, reverse subject lookup, 25-user subject pages, and cache diagnostics also use runtime operations. Only actual `elapsedMs` and `cacheStatus` are displayed; missing cache outcomes read “not reported.” These are local browser operation latencies, not transport latency or a backend benchmark.
+
+The local runtime supports only minimize-latency and a page-lifecycle basis. The other three modes and Refresh Snapshot remain visible but disabled; no simulated snapshot guarantees are presented. Server backend cards show catalog choices with explicit disconnected status and do not route their queries to DataScript. Changing the principal/profile/cache/page-size scope clears old results and invalidates asynchronous completions. Cosmetic root expansion remains; descendant pages restart on a scope transition.
+
+Production count escalation, full retry/cancellation/recovery qualification, schema graph controls, historical/freshness basis selection on supporting profiles, cache eviction, local seeding, deployed identity handshakes, canonical URLs, and the caveats/expiry playground remain mandatory connected apply work. The original application and these features remain unchanged while the isolated design is reviewed. The README records current observed verification and limitations.
+
+### 9. Preserve the stress-test data contract
+
+This change is presentation-only with respect to authorization semantics. Retain `fixtures/schema.v1.zed`, `fixtures/schema-wire.v1.json`, fixture generation/manifests/exemplars, actual identifiers, recursive permission expressions, duplicate handling, and intentional cycles. Do not introduce application/service aliases or an alternative authorization helper for visual appeal. Verify unchanged schema and fixture diffs, the manifest digest, all eight existing decision exemplars, the 64-server `user-1` result, parent-cycle termination, and actual reverse lookup membership in the local preview. Connected regression qualification still uses the existing comprehensive suites.
 
 ## Risks / Trade-offs
 
@@ -124,8 +132,8 @@ The preview does not implement connected pagination, network failures, cursor cr
 - **Tree gets mistaken for a complete authorization graph** → Label relation paths, query completeness, page boundaries, and cycles; avoid unsupported access explanations.
 - **Information becomes too dense or too small** → Keep type color restrained, verify real desktop/phone layouts and contrast, offer compact rows as an option, preserve readable IDs in expanded details.
 - **Principal picker removes discoverability of known users** → Put current principal in the header continuously; retain quick users and paginated browse in one opening action.
-- **Reduced visual clutter hides consistency limitations** → Keep active mode and limitation indicator visible; expose full descriptor text next to the relevant option.
-- **Prototype mistaken for completed integration** → Persistent sample label, no invented timing, separate route/build inputs, and explicit unchecked implementation tasks.
+- **Reduced visual clutter hides consistency limitations** → Keep every mode and its unsupported reason visible; expose full descriptor text next to the relevant option.
+- **Prototype mistaken for completed integration** → Explicit local DataScript context, actual response evidence, disconnected server-profile states, separate route/build inputs, and explicit unchecked connected implementation tasks.
 - **Concurrent consolidation change drifts** → Reconcile against current controllers/contracts at apply time; avoid editing or archiving the other active change.
 
 ## Migration Plan

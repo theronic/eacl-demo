@@ -83,7 +83,7 @@ The inspector SHALL identify the selected resource by type and ID, preserve its 
 - **THEN** the inspector SHALL clear the selection or explicitly revalidate a retained selection before presenting it as part of the new exploration, and old principal decisions SHALL not appear as current
 
 ### Requirement: Consistency remains explicit and semantically unchanged
-The active consistency mode and an accessible route to its full semantics SHALL remain visible above exploration. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
+All four named consistency modes SHALL remain directly visible above exploration, with the active mode selected and unavailable modes disabled with an adjacent reason. Mode selection MUST NOT be hidden behind a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
 
 #### Scenario: Relative freshness floor
 - **WHEN** a visitor sets an at-least-as-fresh relative floor
@@ -106,7 +106,7 @@ The active consistency mode and an accessible route to its full semantics SHALL 
 - **THEN** those actions SHALL remain distinct and the UI SHALL NOT imply that a new request necessarily advanced the source basis
 
 ### Requirement: Query evidence is attributable and truthful
-Query timing, cache metadata, count completeness, and basis information SHALL be attributable to the operation and context that produced them. Missing measurements SHALL remain explicitly unavailable. Any bounded query activity view SHALL hold sanitized summaries and be reset across incompatible profile/basis contexts. Existing qualified storage comparison rules SHALL continue to apply; unequal dataset sizes MUST NOT be presented as a fair backend benchmark.
+Query latency and measured cache outcomes SHALL appear directly beside resource lookups, independent counts, permission decisions, and reverse subject lookups, not solely in activity or diagnostics. Count completeness and basis information SHALL remain attributable to the operation and context that produced them. A visible evidence summary SHALL distinguish observed hits, misses, and disabled reads from the independent cache read/populate preferences. Missing measurements SHALL remain explicitly unavailable. Any bounded query activity view SHALL hold sanitized summaries and be reset across incompatible profile/basis contexts. Existing qualified storage comparison rules SHALL continue to apply; unequal dataset sizes MUST NOT be presented as a fair backend benchmark.
 
 #### Scenario: Cache preference is enabled
 - **WHEN** the cache preference is on but a response has no cache-hit measurement
@@ -132,7 +132,7 @@ The redesign SHALL retain backend/storage/execution selection and availability r
 - **THEN** the existing identity validation, request abortion, portable selection rules, and isolation of basis, cursor, cache, seed, and error state SHALL remain intact
 
 ### Requirement: Accessible and resilient visual system
-The explorer SHALL provide coherent light/dark treatments, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
+The explorer SHALL retain the 🦅 eagle emoji logo and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
 
 #### Scenario: A panel fails
 - **WHEN** a reverse lookup fails while the resource page remains valid
@@ -143,8 +143,26 @@ The explorer SHALL provide coherent light/dark treatments, visible focus, suffic
 - **THEN** focus SHALL return to the header trigger and the changed context SHALL be announced when applicable
 
 ### Requirement: Reviewable local design preview
-The proposal SHALL include a loopback-served interactive preview on a Git branch, showing light/dark treatments, principal selection, nested exploration, the access inspector, and consistency control layouts. Illustrative resources and simulated decisions SHALL be visibly labelled. The preview MUST NOT fabricate EACL performance evidence, contact production APIs, replace production entry points, or claim implementation of the preservation contract.
+The proposal SHALL include a loopback-served interactive preview on a Git branch, showing light/dark treatments, principal selection, nested exploration, the access inspector, and consistency control layouts. The preview SHALL use the existing compiled DataScript runtime and canonical browser fixture for actual authorization decisions and measured latency/cache evidence. Server profiles without local connections SHALL be explicitly labelled disconnected and MUST NOT silently execute DataScript queries. The preview MUST NOT fabricate EACL performance evidence, contact production APIs, replace production entry points, or claim implementation of the preservation contract.
 
 #### Scenario: Reviewer opens the preview
 - **WHEN** the documented local preview command is running
-- **THEN** the reviewer SHALL be able to exercise the primary design interactions and identify which behavior uses sample data and which connected behavior remains for implementation
+- **THEN** the reviewer SHALL be able to exercise the primary design interactions and inspect the canonical fixture through live browser-local queries and identify which production integration behavior remains for implementation
+
+### Requirement: Preserve the canonical stress-test schema and fixture
+The redesign SHALL preserve the existing permission schema, wire schema, resource and subject identifiers, fixture generation and sizes, recursive parent chains, duplicate semantics, shared administration, and intentional cyclic relationships. It MUST NOT substitute a smaller invented dataset, rename resources for presentation, simplify permission expressions, or replace EACL decisions with a demo helper. Schema visualization SHALL retain all original definitions, relations, and permission expressions.
+
+#### Scenario: Reviewer inspects the browser dataset
+- **WHEN** the redesigned browser preview loads its canonical 10,000-resource fixture
+- **THEN** it SHALL retain 80 subjects, 38,613 relationships, and the original six-definition, 13-relation, nine-permission schema with its existing digest
+
+#### Scenario: Cyclic stress-test data is explored
+- **WHEN** the original fixture includes a parent cycle
+- **THEN** authorization SHALL still use the original EACL engine and schema, while the visual tree SHALL stop at repeated ancestors without deleting or rewriting the relationship
+
+### Requirement: Backend capabilities are visible without dropdowns
+The explorer SHALL show the current public backend catalog and its supported storage names without requiring a dropdown to discover them. Storage and execution choices SHALL use visible controls with active selection and unsupported reasons. Registry availability and current profile semantics SHALL remain authoritative; visible options MUST NOT imply unavailable deployments are connected.
+
+#### Scenario: Visitor opens the default browser profile
+- **WHEN** the explorer first renders its profile controls
+- **THEN** DataScript, Datahike, Datomic, and Datalevin and their respective browser memory, S3/DynamoDB, DynamoDB, and embedded disk storage names SHALL be visible along with execution choices and active-profile availability
