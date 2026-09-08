@@ -5,6 +5,12 @@ The browser snapshot and embedded Datalevin fixture are rebuilt from the canonic
 fixture with the pinned Core revision. Durable Datahike and Datomic stores retain
 their data when an application artifact is deployed.
 
+Datalevin treats `EACL_DATALEVIN_DIRECTORY` as a fixture root and selects a child
+directory using the relationship storage version and fixture manifest digest.
+This also applies to the persistent EC2 host: v8 rebuilds its derived fixture
+beside older data, while restarts of the same ABI and fixture reopen their existing
+child directory. No old fixture directory is deleted during deployment.
+
 The live durable readers inspected on 2026-09-08 report Core revision
 `21e661e09988dca6e416454dd7a29321076c17ac`, whose relationship format uses four-slot
 `eacl.v7.relationship` tuples. The new v8 readers require five-slot tuples and a

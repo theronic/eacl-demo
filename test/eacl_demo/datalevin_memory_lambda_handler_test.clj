@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is use-fixtures]]
             [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datalevin-memory.http-server :as http-server]
+            [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.lambda-handler :as handler])
   (:import [java.net URI]
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
@@ -32,8 +33,10 @@
                         "EACL_RUNTIME_MEMORY_MIB" "1024"
                         "EACL_MAXIMUM_CONCURRENCY" "1")))]
     (is (= "lambda" (:execution lambda)))
-    (is (= "/tmp/eacl-demo-datalevin-handler-test"
+    (is (= (str "/tmp/eacl-demo-datalevin-handler-test/storage-v8-"
+                profile/data-manifest-sha256)
            (str (:database-directory lambda))))
+    (is (= (:database-directory lambda) (:database-directory ec2)))
     (is (= 1 (:maximum-concurrency lambda)))
     (is (= "ec2" (:execution ec2)))
     (is (= 1 (:maximum-concurrency ec2)))

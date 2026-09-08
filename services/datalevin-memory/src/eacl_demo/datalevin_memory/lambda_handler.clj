@@ -9,6 +9,7 @@
             [eacl-demo.datalevin-memory.operations :as operations]
             [eacl-demo.datalevin-memory.profile :as profile]
             [eacl-demo.datalevin-memory.reader :as reader]
+            [eacl.relationships.storage :as relationship-storage]
             [eacl.datalevin.core :as datalevin-eacl])
   (:import [com.amazonaws.services.lambda.runtime Context]
            [java.io InputStream OutputStream]
@@ -78,7 +79,14 @@
                       {:type :eacl-demo/invalid-environment})))
     {:identity identity
      :cursor-key cursor-key
-     :database-directory database-directory
+     ;; EC2 preserves this base directory between deployments. Rebuild the
+     ;; derived fixture beside older storage instead of reopening incompatible
+     ;; tuples or deleting the retained rollback data. Replicas/restarts of the
+     ;; same fixture and ABI select the same directory.
+     :database-directory
+     (.resolve ^Path database-directory
+               (str "storage-v" relationship-storage/version "-"
+                    profile/data-manifest-sha256))
      :memory-mib memory-mib
      :maximum-concurrency maximum-concurrency
      :execution execution}))
