@@ -531,6 +531,22 @@ async function smokeDatomicHistoricalUrl(origin) {
       errorCode: decision.envelope.error?.code ?? null
     })}`);
   }
+  const unavailable = await request("check-permission", {
+    method: "POST",
+    input: {
+      subjectType: "user", subjectId: "user-1",
+      resourceType: "account", resourceId: "account-0", permission: "admin",
+      consistency: "historical-date", atExactSnapshotAt: "1970-01-01T00:00:00.000Z"
+    }
+  });
+  if (unavailable.status !== 422 ||
+      unavailable.envelope.error?.code !== "unsupported-consistency" ||
+      "data" in unavailable.envelope) {
+    throw new Error(`datomic-dynamodb EC2 unavailable-history smoke failed: ${JSON.stringify({
+      status: unavailable.status,
+      errorCode: unavailable.envelope.error?.code ?? null
+    })}`);
+  }
 }
 
 async function smokeDatomicAdmissionQueueUrl(origin) {

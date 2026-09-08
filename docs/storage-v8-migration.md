@@ -53,6 +53,16 @@ historical databases retain their old physical format and return
 historical reader applies native relationship and permission admission before
 lending the selected snapshot.
 
+Historical dates resolve to a real transaction inside Datomic's native as-of
+view through a reverse transaction-time index lookup. A logical date cutoff can
+fall between transaction IDs and therefore has no transaction timestamp itself.
+The lookup preserves native same-millisecond behavior and cannot advance beyond
+the retained database. Dates without a retained transaction return
+`unsupported-consistency`. Historical-date requests are exposed by the EC2
+profile; Lambda profiles continue to advertise `no-history-api`.
+Unfinished historical migration metadata is rejected before traversing filtered
+relationship indexes; completed revisions still pass full native admission.
+
 Compare post-migration retained bytes with the storage audit baseline. Creating a
 copy for rollback is separate from rebuilding fixtures for space savings. No
 bucket, table, backup, or old generation is deleted by this operation. Remove the
