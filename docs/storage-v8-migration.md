@@ -73,3 +73,12 @@ index caches and proof sets on the 16 GiB runner. Minute-by-minute heap and GC
 statistics distinguish verification progress from memory pressure. Interrupted
 Datomic maintenance resumes the existing unpublished target from its committed
 migration checkpoint; it does not restore another copy or skip verification.
+
+Datahike readers use the native `:self` driver with `:exclusive` ownership to
+retain the immutable generation's local head. EACL v8 certifies that native
+prepared publication strategy; the previous custom deny-only writer has no such
+capability. The EACL client remains read-only, and Konserve, SDK, and IAM still
+reject storage mutations. A file-backed native fixture served through the real
+read-only S3 facade verifies qualified authorization, EACL write rejection, raw
+Datahike transaction rejection, and an unchanged database after the rejected write.
+No storage writes are attempted against AWS during these tests.

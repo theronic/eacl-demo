@@ -48,7 +48,10 @@
                     :table table
                     :id store-id}
                    store-options)
-     :writer read-only-writer/config
+     ;; Native v8 publication semantics, with this immutable generation pinned.
+     ;; The EACL client, Konserve facade, SDK membrane and IAM remain read-only.
+     :writer {:backend :self :writer-ownership :exclusive
+              :transaction-queue-size 1 :commit-queue-size 1}
      :schema-flexibility :write
      :attribute-refs? true
      :keep-history? false
@@ -92,8 +95,8 @@
                ;; Share across workers and restarts; rotate on history replacement.
                #uuid "615eb510-7fcf-497d-adde-6ada5fba5a2c"
                ;; Do not construct EACL's writer role in the serving process.
-               ;; The Datahike writer and Konserve protocol implementations
-               ;; still fail closed because Datahike needs those protocols to
+               ;; The Konserve and SDK membranes reject all storage writes;
+               ;; Datahike uses its certified local transaction protocol to
                ;; open an existing database, but no EACL mutation path is
                ;; initialized or retained by this client.
                :read-only? true
