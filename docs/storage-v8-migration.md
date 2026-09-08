@@ -48,7 +48,10 @@ The next ordinary release binds both Lambda sizes and the Datomic EC2 reader
 to the migrated generation and rotates lifecycle UUIDs. The normal production CI deployment must
 pass before registry promotion. Verify health/version identity, allow and deny,
 complete pagination, and Datomic historical requests within the v8 era. Earlier
-historical databases retain their old physical format and must fail closed.
+historical databases retain their old physical format and return
+`unsupported-consistency`, rather than a misleading permission denial. The
+historical reader applies native relationship and permission admission before
+lending the selected snapshot.
 
 Compare post-migration retained bytes with the storage audit baseline. Creating a
 copy for rollback is separate from rebuilding fixtures for space savings. No
