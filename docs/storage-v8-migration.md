@@ -8,7 +8,8 @@ authorization for this operation. It does not authorize deleting retained data.
 The source and target identities and bounded throughput are in
 `infra/data/storage-v8-migration.json`. Datahike/S3 uses the store ID verified
 against the serving Lambda alias, including its larger comparison instance.
-Datahike/DynamoDB and Datomic/DynamoDB each have one retained source table.
+The inventory records the original Datahike/DynamoDB and Datomic/DynamoDB source
+tables. Those old tables have since been retired; see the retirement status below.
 
 Use the PR-reviewed `migrate-storage-v8.yml` workflow on `production`, with
 `MIGRATE-V8:<profile>` confirmation for the selected profile. The separate OIDC
@@ -92,3 +93,34 @@ reject storage mutations. A file-backed native fixture served through the real
 read-only S3 facade verifies qualified authorization, EACL write rejection, raw
 Datahike transaction rejection, and an unchanged database after the rejected write.
 No storage writes are attempted against AWS during these tests.
+
+## Rollback-copy retirement
+
+After the native v8 cutover and live verification completed, the operator
+explicitly authorized removal of demo rollback copies on September 8, 2026.
+This supersedes the earlier requirement to retain the old generations for review.
+
+The old `eacl-demo-datahike-fixture-v1-green` and
+`eacl-demo-datomic-fixture-v1-green` tables, their table-specific alarm stacks,
+and the old Datahike on-demand backup have been removed. PITR was disabled on
+those old tables before deletion to avoid creating another deletion-time backup.
+The archived `artifacts/datahike-dynamodb/stores/fixture-v1-green/store.tar.gz`
+and its export checkpoint versions were also removed. The v8 tables retain
+their deletion protection and PITR. The original migration manifest remains
+historical evidence; its deleted sources cannot be migrated again.
+
+Unreferenced runtime release JAR versions, unaliased older Lambda versions, and
+noncurrent static-site versions were pruned. Current releases and artifacts
+still referenced by CloudFormation templates or parameters were retained.
+Future artifact cleanup must resolve those references before deleting them.
+
+The old `demo-eacl-datahike-v2-843761893873-us-east-1` bucket also serves the
+public legacy demo at `serverless-datahike.demo.eacl.dev`. It is therefore not
+an unreferenced rollback copy. Its retirement requires resolving the legacy
+hostname and service first. The legacy reader stack owns the S3 Express cache
+bucket still used by the consolidated v8 demos; deleting that stack wholesale
+would remove a live dependency. The stopped legacy EC2 instance remains part
+of that separate legacy-retirement decision.
+
+Exact resource inventories, deletion manifests, API results, and post-cleanup
+checks are retained locally under ignored `target/rollback-cleanup/` output.
