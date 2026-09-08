@@ -40,6 +40,12 @@ storage. A rollback needs fresh old-format artifacts and must not reuse a retire
 lifecycle. The candidate is pinned by Git SHA for demo testing before the separate
 Core spec archival and Clojars release.
 
+The durable profiles currently serve the older four-slot relationship layout.
+Their upgrade also requires the explicit v7-to-v8 relationship migration on an
+approved quiesced generation. Ordinary deployment cannot perform that stateful
+operation; its candidate smoke must pass before promotion. See
+[the v8 demo cutover](docs/v8-demo-cutover.md).
+
 ## Delivery topology
 
 CloudFront serves the shared private static explorer and its conditional DataScript

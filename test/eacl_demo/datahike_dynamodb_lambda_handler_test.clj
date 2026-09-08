@@ -4,7 +4,7 @@
             [eacl-demo.contracts.build-identity :as build-identity]
             [eacl-demo.datahike-dynamodb.lambda-handler :as handler]))
 
-(def baked-eacl-sha "0ee425a797ff7203f843ad06b860aee2bf08a9b8")
+(def baked-eacl-sha "d153cd767a62440d133f01abaacfc3eb2edfe8c7")
 (use-fixtures :each
   (fn [run]
     (with-redefs [build-identity/eacl-sha (constantly baked-eacl-sha)]
@@ -24,7 +24,7 @@
    "EACL_CONNECT_TIMEOUT_MS" "1000"
    "EACL_CURSOR_KEY" (apply str (repeat 32 "k"))
    "EACL_DEMO_SHA" (apply str (repeat 40 "a"))
-   "EACL_CORE_SHA" "0ee425a797ff7203f843ad06b860aee2bf08a9b8"
+   "EACL_CORE_SHA" "d153cd767a62440d133f01abaacfc3eb2edfe8c7"
    "EACL_ARTIFACT_SHA256" (apply str (repeat 64 "b"))
    "EACL_DEPLOYMENT_ID" "demo-test"
    "AWS_LAMBDA_FUNCTION_MEMORY_SIZE" "1024"})
