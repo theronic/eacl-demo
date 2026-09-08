@@ -1,0 +1,50 @@
+name: Redirect legacy EACL demo
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: legacy-demo-redirect
+  cancel-in-progress: false
+jobs:
+  redirect:
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: demo-legacy-redirect
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+      - run: node --test scripts/legacy-redirect.test.mjs scripts/github-oidc-policy.test.mjs
+      - name: Capture exact redirect workflow identity
+        env:
+          EACL_OIDC_AUTHORITY_ID: legacy-demo-redirect
+          EACL_OIDC_EXPECTED_SUBJECT_MODE: custom
+          EACL_OIDC_CLAIMS_OUTPUT: ${{ runner.temp }}/github-oidc-claims.json
+        run: node scripts/capture-github-oidc-claims.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: oidc-claims-legacy-demo-redirect-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/github-oidc-claims.json
+          retention-days: 1
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        with:
+          role-to-assume: ${{ vars.AWS_LEGACY_REDIRECT_ROLE_ARN }}
+          role-session-name: legacy-redirect-${{ github.run_id }}
+          aws-region: us-east-1
+      - name: Apply the redirect and verify public responses
+        run: node scripts/deploy-legacy-redirect.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: legacy-redirect-${{ github.run_id }}
+          path: target/legacy-redirect/*.json
+          retention-days: 7

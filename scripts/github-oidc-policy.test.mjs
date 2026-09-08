@@ -228,7 +228,7 @@ test("ordinary jobs build before AWS while stateful jobs retain isolated claim c
       assert.ok(capture > 0, `${authority.id} does not capture OIDC claims`);
       assert.ok(credentials > capture, `${authority.id} captures claims after AWS credential configuration`);
       assert.match(privileged, new RegExp(`EACL_OIDC_AUTHORITY_ID: ${authority.id}`, "u"));
-      assert.match(privileged, authority.id === "storage-v8-migration"
+      assert.match(privileged, ["storage-v8-migration", "legacy-demo-redirect"].includes(authority.id)
         ? /EACL_OIDC_EXPECTED_SUBJECT_MODE: custom/u
         : /EACL_OIDC_EXPECTED_SUBJECT_MODE: transition/u);
       assert.match(privileged, new RegExp(`name: oidc-claims-${authority.id}-\\$\\{\\{ github\\.run_id \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}[\\s\\S]*retention-days: 1`, "u"));

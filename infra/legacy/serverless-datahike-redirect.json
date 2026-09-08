@@ -1,0 +1,218 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Permanent redirect for the retired serverless Datahike demo; preserves its HTTPS identity.",
+  "Parameters": {
+    "DomainName": {
+      "Type": "String",
+      "Default": "serverless-datahike.demo.eacl.dev",
+      "AllowedPattern": "^[a-z0-9.-]+[.]eacl[.]dev$",
+      "AllowedValues": [
+        "serverless-datahike.demo.eacl.dev"
+      ]
+    },
+    "HostedZoneId": {
+      "Type": "AWS::Route53::HostedZone::Id"
+    }
+  },
+  "Resources": {
+    "StaticSiteRewriteFunction": {
+      "Type": "AWS::CloudFront::Function",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-static-rewrite"
+        },
+        "AutoPublish": true,
+        "FunctionConfig": {
+          "Comment": "Redirect retired EACL demo without forwarding legacy request state",
+          "Runtime": "cloudfront-js-2.0"
+        },
+        "FunctionCode": "function handler(event) {\n  if (event.request.method !== 'GET' && event.request.method !== 'HEAD') {\n    return {statusCode: 410, statusDescription: 'Gone',\n      headers: {'cache-control': {value: 'no-store'}}};\n  }\n  return {statusCode: 301, statusDescription: 'Moved Permanently', headers: {\n    location: {value: 'https://demo.eacl.dev/'},\n    'cache-control': {value: 'public, max-age=300'}\n  }};\n}\n"
+      }
+    },
+    "DomainCertificate": {
+      "Type": "AWS::CertificateManager::Certificate",
+      "Properties": {
+        "DomainName": {
+          "Ref": "DomainName"
+        },
+        "ValidationMethod": "DNS",
+        "DomainValidationOptions": [
+          {
+            "DomainName": {
+              "Ref": "DomainName"
+            },
+            "HostedZoneId": {
+              "Ref": "HostedZoneId"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          }
+        ]
+      }
+    },
+    "ServerlessDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "eacl-datahike-demo"
+          },
+          {
+            "Key": "Deployment",
+            "Value": "serverless-domain"
+          }
+        ],
+        "DistributionConfig": {
+          "Aliases": [
+            {
+              "Ref": "DomainName"
+            }
+          ],
+          "Comment": "Retired serverless Datahike demo redirects to demo.eacl.dev",
+          "Enabled": true,
+          "HttpVersion": "http2and3",
+          "IPV6Enabled": true,
+          "PriceClass": "PriceClass_All",
+          "Origins": [
+            {
+              "Id": "RedirectFallbackOrigin",
+              "DomainName": "demo.eacl.dev",
+              "CustomOriginConfig": {
+                "HTTPPort": 80,
+                "HTTPSPort": 443,
+                "OriginProtocolPolicy": "https-only",
+                "OriginSSLProtocols": [
+                  "TLSv1.2"
+                ]
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "RedirectFallbackOrigin",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": [
+              "GET",
+              "HEAD",
+              "OPTIONS",
+              "PUT",
+              "PATCH",
+              "POST",
+              "DELETE"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+            "ResponseHeadersPolicyId": "67f7725c-6f97-4210-82d7-5512b31e9d03",
+            "Compress": true,
+            "FunctionAssociations": [
+              {
+                "EventType": "viewer-request",
+                "FunctionARN": {
+                  "Fn::GetAtt": [
+                    "StaticSiteRewriteFunction",
+                    "FunctionARN"
+                  ]
+                }
+              }
+            ]
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": {
+              "Ref": "DomainCertificate"
+            },
+            "MinimumProtocolVersion": "TLSv1.2_2021",
+            "SslSupportMethod": "sni-only"
+          }
+        }
+      }
+    },
+    "DomainAliasIpv4": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": {
+          "Ref": "HostedZoneId"
+        },
+        "Name": {
+          "Ref": "DomainName"
+        },
+        "Type": "A",
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "ServerlessDistribution",
+              "DomainName"
+            ]
+          },
+          "EvaluateTargetHealth": false,
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        }
+      }
+    },
+    "DomainAliasIpv6": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": {
+          "Ref": "HostedZoneId"
+        },
+        "Name": {
+          "Ref": "DomainName"
+        },
+        "Type": "AAAA",
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "ServerlessDistribution",
+              "DomainName"
+            ]
+          },
+          "EvaluateTargetHealth": false,
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DomainName": {
+      "Value": {
+        "Ref": "DomainName"
+      }
+    },
+    "ApplicationUrl": {
+      "Value": {
+        "Fn::Sub": "https://${DomainName}/datahike/"
+      }
+    },
+    "DistributionId": {
+      "Value": {
+        "Ref": "ServerlessDistribution"
+      }
+    },
+    "DistributionDomainName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ServerlessDistribution",
+          "DomainName"
+        ]
+      }
+    },
+    "CertificateArn": {
+      "Value": {
+        "Ref": "DomainCertificate"
+      }
+    },
+    "RedirectDestination": {
+      "Value": "https://demo.eacl.dev/"
+    }
+  }
+}

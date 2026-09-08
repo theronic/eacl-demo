@@ -1,0 +1,148 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Temporary exact CI authority for redirecting the retired EACL demo hostname.",
+  "Resources": {
+    "RedirectRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "eacl-demo-legacy-redirect",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ExactGitHubOidcAuthority",
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:environment": "demo-legacy-redirect",
+                  "token.actions.githubusercontent.com:ref": "refs/heads/production",
+                  "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
+                  "token.actions.githubusercontent.com:repository_id": "1345904214",
+                  "token.actions.githubusercontent.com:repository_owner_id": "1011676",
+                  "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/redirect-legacy-demo.yml@refs/heads/production:environment:demo-legacy-redirect:event_name:workflow_dispatch:runner_environment:github-hosted",
+                  "token.actions.githubusercontent.com:workflow": "Redirect legacy EACL demo"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "exact-legacy-redirect",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "ExactRedirectStack",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStacks",
+                    "cloudformation:DescribeStackEvents",
+                    "cloudformation:ListStackResources",
+                    "cloudformation:GetTemplate",
+                    "cloudformation:CreateChangeSet",
+                    "cloudformation:DescribeChangeSet",
+                    "cloudformation:ExecuteChangeSet",
+                    "cloudformation:DeleteChangeSet"
+                  ],
+                  "Resource": [
+                    "arn:aws:cloudformation:us-east-1:843761893873:stack/demo-eacl-datahike-serverless-domain/*",
+                    "arn:aws:cloudformation:us-east-1:843761893873:changeSet/legacy-redirect-*/*"
+                  ]
+                },
+                {
+                  "Sid": "ReadTemplateSummary",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:GetTemplateSummary",
+                    "cloudformation:ValidateTemplate"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                },
+                {
+                  "Sid": "ExactRedirectDistribution",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudfront:GetDistribution",
+                    "cloudfront:GetDistributionConfig",
+                    "cloudfront:UpdateDistribution",
+                    "cloudfront:ListTagsForResource"
+                  ],
+                  "Resource": [
+                    "arn:aws:cloudfront::843761893873:distribution/EYDAU1XQ7KZLQ"
+                  ]
+                },
+                {
+                  "Sid": "ExactRedirectFunction",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudfront:DescribeFunction",
+                    "cloudfront:GetFunction",
+                    "cloudfront:UpdateFunction",
+                    "cloudfront:PublishFunction",
+                    "cloudfront:ListTagsForResource"
+                  ],
+                  "Resource": [
+                    "arn:aws:cloudfront::843761893873:function/demo-eacl-datahike-serverless-domain-static-rewrite"
+                  ]
+                },
+                {
+                  "Sid": "RetireOldOriginAccess",
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudfront:GetOriginAccessControl",
+                    "cloudfront:DeleteOriginAccessControl"
+                  ],
+                  "Resource": [
+                    "arn:aws:cloudfront::843761893873:origin-access-control/E29VKUK6WR2RQ0"
+                  ]
+                },
+                {
+                  "Sid": "RemoveOldStaticPolicy",
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetBucketPolicy",
+                    "s3:DeleteBucketPolicy"
+                  ],
+                  "Resource": [
+                    "arn:aws:s3:::demo-eacl-datahike-serverless-dom-staticsitebucket-m9ovhn4bfnjo"
+                  ]
+                },
+                {
+                  "Sid": "ReadExistingCertificate",
+                  "Effect": "Allow",
+                  "Action": [
+                    "acm:DescribeCertificate",
+                    "acm:ListTagsForCertificate"
+                  ],
+                  "Resource": [
+                    "arn:aws:acm:us-east-1:843761893873:certificate/cbf351ed-d1a1-4d01-ae74-53fcf5a7ad7d"
+                  ]
+                },
+                {
+                  "Sid": "ReadExistingDns",
+                  "Effect": "Allow",
+                  "Action": [
+                    "route53:GetHostedZone",
+                    "route53:ListResourceRecordSets"
+                  ],
+                  "Resource": [
+                    "arn:aws:route53:::hostedzone/Z05228481ZHF8BAKXOZB2"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

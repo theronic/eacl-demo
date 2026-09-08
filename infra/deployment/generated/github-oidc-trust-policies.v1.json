@@ -355,6 +355,44 @@
           }
         ]
       }
+    },
+    "legacy-demo-redirect": {
+      "authorityClass": "manual-transition",
+      "activation": "manual-only-after-workflow-publication",
+      "workflowFile": ".github/workflows/redirect-legacy-demo.yml",
+      "workflowRef": "theronic/eacl-demo/.github/workflows/redirect-legacy-demo.yml@refs/heads/production",
+      "eventName": "workflow_dispatch",
+      "runnerEnvironment": "github-hosted",
+      "environment": "demo-legacy-redirect",
+      "roleVariable": "AWS_LEGACY_REDIRECT_ROLE_ARN",
+      "permissionScope": "exact-legacy-hostname-redirect-only",
+      "defaultEnvironmentSubjectDuringMigration": "repo:theronic@1011676/eacl-demo@1345904214:environment:demo-legacy-redirect",
+      "requiredCustomSubject": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/redirect-legacy-demo.yml@refs/heads/production:environment:demo-legacy-redirect:event_name:workflow_dispatch:runner_environment:github-hosted",
+      "assumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "ExactGitHubOidcAuthority",
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::843761893873:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:environment": "demo-legacy-redirect",
+                "token.actions.githubusercontent.com:ref": "refs/heads/production",
+                "token.actions.githubusercontent.com:repository": "theronic/eacl-demo",
+                "token.actions.githubusercontent.com:repository_id": "1345904214",
+                "token.actions.githubusercontent.com:repository_owner_id": "1011676",
+                "token.actions.githubusercontent.com:sub": "repo:theronic@1011676/eacl-demo@1345904214:ref:refs/heads/production:workflow_ref:theronic/eacl-demo/.github/workflows/redirect-legacy-demo.yml@refs/heads/production:environment:demo-legacy-redirect:event_name:workflow_dispatch:runner_environment:github-hosted",
+                "token.actions.githubusercontent.com:workflow": "Redirect legacy EACL demo"
+              }
+            }
+          }
+        ]
+      }
     }
   }
 }
