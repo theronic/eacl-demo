@@ -9,6 +9,7 @@ import { canonicalProfileRoute } from "../packages/explorer-state/src/profile-en
 import { createProfilePublication } from "../packages/explorer-state/src/profile-publication.mjs";
 import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 import { committedEaclCore } from "./lib/eacl-core.mjs";
+import { smokeFunctionUrl } from "./lib/public-readiness.mjs";
 import { stalePublishedVersions } from "./lib/lambda-version-retention.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -328,7 +329,7 @@ async function deployDatomicEc2(release) {
       "datomic-dynamodb",
       "https://datomic.demo.eacl.dev",
       expectedIdentityFor("datomic-dynamodb", release.artifactSha256, release.deploymentId),
-      { attempts: 30 }
+      { timeoutMs: 900_000 }
     );
     await smokeDatomicHistoricalUrl("https://datomic.demo.eacl.dev");
     await smokeDatomicAdmissionQueueUrl("https://datomic.demo.eacl.dev");
@@ -377,7 +378,7 @@ async function deployDatalevinEc2(release) {
       "datalevin-memory",
       "https://datalevin.demo.eacl.dev",
       expectedIdentityFor("datalevin-memory", release.artifactSha256, release.deploymentId),
-      { attempts: 60 }
+      { timeoutMs: 900_000 }
     );
     process.stdout.write(`deployed datalevin-memory-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
@@ -457,42 +458,6 @@ async function invokeProfile({ profileId, functionName, temporary, qualifier,
   return { statusCode: response.statusCode,
     envelope: validateDemoSmokeEnvelope(JSON.parse(response.body)),
     wallMs: Date.now() - started };
-}
-
-async function smokeFunctionUrl(profileId, origin, expectedIdentity, { attempts = 15 } = {}) {
-  const url = new URL("/health", origin);
-  let observed = null;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: { accept: "application/json", origin: "https://demo.eacl.dev",
-          "x-eacl-request-id": `ci-function-url-${demoSha().slice(0, 12)}-${attempt}` },
-        redirect: "manual",
-        signal: controller.signal
-      });
-      const text = await response.text();
-      const envelope = validateDemoSmokeEnvelope(JSON.parse(text));
-      observed = { status: response.status, identity: envelope.data?.identity ?? null };
-      if (response.status === 200 && response.headers.get("access-control-allow-origin") ===
-          "https://demo.eacl.dev" && response.headers.get("content-type")?.startsWith("application/json") &&
-          envelope.data?.ready === true && envelope.data?.identity?.profileId === profileId &&
-          envelope.data?.identity?.demoSha === expectedIdentity.demoSha &&
-          envelope.data?.identity?.eaclSha === expectedIdentity.eaclSha &&
-          envelope.data?.identity?.artifactSha256 === expectedIdentity.artifactSha256 &&
-          envelope.data?.identity?.deploymentId === expectedIdentity.deploymentId) {
-        return;
-      }
-    } catch (error) {
-      observed = { error: error instanceof Error ? error.message : String(error) };
-    } finally {
-      clearTimeout(timeout);
-    }
-    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 2_000));
-  }
-  throw new Error(`${profileId} public origin smoke failed after deployment propagation: ${JSON.stringify(observed)}`);
 }
 
 async function smokeDatomicHistoricalUrl(origin) {

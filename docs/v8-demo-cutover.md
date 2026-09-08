@@ -11,6 +11,11 @@ This also applies to the persistent EC2 host: v8 rebuilds its derived fixture
 beside older data, while restarts of the same ABI and fixture reopen their existing
 child directory. No old fixture directory is deleted during deployment.
 
+EC2 readiness checks use a bounded 15-minute elapsed-time budget, including
+artifact download, JVM loading and fixture preparation. A fast CloudFront error
+response does not shorten that startup window. Publication still requires the
+exact candidate identity, ready status and browser CORS response.
+
 The live durable readers inspected on 2026-09-08 report Core revision
 `21e661e09988dca6e416454dd7a29321076c17ac`, whose relationship format uses four-slot
 `eacl.v7.relationship` tuples. The new v8 readers require five-slot tuples and a
