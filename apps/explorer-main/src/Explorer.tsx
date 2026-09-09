@@ -1,14 +1,21 @@
-import { onCleanup, Show, type JSX } from "solid-js";
+import { createSignal, onMount, onCleanup, Show, type JSX } from "solid-js";
 import { CachePanel } from "./components/CachePanel";
-import { CanPermissionFooter, type CanPermissionQuery } from "./components/CanPermissionFooter";
+import {
+  CanPermissionFooter,
+  type CanPermissionQuery,
+} from "./components/CanPermissionFooter";
 import { ConsistencyPanel } from "./components/ConsistencyPanel";
 import { DetailPanel } from "./components/DetailPanel";
 import { DeploymentWarning } from "./components/DeploymentWarning";
-import { EmptyState, ErrorBlock, InlineLoading, LoadingBlock } from "./components/Common";
+import {
+  EmptyState,
+  ErrorBlock,
+  InlineLoading,
+  LoadingBlock,
+} from "./components/Common";
 import { Header } from "./components/Header";
 import { ResourceTreePanel } from "./components/ResourceTree";
 import { SchemaPanel } from "./components/SchemaPanel";
-import { SubjectsPanel } from "./components/SubjectsPanel";
 import { formatInteger } from "./format";
 import { useAppState } from "./state";
 import { LatestRequest } from "./api";
@@ -26,8 +33,9 @@ function SeedProgress(): JSX.Element {
       <div class="seed-progress-banner__copy">
         <strong>Seeding local data</strong>
         <span>
-          {formatInteger(progress()?.serversCompleted ?? 0)} / {" "}
-          {formatInteger(progress()?.serversTarget ?? 0)} {progress()?.unit ?? "servers"}
+          {formatInteger(progress()?.serversCompleted ?? 0)} /{" "}
+          {formatInteger(progress()?.serversTarget ?? 0)}{" "}
+          {progress()?.unit ?? "servers"}
         </span>
         <span class="seed-progress-card__label">
           {progress()?.label ?? "Applying managed EACL relationships"}
@@ -40,7 +48,10 @@ function SeedProgress(): JSX.Element {
         aria-valuemax="100"
         aria-valuenow={Math.round(percent())}
       >
-        <div class="seed-progress-card__fill" style={{ width: `${percent()}%` }} />
+        <div
+          class="seed-progress-card__fill"
+          style={{ width: `${percent()}%` }}
+        />
       </div>
     </section>
   );
@@ -53,6 +64,8 @@ export function Explorer(props: {
   execution: "lambda" | "ec2" | "browser";
 }): JSX.Element {
   const app = useAppState();
+  const [view, setView] = createSignal("resources");
+  const [schemaVisited, setSchemaVisited] = createSignal(false);
   const hasBootstrap = () => Boolean(app.bootstrapData());
   const startupSeconds = () => (app.healthElapsedMs() / 1000).toFixed(1);
   const healthyEaclSha = () =>
@@ -66,26 +79,63 @@ export function Explorer(props: {
       ? "account"
       : schema.resourceTypes.includes("server")
         ? "server"
-        : schema.resourceTypes[0] ?? "";
+        : (schema.resourceTypes[0] ?? "");
     const permissions = schema.permissionsByType[resourceType] ?? [];
     return {
-      subject: { type: "user", id: app.knownSubjects().find(({ id }) => id === "user-1")?.id ?? app.knownSubjects()[0]?.id ?? "user-1" },
-      permission: permissions.includes("admin") ? "admin" : permissions[0] ?? "",
+      subject: {
+        type: "user",
+        id:
+          app.knownSubjects().find(({ id }) => id === "user-1")?.id ??
+          app.knownSubjects()[0]?.id ??
+          "user-1",
+      },
+      permission: permissions.includes("admin")
+        ? "admin"
+        : (permissions[0] ?? ""),
       resource: {
         type: resourceType,
-        id: app.knownResources().find(({ type }) => type === resourceType)?.id
-          ?? (resourceType === "account" ? "account-0" : resourceType === "server" ? "server-1" : ""),
+        id:
+          app.knownResources().find(({ type }) => type === resourceType)?.id ??
+          (resourceType === "account"
+            ? "account-0"
+            : resourceType === "server"
+              ? "server-1"
+              : ""),
       },
     };
   };
   onCleanup(() => canRequest.abort());
+  onMount(() => {
+    const retain = () => {
+      document.body.style.minHeight = `${Math.ceil(scrollY + innerHeight + 2)}px`;
+    };
+    document.addEventListener("change", retain, true);
+    document.addEventListener("click", retain, true);
+    onCleanup(() => {
+      document.removeEventListener("change", retain, true);
+      document.removeEventListener("click", retain, true);
+    });
+  });
   return (
-    <div class="app-shell" data-theme={app.theme()}>
+    <div
+      class="app-shell resource-first"
+      data-theme={app.theme()}
+      data-cache-read={app.cacheEnabled()}
+    >
       <Header />
       {props.profileSelector}
-      <Show when={!app.health.error && !app.health.loading && app.health()?.data.identityWarning}>
+      <Show
+        when={
+          !app.health.error &&
+          !app.health.loading &&
+          app.health()?.data.identityWarning
+        }
+      >
         {(warning) => (
-          <DeploymentWarning backendLabel={props.backendLabel} warning={warning()} />
+          <DeploymentWarning
+            backendLabel={props.backendLabel}
+            warning={warning()}
+          />
         )}
       </Show>
       <Show when={app.health.loading && !hasBootstrap()}>
@@ -98,7 +148,7 @@ export function Explorer(props: {
                   ? `Waiting for ${props.backendLabel} Lambda to start... ${startupSeconds()}s`
                   : props.execution === "ec2"
                     ? `Connecting to ${props.backendLabel} EC2... ${startupSeconds()}s`
-                  : `Loading ${props.backendLabel}... ${startupSeconds()}s`}
+                    : `Loading ${props.backendLabel}... ${startupSeconds()}s`}
               </strong>
             </div>
           </section>
@@ -155,44 +205,78 @@ export function Explorer(props: {
           </section>
         </Show>
         <div inert={app.seeding()} aria-busy={app.seeding()}>
-          <SchemaPanel />
-          <CachePanel />
           <ConsistencyPanel />
-          <main class="panel-grid">
-            <section class="panel-host">
-              <SubjectsPanel />
-            </section>
+          <nav class="explorer-toolbar">
+            <div>
+              <button
+                aria-pressed={view() === "resources"}
+                onClick={() => setView("resources")}
+              >
+                Resources
+              </button>
+              <button
+                aria-pressed={view() === "schema"}
+                onClick={() => {
+                  setSchemaVisited(true);
+                  setView("schema");
+                }}
+              >
+                Permission Schema
+              </button>
+            </div>
+            <CachePanel />
+          </nav>
+          <Show when={schemaVisited()}>
+            <div hidden={view() !== "schema"}>
+              <SchemaPanel />
+            </div>
+          </Show>
+          <main class="panel-grid" hidden={view() !== "resources"}>
             <section class="panel-host">
               <ResourceTreePanel />
             </section>
-            <section class="panel-host">
+            <section class="panel-host access-host" id="selected-resource">
               <DetailPanel />
             </section>
           </main>
         </div>
       </Show>
       <Show when={!app.permission()}>
-        <EmptyState>No permission is available in the active schema.</EmptyState>
+        <EmptyState>
+          No permission is available in the active schema.
+        </EmptyState>
       </Show>
-      <Show when={app.bootstrapData() && !app.seeding()}>
-        <CanPermissionFooter
-          subjectTypes={[...new Set([
-            ...app.bootstrapData()!.data.schema.nodes.map(({ id }) => id),
-            ...Object.keys(app.bootstrapData()!.data.schema.childPaths),
-          ])].sort()}
-          subjects={app.knownSubjects}
-          resourceTypes={app.bootstrapData()!.data.schema.resourceTypes}
-          resources={app.knownResources}
-          permissionsByType={app.bootstrapData()!.data.schema.permissionsByType}
-          initial={canDefaults()}
-          cache={app.cacheEnabled}
-          populateCache={app.populateCache}
-          consistency={app.consistency}
-          query={(input, options) => app.runQuery<PermissionDecision>(canRequest, "/check-permission", {
-            method: "POST",
-            body: JSON.stringify({ ...input, ...options }),
-          })}
-        />
+      <Show when={app.bootstrapData()}>
+        <div inert={app.seeding()}>
+          <CanPermissionFooter
+            subjectTypes={[
+              ...new Set([
+                ...app.bootstrapData()!.data.schema.nodes.map(({ id }) => id),
+                ...Object.keys(app.bootstrapData()!.data.schema.childPaths),
+              ]),
+            ].sort()}
+            subjects={app.knownSubjects}
+            resourceTypes={app.bootstrapData()!.data.schema.resourceTypes}
+            resources={app.knownResources}
+            permissionsByType={
+              app.bootstrapData()!.data.schema.permissionsByType
+            }
+            initial={canDefaults()}
+            cache={app.cacheEnabled}
+            populateCache={app.populateCache}
+            consistency={app.consistency}
+            query={(input, options) =>
+              app.runQuery<PermissionDecision>(
+                canRequest,
+                "/check-permission",
+                {
+                  method: "POST",
+                  body: JSON.stringify({ ...input, ...options }),
+                },
+              )
+            }
+          />
+        </div>
       </Show>
       <ExplorerFooter eaclSha={healthyEaclSha()} />
     </div>
@@ -203,12 +287,17 @@ export function ExplorerFooter(props: { eaclSha?: string }): JSX.Element {
   return (
     <footer class="app-footer">
       <p class="app-footer__copy">
-        EACL is <a href="https://github.com/theronic/eacl">open source</a> under EPL 2.0. EACL Explorer ©️ 2026 <a href="https://petrustheron.com/">Petrus Theron</a>.
+        EACL is <a href="https://github.com/theronic/eacl">open source</a> under
+        EPL 2.0. EACL Explorer ©️ 2026{" "}
+        <a href="https://petrustheron.com/">Petrus Theron</a>.
       </p>
-      <Show when={props.eaclSha}>
+      <Show when={false && props.eaclSha}>
         {(sha) => (
           <p class="app-footer__copy app-footer__version">
-            EACL library Git SHA: <a href={`https://github.com/theronic/eacl/commit/${sha()}`}><code>{sha()}</code></a>
+            EACL library Git SHA:{" "}
+            <a href={`https://github.com/theronic/eacl/commit/${sha()}`}>
+              <code>{sha()}</code>
+            </a>
           </p>
         )}
       </Show>

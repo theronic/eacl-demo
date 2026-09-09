@@ -41,6 +41,8 @@ interface AppStateValue {
     options?: RequestInit,
   ) => Promise<ApiSuccess<T>>;
   requery: () => void;
+  subjectType: Accessor<string>;
+  setSubjectType: (value: string) => void;
   subjectId: Accessor<string>;
   setSubjectId: (value: string) => void;
   permission: Accessor<string>;
@@ -130,6 +132,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     const envelope = bootstrapData();
     return envelope?.meta.basis?.id ?? envelope?.meta.revision ?? "pending";
   });
+  const [subjectType, setSubjectType] = createSignal(preferences.subjectType ?? "user");
   const [subjectId, setSubjectSignal] = createSignal(preferences.subjectId);
   const [permission, setPermissionSignal] = createSignal(preferences.permission);
   const [selectedResource, setSelectedResource] = createSignal<EaclObject>();
@@ -215,7 +218,6 @@ export const AppStateProvider: ParentComponent = (props) => {
     setSubjectSignal(value);
   };
   const setPermission = (value: string) => {
-    if (value !== permission()) setSelectedResource(undefined);
     setPermissionSignal(value);
   };
   const setPageSize = (value: PageSize) => {
@@ -343,6 +345,7 @@ export const AppStateProvider: ParentComponent = (props) => {
     on(
       () => [
         subjectId(),
+        subjectType(),
         permission(),
         pageSize(),
         cacheEnabled(),
@@ -353,6 +356,7 @@ export const AppStateProvider: ParentComponent = (props) => {
       () =>
         writePreferences({
           subjectId: subjectId(),
+          subjectType: subjectType(),
           permission: permission(),
           pageSize: pageSize(),
           cacheEnabled: cacheEnabled(),
@@ -426,6 +430,8 @@ export const AppStateProvider: ParentComponent = (props) => {
     refetchBootstrap: () => void refetchBootstrapResource(),
     runQuery,
     requery,
+    subjectType,
+    setSubjectType,
     subjectId,
     setSubjectId,
     permission,

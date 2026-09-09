@@ -48,7 +48,10 @@ export function ConsistencyPanel(): JSX.Element {
   const expanded = () => app.isExpanded(expansionKey);
 
   return (
-    <section class="schema-shell consistency-shell" aria-labelledby="read-basis-title">
+    <section
+      class="schema-shell consistency-shell"
+      aria-labelledby="read-basis-title"
+    >
       <div
         class={`panel-card consistency-panel ${
           expanded() ? "" : "panel-card--collapsed"
@@ -61,19 +64,33 @@ export function ConsistencyPanel(): JSX.Element {
               controls="read-basis-content"
               onClick={() => app.toggleExpanded(expansionKey)}
             >
-              <span class="group-card__title">Consistency Semantics</span>
+              <span class="group-card__title">Consistency Mode</span>
             </DisclosureButton>
           </h2>
           <div class="consistency-panel__actions">
+            {" "}
+            <Show when={basis()}>
+              {(selected) => (
+                <span
+                  class="selected-basis"
+                  aria-label="Current selected basis"
+                >
+                  <span aria-hidden="true">@</span>{" "}
+                  <time dateTime={selected().capturedAt}>
+                    {basisInstant(selected().capturedAt)}
+                  </time>{" "}
+                  <span>(revision {selected().revision})</span>
+                </span>
+              )}
+            </Show>
             <button
-              class="snapshot-refresh"
+              class="snapshot-refresh requery-button"
               type="button"
               disabled={!ready() || app.snapshotRefreshing()}
               onClick={app.requery}
             >
               Re-query
             </button>
-
             <button
               class="snapshot-refresh"
               type="button"
@@ -92,21 +109,27 @@ export function ConsistencyPanel(): JSX.Element {
         <Show when={expanded()}>
           <div id="read-basis-content" class="consistency-panel__content">
             <div class="consistency-selection-row">
-              <fieldset class="consistency-selection" aria-label="Consistency semantics" disabled={!ready()}>
+              <fieldset
+                class="consistency-selection"
+                aria-label="Consistency Mode"
+                disabled={!ready()}
+              >
                 <div class="consistency-selection__options">
                   <For each={consistencyModeOrder}>
                     {(mode) => {
                       const disabled = () =>
                         !supportedModes().has(mode as ConsistencyMode);
                       const title = () =>
-                        mode === "fully-consistent" && disabled() && fullyConsistentLimitation()
+                        mode === "fully-consistent" &&
+                        disabled() &&
+                        fullyConsistentLimitation()
                           ? `${mode}: ${fullyConsistentLimitation()}`
                           : mode;
                       return (
                         <label
-                          class={`consistency-radio ${disabled()
-                            ? "consistency-radio--disabled"
-                            : ""}`}
+                          class={`consistency-radio ${
+                            disabled() ? "consistency-radio--disabled" : ""
+                          }`}
                           title={title()}
                         >
                           <input
@@ -119,32 +142,26 @@ export function ConsistencyPanel(): JSX.Element {
                               app.setConsistencyMode(mode as ConsistencyMode)
                             }
                           />
-                          <span>{mode}{mode === "fully-consistent" && disabled() && fullyConsistentLimitation() ? "*" : ""}</span>
+                          <span>
+                            {mode}
+                            <Show when={disabled()}>
+                              <small>
+                                {mode === "fully-consistent"
+                                  ? fullyConsistentLimitation() ||
+                                    "Requires authoritative synchronization"
+                                  : mode === "at-exact-snapshot"
+                                    ? "Requires full history"
+                                    : "Requires freshness synchronization"}
+                              </small>
+                            </Show>
+                          </span>
                         </label>
                       );
                     }}
                   </For>
                 </div>
               </fieldset>
-
-              <Show when={basis()}>
-                {(selected) => (
-                  <span class="selected-basis" aria-label="Current selected basis">
-                    <span aria-hidden="true">@</span>{" "}
-                    <time dateTime={selected().capturedAt}>
-                      {basisInstant(selected().capturedAt)}
-                    </time>{" "}
-                    <span>(revision {selected().revision})</span>
-                  </span>
-                )}
-              </Show>
             </div>
-
-            <Show when={!supportedModes().has("fully-consistent") && fullyConsistentLimitation()}>
-              <p class="basis-info__note basis-info__note--consistency">
-                * {fullyConsistentLimitation()}
-              </p>
-            </Show>
 
             <div class="consistency-panel__controls">
               <Show when={app.consistencyMode() === "at-least-as-fresh"}>
@@ -196,15 +213,21 @@ export function ConsistencyPanel(): JSX.Element {
                         }
                       />
                     </label>
-                    <p id="at-least-relative-selection-reason" class="basis-info__note">
-                      “Now” is the current selected snapshot date. Refresh Snapshot
-                      moves this relative floor to the latest selected snapshot.
+                    <p
+                      id="at-least-relative-selection-reason"
+                      class="basis-info__note"
+                    >
+                      “Now” is the current selected snapshot date. Refresh
+                      Snapshot moves this relative floor to the latest selected
+                      snapshot.
                     </p>
                   </Show>
 
                   <Show when={app.freshnessFloorMode() === "absolute"}>
                     <label class="page-size-control freshness-control">
-                      <span class="page-size-control__label">absolute datetime</span>
+                      <span class="page-size-control__label">
+                        absolute datetime
+                      </span>
                       <input
                         class="freshness-control__input"
                         type="datetime-local"
@@ -225,7 +248,10 @@ export function ConsistencyPanel(): JSX.Element {
                         }}
                       />
                     </label>
-                    <p id="at-least-absolute-selection-reason" class="basis-info__note">
+                    <p
+                      id="at-least-absolute-selection-reason"
+                      class="basis-info__note"
+                    >
                       Refresh Snapshot resets this floor to the latest selected
                       snapshot date.
                     </p>
@@ -236,7 +262,9 @@ export function ConsistencyPanel(): JSX.Element {
               <Show when={app.consistencyMode() === "at-exact-snapshot"}>
                 <div class="exact-date-control">
                   <label class="page-size-control freshness-control">
-                    <span class="page-size-control__label">at-exact-snapshot</span>
+                    <span class="page-size-control__label">
+                      at-exact-snapshot
+                    </span>
                     <input
                       class="freshness-control__input"
                       type="datetime-local"
@@ -245,19 +273,29 @@ export function ConsistencyPanel(): JSX.Element {
                       aria-describedby="exact-date-selection-reason"
                       disabled={!exactDateSupported()}
                       value={localDateTimeValue(app.atExactSnapshotAt())}
-                      onInput={(event) => setExactDate(event.currentTarget.value)}
-                      onChange={(event) => setExactDate(event.currentTarget.value)}
+                      onInput={(event) =>
+                        setExactDate(event.currentTarget.value)
+                      }
+                      onChange={(event) =>
+                        setExactDate(event.currentTarget.value)
+                      }
                     />
                   </label>
                   <Show when={!exactDateSupported()}>
-                    <p id="exact-date-selection-reason" class="basis-info__note">
+                    <p
+                      id="exact-date-selection-reason"
+                      class="basis-info__note"
+                    >
                       {consistency()?.atExactSnapshotDateSelectionReason}
                     </p>
                   </Show>
                   <Show when={exactDateSupported()}>
-                    <p id="exact-date-selection-reason" class="basis-info__note">
-                      Selects the latest available immutable snapshot at or before
-                      this datetime.
+                    <p
+                      id="exact-date-selection-reason"
+                      class="basis-info__note"
+                    >
+                      Selects the latest available immutable snapshot at or
+                      before this datetime.
                     </p>
                   </Show>
                 </div>

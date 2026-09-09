@@ -13,7 +13,6 @@
 (def ^:private maximum-cursors 4096)
 (def ^:private default-page-size 25)
 (def ^:private default-count-ceiling 1000)
-(def ^:private maximum-resources 100000)
 (def ^:private seed-batch-size 100)
 (def ^:private operations
   #{"health" "bootstrap" "list-subjects" "get-object"
@@ -82,8 +81,7 @@
              :logicalResourceCount (:resource-count runtime)
              :serverCount (:server-count runtime)
              :manifestSha256 fixture/small-manifest-sha256}
-   :localSeed {:maximumResources maximum-resources
-               :modified (> (:resource-count runtime) fixture/small-resource-count)
+   :localSeed {:modified (> (:resource-count runtime) fixture/small-resource-count)
                :progress (:seed runtime)}
    :basis (basis runtime)})
 
@@ -560,9 +558,8 @@
 
 (defn- start-seed! [runtime input]
   (let [amount (:resourceCount input)]
-    (when (or (= "seeding" (get-in runtime [:seed :status]))
-              (> (+ (:resource-count runtime) amount) maximum-resources))
-      (throw (ex-info "A seed job is active or the browser resource limit would be exceeded."
+    (when (= "seeding" (get-in runtime [:seed :status]))
+      (throw (ex-info "A seed job is already active."
                       {:code "validation-error"})))
     (let [next-runtime (assoc runtime :seed
                               {:status "seeding" :resourcesAdded 0 :resourcesCompleted 0
@@ -618,7 +615,7 @@
       "seed-retry" (empty? keys)
       "seed-start" (and (= keys #{:resourceCount})
                         (js/Number.isSafeInteger (:resourceCount input))
-                        (<= 1 (:resourceCount input) maximum-resources))
+                        (<= 1 (:resourceCount input)))
       "health" (empty? keys)
       "bootstrap" (empty? keys)
       "list-subjects"

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark"><title>EACL Explorer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='32' y='52' text-anchor='middle' font-size='56'%3E%F0%9F%A6%85%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#resource-tree">Skip to Resource Tree</a>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="eagle" aria-hidden="true">🦅</span><strong>EACL</strong><span class="brand-product">Explorer</span></a>
+    <nav class="source-links" aria-label="Source Repositories"><a href="https://github.com/theronic/eacl">EACL Source ↗</a><a href="https://github.com/theronic/eacl-demo">Demo Source ↗</a></nav>
+    <div class="top-actions"><div class="dataset-stats" id="dataset-stats" aria-live="polite"></div><form id="seed-form"><input id="seed-amount" aria-label="Additional Resources" type="number" min="1" step="1" value="10000" required><button class="quiet-button" type="submit">Seed Data</button></form><button class="icon-button" id="theme-toggle" aria-label="Switch to Dark Theme"></button><button class="principal-trigger" id="principal-trigger" aria-haspopup="dialog"><span class="avatar">U1</span><span><small>View As</small><strong id="principal-name">user-1</strong></span><span aria-hidden="true">⌄</span></button></div>
+  </header>
+  <main class="workspace">
+    <p class="app-subtitle"><a href="https://github.com/theronic/eacl">EACL</a> is a situated <a href="https://en.wikipedia.org/wiki/Relationship-based_access_control">ReBAC</a> authorization library inspired by <a href="https://authzed.com/spicedb">SpiceDB</a>, built in <a href="https://clojure.org/">Clojure</a> and backed by <a href="https://datomic.com/">Datomic Pro</a>, <a href="https://datahike.io/">Datahike</a>, <a href="https://datalevin.org/">Datalevin</a> or <a href="https://github.com/tonsky/datascript">DataScript</a>.</p>
+    <section class="environment" aria-label="Backend, Storage and Execution">
+      <button class="section-toggle icon-button" id="environment-toggle" aria-expanded="true" aria-controls="profile-rows" aria-label="Collapse Backend, Storage and Execution">−</button>
+      <div id="profile-collapsed" hidden></div>
+      <div class="profile-rows" id="profile-rows">
+        <fieldset class="profile-row"><legend>Backend</legend><div id="backend-options" class="profile-choices"></div></fieldset>
+        <fieldset class="profile-row"><legend>Storage</legend><div id="storage-options" class="profile-choices"></div></fieldset>
+        <fieldset class="profile-row"><legend>Execution</legend><div class="execution-area"><div id="execution-sizing" class="profile-choices" aria-hidden="true"></div><div id="execution-options" class="profile-choices"></div></div></fieldset>
+      </div>
+    </section>
+    <p id="runtime-status" role="status" hidden></p>
+    <section class="consistency-panel" aria-labelledby="consistency-title">
+      <div class="consistency-heading"><h2 id="consistency-title"><button class="heading-toggle" id="consistency-toggle" aria-expanded="true" aria-controls="consistency-options"><span aria-hidden="true">−</span> Consistency Mode</button></h2><div class="consistency-actions"><span id="basis-summary"></span><button class="quiet-button" id="requery">Re-query</button><button class="quiet-button" id="snapshot-refresh" disabled title="The browser runtime has no snapshot refresh operation.">Refresh Snapshot</button></div></div>
+      <fieldset id="consistency-options" class="consistency-options" aria-label="Consistency Mode"></fieldset>
+    </section>
+    <section id="seed-progress" class="seed-progress" aria-label="DataScript Seeding" hidden><div><strong>Seeding DataScript</strong><span id="seed-status" role="status"></span><button id="seed-retry" class="quiet-button" hidden>Retry</button></div><progress id="seed-bar" aria-label="Seeding Progress" max="100" value="0"></progress></section>
+    <div id="query-workspace">
+      <nav class="workspace-tabs" aria-label="Explorer Views"><div><button class="workspace-tab active" data-view="explorer" aria-current="page">Resources</button><button class="workspace-tab" data-view="schema">Permission Schema</button></div><div class="cache-options" role="group" aria-label="Cache Controls"><label><input id="cache-read" type="checkbox" checked> Read Cache</label><label><input id="cache-populate" type="checkbox" checked> Populate Cache</label><button class="text-button" data-dialog="cache">Cache Diagnostics</button></div></nav>
+      <div id="explorer-view" class="two-columns">
+        <section class="resource-pane" aria-label="Resource Tree">
+          <div class="resource-tools"><fieldset class="permission-options" aria-label="Resource Permission"><label><input type="radio" name="resource-permission" value="view" checked> view</label><label><input type="radio" name="resource-permission" value="admin"> admin</label></fieldset><button class="quiet-button" id="collapse-all">Collapse All</button><button class="quiet-button mobile-access" id="view-access">View Access ↓</button><label class="page-size-control">Page Size <select id="page-size"><option>5</option><option>10</option><option selected>20</option><option>25</option><option>50</option><option>100</option><option>250</option><option>500</option><option>1000</option></select></label></div>
+          <div id="resource-tree" class="tree" role="tree" aria-label="Resource Types and Relationships" tabindex="0"><p class="tree-hint">Starting EACL…</p></div>
+        </section>
+        <aside class="access-pane" id="access-pane" aria-labelledby="access-title"></aside>
+      </div>
+      <section id="schema-view" class="alternate-view" hidden></section>
+    </div>
+    <footer class="page-footer"><p>EACL is <a href="https://github.com/theronic/eacl">open source</a> under EPL 2.0. EACL Explorer ©️ 2026 <a href="https://petrustheron.com/">Petrus Theron</a>.</p></footer>
+  </main>
+  <aside class="query-lab" aria-label="Permission Check">
+    <header><h2><button class="heading-toggle" id="checker-toggle" aria-expanded="true" aria-controls="check-form"><span aria-hidden="true">−</span> Check Permission</button></h2><output id="check-result" aria-live="polite"></output></header>
+    <form id="check-form">
+      <fieldset class="check-object"><legend>Subject</legend><select id="check-subject-type" aria-label="Subject Type"></select><input id="check-principal" aria-label="Subject ID" value="user-1" list="subject-ids" required><datalist id="subject-ids"></datalist></fieldset>
+      <label class="check-permission">Permission<select id="check-permission"><option>view</option><option>admin</option></select></label>
+      <fieldset class="check-object"><legend>Resource</legend><select id="check-type" aria-label="Resource Type"></select><input id="check-resource" aria-label="Resource ID" value="account-0-server-12" list="resource-ids" required><datalist id="resource-ids"></datalist></fieldset>
+      <button class="primary-button" type="submit">Check Permission</button>
+    </form>
+  </aside>
+  <dialog id="detail-dialog" aria-labelledby="dialog-title"><header class="dialog-heading"><h2 id="dialog-title"></h2><button class="icon-button" id="close-dialog" aria-label="Close Dialog"><span data-icon="close"></span></button></header><div id="dialog-body"></div></dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div><div id="toast" class="toast" role="status" hidden></div>
+  <script src="/runtime.js"></script><script type="module" src="/app.js"></script>
+</body></html>

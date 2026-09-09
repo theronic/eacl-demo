@@ -54,17 +54,17 @@ test("two-step selection, canonical normalization, and keyboard focus remain usa
   await expect(backend).toBeFocused();
 });
 
-test("DataScript navigates to its separate browser entry", async ({ page }) => {
+test("DataScript selects its canonical browser profile", async ({ page }) => {
   await Promise.all([
-    page.waitForURL(/\/datascript\//u),
+    page.waitForURL(/backend=datascript/u),
     page.getByRole("radio", { name: "DataScript", exact: true }).click(),
   ]);
-  await expect(page).toHaveURL(/\/datascript\//u);
+  await expect(page).toHaveURL(/backend=datascript/u);
 });
 
 test("the landing page defaults to the first, zero-Lambda DataScript option", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/datascript\/\?backend=datascript&storage=browser-memory&platform=browser/u);
+  await expect(page).toHaveURL(/\/\?backend=datascript&storage=browser-memory&platform=browser/u);
   const backends = page.locator('input[name="explorer-backend"]');
   await expect(backends.first()).toHaveValue("datascript");
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
@@ -196,14 +196,13 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
   await expect(warning).toContainText(serviceIdentity.eaclSha);
   await expect(page.getByText("Datomic startup failed")).toHaveCount(0);
   await expect(page.getByText(/Connecting to Datomic EC2/iu)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
-  await page.getByRole("button", { name: "Consistency Semantics" }).click();
+  await expect(page.getByRole("heading", { name: "Consistency Mode" })).toBeVisible();
   await page.getByRole("radio", { name: "at-exact-snapshot", exact: true }).check();
   const exactDate = page.getByLabel("at-exact-snapshot date");
   await expect(exactDate).toBeEnabled();
   await exactDate.fill("2026-08-24T10:00");
   await expect(exactDate).toHaveValue("2026-08-24T10:00");
-  await page.getByRole("button", { name: "Query", exact: true }).click();
+  await page.getByRole("button", { name: "Check Permission", exact: true }).click();
   const expectedExactDate = await page.evaluate(
     () => new Date("2026-08-24T10:00:00").toISOString(),
   );
@@ -249,7 +248,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "c8dbfa1c4776c083fb92171650eb9973bb6980cd",
+    eaclSha: "6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)
@@ -369,9 +368,8 @@ test("an enabled publication opens the schema-validated server explorer over the
   });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Consistency Semantics" })).toBeVisible();
-  await page.getByRole("button", { name: "Consistency Semantics" }).click();
+  await expect(page.getByRole("region", { name: "Backend, Storage and Execution" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Consistency Mode" })).toBeVisible();
   await page.getByRole("radio", { name: "at-least-as-fresh", exact: true }).check();
   await expect(page.getByRole("radio", { name: "Seconds ago", exact: true })).toBeChecked();
   const secondsAgo = page.getByLabel("at-least seconds ago");
@@ -397,27 +395,18 @@ test("an enabled publication opens the schema-validated server explorer over the
     && input.atLeastAsFreshBasisCapturedAt === refreshedBasisCapturedAt
     && input.atLeastAsFreshAs === refreshedBasisCapturedAt
   ).length).toBeGreaterThan(0);
-  await expect(page.getByText("Consistency Semantics:", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Consistency Mode:", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/EACL v8 \+/iu)).toHaveCount(0);
   await expect(page.getByText("Spice Schema", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Subjects", exact: true })).toBeVisible();
+  await page.getByRole("button",{name:"View As user-1",exact:true}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button",{name:"Close View As"}).click();
   await expect(page.getByText("Active subject", { exact: true })).toHaveCount(0);
   await expect(page.locator(".subjects-panel").getByText("Permission", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".resources-panel").getByText("Permission", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name:"Resource Permission",exact:true })).toBeVisible();
   await expect(page.getByRole("link", { name: "open source" })).toHaveAttribute("href", "https://github.com/theronic/eacl");
   await expect(page.getByRole("link", { name: "Petrus Theron" })).toHaveAttribute("href", "https://petrustheron.com/");
-  const eaclVersion = page.locator(".app-footer__version");
-  await expect(eaclVersion).toContainText(`EACL library Git SHA: ${identity.eaclSha}`);
-  await expect(eaclVersion.getByRole("link")).toHaveAttribute(
-    "href",
-    `https://github.com/theronic/eacl/commit/${identity.eaclSha}`,
-  );
-  await expect(page.getByText(/independent profile status records/u)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Verified profile facts" })).toHaveCount(0);
-  await expect(page.locator(".profile-status, .metadata-list")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Schema/u })).toBeVisible();
-  const cacheButton = page.getByRole("button", { name: "Cache", exact: true });
+  const cacheButton = page.getByRole("button", { name: "Cache Diagnostics", exact: true });
   expect(apiRequests.filter(({ operation }) => operation === "get-cache-info")).toHaveLength(0);
   await cacheButton.click();
   await expect.poll(() => apiRequests.filter(({ operation }) => operation === "get-cache-info").length).toBe(1);
@@ -428,23 +417,21 @@ test("an enabled publication opens the schema-validated server explorer over the
   await page.waitForTimeout(100);
   expect(apiRequests.filter(({ operation }) => operation === "get-cache-info")).toHaveLength(1);
   await expect(page.getByLabel("Page size").locator("option")).toHaveText([
-    "10", "20", "50", "100", "250", "500", "1,000",
+    "5", "10", "20", "25", "50", "100", "250", "500", "1000",
   ]);
   const panelTops = await page.locator(".panel-grid > .panel-host").evaluateAll((panels) =>
     panels.map((panel) => Math.round(panel.getBoundingClientRect().top)),
   );
-  expect(panelTops).toHaveLength(3);
+  expect(panelTops).toHaveLength(2);
   if (testInfo.project.name.startsWith("desktop")) {
     expect(new Set(panelTops).size).toBe(1);
   } else {
     expect(panelTops[0]).toBeLessThan(panelTops[1]);
-    expect(panelTops[1]).toBeLessThan(panelTops[2]);
   }
-  await page.getByRole("button", { name: "Servers" }).click();
-  await page.getByRole("button", { name: /Server 1/u }).click();
+  await page.getByRole("button", { name: "server type server-1", exact:true }).click();
   await expect(page.locator(".permission-decision__status--allowed", { hasText: "Allowed" })).toBeVisible();
   await expect(page.locator(".cache-timing", { hasText: "1.25ms" }).first()).toBeVisible();
-  await expect(page.locator(".cache-timing__status", { hasText: "hit" }).first()).toBeVisible();
+  await expect(page.locator(".cache-timing__status", { hasText: "HIT" }).first()).toBeVisible();
   const canFooter = page.getByLabel("Arbitrary EACL permission check");
   await expect(canFooter).toBeVisible();
   await expect(canFooter.getByLabel("can? subject type")).toHaveValue("user");
@@ -454,7 +441,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(canFooter.getByLabel("can? permission")).toHaveValue("view");
   await expect(canFooter).toContainText("=> true");
   const canRequestsBefore = apiRequests.filter(({ operation }) => operation === "check-permission").length;
-  await canFooter.getByRole("button", { name: "Query" }).click();
+  await canFooter.getByRole("button", { name: "Check Permission", exact:true }).click();
   await expect.poll(() => apiRequests.filter(({ operation }) => operation === "check-permission").length)
     .toBeGreaterThan(canRequestsBefore);
   const atLeastRequests = apiRequests.filter(({ input }) => input.consistency === "at-least");
@@ -466,13 +453,13 @@ test("an enabled publication opens the schema-validated server explorer over the
     && new Date(String(input.atLeastAsFreshAs)).getTime()
       <= new Date(String(input.atLeastAsFreshBasisCapturedAt)).getTime()
   )).toBe(true);
-  const serverGroup = page.locator('[id="resource-type:server-content"]');
+  const serverGroup = page.locator(".group-card").filter({has:page.getByRole("button",{name:"server type Servers",exact:true})});
   await serverGroup.getByRole("button", { name: "Next" }).click();
-  await expect(serverGroup.getByText("Page 2", { exact: true })).toBeVisible();
-  const cacheEnabled = page.getByRole("switch", { name: /Cache Enabled/iu });
+  await expect(serverGroup.locator(".pagination-page")).toHaveAttribute("aria-label","Page 2");
+  const cacheEnabled = page.getByRole("checkbox", { name: "Read Cache",exact:true });
   const cacheWasEnabled = await cacheEnabled.isChecked();
   await cacheEnabled.click();
-  await expect(serverGroup.getByText("Page 2", { exact: true })).toBeVisible();
+  await expect(serverGroup.locator(".pagination-page")).toHaveAttribute("aria-label","Page 2");
   await expect.poll(() => {
     const latest = apiRequests.filter(({ operation }) => operation === "lookup-resources").at(-1);
     return { cursor: latest?.input.cursor, cache: latest?.input.cache };

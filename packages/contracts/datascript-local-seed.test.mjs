@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { localSeed, client } from "./src/generated/runtime-validators.mjs";
 
-test("seed inputs are a local-only contract with bounded integer counts", () => {
-  for (const count of [1, 1000, 100000]) assert.equal(localSeed({ operation: "seed-start", input: { resourceCount: count } }), true);
-  for (const count of [0, -1, 1.5, 100001, Number.MAX_SAFE_INTEGER, "1000"]) {
+test("seed inputs are a local-only contract with positive safe integer counts", () => {
+  for (const count of [1, 1000, 100000, 100001, Number.MAX_SAFE_INTEGER]) assert.equal(localSeed({ operation: "seed-start", input: { resourceCount: count } }), true);
+  for (const count of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "1000"]) {
     assert.equal(localSeed({ operation: "seed-start", input: { resourceCount: count } }), false);
   }
   assert.equal(localSeed({ operation: "seed-retry", input: {} }), true);
@@ -20,6 +20,7 @@ test("seed inputs are a local-only contract with bounded integer counts", () => 
 test("progress and modified dataset descriptor carry actual local counts", () => {
   const progress = { status: "ready", resourcesAdded: 1000, resourcesCompleted: 1000, resourcesTarget: 1000, totalResources: 11000, totalServers: 10922 };
   assert.equal(localSeed(progress), true);
-  assert.equal(localSeed({ maximumResources: 100000, modified: true, progress }), true);
+  assert.equal(localSeed({...progress, totalResources: 110001, resourcesTarget:100001, resourcesCompleted:100001}),true);
+  assert.equal(localSeed({ modified: true, progress }), true);
   assert.equal(localSeed({ ...progress, totalResources: -1 }), false);
 });

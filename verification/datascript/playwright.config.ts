@@ -8,7 +8,7 @@ const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
 export default defineConfig({
   testDir: ".",
   outputDir: "../../test-results/datascript-browser",
-  testMatch: ["browser-local.spec.ts", "landing-seeding.spec.ts"],
+  testMatch: ["browser-local.spec.ts", "landing-seeding.spec.ts", "resource-first.spec.ts"],
   timeout: 90_000,
   fullyParallel: false,
   workers: 1,

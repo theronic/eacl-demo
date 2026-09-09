@@ -16,7 +16,7 @@ the second shows only storage layers supported by that backend:
 | Jank | In-memory | `jank-memory` |
 | DataScript | Browser memory | `datascript-browser-memory` |
 
-Datahike is the initial backend unless a bounded canonical URL selects another
+DataScript is the initial backend unless a bounded canonical URL selects another
 backend and compatible storage. A visible profile is usable only when its
 registry state is `enabled`; disabled, qualifying, and unavailable choices
 remain visible with a reason. The checked-in pre-deployment registry currently
@@ -92,3 +92,13 @@ cursors, basis or revision values, request IDs, credentials, tokens, or cache
 state. Public server profiles expose only the closed read-only explorer
 operations; seed, schema-write, transaction, setup, benchmark, cache-eviction,
 store-deletion, and administration routes are unavailable.
+
+## Resource-first Explorer
+
+Use **View As** at the top right to choose a subject type and object. The dialog pages users or schema-defined resource types in batches of 25; changing it leaves the independent Check Permission inputs intact. The main tree opens Accounts and Servers by default. Select a row to inspect it; use the square +/− control to expand its relationships. Each branch owns its First, Prev, Next, count, and latency/cache badges. Page Size is above the tree.
+
+The right pane shows all permission decisions and one selected reverse-subject lookup, with stable pagination buttons. Permission and cache changes retain the selected resource. Read Cache and Populate Cache are independent; disabling Read Cache colors timing badges red. Cache Diagnostics retains metric refresh and capability-gated eviction.
+
+Consistency Mode remains above the tree, with the original descriptor-driven modes, dates and freshness floors. Re-query and Refresh Snapshot remain distinct. Permission Schema opens the original source and graph. The floating Check Permission console accepts typed subjects/resources with discovered-ID autocomplete and checks automatically; collapse it to recover screen space.
+
+DataScript Seed Data defaults to 10,000 additions and has no fixed resource cap. It accepts positive safe integers, reports committed batch progress, and supports failed-job retry. Changing profiles or reloading releases the page-local dataset and restores the canonical fixture when DataScript opens again. Public server profiles remain read-only.

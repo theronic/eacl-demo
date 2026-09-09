@@ -1,35 +1,51 @@
-import { createSignal, For, onCleanup, Show, type JSX } from "solid-js";
+import {
+  createResource,
+  createSignal,
+  For,
+  onCleanup,
+  Show,
+  type JSX,
+} from "solid-js";
 import { LatestRequest } from "../api";
 import { formatInteger } from "../format";
 import { useAppState } from "../state";
-import {
-  PAGE_SIZE_OPTIONS,
-  type PageSize,
-  type SeedProgress,
-} from "../types";
+import { PAGE_SIZE_OPTIONS, type PageSize, type SeedProgress } from "../types";
+import { SubjectsPanel } from "./SubjectsPanel";
 import { ButtonSpinner, ErrorBlock } from "./Common";
 
 export function Header(): JSX.Element {
+  let picker!: HTMLDialogElement;
+  const [pickerOpen, setPickerOpen] = createSignal(false);
   const app = useAppState();
   const seedRequest = new LatestRequest();
+  const countRequest = new LatestRequest();
+  const [relationshipCount] = createResource(
+    () => app.bootstrapData()?.meta.revision,
+    () =>
+      app.runQuery<{ value: number; exact: boolean }>(
+        countRequest,
+        "/count-objects",
+      ),
+  );
+  onCleanup(() => countRequest.abort());
   const [seedSize, setSeedSize] = createSignal("10000");
   const [seedError, setSeedError] = createSignal<unknown>();
   const bootstrap = () => app.bootstrapData();
   const ready = () => Boolean(bootstrap());
   const localSeed = () => bootstrap()?.data.localSeed;
-  const unit = () => localSeed() ? "resources" : "servers";
-  const resourceTotal = () => app.seedProgress()?.totalResources ?? bootstrap()?.data.totals.resources ?? 0;
-  const serverTotal = () => (ready() ? (bootstrap()?.data.totals.servers ?? 0) : 0);
+  const unit = () => (localSeed() ? "resources" : "servers");
+  const resourceTotal = () =>
+    app.seedProgress()?.totalResources ??
+    bootstrap()?.data.totals.resources ??
+    0;
+  const serverTotal = () =>
+    ready() ? (bootstrap()?.data.totals.servers ?? 0) : 0;
 
   const seed = async (event: SubmitEvent) => {
     event.preventDefault();
     const value = Number(seedSize());
     if (!Number.isSafeInteger(value) || value <= 0) {
       setSeedError(new Error("Seed size must be a positive whole number."));
-      return;
-    }
-    if (localSeed() && resourceTotal() + value > localSeed()!.maximumResources) {
-      setSeedError(new Error(`The browser limit is ${formatInteger(localSeed()!.maximumResources)} resources.`));
       return;
     }
     setSeedError(undefined);
@@ -64,103 +80,110 @@ export function Header(): JSX.Element {
   onCleanup(() => seedRequest.abort());
 
   return (
-    <header class="app-header">
-      <div class="app-header__intro">
-        <h1 class="app-title">🦅 EACL Explorer</h1>
-        <p class="app-subtitle">
-          🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library
-          inspired by SpiceDB, built in Clojure and backed by Datomic Pro,
-          Datahike or DataScript.
-        </p>
-      </div>
-      <div class="app-header__actions">
+    <>
+      <header class="app-header">
+        <h1 class="app-title">
+          🦅 EACL <span>Explorer</span>
+        </h1>
         <nav class="app-header__sources" aria-label="Source repositories">
-          <a class="app-header__link" href="https://github.com/theronic/eacl">
-            EACL Source
-          </a>
-          <a class="app-header__link" href="https://github.com/theronic/eacl-demo">
-            Demo Source
-          </a>
+          <a href="https://github.com/theronic/eacl">EACL Source ↗</a>
+          <a href="https://github.com/theronic/eacl-demo">Demo Source ↗</a>
         </nav>
         <div class="app-header__controls">
-          <div class="stat-pill" aria-live="polite">
-            <span class="stat-pill__label">
-              {app.bootstrap.loading
-                ? "refreshing"
-                : app.bootstrap.error
-                  ? ready()
-                    ? "stale"
-                    : "unavailable"
-                  : app.seeding()
-                    ? "seeding"
-                    : "ready"}
-            </span>
-            <strong>
-              <Show
-                when={app.seeding()}
-                fallback={ready()
-                  ? `${formatInteger(localSeed() ? resourceTotal() : serverTotal())} ${unit()}`
-                  : "Server total unavailable"}
-              >
-                {formatInteger(app.seedProgress()?.serversCompleted ?? 0)} /{" "}
-                {formatInteger(app.seedProgress()?.serversTarget ?? 0)} {unit()}
-              </Show>
-            </strong>
+          <div class="navbar-count">
+            <strong>{ready() ? formatInteger(resourceTotal()) : "—"}</strong>
+            <span>objects</span>
           </div>
-          <label class="page-size-control">
-            <span class="page-size-control__label">Page size</span>
-            <select
-              class="page-size-control__select"
-              aria-label="Page size"
-              disabled={!ready() || app.seeding()}
-              value={String(app.pageSize())}
-              onChange={(event) =>
-                app.setPageSize(Number(event.currentTarget.value) as PageSize)
-              }
-            >
-              <For each={PAGE_SIZE_OPTIONS}>
-                {(value) => <option value={value}>{formatInteger(value)}</option>}
-              </For>
-            </select>
-          </label>
+          <div class="navbar-count">
+            <strong>
+              {relationshipCount.error
+                ? "—"
+                : relationshipCount()
+                  ? `${formatInteger(relationshipCount()!.data.value)}${relationshipCount()!.data.exact ? "" : "+"}`
+                  : "…"}
+            </strong>
+            <span>relationships</span>
+          </div>
           <Show when={bootstrap()?.data.capabilities.seedWrite}>
-            <form class="seed-controls" aria-busy={app.seeding()} onSubmit={seed}>
-            <input
-              class="seed-input"
-              aria-label="Additional resources"
-              type="number"
-              min="1"
-              step="1"
-              max={localSeed() ? localSeed()!.maximumResources - resourceTotal() : undefined}
-              disabled={app.seeding() || !ready()}
-              value={seedSize()}
-              onInput={(event) => setSeedSize(event.currentTarget.value)}
-            />
-            <button
-              class="seed-submit"
-              type="submit"
-              disabled={app.seeding() || !ready()}
-              aria-busy={app.seeding()}
-            >
-              <Show when={app.seeding()}>
-                <ButtonSpinner />
-              </Show>
-              {app.seeding() ? "Seeding…" : "Add resources"}
-            </button>
+            <form class="seed-controls" onSubmit={seed}>
+              <input
+                class="seed-input"
+                aria-label="Additional resources"
+                type="number"
+                min="1"
+                step="1"
+                disabled={app.seeding() || !ready()}
+                value={seedSize()}
+                onInput={(e) => setSeedSize(e.currentTarget.value)}
+              />
+              <button
+                class="seed-submit"
+                type="submit"
+                disabled={app.seeding() || !ready()}
+              >
+                {app.seeding() ? "Seeding…" : "Seed Data"}
+              </button>
             </form>
-            <small class="seed-limit">Limit: {formatInteger(localSeed()?.maximumResources ?? 0)} resources</small>
-            <Show when={localSeed()?.modified}><span class="seed-local-note">Locally modified · resets when leaving DataScript</span></Show>
           </Show>
           <button
-            class="graph-toggle"
-            type="button"
-            onClick={() => app.setTheme(app.theme() === "dark" ? "light" : "dark")}
+            class="theme-button"
+            aria-label={
+              app.theme() === "dark"
+                ? "Switch to light theme"
+                : "Switch to dark theme"
+            }
+            onClick={() =>
+              app.setTheme(app.theme() === "dark" ? "light" : "dark")
+            }
           >
-            {app.theme() === "dark" ? "Light theme" : "Dark theme"}
+            {app.theme() === "dark" ? "☀" : "☾"}
+          </button>
+          <button
+            class="view-as-button"
+            disabled={!ready()}
+            onClick={() => {
+              setPickerOpen(true);
+              picker.showModal();
+            }}
+            aria-haspopup="dialog"
+          >
+            <span>View As</span>
+            <strong>{app.subjectId()}</strong>
           </button>
         </div>
-        <Show when={seedError()}>{(error) => <ErrorBlock error={error()} />}</Show>
-      </div>
-    </header>
+        <Show when={seedError()}>
+          {(error) => <ErrorBlock error={error()} />}
+        </Show>
+      </header>
+      <dialog
+        class="view-as-dialog"
+        ref={picker}
+        onClose={() => setPickerOpen(false)}
+        aria-labelledby="view-as-title"
+      >
+        <header>
+          <h2 id="view-as-title">View As</h2>
+          <button aria-label="Close View As" onClick={() => picker.close()}>
+            ×
+          </button>
+        </header>
+        <Show when={ready() && pickerOpen()}>
+          <SubjectsPanel onSelect={() => picker.close()} />
+        </Show>
+      </dialog>
+      <p class="app-subtitle">
+        <a href="https://github.com/theronic/eacl">EACL</a> is a situated{" "}
+        <a href="https://en.wikipedia.org/wiki/Relationship-based_access_control">
+          ReBAC
+        </a>{" "}
+        authorization library inspired by{" "}
+        <a href="https://authzed.com/spicedb">SpiceDB</a>, built in{" "}
+        <a href="https://clojure.org/">Clojure</a> and backed by{" "}
+        <a href="https://datomic.com/">Datomic Pro</a>,{" "}
+        <a href="https://datahike.io/">Datahike</a>,{" "}
+        <a href="https://datalevin.org/">Datalevin</a> or{" "}
+        <a href="https://github.com/tonsky/datascript">DataScript</a>.
+      </p>
+    </>
   );
 }
