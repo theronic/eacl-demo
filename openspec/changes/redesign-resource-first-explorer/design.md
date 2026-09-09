@@ -42,7 +42,7 @@ The reference repositories are read-only for this change. No financial data, com
 
 Use the original explorer's control model, readable typography, and dense query/result presentation in the new two-pane layout. Keep the pale background and green accent, native radio buttons, the 🦅 eagle logo, and EACL Explorer title. Use this factual subtitle verbatim:
 
-> EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.
+> EACL is a situated ReBAC authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike, Datalevin or DataScript.
 
 Backend, Storage, and Execution occupy three separate labelled rows. Backend choices contain only backend names. Storage choices and defaults follow the original selector; reuse the existing backend transition and execution-normalization functions. At a fixed viewport, reserve the execution row's required height so changing backend cannot move the rows or the following panel. Native radios show selection, and disabled controls show an informative reason without strikethrough. No dropdowns, storage descriptions in backend choices, or large backend cards.
 
@@ -171,3 +171,13 @@ Backend, Storage, Execution, and Consistency Mode use plain native radios, witho
 Place the expanded exact schema source before the inferred type cards. Rename the floating checker heading to Check Permission and restore the original 175 ms input debounce. Capture all typed identifiers/options before awaiting requests; invalidate stale responses, skip incomplete inputs, and retain manual checking.
 
 Keep the viewport stable during page/scope/render transitions. Disable automatic scroll anchoring, restore focus with preventScroll, and preserve sufficient document height when loading or shorter results would otherwise clamp the current offset. Restore the offset through the immediate layout/focus frames, but cancel that restoration on new wheel/touch/key/pointer input so the user retains control. Explicit keyboard tree navigation and View Access still provide intentional navigation.
+
+## Production integration (2026-09-09)
+
+The user explicitly authorized integrating the approved design, upgrading to the latest published core commit from the local core checkout, committing/pushing, merging through main into production, and verifying the ordinary deployment. This supersedes the earlier preview-only deployment exclusion. Core is pinned to `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. The canonical schema and generator remain unchanged.
+
+The shared SolidJS shell retains the existing profile dispatcher, response validation, basis/freshness controls, and cursor recovery. Resource controllers are retained with path-specific expansion keys. View As is a typed, lazy dialog. The inspector issues reverse lookup only for its selected permission and still checks all available permissions independently. The schema/graph mounts on first visit, avoiding hidden graph initialization. Read/populate and permission changes preserve selection. Counts and their query metadata remain adjacent.
+
+The DataScript cap is removed from runtime, UI, and local-only contract validation. Seed Data defaults to 10,000. The ordinary server request contract still rejects seed mutations. The shared production profile lifecycle retains its cancellation-on-release behavior: changing backend releases the browser dataset and cancels its seed job, rather than continuing a hidden runtime. Backend controls remain enabled. The isolated preview continues its original owner-pinned seeding experiment; production follows the existing validated release lifecycle.
+
+Verification: TypeScript checking; explorer-state (91), contracts (61), shared UI (4), parity (10); desktop/mobile design interactions and light/dark accessibility; canonical DataScript seeding, partial failure/retry, and 110,001 total objects; supporting Datomic historical-date and Datahike relative/absolute freshness browser scenarios; DataScript bundle isolation. Ordinary production deployment is the final delivery gate.

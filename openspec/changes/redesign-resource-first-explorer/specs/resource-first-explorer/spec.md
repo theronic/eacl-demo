@@ -117,7 +117,7 @@ Query latency and cache outcomes SHALL appear immediately beside the specific lo
 - **THEN** it SHALL be shown with the operation, served basis, cache metadata when present, and source context, while any client round-trip measurement SHALL carry a distinct label
 
 ### Requirement: Existing functionality remains reachable
-The redesign SHALL retain backend/storage/execution selection and availability reasons, identity handshake and deployment warnings, schema visualization and supported editing, independent cache read/populate switches, cache metrics/refresh and capability-gated eviction, resource and relationship pagination/recovery, bounded counts, the standalone arbitrary permission checker, local seeding/progress/limits/retry, source links, theme preferences, canonical semantic URLs/history, and the separate local caveats/expiry playground. Unsupported server mutations MUST NOT be introduced by a more prominent control.
+The redesign SHALL retain backend/storage/execution selection and availability reasons, identity handshake and deployment warnings, schema visualization and supported editing, independent cache read/populate switches, cache metrics/refresh and capability-gated eviction, resource and relationship pagination/recovery, bounded counts, the standalone arbitrary permission checker, local seeding/progress/validation/retry, source links, theme preferences, canonical semantic URLs/history, and the separate local caveats/expiry playground. Unsupported server mutations MUST NOT be introduced by a more prominent control.
 
 #### Scenario: Standalone permission check
 - **WHEN** a visitor edits the standalone principal, permission, and resource controls
@@ -125,7 +125,7 @@ The redesign SHALL retain backend/storage/execution selection and availability r
 
 #### Scenario: Local seeding
 - **WHEN** a supporting browser profile adds resources
-- **THEN** validation, advertised limits, progress, inert/busy exploration, retry, and local reset messaging SHALL remain available in the redesigned dataset controls
+- **THEN** positive safe-integer validation without a fixed resource cap, progress, inert/busy exploration, retry, and local reset messaging SHALL remain available in the redesigned dataset controls
 
 #### Scenario: Profile switch or browser history
 - **WHEN** backend, storage, execution, or canonical history selects a different profile
@@ -168,7 +168,7 @@ Backend, Storage, and Execution SHALL each occupy a separate stable native-radio
 - **THEN** the three selector rows and following panel SHALL retain their positions, storage choices SHALL update in the Storage row, and a compatible storage/execution selection SHALL be preserved according to the existing transition rules
 
 ### Requirement: Factual copy and information density
-The redesign SHALL prioritize query performance information, information density, and usability over decorative cards or marketing copy. The header SHALL use EACL Explorer and this subtitle verbatim: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
+The redesign SHALL prioritize query performance information, information density, and usability over decorative cards or marketing copy. The header SHALL use EACL Explorer and this subtitle verbatim: “EACL is a situated ReBAC authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike, Datalevin or DataScript.”
 
 #### Scenario: The explorer renders its header
 - **WHEN** a visitor opens the demo
@@ -205,4 +205,4 @@ View As SHALL be the rightmost navbar control with the theme control immediately
 
 #### Scenario: Backend changes during local seeding
 - **WHEN** the visitor chooses another backend while DataScript seeding is active
-- **THEN** backend choices SHALL stay enabled, progress SHALL continue against the original local runtime, and results SHALL NOT be presented as data from the newly selected backend
+- **THEN** backend choices SHALL stay enabled, the production profile-release lifecycle SHALL cancel the old browser job and release its page-local data, and results SHALL NOT be presented as data from the newly selected backend

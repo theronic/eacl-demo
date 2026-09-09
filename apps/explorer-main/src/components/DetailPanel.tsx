@@ -35,7 +35,7 @@ function PermissionDecisionRow(props: {
   const app = useAppState();
   const request = new LatestRequest();
   const source = () =>
-    ([
+    [
       app.subjectId(),
       props.resource.type,
       props.resource.id,
@@ -45,14 +45,14 @@ function PermissionDecisionRow(props: {
       app.activeQueryBasis(),
       app.basisGeneration(),
       app.queryGeneration(),
-      JSON.stringify(app.consistency()),
+      JSON.stringify([app.consistency(), app.subjectType()]),
       app.mutationRevision(),
-    ] as const);
+    ] as const;
   const [decision, { refetch }] = createResource(source, (input) =>
     app.runQuery<PermissionDecision>(request, "/check-permission", {
       method: "POST",
       body: JSON.stringify({
-        subject: { type: "user", id: input[0] },
+        subject: { type: app.subjectType(), id: input[0] },
         resource: { type: input[1], id: input[2] },
         permission: input[3],
         cache: input[4],
@@ -64,6 +64,7 @@ function PermissionDecisionRow(props: {
   const [displayedDecision, setDisplayedDecision] =
     createSignal<ApiSuccess<PermissionDecision>>();
 
+  createEffect(on(source, () => setDisplayedDecision(undefined)));
   createEffect(() => {
     if (decision.loading || decision.error) return;
     const envelope = decision();
@@ -97,9 +98,11 @@ function PermissionDecisionRow(props: {
         <MetaTiming meta={displayedDecision()?.meta} />
         <Show when={decision.loading}>
           <InlineLoading
-            label={displayedDecision()
-              ? `Refreshing ${props.permission} permission decision`
-              : `Loading ${props.permission} permission decision`}
+            label={
+              displayedDecision()
+                ? `Refreshing ${props.permission} permission decision`
+                : `Loading ${props.permission} permission decision`
+            }
           />
         </Show>
       </div>
@@ -126,8 +129,7 @@ function PermissionDecisions(props: {
     >
       <div class="permission-decisions__heading">
         <div>
-          <h3 id="permission-decisions-title">Can active subject?</h3>
-          <p>{app.subjectId()}</p>
+          <h3 id="permission-decisions-title">Permissions</h3>
         </div>
       </div>
       <div class="permission-decisions__list">
@@ -153,20 +155,20 @@ function PermissionSubjects(props: {
   const [cursors, setCursors] = createSignal<string[]>([]);
   const cursor = () => cursors().at(-1);
   const source = () =>
-    ([
-          props.resource.type,
-          props.resource.id,
-          props.permission,
-          app.pageSize(),
-          cursor() ?? "",
-          app.cacheEnabled(),
-          app.populateCache(),
-          app.activeQueryBasis(),
-          app.basisGeneration(),
-          app.queryGeneration(),
-          JSON.stringify(app.consistency()),
-          app.mutationRevision(),
-        ] as const);
+    [
+      props.resource.type,
+      props.resource.id,
+      props.permission,
+      5,
+      cursor() ?? "",
+      app.cacheEnabled(),
+      app.populateCache(),
+      app.activeQueryBasis(),
+      app.basisGeneration(),
+      app.queryGeneration(),
+      JSON.stringify([app.consistency(), app.subjectType()]),
+      app.mutationRevision(),
+    ] as const;
   const [subjects, { refetch }] = createResource(source, (input) =>
     app.runQuery<ObjectPage>(request, "/lookup-subjects", {
       method: "POST",
@@ -185,8 +187,9 @@ function PermissionSubjects(props: {
   const [displayedSubjects, setDisplayedSubjects] =
     createSignal<ApiSuccess<ObjectPage>>();
   const [displayedCursors, setDisplayedCursors] = createSignal<string[]>([]);
-  const [pendingAction, setPendingAction] =
-    createSignal<"first" | "previous" | "next">();
+  const [pendingAction, setPendingAction] = createSignal<
+    "first" | "previous" | "next"
+  >();
 
   createEffect(() => {
     if (subjects.loading || subjects.error) return;
@@ -201,25 +204,39 @@ function PermissionSubjects(props: {
 
   createEffect(
     on(
-      () => [
-        props.resource.type,
-        props.resource.id,
-        props.permission,
-        app.pageSize(),
-        app.queryGeneration(),
-        app.basisGeneration(),
-        JSON.stringify(app.consistency()),
-      ] as const,
+      () =>
+        [
+          props.resource.type,
+          props.resource.id,
+          props.permission,
+          5,
+          app.queryGeneration(),
+          app.basisGeneration(),
+          JSON.stringify([app.consistency(), app.subjectType()]),
+        ] as const,
       () => setCursors((current) => (current.length ? [] : current)),
       { defer: true },
     ),
   );
   onCleanup(() => request.abort());
+  createEffect(
+    on(
+      () => [
+        props.resource.type,
+        props.resource.id,
+        props.permission,
+        app.basisGeneration(),
+        JSON.stringify(app.consistency()),
+      ],
+      () => setDisplayedSubjects(undefined),
+    ),
+  );
   const settledSubjects = displayedSubjects;
   const navigationAction = () => {
     if (cursors().length > displayedCursors().length) return "next" as const;
     if (!cursors().length && displayedCursors().length) return "first" as const;
-    if (cursors().length < displayedCursors().length) return "previous" as const;
+    if (cursors().length < displayedCursors().length)
+      return "previous" as const;
     return undefined;
   };
   const navigate = (
@@ -236,7 +253,8 @@ function PermissionSubjects(props: {
   };
   const subjectRecovery = () => {
     if (!cursors().length) return undefined;
-    return subjects.error instanceof ApiError && subjects.error.code === "invalid-cursor"
+    return subjects.error instanceof ApiError &&
+      subjects.error.code === "invalid-cursor"
       ? { label: "First page", action: () => navigate("first", []) }
       : {
           label: "Previous page",
@@ -249,10 +267,6 @@ function PermissionSubjects(props: {
       class="panel-section permission-subjects"
       data-permission={props.permission}
     >
-      <div class="section-header">
-        <p class="panel-label">:{props.permission}</p>
-        <MetaTiming meta={settledSubjects()?.meta} />
-      </div>
       <Show when={subjects.loading && !settledSubjects()}>
         <LoadingBlock
           label={`permission holders page ${formatInteger(cursors().length + 1)}`}
@@ -284,6 +298,18 @@ function PermissionSubjects(props: {
                 if (next) navigate("next", [...displayedCursors(), next]);
               }}
             />
+            <div class="reverse-result">
+              <strong>
+                {envelope().data.items.length
+                  ? displayedCursors().length * 5 + 1
+                  : 0}
+                –{displayedCursors().length * 5 + envelope().data.items.length}
+                {!envelope().data.pageInfo.hasNextPage
+                  ? ` of ${displayedCursors().length * 5 + envelope().data.items.length}`
+                  : ""}
+              </strong>
+              <MetaTiming meta={envelope().meta} />
+            </div>
             <div class="list-stack" aria-busy={subjects.loading}>
               <For
                 each={envelope().data.items}
@@ -293,13 +319,14 @@ function PermissionSubjects(props: {
                   <button
                     type="button"
                     class={`list-item ${app.subjectId() === subject.id ? "list-item--active" : ""}`}
-                    onClick={() => app.setSubjectId(subject.id)}
+                    title={`View As ${subject.id}`}
+                    onClick={() => {
+                      app.setSubjectType(subject.type);
+                      app.setSubjectId(subject.id);
+                    }}
                   >
                     <TypeBadge type={subject.type} />
                     <span class="resource-caption">
-                      <span class="resource-caption__name">
-                        {identifierLabel(subject.id)}
-                      </span>
                       <span class="resource-caption__id">{subject.id}</span>
                     </span>
                   </button>
@@ -315,15 +342,24 @@ function PermissionSubjects(props: {
 
 export function DetailPanel(): JSX.Element {
   const app = useAppState();
+  const [reversePermission, setReversePermission] = createSignal("view");
+  createEffect(() => {
+    const available = permissions();
+    if (!available.includes(reversePermission()))
+      setReversePermission(
+        available.includes("view") ? "view" : (available[0] ?? ""),
+      );
+  });
   const permissions = () => {
     const selected = app.selectedResource();
     if (!selected) return [];
-    return app.bootstrapData()?.data.schema.permissionsByType[selected.type] ?? [];
+    return (
+      app.bootstrapData()?.data.schema.permissionsByType[selected.type] ?? []
+    );
   };
 
   return (
     <div class="panel-card detail-panel">
-      <h2 class="panel-kicker">Detail</h2>
       <Show
         when={app.selectedResource()}
         fallback={<EmptyState>Click a resource to inspect it.</EmptyState>}
@@ -333,10 +369,10 @@ export function DetailPanel(): JSX.Element {
             <div class="detail-header">
               <TypeBadge type={selected().type} />
               <div>
-                <p class="detail-header__title">{identifierLabel(selected().type)}</p>
-                <p class="detail-header__subtitle">
-                  {identifierLabel(selected().id)}
+                <p class="detail-header__title">
+                  {identifierLabel(selected().type)}
                 </p>
+
                 <p class="detail-header__id">{selected().id}</p>
               </div>
             </div>
@@ -346,14 +382,35 @@ export function DetailPanel(): JSX.Element {
                 permissions={permissions()}
               />
             </Show>
-            <For
-              each={permissions()}
-              fallback={<EmptyState>No permissions defined for this resource type.</EmptyState>}
+            <h3>Who Has Access?</h3>
+            <fieldset
+              class="reverse-permissions"
+              aria-label="Subject lookup permission"
             >
-              {(permission) => (
-                <PermissionSubjects resource={selected()} permission={permission} />
-              )}
-            </For>
+              <For each={permissions()}>
+                {(permission) => (
+                  <label>
+                    <input
+                      type="radio"
+                      name="reverse-permission"
+                      checked={reversePermission() === permission}
+                      onChange={() => setReversePermission(permission)}
+                    />
+                    {permission}
+                  </label>
+                )}
+              </For>
+            </fieldset>
+            <Show when={permissions().includes(reversePermission())}>
+              <PermissionSubjects
+                resource={selected()}
+                permission={reversePermission()}
+              />
+            </Show>
+            <details>
+              <summary>Resource Attributes</summary>
+              <pre>{JSON.stringify(selected(), null, 2)}</pre>
+            </details>
           </>
         )}
       </Show>

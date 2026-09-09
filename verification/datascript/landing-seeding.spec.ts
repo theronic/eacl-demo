@@ -8,7 +8,7 @@ async function request(page: Page, operation: string, input: Record<string, unkn
   return page.evaluate(({ operation, input }) => (window as any).EaclDataScriptRuntime.request(operation, input, crypto.randomUUID()), { operation, input });
 }
 async function ready(page: Page) {
-  await expect(page.getByRole("button", { name: "Add resources", exact: true })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Seed Data", exact: true })).toBeEnabled({ timeout: 30_000 });
 }
 
 test.beforeEach(async ({ page }) => { await installPublications(page); });
@@ -26,8 +26,8 @@ test("root restores once, seeds additively, invalidates cursors, and refreshes t
   const cursor = (await request(page, "list-subjects", { pageSize: 1 })).data.pageInfo.endCursor;
   for (const [count, total] of [[1000,11000], [500,11500]]) {
     await page.getByRole("spinbutton", { name: "Additional resources" }).fill(String(count));
-    await page.getByRole("button", { name: "Add resources", exact: true }).click();
-    await expect(page.getByText(`${total.toLocaleString("en-US")} resources`, { exact: true })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Seed Data", exact: true }).click();
+    await expect(page.locator(".navbar-count").first()).toContainText(total.toLocaleString("en-US"), { timeout: 30_000 });
     await ready(page);
   }
   const after = (await request(page, "bootstrap")).data;
@@ -37,7 +37,7 @@ test("root restores once, seeds additively, invalidates cursors, and refreshes t
   expect(after.basis.id).not.toBe(before.basis.id);
   expect((await request(page, "list-subjects", { pageSize: 1, cursor })).error.code).toBe("cursor-invalid");
   expect((await request(page, "count-objects", { kind: "objects", ceiling: 100000 })).data.value).toBe(11500);
-  await expect(page.getByText(/Locally modified/)).toBeVisible();
+  await expect(page.locator(".navbar-count").first()).toContainText("11,500");
   expect((await request(page, "get-object", addedResource)).data.object).toMatchObject(addedResource);
   expect((await request(page, "check-permission", {
     subjectType: "user", subjectId: "super-user", resourceType: addedResource.type,
@@ -57,7 +57,7 @@ test("legacy links and history switch within the document, resetting released da
   expect(new URL(page.url()).pathname).toBe("/");
   expect(new URL(page.url()).searchParams.get("permission")).toBe("view");
   await page.getByRole("radio", { name: "Datahike", exact: true }).check();
-  await expect(page.getByRole("button", { name: "Add resources", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Seed Data", exact: true })).toHaveCount(0);
   await page.goBack();
   await ready(page);
   expect((await request(page, "bootstrap")).data.dataset.logicalResourceCount).toBe(10000);
@@ -225,7 +225,7 @@ test("the shared seed controls show partial failure and retry the remaining reso
       return result;
     };
   });
-  await page.getByRole("button", { name: "Add resources", exact: true }).click();
+  await page.getByRole("button", { name: "Seed Data", exact: true }).click();
   const failed = await page.evaluate(() => (window as any).__injectedFailure);
   await expect(page.getByText("Seeding failed", { exact: true })).toBeVisible();
   expect(failed.status).toBe("error");

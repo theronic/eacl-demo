@@ -29,7 +29,7 @@ None. The related `unified-demo-shell` specification remains in the active `cons
 - Adds a local preview under `docs/design-preview/` and a loopback-only preview server script. The preview is outside production build inputs and uses no external services or additional dependencies. The local command requires the existing `build:datascript-runtime` output and verifies its artifact digest and the canonical schema digest.
 - Verification covers browser interaction and accessibility, preservation of existing state/contract tests, and connected profile behavior during the later apply phase. This proposal does not change authorization semantics, deployed infrastructure, EACL Core, or the eDrive and reference repositories.
 
-The subtitle is: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
+The subtitle is: “EACL is a situated ReBAC authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike, Datalevin or DataScript.”
 
 The 2026-09-09 revision retains a single navbar title, prominent source links and object/relationship counts, removes the principal total, makes backend configuration collapsible, and places basis information beside Refresh Snapshot. The tree uses document scrolling with branch-local pagination and a collapsible floating permission checker. Subject/resource type and ID controls, discovered-ID autocomplete, and existing DataScript additions are restored. Copyright text follows the original footer. Generic unavailable labels, strikethrough, candidate counts, repeated query-operation labels, local-design/runtime-identity decoration, and duplicate scope headings are removed.
 

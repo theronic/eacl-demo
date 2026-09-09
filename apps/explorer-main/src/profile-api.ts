@@ -283,6 +283,11 @@ export function createProfileApi(
       return envelope(activeSchema, "schema", active.basis) as ApiSuccess<T>;
     }
 
+    if (url.pathname === "/count-objects") {
+      const result = await wire<{value:number; exact:boolean}>("count-objects", {kind:"relationships", ceiling:1000000}, signal);
+      return wireEnvelope(result.data!, result) as ApiSuccess<T>;
+    }
+
     if (url.pathname === "/get-cache-info") {
       const result = await wire<Record<string, unknown>>("get-cache-info", {}, signal);
       const snapshot = presentCacheSnapshot(result.data!);
@@ -473,7 +478,7 @@ function presentBootstrap(descriptor: ProfileDescriptor, schema: SchemaInfo): Bo
       { id: "user-1", label: "User 1" },
       { id: "user-2", label: "User 2" },
     ],
-    pageSizeOptions: [10, 20, 50, 100, 250, 500, 1000],
+    pageSizeOptions: [5, 10, 20, 25, 50, 100, 250, 500, 1000],
     defaultPageSize: 20,
     consistency: {
       default: defaultMode,

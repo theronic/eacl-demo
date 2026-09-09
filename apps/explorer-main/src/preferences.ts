@@ -9,13 +9,14 @@ const STORAGE_KEY = "eacl-datahike-demo.preferences.v2";
 const LEGACY_STORAGE_KEY = "eacl-datahike-demo.preferences.v1";
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
+  subjectType: "user",
   subjectId: "user-1",
   permission: "view",
   pageSize: 20,
   cacheEnabled: true,
   populateCache: true,
   theme: "light",
-  expanded: [],
+  expanded: ["resource-type:account", "resource-type:server", "segment:read-basis", "segment:schema"],
 };
 
 function pageSize(value: unknown): PageSize {
@@ -42,6 +43,7 @@ export function readPreferences(storage?: Storage): AppPreferences {
     // subsequent explicit super-user selection is stored in v2 and preserved.
     const migratedLegacyDefault = legacy !== null && value.subjectId === "super-user";
     return {
+      subjectType: typeof value.subjectType === "string" && value.subjectType ? value.subjectType : "user",
       subjectId:
         !migratedLegacyDefault &&
         typeof value.subjectId === "string" && value.subjectId

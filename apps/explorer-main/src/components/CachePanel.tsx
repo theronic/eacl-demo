@@ -94,7 +94,7 @@ export function CachePanel(): JSX.Element {
             controls="cache-segment-content"
             onClick={() => app.toggleExpanded(expansionKey)}
           >
-            <span class="group-card__title">Cache</span>
+            <span class="group-card__title">Cache Diagnostics</span>
           </DisclosureButton>
           <div class="cache-controls">
             <Show when={!expanded() && refreshing()}>
@@ -110,38 +110,38 @@ export function CachePanel(): JSX.Element {
               <InlineError label="Cache eviction failed" />
             </Show>
             <label class="cache-toggle">
-              <span class="cache-toggle__label">Cache Enabled:</span>
+              <span class="cache-toggle__label">Read Cache</span>
               <span class="cache-switch">
                 <input
                   class="cache-switch__input"
                   type="checkbox"
-                  role="switch"
+
                   disabled={refreshing() || evicting()}
                   checked={app.cacheEnabled()}
                   aria-checked={app.cacheEnabled()}
                   onChange={(event) => app.setCacheEnabled(event.currentTarget.checked)}
                 />
-                <span class="cache-switch__slider" aria-hidden="true" />
+
               </span>
               <span class="cache-toggle__state">{app.cacheEnabled() ? "On" : "Off"}</span>
             </label>
             <label class="cache-toggle">
-              <span class="cache-toggle__label">Populate Cache?</span>
+              <span class="cache-toggle__label">Populate Cache</span>
               <span class="cache-switch">
                 <input
                   class="cache-switch__input"
                   type="checkbox"
-                  role="switch"
+
                   disabled={refreshing() || evicting()}
                   checked={app.populateCache()}
                   aria-checked={app.populateCache()}
                   onChange={(event) => app.setPopulateCache(event.currentTarget.checked)}
                 />
-                <span class="cache-switch__slider" aria-hidden="true" />
+
               </span>
               <span class="cache-toggle__state">{app.populateCache() ? "On" : "Off"}</span>
             </label>
-            <Show when={app.bootstrapData()?.data.capabilities.cacheEvict}>
+            <Show when={expanded() && app.bootstrapData()?.data.capabilities.cacheEvict}>
               <button
                 type="button"
                 class="pagination-button cache-evict"
@@ -155,7 +155,7 @@ export function CachePanel(): JSX.Element {
                 Evict Cache
               </button>
             </Show>
-            <button
+<Show when={expanded()}>            <button
               type="button"
               class="pagination-button cache-refresh"
               disabled={refreshing() || evicting()}
@@ -166,7 +166,7 @@ export function CachePanel(): JSX.Element {
                 <ButtonSpinner />
               </Show>
               Refresh cache
-            </button>
+            </button></Show>
           </div>
         </div>
         <Show when={expanded()}>

@@ -17,12 +17,13 @@ export function TypeBadge(props: { type: string }): JSX.Element {
 }
 
 export function CacheTiming(props: {
+  title?: string;
   status?: CacheStatus;
   elapsedMs?: number;
 }): JSX.Element {
   return (
     <Show when={props.status || props.elapsedMs !== undefined}>
-      <span
+      <span title={props.title}
         class={`cache-timing cache-badge${
           props.status ? ` cache-badge--${props.status}` : ""
         }`}
@@ -33,7 +34,7 @@ export function CacheTiming(props: {
           </span>
         </Show>
         <Show when={props.status}>
-          {(status) => <span class="cache-timing__status">{status()}</span>}
+          {(status) => <span class="cache-timing__status">{status().toUpperCase()}</span>}
         </Show>
       </span>
     </Show>
@@ -41,7 +42,7 @@ export function CacheTiming(props: {
 }
 
 export function MetaTiming(props: { meta?: ApiMeta }): JSX.Element {
-  return <CacheTiming status={props.meta?.cacheStatus} elapsedMs={props.meta?.elapsedMs} />;
+  return <CacheTiming title={props.meta ? `Request: ${props.meta.requestId} · Basis: ${props.meta.basis?.id ?? props.meta.revision}` : undefined} status={props.meta?.cacheStatus} elapsedMs={props.meta?.elapsedMs} />;
 }
 
 export function DisclosureButton(props: {
@@ -59,7 +60,7 @@ export function DisclosureButton(props: {
       onClick={() => props.onClick()}
     >
       <span class="group-card__caret" aria-hidden="true">
-        {props.expanded ? "▾" : "▸"}
+        {props.expanded ? "−" : "+"}
       </span>
       {props.children}
     </button>
@@ -101,9 +102,9 @@ export function Pagination(props: {
         <Show when={props.busyAction === "previous"}>
           <ButtonSpinner />
         </Show>
-        Previous
+        Prev
       </button>
-      <span class="pagination-page">Page {formatInteger(props.page)}</span>
+      <span class="pagination-page" aria-label={`Page ${props.page}`} />
       <button
         type="button"
         class="pagination-button"
@@ -193,8 +194,8 @@ export function LoadingBlock(props: {
       class="loading-block"
       role="status"
       aria-live="polite"
-      aria-label={status()}
-      title={status()}
+      aria-label={status().toUpperCase()}
+      title={status().toUpperCase()}
     >
       <span class="button-spinner" aria-hidden="true" />
     </div>
