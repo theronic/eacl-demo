@@ -100,4 +100,6 @@ Live browser checks on DataScript and Datahike/S3 confirmed super-user Platforms
 - [x] 11.1 Replace nested lookup-resources with read-relationships plus authorization on the resource across DataScript and all four JVM backends.
 - [x] 11.2 Preserve native relationship cursors, type/relation filtering, cache status and consistency; reject incomplete authorization input.
 - [x] 11.3 Verify adapter tests reject lookup-resources and scalar checks, permitted/denied viewers, and one relationship request per browser page.
-- [ ] 11.4 Publish and verify the authorized relationship-read path live.
+- [x] 11.4 Publish and verify the authorized relationship-read path live.
+
+PR #101 release verified on 2026-09-09: production `77bf776b7e69ef4f5ed6ac8f5480710b8edb96f9`, workflow `34360030066` succeeded for all five jobs, including Datomic and Datalevin EC2 releases. All live profile publications match production and core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. Downloaded DataScript artifact digest `35c0b2e3cecec675d500d96ff6179a7565f9184131035168e4413fef6f81d70a` matches its publication. Live DataScript and Datahike/S3 super-user Platforms → platform → Accounts expansion and Next each made exactly one reverse-relationships request, with the parent/type/relation and resource authorization filter, no nested lookup-resources or per-item check-permission requests. Subsequent query-kind labels are separate uncommitted local review changes and were not published.

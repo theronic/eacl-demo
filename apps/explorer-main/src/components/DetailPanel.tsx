@@ -284,6 +284,7 @@ function PermissionSubjects(props: {
         {(envelope: () => ApiSuccess<ObjectPage>) => (
           <>
             <Pagination
+              query="lookup-subjects"
               page={displayedCursors().length + 1}
               canPrevious={displayedCursors().length > 0}
               canNext={envelope().data.pageInfo.hasNextPage}
