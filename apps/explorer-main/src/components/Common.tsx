@@ -64,6 +64,14 @@ export function MetaTiming(props: { meta?: ApiMeta }): JSX.Element {
   );
 }
 
+/** The approved preview's disclosure artwork, kept independent of font glyphs. */
+export function DisclosureIcon(props: { expanded: boolean }): JSX.Element {
+  return <svg class="disclosure-icon" viewBox="0 0 18 18" aria-hidden="true">
+    <rect x="2" y="2" width="14" height="14" rx="3" />
+    <path d={`M5 9h8${props.expanded ? "" : "M9 5v8"}`} />
+  </svg>;
+}
+
 export function DisclosureButton(props: {
   expanded: boolean;
   controls: string;
@@ -79,7 +87,7 @@ export function DisclosureButton(props: {
       onClick={() => props.onClick()}
     >
       <span class="group-card__caret" aria-hidden="true">
-        {props.expanded ? "−" : "+"}
+        <DisclosureIcon expanded={props.expanded} />
       </span>
       {props.children}
     </button>

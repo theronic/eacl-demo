@@ -22,6 +22,7 @@ import type {
 } from "../types";
 import {
   DisclosureButton,
+  DisclosureIcon,
   EmptyState,
   ErrorBlock,
   InlineError,
@@ -169,7 +170,6 @@ function RelationshipGroup(props: {
           app.subjectId(),
           app.permission(),
           app.pageSize(),
-          app.queryGeneration(),
           app.basisGeneration(),
           JSON.stringify([app.consistency(), app.subjectType()]),
         ] as const,
@@ -214,7 +214,9 @@ function RelationshipGroup(props: {
 
   return (
     <div class="relationship-group">
-      <div class="relationship-group__header">
+      <div class="relationship-group__header" onClick={(event) => {
+        if (!(event.target as Element).closest("button, a, input, select")) app.toggleExpanded(key());
+      }}>
         <DisclosureButton
           expanded={expanded()}
           controls={`${key()}-content`}
@@ -338,7 +340,7 @@ function ResourceNode(props: {
             aria-expanded={expanded()}
             onClick={() => app.toggleExpanded(expansionKey())}
           >
-            {expanded() ? "−" : "+"}
+            <DisclosureIcon expanded={expanded()} />
           </button>
         </Show>
         <button
@@ -536,7 +538,6 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
           app.subjectId(),
           app.permission(),
           app.pageSize(),
-          app.queryGeneration(),
           app.basisGeneration(),
           JSON.stringify([app.consistency(), app.subjectType()]),
         ] as const,
@@ -614,7 +615,9 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
 
   return (
     <div class="group-card">
-      <div class="group-card__header">
+      <div class="group-card__header" onClick={(event) => {
+        if (!(event.target as Element).closest("button, a, input, select")) app.toggleExpanded(groupKey());
+      }}>
         <DisclosureButton
           expanded={expanded()}
           controls={`${groupKey()}-content`}

@@ -100,14 +100,14 @@ test("checker inputs retain independence and clear stale results", async ({
     .getByRole("combobox", { name: "can? subject ID", exact: true })
     .fill("user-2");
   await expect(page.locator(".can-permission-footer__decision")).toContainText(
-    "false",
+    "Denied",
   );
   await page
     .getByRole("combobox", { name: "can? subject ID", exact: true })
     .fill("");
   await expect(
     page.locator(".can-permission-footer__decision"),
-  ).not.toContainText("false");
+  ).not.toContainText("Denied");
   await expect(
     page.getByRole("button", { name: "Check Permission", exact: true }),
   ).toBeDisabled();
@@ -248,4 +248,34 @@ test("sibling disclosures do not issue unrelated EACL queries", async ({
     .click();
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => (window as any).__queryCalls)).toEqual([]);
+});
+
+test("approved disclosure, stable type rows, checker labels and explicit tree refresh", async ({page}) => {
+  const servers = page.locator('.group-card').filter({has:page.getByRole('button',{name:'server type Servers',exact:true})});
+  await expect(servers.locator('.resource-button')).toHaveCount(20);
+  const heading=servers.locator('.group-card__header');
+  const height=await heading.evaluate(e=>e.getBoundingClientRect().height);
+  await servers.getByRole('button',{name:'server type Servers',exact:true}).click();
+  expect(await heading.evaluate(e=>e.getBoundingClientRect().height)).toBe(height);
+  // The right-hand padding belongs to the type row, not just its text label.
+  await heading.click({position:{x:(await heading.boundingBox())!.width-3,y:3}});
+  await expect(servers.locator('.resource-button')).toHaveCount(20);
+  expect(await heading.evaluate(e=>e.getBoundingClientRect().height)).toBe(height);
+  await expect(servers.locator('.group-card__caret svg rect')).toHaveAttribute('rx','3');
+  await page.getByRole('button',{name:'Expand account-0-server-0',exact:true}).click();
+  const relation=servers.locator('.relationship-group').filter({hasText:'via :parent'}).first();
+  await relation.locator('button[aria-expanded]').first().click();
+  await expect(relation.locator('.cache-timing')).toBeVisible();
+  await page.evaluate(()=>{const w=window as any;w.__refreshCalls=[];const r=w.EaclDataScriptRuntime;const original=r.request;r.request=function(operation:string,input:any,...rest:any[]){w.__refreshCalls.push({operation,input});return original.call(r,operation,input,...rest)}});
+  await page.getByRole('button',{name:'Re-query',exact:true}).click();
+  await expect.poll(async()=>page.evaluate(()=>(window as any).__refreshCalls.filter((c:any)=>c.operation==='lookup-resources').map((c:any)=>c.input.resourceType))).toEqual(expect.arrayContaining(['account','server']));
+  await expect.poll(async()=>page.evaluate(()=>(window as any).__refreshCalls.map((c:any)=>c.operation))).toEqual(expect.arrayContaining(['count-resources','reverse-relationships']));
+  const footer=page.locator('.can-permission-footer');
+  if(await footer.getByRole('button',{name:'Toggle Check Permission'}).getAttribute('aria-expanded')==='false') await footer.getByRole('button',{name:'Toggle Check Permission'}).click();
+  await expect(footer.locator('label').filter({hasText:'Subject ID'})).toBeVisible();
+  await expect(footer.locator('label').filter({hasText:'Resource ID'})).toBeVisible();
+  await expect(footer.locator('.can-permission-footer__decision')).toContainText('Allowed');
+  const decision=await footer.locator('.can-permission-footer__decision').boundingBox();
+  const header=await footer.locator('.checker-header').boundingBox();
+  expect(decision!.x+decision!.width).toBeCloseTo(header!.x+header!.width,0);
 });

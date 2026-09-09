@@ -1627,13 +1627,13 @@ html {
 }
 .resource-first .resource-node__toggle,
 .resource-first .group-card__caret {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  border: 2px solid var(--muted);
-  border-radius: 5px;
-  background: var(--panel);
-  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   color: var(--accent);
 }
 .resource-first .resource-node__children {
@@ -1730,7 +1730,7 @@ html {
   min-width: 0;
 }
 .resource-first .can-permission-footer select {
-  width: 100px;
+  width: 100%;
   min-width: 0;
 }
 .resource-first .can-permission-footer input,
@@ -1741,7 +1741,7 @@ html {
 }
 .checker-permission {
   display: flex;
-  flex: 0 0 100px;
+  flex: 1 1 160px;
   flex-direction: column;
   gap: 3px;
 }
@@ -1793,3 +1793,30 @@ html {
 .resource-first .cache-switch {
   order: -1;
 }
+
+/* Disclosure geometry is copied from the approved preview, not font-dependent. */
+.disclosure-icon { width: 26px; height: 26px; stroke: var(--muted); fill: var(--panel); stroke-width: 1.1; }
+.disclosure-icon path { stroke: var(--accent); stroke-width: 1.5; }
+.resource-first .group-card__header,
+.resource-first .relationship-group__header { min-height: 48px; cursor: pointer; }
+.resource-first .can-permission-footer__decision { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.resource-first .can-permission-footer__group { flex: 2 1 300px; }
+.resource-first .can-permission-footer__group label { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; color: var(--muted); font-size: 13px; }
+.resource-first .can-permission-footer__group .checker-id { flex: 1.4; }
+.resource-first .can-permission-footer input { width: 100%; }
+@media (max-width: 650px) {
+  .resource-first .group-card__header {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 38px 28px; gap: 4px; min-height: 80px;
+  }
+  .resource-first .group-card__header > .group-card__toggle { grid-column: 1; grid-row: 1; gap: 4px; }
+  .resource-first .group-card__header > .pagination-controls { grid-column: 2; grid-row: 1; width: auto; margin: 0; }
+  .resource-first .group-card__header > .group-card__stats { grid-column: 1 / -1; grid-row: 2; white-space: nowrap; }
+  .resource-first .group-card__header .group-card__title { font-size: 16px; }
+  .resource-first .group-card__header .type-badge { width: 23px; flex-basis: 23px; }
+
+  .resource-first .relationship-group__header { min-height: 96px; align-content: center; }
+  .resource-first .checker-permission { flex: 1 1 160px; }
+}
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
