@@ -174,7 +174,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      SHARED_EC2_INSTANCE_ID: ${{ vars.DATOMIC_DYNAMODB_EC2_INSTANCE_ID }}
+      DATALEVIN_EC2_INSTANCE_ID: ${{ vars.DATALEVIN_EC2_INSTANCE_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
