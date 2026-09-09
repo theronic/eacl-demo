@@ -59,7 +59,7 @@ Resources:
       ImageId: !Ref AmiId
       InstanceType: t3.micro
       IamInstanceProfile: !Ref InstanceProfile
-      CreditSpecification: {CPUCredits: standard}
+      CreditSpecification: {CPUCredits: unlimited}
       MetadataOptions: {HttpEndpoint: enabled, HttpTokens: required, InstanceMetadataTags: enabled}
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
