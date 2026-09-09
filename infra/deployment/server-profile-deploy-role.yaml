@@ -19,6 +19,10 @@ Parameters:
     Type: String
     Default: i-01f2d07f50ad1cb5d
     AllowedPattern: "^i-[0-9a-f]{8,17}$"
+  DatalevinEc2InstanceId:
+    Type: String
+    Default: i-088bcf1a4dd88e165
+    AllowedPattern: "^i-[0-9a-f]{8,17}$"
   ArtifactBucketName:
     Type: String
     AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
@@ -56,7 +60,7 @@ Conditions:
   ServerDeploymentEnabled: !Equals [!Ref Activation, enabled]
   IsDatomicProfile: !Equals [!Ref ProfileId, datomic-dynamodb]
   IsDatalevinProfile: !Equals [!Ref ProfileId, datalevin-memory]
-  UsesSharedEc2: !Or
+  UsesEc2: !Or
     - !Condition IsDatomicProfile
     - !Condition IsDatalevinProfile
   HasComparisonPlatform: !Not [!Equals [!Ref ProfileId, datalevin-memory]]
@@ -163,13 +167,16 @@ Resources:
                     - ComparisonFunctionName: !FindInMap [Profiles, !Ref ProfileId, ComparisonFunction]
                 - !Ref AWS::NoValue
               - !If
-                - UsesSharedEc2
-                - Sid: ReconcileExactSharedEc2Runtime
+                - UsesEc2
+                - Sid: ReconcileExactEc2Runtime
                   Effect: Allow
                   Action: ssm:SendCommand
                   Resource:
                     - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript"
-                    - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DatomicEc2InstanceId}"
+                    - !If
+                      - IsDatalevinProfile
+                      - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DatalevinEc2InstanceId}"
+                      - !Sub "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${DatomicEc2InstanceId}"
                 - !Ref AWS::NoValue
               - Sid: InvalidateExactProfileRegistry
                 Effect: Allow

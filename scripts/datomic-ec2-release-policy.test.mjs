@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [source, deploySource, httpServerSource, depsSource] = await Promise.all([
+const [source, deploySource, httpServerSource, depsSource, datalevinSource] = await Promise.all([
   readFile(new URL("../infra/profiles/datomic-dynamodb-ec2.yaml", import.meta.url), "utf8"),
   readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8"),
   readFile(new URL("../services/datomic-dynamodb/src/eacl_demo/datomic_dynamodb/http_server.clj", import.meta.url), "utf8"),
-  readFile(new URL("../deps.edn", import.meta.url), "utf8")
+  readFile(new URL("../deps.edn", import.meta.url), "utf8"),
+  readFile(new URL("../infra/profiles/datalevin-memory-ec2.yaml", import.meta.url), "utf8")
 ]);
 
 test("the shared persistent host may read only its two immutable profile prefixes", () => {
@@ -20,11 +21,11 @@ test("the shared persistent host may read only its two immutable profile prefixe
 
 test("the SSM release association and runtime command both verify the artifact before restart", () => {
   assert.match(source, /RuntimeArtifactAssociation:[\s\S]*get-object[\s\S]*--version-id[\s\S]*sha256sum --check --strict[\s\S]*systemctl restart eacl-demo-datomic\.service/u);
-  assert.match(source, /DatalevinRuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl enable eacl-demo-datalevin\.service[\s\S]*systemctl restart eacl-demo-datalevin\.service/u);
+  assert.match(datalevinSource, /RuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl enable --now eacl-demo-datalevin\.service/u);
   assert.match(source, /DatalevinViewerCertificate[\s\S]*HTTPPort: 8081[\s\S]*DatalevinViewerRecord/u);
 });
 
-test("one CloudFront prefix-list rule admits both shared-host adapters", () => {
+test("CloudFront reaches each adapter on its own host", () => {
   const ingress = /SecurityGroupIngress:[\s\S]*?(?=\n\s{6}SecurityGroupEgress:)/u.exec(source)?.[0];
   assert.ok(ingress);
   assert.equal((ingress.match(/SourcePrefixListId:/gu) ?? []).length, 1);
@@ -41,15 +42,16 @@ test("the shared t3.micro provisions persistent low-swappiness headroom before s
   assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
 });
 
-test("the one-vCPU Datomic host uses http-kit request tasks around one engine permit", () => {
-  assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=1/gu) ?? []).length, 3);
-  assert.doesNotMatch(source, /EACL_MAXIMUM_CONCURRENCY=4/u);
+test("Datomic EC2 admits four engine requests while Datalevin keeps its independent limit", () => {
+  assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=1/gu) ?? []).length, 0);
+  assert.match(datalevinSource, /EACL_MAXIMUM_CONCURRENCY=1/u);
+  assert.equal((source.match(/EACL_MAXIMUM_CONCURRENCY=4/gu) ?? []).length, 2);
   assert.doesNotMatch(source, /echo "EACL_HTTP_WORKERS=4"/u);
   assert.match(source, /sed -i '\/\^EACL_HTTP_WORKERS=\/d' \/etc\/eacl-demo-datomic\.env/u);
   assert.match(deploySource, /EACL_MAXIMUM_CONCURRENCY=1/u);
-  assert.doesNotMatch(deploySource, /EACL_MAXIMUM_CONCURRENCY=4/u);
+  assert.match(deploySource, /EACL_MAXIMUM_CONCURRENCY=4/u);
   assert.match(deploySource, /\/\^EACL_HTTP_WORKERS=\/d/u);
-  assert.match(deploySource, /limit\?\.name === "admissionConcurrency"[\s\S]*admissionConcurrency !== 1/u);
+  assert.match(deploySource, /limit\?\.name === "admissionConcurrency"[\s\S]*admissionConcurrency !== 4/u);
   assert.match(depsSource, /http-kit\/http-kit \{:mvn\/version "2\.9\.0-beta4"\}/u);
   assert.match(httpServerSource, /\[org\.httpkit\.server :as http-kit\]/u);
   assert.match(httpServerSource, /:pool-opts \{:allow-virtual\? true\}/u);
@@ -73,4 +75,14 @@ test("deployment proves ordinary Datomic engine contention queues instead of ove
   }
   assert.match(deploySource,
     /queued \$\{results\.length\} concurrent mixed engine requests without overload/u);
+});
+
+
+test("Datalevin compute and releases never target or restart the Datomic host", () => {
+  assert.doesNotMatch(datalevinSource, /eacl-demo-datomic\.service|eacl-demo-datomic\.env|dynamodb:GetItem/u);
+  assert.match(datalevinSource, /InstanceType: t3\.micro/u);
+  assert.match(source, /DomainName: datalevin-origin\.demo\.eacl\.dev/u);
+  assert.doesNotMatch(source, /DatalevinRuntimeAssociation:/u);
+  assert.match(deploySource, /deployDatalevinEc2\(release\) \{\n  const instanceId = ec2InstanceId\("DATALEVIN_EC2_INSTANCE_ID"\)/u);
+  assert.doesNotMatch(deploySource, /SHARED_EC2_INSTANCE_ID/u);
 });

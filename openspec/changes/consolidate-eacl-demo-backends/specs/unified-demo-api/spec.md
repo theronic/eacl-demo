@@ -72,7 +72,7 @@ A profile SHALL advertise only modes executable through its production topology.
 ### Requirement: Cancellation deadlines and overload are typed
 Server operations SHALL have bounded deadlines, cancellation, and per-environment resource admission. Production Lambda functions MUST NOT reserve or cap account concurrency, so a cost guard SHALL NOT create `ReservedFunctionConcurrentInvocationLimitExceeded`. Disconnect/cancellation, deadline, storage throttle, and busy admission SHALL remain distinct safe errors where the runtime can distinguish them.
 
-An occupied Datomic shared-EC2 engine permit SHALL NOT by itself constitute busy admission. That topology SHALL wait fairly for the serial engine permit until the request is admitted, cancelled, interrupted, or reaches its deadline. A queued request MUST NOT capture a Datomic database snapshot or consume an engine permit before admission, and ordinary permit contention MUST NOT return `overloaded`.
+An occupied Datomic shared-EC2 engine permit SHALL NOT by itself constitute busy admission. That topology SHALL wait fairly for one of its bounded engine permits until the request is admitted, cancelled, interrupted, or reaches its deadline. A queued request MUST NOT capture a Datomic database snapshot or consume an engine permit before admission, and ordinary permit contention MUST NOT return `overloaded`.
 
 #### Scenario: DynamoDB throttles a read
 - **WHEN** a recognized throttle exhausts bounded deadline-aware retry

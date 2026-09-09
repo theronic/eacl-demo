@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Shared smallest-practical EC2 host for the read-only Datomic/DynamoDB and Datalevin/Embedded demos.
+Description: Datomic EC2 host and public API distributions; Datalevin compute is owned by datalevin-memory-ec2.yaml.
 
 Metadata:
   EaclDemo:
@@ -303,7 +303,7 @@ Resources:
             echo "EACL_DEMO_SHA=${DemoSha}"
             echo "EACL_DEPLOYMENT_ID=${DeploymentId}"
             echo "EACL_HTTP_PORT=8080"
-            echo "EACL_MAXIMUM_CONCURRENCY=1"
+            echo "EACL_MAXIMUM_CONCURRENCY=4"
             echo "EACL_RUNTIME_EXECUTION=ec2"
             echo "EACL_RUNTIME_MEMORY_MIB=1024"
           } > /etc/eacl-demo-datomic.env
@@ -377,100 +377,10 @@ Resources:
           - !Sub "sed -i 's|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${DemoSha}|' /etc/eacl-demo-datomic.env"
           - !Sub "sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
           - "sed -i '/^EACL_HTTP_WORKERS=/d' /etc/eacl-demo-datomic.env"
-          - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|' /etc/eacl-demo-datomic.env"
+          - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|' /etc/eacl-demo-datomic.env"
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-
             for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1
-
-  DatalevinRuntimeAssociation:
-    Type: AWS::SSM::Association
-    DependsOn: [Instance, InstanceRole, DatalevinRuntimeLogGroup]
-    Properties:
-      AssociationName: eacl-demo-datalevin-memory-runtime
-      Name: AWS-RunShellScript
-      Targets:
-        - Key: InstanceIds
-          Values: [!Ref Instance]
-      WaitForSuccessTimeoutSeconds: 900
-      Parameters:
-        commands:
-          - !Sub |
-              set -euo pipefail
-              for attempt in $(seq 1 300); do
-                test -s /etc/eacl-demo-datomic.env && test -s /etc/systemd/system/eacl-demo-datomic.service && break
-                sleep 2
-              done
-              test -s /etc/eacl-demo-datomic.env
-              install -d -m 0755 /opt/eacl-demo /var/log/eacl-demo
-              install -d -m 0700 /var/lib/eacl-demo /var/lib/eacl-demo/datalevin
-              aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${DatalevinArtifactKey} --version-id ${DatalevinArtifactVersion} /opt/eacl-demo/datalevin.jar.next
-              echo "${DatalevinArtifactSha256}  /opt/eacl-demo/datalevin.jar.next" | sha256sum --check --strict
-              install -m 0644 /opt/eacl-demo/datalevin.jar.next /opt/eacl-demo/datalevin.jar
-              cursor_key=$(sed -n 's/^EACL_CURSOR_KEY=//p' /etc/eacl-demo-datalevin.env 2>/dev/null || true)
-              if test $(printf '%s' "$cursor_key" | wc -c) -lt 32; then
-                cursor_key=$(head -c 48 /dev/urandom | base64 | tr -d '\n')
-              fi
-              install -m 0600 /dev/null /etc/eacl-demo-datalevin.env
-              {
-                echo "AWS_LAMBDA_FUNCTION_NAME=eacl-demo-datalevin-memory-ec2"
-                echo "EACL_ARTIFACT_SHA256=${DatalevinArtifactSha256}"
-                echo "EACL_CORE_SHA=${EaclSha}"
-                echo "EACL_CURSOR_KEY=$cursor_key"
-                echo "EACL_DEMO_SHA=${DatalevinDemoSha}"
-                echo "EACL_DEPLOYMENT_ID=${DatalevinDeploymentId}"
-                echo "EACL_DATALEVIN_DIRECTORY=/var/lib/eacl-demo/datalevin"
-                echo "EACL_HTTP_PORT=8081"
-                echo "EACL_HTTP_WORKERS=1"
-                echo "EACL_MAXIMUM_CONCURRENCY=1"
-                echo "EACL_RUNTIME_EXECUTION=ec2"
-                echo "EACL_RUNTIME_MEMORY_MIB=1024"
-              } > /etc/eacl-demo-datalevin.env
-              cat > /etc/systemd/system/eacl-demo-datalevin.service <<'SERVICE'
-              [Unit]
-              Description=EACL read-only Datalevin embedded demo
-              Wants=network-online.target
-              After=network-online.target eacl-demo-datomic.service
-
-              [Service]
-              Type=simple
-              EnvironmentFile=/etc/eacl-demo-datalevin.env
-              ExecStart=/usr/bin/java -Xms64m -Xmx224m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m -XX:+UseG1GC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:G1PeriodicGCInterval=10000 -XX:+ExitOnOutOfMemoryError --enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED -cp /opt/eacl-demo/datalevin.jar clojure.main -m eacl-demo.datalevin-memory.http-server
-              Restart=on-failure
-              RestartSec=3
-              TimeoutStopSec=15
-              MemoryHigh=320M
-              MemoryMax=352M
-              TasksMax=128
-              StandardOutput=append:/var/log/eacl-demo/datalevin.log
-              StandardError=append:/var/log/eacl-demo/datalevin.log
-              NoNewPrivileges=true
-              PrivateTmp=true
-
-              [Install]
-              WantedBy=multi-user.target
-              SERVICE
-              sed -i 's|-Xms384m -Xmx640m|-Xms256m -Xmx512m|' /etc/systemd/system/eacl-demo-datomic.service
-              cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'AGENT'
-              {
-                "agent": {"metrics_collection_interval": 60},
-                "logs": {"logs_collected": {"files": {"collect_list": [
-                  {"file_path": "/var/log/eacl-demo/datomic.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/runtime"},
-                  {"file_path": "/var/log/eacl-demo-bootstrap.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/bootstrap"},
-                  {"file_path": "/var/log/eacl-demo/datalevin.log", "log_group_name": "${DatalevinRuntimeLogGroup}", "log_stream_name": "{instance_id}/runtime"}
-                ]}}}
-              }
-              AGENT
-              /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-              systemctl daemon-reload
-              systemctl restart eacl-demo-datomic.service
-              systemctl enable eacl-demo-datalevin.service
-              systemctl restart eacl-demo-datalevin.service
-              for attempt in $(seq 1 180); do
-                curl --fail --silent -H 'x-eacl-request-id: ec2-datalevin-health' http://127.0.0.1:8081/health >/dev/null && exit 0
-                sleep 2
-              done
-              systemctl status eacl-demo-datalevin.service --no-pager
-              exit 1
 
   InitializationAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -682,11 +592,10 @@ Resources:
 
   DatalevinDistribution:
     Type: AWS::CloudFront::Distribution
-    DependsOn: OriginRecord
     Properties:
       DistributionConfig:
         Aliases: [!Ref DatalevinDomainName]
-        Comment: Persistent Datalevin/Embedded comparison target on the shared host.
+        Comment: Persistent Datalevin/Embedded comparison target on its dedicated host.
         DefaultCacheBehavior:
           AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
           CachePolicyId: !Ref ApiCachePolicy
@@ -705,7 +614,7 @@ Resources:
               OriginProtocolPolicy: http-only
               OriginReadTimeout: 60
               OriginSSLProtocols: [TLSv1.2]
-            DomainName: !Ref OriginDomainName
+            DomainName: datalevin-origin.demo.eacl.dev
             Id: datalevin-ec2
         PriceClass: PriceClass_100
         ViewerCertificate:

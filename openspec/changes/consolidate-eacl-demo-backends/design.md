@@ -461,3 +461,8 @@ No finite planning audit can prove absence of unknown defects. The design attain
 - DynamoDB metrics: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html
 - AWS Budgets: https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html
 - Telegram Bot API: https://core.telegram.org/bots/api
+
+
+### 2026-09-09 EC2 concurrency and host separation
+
+Datomic EC2 now admits four concurrent operations on its t3.micro (two logical vCPUs), preserving the full elapsed measurement including admission wait and snapshot acquisition. The previous single permit caused cheap relationship reads to wait behind resource counts. Datalevin moves to its own t3.micro through `infra/profiles/datalevin-memory-ec2.yaml`; only the VPC/subnet remain shared. Its public CloudFront URL is unchanged, and future Datalevin deployments use a separate instance ID and exact-instance SSM permission. The former Datalevin association on the Datomic host is removed before the old service is disabled. No Lambda admission limits or permission/consistency semantics change.

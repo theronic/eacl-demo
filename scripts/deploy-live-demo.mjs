@@ -294,7 +294,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
 }
 
 async function deployDatomicEc2(release) {
-  const instanceId = sharedEc2InstanceId();
+  const instanceId = ec2InstanceId("DATOMIC_DYNAMODB_EC2_INSTANCE_ID");
   const bucket = required("ARTIFACT_BUCKET");
   const region = required("AWS_REGION");
   const script = [
@@ -302,7 +302,7 @@ async function deployDatomicEc2(release) {
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
-    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote(`s|^EACL_DATOMIC_TABLE=.*|EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
+    `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote(`s|^EACL_DATOMIC_TABLE=.*|EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
     `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
     `grep -Fx -- ${shellQuote(`EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}`)} /etc/eacl-demo-datomic.env.next`,
     "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
@@ -343,7 +343,7 @@ async function deployDatomicEc2(release) {
 }
 
 async function deployDatalevinEc2(release) {
-  const instanceId = sharedEc2InstanceId();
+  const instanceId = ec2InstanceId("DATALEVIN_EC2_INSTANCE_ID");
   const bucket = required("ARTIFACT_BUCKET");
   const region = required("AWS_REGION");
   const script = [
@@ -537,7 +537,7 @@ async function smokeDatomicHistoricalUrl(origin) {
     (limit) => limit?.name === "admissionConcurrency"
   )?.value;
   if (bootstrap.status !== 200 || descriptor?.runtime?.execution !== "ec2" ||
-      admissionConcurrency !== 1 ||
+      admissionConcurrency !== 4 ||
       !descriptor?.capabilities?.consistencyModes?.includes("historical-date") ||
       typeof exactAt !== "string" || !Number.isFinite(Date.parse(exactAt))) {
     throw new Error("datomic-dynamodb EC2 historical bootstrap smoke failed");
@@ -839,11 +839,10 @@ function required(name) {
   return value;
 }
 
-function sharedEc2InstanceId() {
-  const instanceId = process.env.SHARED_EC2_INSTANCE_ID ??
-    process.env.DATOMIC_DYNAMODB_EC2_INSTANCE_ID;
-  if (!/^i-[0-9a-f]{8,17}$/u.test(instanceId ?? "")) {
-    throw new Error("SHARED_EC2_INSTANCE_ID is invalid");
+function ec2InstanceId(variable) {
+  const instanceId = required(variable);
+  if (!/^i-[0-9a-f]{8,17}$/u.test(instanceId)) {
+    throw new Error(`${variable} is invalid`);
   }
   return instanceId;
 }
