@@ -22,6 +22,14 @@ read back and verify schema, logical counts, relationships, exemplars, and the
 accepted manifest digest before it atomically marks the new lifecycle ready.
 Normal merge deployment roles never receive `applyBatch` authority.
 
+The Datahike maintenance seeder explicitly bootstraps fresh v8 storage before
+constructing its EACL client. It creates a native source lifecycle UUID and
+persists it with the seed checkpoint. Resume and reopen reuse that UUID;
+missing lifecycle metadata or a different manifest rejects the resume. A
+replacement physical database must receive a fresh lifecycle, and its serving
+configuration must use the persisted identity. Create Datahike stores with
+`:attribute-refs? true` and `:schema-flexibility :write` before loading data.
+
 The Datomic maintenance path pipes `scripts/stream-fixture-batches.mjs` into
 `eacl-demo.datomic-dynamodb.seed-main`. Each line contains at most one bounded
 batch. The consumer recomputes canonical bytes and SHA-256, enforces exact

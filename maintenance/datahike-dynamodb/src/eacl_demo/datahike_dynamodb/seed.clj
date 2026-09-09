@@ -4,11 +4,12 @@
             [datahike.api :as d]
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
+            [eacl.datahike.storage :as datahike-storage]
             [eacl.relationships.storage :as relationship-storage])
   (:import [java.nio.charset StandardCharsets]
            [java.security MessageDigest]
            [java.time Instant]
-           [java.util Date]))
+           [java.util Date UUID]))
 
 (def ^:private maximum-batch-resources 250)
 (def ^:private maximum-batch-records 1250)
@@ -30,27 +31,33 @@
   [connection {:keys [seed-id manifest-digest schema-source] :as options}]
   (validate-seed-options options)
   (let [existing (checkpoint-state (d/db connection) seed-id)
+        lifecycle (if existing
+                    (:eacl.demo/source-lifecycle existing)
+                    (UUID/randomUUID))
+        _ (when (and existing
+                     (not (and (uuid? lifecycle)
+                               (= manifest-digest (:eacl.demo/manifest-digest existing))
+                               (contains? #{:seeding :ready}
+                                          (:eacl.demo/seed-status existing)))))
+            (fail! :seed-identity-mismatch))
+        _ (when-not existing (datahike-storage/bootstrap! connection))
         client (datahike-eacl/make-client
                 connection
-                {:source-lifecycle {:application :eacl-demo
-                                    :profile :datahike-dynamodb
-                                    :seed-id seed-id}})]
-    (if existing
-      (when-not (and (= manifest-digest (:eacl.demo/manifest-digest existing))
-                     (contains? #{:seeding :ready}
-                                (:eacl.demo/seed-status existing)))
-        (fail! :seed-identity-mismatch))
+                {:source-lifecycle lifecycle})]
+    (when-not existing
       (do
         (eacl/write-schema! client schema-source)
         (d/transact
          connection
          [{:eacl.demo/seed-id seed-id
+           :eacl.demo/source-lifecycle lifecycle
            :eacl.demo/manifest-digest manifest-digest
            :eacl.demo/next-resource-ordinal (long 0)
            :eacl.demo/record-count (long 0)
            :eacl.demo/seed-status :seeding}])))
     {:connection connection
      :client client
+     :source-lifecycle lifecycle
      :seed-id seed-id
      :manifest-digest manifest-digest}))
 
