@@ -284,7 +284,7 @@ export function createProfileApi(
     }
 
     if (url.pathname === "/count-objects") {
-      const result = await wire<{value:number; exact:boolean}>("count-objects", {kind:"relationships", ceiling:1000000}, signal);
+      const result = await wire<{value:number; exact:boolean; estimatedTotal?:number}>("count-objects", {kind:"relationships", ceiling:1000000}, signal);
       return wireEnvelope(result.data!, result) as ApiSuccess<T>;
     }
 

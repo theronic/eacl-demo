@@ -3,11 +3,16 @@
   (:require [clojure.data.json :as json]
             [clojure.java.io :as io]
             [datahike.api :as d]
+            [datahike.datom :as datom]
+            [datahike.constants :as constants]
+            [datahike.db.interface :as dbi]
+            [datahike.index :as index]
             [eacl-demo.contracts.cache-metrics :as cache-metrics]
             [eacl-demo.contracts.http :as http]
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
             [eacl.datahike.core :as datahike-eacl]
+            [eacl.datahike.storage :as datahike-storage]
             [eacl.relationships.storage :as relationship-storage]
             [eacl.secure-format :as secure]
             [eacl.spicedb.consistency :as consistency]))
@@ -20,7 +25,7 @@
 (def ^:private cursor-payload-keys
   #{:version :operation :query :after :basis-id :expires-at-ms})
 
-(declare bounded-scan-count decode-subject-cursor eacl-consistency encode-subject-cursor fail!
+(declare relationship-stat-count bounded-scan-count decode-subject-cursor eacl-consistency encode-subject-cursor fail!
          guarded object-entities object-exists? relationship-datoms
          relationship-query subject-entities subject-page-rows wire-object
          wire-page-info wire-relationship wire-relationship-page)
@@ -247,8 +252,11 @@
         (let [ceiling (or (:ceiling input) default-count-ceiling)
               kind (:kind input)
               type (some-> (:type input) keyword)
-              known-count (when (and (= "objects" kind) (= :server type))
-                            (get-in descriptor [:dataset :serverCount]))
+              known-count (cond
+                            (and (= "objects" kind) (= :server type))
+                            (get-in descriptor [:dataset :serverCount])
+                            (and (= "relationships" kind) (nil? type))
+                            (relationship-stat-count (datahike-eacl/db snapshot)))
               observed
               (or known-count
                   (let [database (datahike-eacl/db snapshot)
@@ -258,10 +266,12 @@
                                  "relationships" (relationship-datoms database type)
                                  (fail! "validation-error"))]
                     (bounded-scan-count values ceiling check-active!)))]
-          {:kind kind
-           :value (min ceiling observed)
-           :exact (<= observed ceiling)
-           :ceiling ceiling})))}))
+          (cond-> {:kind kind
+                   :value (min ceiling observed)
+                   :exact (<= observed ceiling)
+                   :ceiling ceiling}
+            (and (= "relationships" kind) (nil? type) (> observed ceiling))
+            (assoc :estimatedTotal observed)))))}))
 
 (defn- eacl-consistency
   [input]
@@ -471,3 +481,18 @@
 (defn- fail!
   [code]
   (throw (ex-info "Datahike/DynamoDB explorer operation failed." {:code code})))
+
+(defn- relationship-stat-count [database]
+  ;; Older durable trees lack subtree cardinalities. Their completed v8
+  ;; migration already certified a total; read that one metadata record instead.
+  (let [aevt (:aevt database)]
+    (if (index/-has-subtree-counts? aevt)
+      (let [a (dbi/ref-for database relationship-storage/forward-attribute :error-on-missing)]
+        (index/-count-slice aevt
+                            (datom/datom constants/e0 a nil constants/tx0)
+                            (datom/datom constants/emax a nil constants/txmax)
+                            (datom/index-type->cmp-quick :aevt true)))
+      (let [state (datahike-storage/read-state database)]
+        (if (and (= :complete (:phase state)) (nat-int? (:source-count state)))
+          (:source-count state)
+          (fail! "internal-error"))))))

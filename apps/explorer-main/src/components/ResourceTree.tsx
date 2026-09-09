@@ -70,7 +70,7 @@ function RelationshipGroup(props: {
   const app = useAppState();
   const key = () =>
     `relationship:${props.traversal ?? ""}:${resourceKey(props.parent)}:${props.path.resourceType}:${props.path.relation}`;
-  const expanded = () => app.isExpanded(key());
+  const expanded = createMemo(() => app.isExpanded(key()));
   const request = new LatestRequest();
   const [cursors, setCursors] = createSignal<string[]>([]);
   const cursor = () => cursors().at(-1);
@@ -311,7 +311,7 @@ function ResourceNode(props: {
       app.bootstrapData()?.data.schema.childPaths[props.resource.type] ?? [],
   );
   const expansionKey = () => `resource:${props.traversal ?? ""}:${key()}`;
-  const expanded = () => app.isExpanded(expansionKey());
+  const expanded = createMemo(() => app.isExpanded(expansionKey()));
   const selected = () =>
     resourceKey(app.selectedResource() ?? { type: "", id: "" }) === key();
   const nextAncestry = createMemo(
@@ -377,7 +377,7 @@ function ResourceNode(props: {
 function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
   const app = useAppState();
   const groupKey = () => `resource-type:${props.resourceType}`;
-  const expanded = () => app.isExpanded(groupKey());
+  const expanded = createMemo(() => app.isExpanded(groupKey()));
   const supported = () =>
     app
       .bootstrapData()

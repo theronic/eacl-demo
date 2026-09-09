@@ -183,3 +183,69 @@ test("startup and ready states share the header and nested tree indentation", as
   const childBox = await child.boundingBox();
   expect(childBox!.x - parentBox!.x).toBeGreaterThanOrEqual(22);
 });
+
+test("sibling disclosures do not issue unrelated EACL queries", async ({
+  page,
+}) => {
+  await page
+    .getByRole("button", {
+      name: "server type account-0-server-0",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".reverse-result")).toBeVisible();
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__queryCalls = [];
+    const runtime = w.EaclDataScriptRuntime;
+    const original = runtime.request;
+    runtime.request = function (
+      operation: string,
+      input: unknown,
+      ...rest: unknown[]
+    ) {
+      w.__queryCalls.push({ operation, input });
+      return original.call(this, operation, input, ...rest);
+    };
+  });
+  await page
+    .getByRole("button", { name: "Expand account-0-server-0", exact: true })
+    .click();
+  await page
+    .locator(
+      '.resource-tree > .resource-node > .resource-node__row > button[aria-label="Expand account-0-server-1"]',
+    )
+    .click();
+  await page
+    .getByRole("button", { name: "Collapse account-0-server-1", exact: true })
+    .click();
+  // Allow scheduled resource effects to settle; no network or cache call is expected.
+  await page.waitForTimeout(250);
+  expect(await page.evaluate(() => (window as any).__queryCalls)).toEqual([]);
+  const relation = page
+    .locator(".relationship-group")
+    .filter({ hasText: "via :parent" })
+    .first();
+  await relation.locator("button[aria-expanded]").first().click();
+  await expect(relation.locator(".cache-timing")).toBeVisible();
+  const calls = await page.evaluate(() => (window as any).__queryCalls);
+  expect(calls.length).toBeGreaterThan(0);
+  expect(calls.map((call: any) => call.operation)).toContain(
+    "reverse-relationships",
+  );
+  expect(
+    calls.every((call: any) =>
+      ["reverse-relationships", "check-permission"].includes(call.operation),
+    ),
+  ).toBe(true);
+  await page.evaluate(() => {
+    (window as any).__queryCalls = [];
+  });
+  await page
+    .locator(
+      '.resource-tree > .resource-node > .resource-node__row > button[aria-label="Expand account-0-server-1"]',
+    )
+    .click();
+  await page.waitForTimeout(250);
+  expect(await page.evaluate(() => (window as any).__queryCalls)).toEqual([]);
+});

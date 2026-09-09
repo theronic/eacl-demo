@@ -1,3 +1,4 @@
+import { DesignIcon } from "./DesignIcon";
 import {
   createResource,
   createSignal,
@@ -22,7 +23,7 @@ export function Header(): JSX.Element {
   const [relationshipCount] = createResource(
     () => app.bootstrapData()?.meta.revision,
     () =>
-      app.runQuery<{ value: number; exact: boolean }>(
+      app.runQuery<{ value: number; exact: boolean; estimatedTotal?: number }>(
         countRequest,
         "/count-objects",
       ),
@@ -92,7 +93,9 @@ export function Header(): JSX.Element {
               {relationshipCount.error
                 ? "—"
                 : relationshipCount()
-                  ? `${formatInteger(relationshipCount()!.data.value)}${relationshipCount()!.data.exact ? "" : "+"}`
+                  ? relationshipCount()!.data.estimatedTotal !== undefined
+                    ? `≈${formatInteger(relationshipCount()!.data.estimatedTotal!)}`
+                    : `${formatInteger(relationshipCount()!.data.value)}${relationshipCount()!.data.exact ? "" : "+"}`
                   : "…"}
             </strong>
             <span>relationships</span>
@@ -129,7 +132,7 @@ export function Header(): JSX.Element {
               app.setTheme(app.theme() === "dark" ? "light" : "dark")
             }
           >
-            {app.theme() === "dark" ? "☀" : "☾"}
+            <DesignIcon name={app.theme() === "dark" ? "sun" : "moon"} />
           </button>
           <button
             class="view-as-button"
@@ -140,8 +143,10 @@ export function Header(): JSX.Element {
             }}
             aria-haspopup="dialog"
           >
-            <span>View As</span>
-            <strong>{app.subjectId()}</strong>
+            <ViewAsLabel
+              subjectId={app.subjectId()}
+              subjectType={app.subjectType()}
+            />
           </button>
         </div>
         <Show when={seedError()}>
@@ -173,7 +178,10 @@ export function ExplorerHeading(props: { children: JSX.Element }): JSX.Element {
     <>
       <header class="app-header">
         <h1 class="app-title">
-          🦅 EACL <span>Explorer</span>
+          <span class="brand-eagle" aria-hidden="true">
+            🦅
+          </span>{" "}
+          <strong>EACL</strong> <span class="brand-product">Explorer</span>
         </h1>
         <nav class="app-header__sources" aria-label="Source repositories">
           <a href="https://github.com/theronic/eacl">EACL Source ↗</a>
@@ -194,6 +202,28 @@ export function ExplorerHeading(props: { children: JSX.Element }): JSX.Element {
         <a href="https://datalevin.org/">Datalevin</a> or{" "}
         <a href="https://github.com/tonsky/datascript">DataScript</a>.
       </p>
+    </>
+  );
+}
+
+export function ViewAsLabel(props: {
+  subjectId: string;
+  subjectType?: string;
+}): JSX.Element {
+  return (
+    <>
+      <span class="principal-avatar" aria-hidden="true">
+        {props.subjectType && props.subjectType !== "user"
+          ? props.subjectType[0].toUpperCase()
+          : props.subjectId === "super-user"
+            ? "SU"
+            : `U${props.subjectId.match(/^user-(\d+)$/)?.[1] ?? ""}`}
+      </span>
+      <span class="principal-label">
+        <small>View As</small>
+        <strong>{props.subjectId}</strong>
+      </span>
+      <span aria-hidden="true">⌄</span>
     </>
   );
 }

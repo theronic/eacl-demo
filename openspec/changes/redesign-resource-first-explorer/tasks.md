@@ -60,4 +60,14 @@ Validation evidence and the production profile-release behavior are recorded in 
 
 ## 7. Production Release
 
-- [ ] 7.1 Commit/push, merge through main into production, verify the published shared site and each ordinary deployment job, and notify the user.
+- [x] 7.1 Commit/push, merge through main into production, verify the published shared site and each ordinary deployment job, and notify the user.
+
+Release verified on 2026-09-09: production `763807061bf0a2cc3a341bdb9fb81c591eb97a78`, workflow `34351095091` succeeded for all five jobs, including the Datomic and Datalevin EC2 releases. Live profile publications report EACL core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. CI runtime digest `a94b2c69c8794004c257446ed9db3bd3186b9d6b4f4cad09a5efc7d27fb46f6d` matches the downloaded live artifact and publication (the local build digest differs). Live startup and ready headers match; the served JS/CSS have no legacy font names, and browser inspection confirms system typography and 30px nested tree indentation.
+
+## 8. Production Follow-up
+
+- [x] 8.1 Restore the approved preview navbar, count links and straight tab underline; verify desktop/mobile visuals.
+- [x] 8.2 Isolate expansion dependencies and verify sibling disclosures produce no unrelated EACL requests.
+- [x] 8.3 Investigate reported Datahike Lambda startup delay using current deployment and request evidence.
+- [x] 8.4 Replace navbar relationship enumeration with native cardinalities or certified migration totals, label estimates, and verify count paths without relationship datom enumeration.
+- [ ] 8.5 Publish the approved presentation and query/count fixes, then verify the deployed backend counts and design.

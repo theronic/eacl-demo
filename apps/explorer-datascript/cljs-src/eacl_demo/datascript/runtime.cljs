@@ -232,9 +232,9 @@
                 "objects" (count (filter #(and (= "resource" (object-role %))
                                                 (or (nil? type) (= type (:type %))))
                                          (vals (:objects runtime))))
-                "relationships" (count (filter #(or (nil? type)
-                                                      (= type (get-in % [:resource :type])))
-                                               (:relationships runtime))))
+                "relationships" (if type
+                                  (get-in runtime [:relationship-counts type] 0)
+                                  (count (:relationships runtime))))
         ceiling (:ceiling input)
         exact (<= total ceiling)]
     {:kind kind
@@ -415,7 +415,9 @@
              (not (contains? (:objects accumulator) key))) (update :subjects conj object)))
 
     :relationship
-    (update accumulator :relationships conj record)
+    (-> accumulator
+        (update :relationships conj record)
+        (update-in [:relationship-counts (name (get-in record [:resource :type]))] (fnil inc 0)))
 
     accumulator))
 
@@ -442,7 +444,8 @@
                  :captured-at (.toISOString (js/Date.))
                  :objects (:objects accumulator)
                  :subjects (:subjects accumulator)
-                 :relationships (:relationships accumulator)}]
+                 :relationships (:relationships accumulator)
+                 :relationship-counts (:relationship-counts accumulator)}]
     (when-not (eacl/acl? client)
       (throw (js/Error. "EACL DataScript adapter did not restore an authorization client.")))
     runtime))

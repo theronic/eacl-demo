@@ -37,6 +37,14 @@ test("root restores once, seeds additively, invalidates cursors, and refreshes t
   expect(after.basis.id).not.toBe(before.basis.id);
   expect((await request(page, "list-subjects", { pageSize: 1, cursor })).error.code).toBe("cursor-invalid");
   expect((await request(page, "count-objects", { kind: "objects", ceiling: 100000 })).data.value).toBe(11500);
+  const relationshipTotal = (await request(page, "count-objects", { kind: "relationships", ceiling: 1000000 })).data.value;
+  let typedTotal = 0;
+  for (const type of ["account", "platform", "server", "team", "vpc"]) {
+    typedTotal += (await request(page, "count-objects", { kind: "relationships", type, ceiling: 1000000 })).data.value;
+  }
+  expect(typedTotal).toBe(relationshipTotal);
+  expect(relationshipTotal).toBeGreaterThan(38613);
+  await expect(page.locator(".navbar-count").nth(1)).toContainText(relationshipTotal.toLocaleString("en-US"));
   await expect(page.locator(".navbar-count").first()).toContainText("11,500");
   expect((await request(page, "get-object", addedResource)).data.object).toMatchObject(addedResource);
   expect((await request(page, "check-permission", {

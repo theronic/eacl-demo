@@ -272,3 +272,11 @@
         (finally
           (d/release connection)
           (d/delete-database uri))))))
+
+(deftest relationship-inventory-reads-one-certified-metadata-record-test
+  (let [handlers (operations/create-handlers {:descriptor descriptor :cursor-key cursor-key})]
+    (with-redefs [eacl.datomic.core/db (constantly ::database)
+                  eacl.datomic.storage/read-state (constantly {:phase :complete :source-count 3872112})
+                  d/datoms (fn [& _] (throw (ex-info "must not enumerate relationships" {})))]
+      (is (= {:kind "relationships" :value 1000000 :exact false :ceiling 1000000 :estimatedTotal 3872112}
+             (invoke handlers "count-objects" ::snapshot {:kind "relationships" :ceiling 1000000}))))))

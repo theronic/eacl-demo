@@ -49,7 +49,7 @@
     },
     "count": {
       "type": "object", "additionalProperties": false, "required": ["kind", "value", "exact", "ceiling"],
-      "properties": {"kind": {"enum": ["subjects", "objects", "relationships"]}, "value": {"type": "integer", "minimum": 0}, "exact": {"type": "boolean"}, "ceiling": {"type": ["integer", "null"], "minimum": 1}}
+      "properties": {"kind": {"enum": ["subjects", "objects", "relationships"]}, "value": {"type": "integer", "minimum": 0}, "exact": {"type": "boolean"}, "estimatedTotal": {"type": "integer", "minimum": 0}, "ceiling": {"type": ["integer", "null"], "minimum": 1}}
     },
     "permissionDecision": {
       "type": "object", "additionalProperties": false, "required": ["allowed"],

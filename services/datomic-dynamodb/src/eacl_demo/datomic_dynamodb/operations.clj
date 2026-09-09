@@ -8,6 +8,7 @@
             [eacl-demo.contracts.response-meta :as response-meta]
             [eacl.core :as eacl]
             [eacl.datomic.core :as datomic-eacl]
+            [eacl.datomic.storage :as datomic-storage]
             [eacl.relationships.storage :as relationship-storage]
             [eacl.secure-format :as secure]
             [eacl.spicedb.consistency :as consistency]))
@@ -254,8 +255,14 @@
         (let [ceiling (or (:ceiling input) default-count-ceiling)
               kind (:kind input)
               type (some-> (:type input) keyword)
-              known-count (when (and (= "objects" kind) (= :server type))
-                            (get-in descriptor [:dataset :serverCount]))
+              known-count (cond
+                            (and (= "objects" kind) (= :server type))
+                            (get-in descriptor [:dataset :serverCount])
+                            (and (= "relationships" kind) (nil? type))
+                            (let [state (datomic-storage/read-state (datomic-eacl/db snapshot))]
+                              (if (and (= :complete (:phase state)) (nat-int? (:source-count state)))
+                                (:source-count state)
+                                (fail! "internal-error"))))
               observed
               (or known-count
                   (let [database (datomic-eacl/db snapshot)
@@ -265,10 +272,12 @@
                                  "relationships" (relationship-datoms database type)
                                  (fail! "validation-error"))]
                     (bounded-scan-count values ceiling check-active!)))]
-          {:kind kind
-           :value (min ceiling observed)
-           :exact (<= observed ceiling)
-           :ceiling ceiling})))}))
+          (cond-> {:kind kind
+                   :value (min ceiling observed)
+                   :exact (<= observed ceiling)
+                   :ceiling ceiling}
+            (and (= "relationships" kind) (nil? type) (> observed ceiling))
+            (assoc :estimatedTotal observed)))))}))
 
 (defn- eacl-consistency
   [input]

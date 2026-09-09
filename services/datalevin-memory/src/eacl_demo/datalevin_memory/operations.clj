@@ -351,28 +351,30 @@
               (with-snapshot-db
                 snapshot
                 (fn [database]
-                  (let [values
-                        (case (:kind input)
-                          "subjects"
-                          (if type
-                            (filter (fn [datom]
-                                      (= type (:demo/type
-                                               (d/entity database (:e datom)))))
-                                    (d/datoms database :ave
-                                              :demo/roles :subject))
-                            (d/datoms database :ave :demo/roles :subject))
-                          "objects"
-                          (if type
-                            (d/datoms database :ave :demo/type type)
-                            (d/datoms database :ave :demo/type))
-                          "relationships"
-                          (let [datoms
-                                (d/datoms database :ave
-                                          relationship-storage/forward-attribute)]
+                  (if (and (= "relationships" (:kind input)) (nil? type))
+                    (d/count-datoms database nil relationship-storage/forward-attribute nil)
+                    (let [values
+                          (case (:kind input)
+                            "subjects"
                             (if type
-                              (filter #(= type (nth (:v %) 2)) datoms)
-                              datoms))
-                          (fail! "validation-error"))]
-                    (bounded-scan-count values ceiling check-active!))))]
+                              (filter (fn [datom]
+                                        (= type (:demo/type
+                                                 (d/entity database (:e datom)))))
+                                      (d/datoms database :ave
+                                                :demo/roles :subject))
+                              (d/datoms database :ave :demo/roles :subject))
+                            "objects"
+                            (if type
+                              (d/datoms database :ave :demo/type type)
+                              (d/datoms database :ave :demo/type))
+                            "relationships"
+                            (let [datoms
+                                  (d/datoms database :ave
+                                            relationship-storage/forward-attribute)]
+                              (if type
+                                (filter #(= type (nth (:v %) 2)) datoms)
+                                datoms))
+                            (fail! "validation-error"))]
+                      (bounded-scan-count values ceiling check-active!)))))]
           {:kind (:kind input) :value (min ceiling observed)
            :exact (<= observed ceiling) :ceiling ceiling})))}))

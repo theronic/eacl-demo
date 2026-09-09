@@ -206,3 +206,9 @@ View As SHALL be the rightmost navbar control with the theme control immediately
 #### Scenario: Backend changes during local seeding
 - **WHEN** the visitor chooses another backend while DataScript seeding is active
 - **THEN** backend choices SHALL stay enabled, the production profile-release lifecycle SHALL cancel the old browser job and release its page-local data, and results SHALL NOT be presented as data from the newly selected backend
+
+### Requirement: Query Dependencies Are Local
+Expanding or collapsing a sibling node SHALL NOT rerun unrelated resource lookups, relationship lookups, counts, or inspector queries. Each disclosure's boolean state SHALL be isolated from the shared expansion collection before feeding query sources.
+
+### Requirement: Fast Relationship Inventory
+The navbar SHALL show relationship totals for all supported backends without materializing the relationship collection. DataScript SHALL maintain type totals during seeding and use its existing vector cardinality for the total. Datalevin SHALL use native attribute size. Datahike SHALL use subtree cardinality where supported and otherwise the completed migration certificate. The immutable Datomic demo SHALL use its completed migration certificate. A large certified total SHALL be exposed as an optional estimatedTotal alongside the existing bounded count result and labelled with ≈ in the navbar. These inventory estimates SHALL NOT replace authorization counts or change consistency modes.

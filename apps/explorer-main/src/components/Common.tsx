@@ -1,3 +1,4 @@
+import { DesignIcon } from "./DesignIcon";
 import { Show, type Accessor, type JSX } from "solid-js";
 import { formatInteger, formatMilliseconds } from "../format";
 import type { ApiMeta, CacheStatus } from "../types";
@@ -12,7 +13,12 @@ export function identifierLabel(value: string | undefined): string {
 
 export function TypeBadge(props: { type: string }): JSX.Element {
   return (
-    <span class={`type-badge type-${props.type}`} aria-label={`${props.type} type`} />
+    <span
+      class={`type-badge type-${props.type}`}
+      aria-label={`${props.type} type`}
+    >
+      {props.type === "user" ? "U" : <DesignIcon name={props.type} />}
+    </span>
   );
 }
 
@@ -23,7 +29,8 @@ export function CacheTiming(props: {
 }): JSX.Element {
   return (
     <Show when={props.status || props.elapsedMs !== undefined}>
-      <span title={props.title}
+      <span
+        title={props.title}
         class={`cache-timing cache-badge${
           props.status ? ` cache-badge--${props.status}` : ""
         }`}
@@ -34,7 +41,9 @@ export function CacheTiming(props: {
           </span>
         </Show>
         <Show when={props.status}>
-          {(status) => <span class="cache-timing__status">{status().toUpperCase()}</span>}
+          {(status) => (
+            <span class="cache-timing__status">{status().toUpperCase()}</span>
+          )}
         </Show>
       </span>
     </Show>
@@ -42,7 +51,17 @@ export function CacheTiming(props: {
 }
 
 export function MetaTiming(props: { meta?: ApiMeta }): JSX.Element {
-  return <CacheTiming title={props.meta ? `Request: ${props.meta.requestId} · Basis: ${props.meta.basis?.id ?? props.meta.revision}` : undefined} status={props.meta?.cacheStatus} elapsedMs={props.meta?.elapsedMs} />;
+  return (
+    <CacheTiming
+      title={
+        props.meta
+          ? `Request: ${props.meta.requestId} · Basis: ${props.meta.basis?.id ?? props.meta.revision}`
+          : undefined
+      }
+      status={props.meta?.cacheStatus}
+      elapsedMs={props.meta?.elapsedMs}
+    />
+  );
 }
 
 export function DisclosureButton(props: {
@@ -152,7 +171,11 @@ export function ErrorBlock(props: {
           )}
         </Show>
         <Show when={props.retry}>
-          <button type="button" class="retry-button" onClick={() => props.retry?.()}>
+          <button
+            type="button"
+            class="retry-button"
+            onClick={() => props.retry?.()}
+          >
             Retry
           </button>
         </Show>
@@ -188,7 +211,9 @@ export function LoadingBlock(props: {
   refreshing?: Accessor<boolean>;
 }): JSX.Element {
   const status = () =>
-    props.refreshing?.() ? `Refreshing ${props.label}` : `Loading ${props.label}`;
+    props.refreshing?.()
+      ? `Refreshing ${props.label}`
+      : `Loading ${props.label}`;
   return (
     <div
       class="loading-block"
