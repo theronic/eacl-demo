@@ -234,6 +234,7 @@ function RelationshipGroup(props: {
             <>
               {" "}
               <Pagination
+                query="read-relationships"
                 page={displayedCursors().length + 1}
                 canPrevious={displayedCursors().length > 0}
                 canNext={envelope().data.pageInfo.hasNextPage}
@@ -731,6 +732,7 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
             <>
               {" "}
               <Pagination
+                query="lookup-resources"
                 page={displayedCursors().length + 1}
                 canPrevious={displayedCursors().length > 0}
                 canNext={envelope().data.pageInfo.hasNextPage}

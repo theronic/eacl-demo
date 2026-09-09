@@ -95,6 +95,7 @@ export function DisclosureButton(props: {
 }
 
 export function Pagination(props: {
+  query?: string;
   page: number;
   canPrevious: boolean;
   canNext: boolean;
@@ -107,6 +108,7 @@ export function Pagination(props: {
   const busy = () => props.busy || Boolean(props.busyAction);
   return (
     <div class="pagination-controls" aria-label="Pagination" aria-busy={busy()}>
+      <Show when={props.query}><code class="query-kind">{props.query}</code></Show>
       <button
         type="button"
         class="pagination-button"
