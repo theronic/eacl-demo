@@ -1160,7 +1160,7 @@ const schema33 = {"$schema":"https://json-schema.org/draft/2020-12/schema","$id"
 const schema35 = {"type":"object","additionalProperties":false,"required":["meta","data"],"properties":{"meta":{"$ref":"#/$defs/responseMeta"},"data":{"anyOf":[{"$ref":"#/$defs/health"},{"$ref":"#/$defs/bootstrap"},{"$ref":"#/$defs/objectPage"},{"$ref":"#/$defs/objectResult"},{"$ref":"#/$defs/relationshipPage"},{"$ref":"#/$defs/permissionDecision"},{"$ref":"#/$defs/count"},{"$ref":"#/$defs/schema"},{"$ref":"#/$defs/cacheInfo"}]}}};
 const schema36 = {"type":"object","additionalProperties":false,"required":["revision","requestId"],"properties":{"revision":{"type":"string","minLength":1,"maxLength":256},"requestId":{"type":"string","minLength":1,"maxLength":128},"elapsedMs":{"type":"number","minimum":0},"cacheStatus":{"enum":["hit","miss","disabled"]}}};
 const schema65 = {"type":"object","additionalProperties":false,"required":["allowed"],"properties":{"allowed":{"type":"boolean"}}};
-const schema66 = {"type":"object","additionalProperties":false,"required":["kind","value","exact","ceiling"],"properties":{"kind":{"enum":["subjects","objects","relationships"]},"value":{"type":"integer","minimum":0},"exact":{"type":"boolean"},"ceiling":{"type":["integer","null"],"minimum":1}}};
+const schema66 = {"type":"object","additionalProperties":false,"required":["kind","value","exact","ceiling"],"properties":{"kind":{"enum":["subjects","objects","relationships"]},"value":{"type":"integer","minimum":0},"exact":{"type":"boolean"},"estimatedTotal":{"type":"integer","minimum":0},"ceiling":{"type":["integer","null"],"minimum":1}}};
 const schema37 = {"type":"object","additionalProperties":false,"required":["status","ready","identity","basis"],"properties":{"status":{"enum":["ready","starting","degraded","unavailable"]},"ready":{"type":"boolean"},"identity":{"$ref":"#/$defs/identity"},"basis":{"anyOf":[{"$ref":"#/$defs/basis"},{"type":"null"}]}}};
 const schema43 = {"type":"object","additionalProperties":false,"required":["behavior","id","capturedAt","fixedForEnvironment"],"properties":{"behavior":{"enum":["fixed-environment","request-snapshot","page-lifecycle","rebuild-lifecycle"]},"id":{"type":"string","minLength":1,"maxLength":256},"capturedAt":{"type":"string","format":"date-time"},"fixedForEnvironment":{"type":"boolean"}}};
 const schema38 = {"type":"object","additionalProperties":false,"required":["profileId","demoSha","eaclSha","artifactSha256","deploymentId","dataManifestSha256"],"properties":{"profileId":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"demoSha":{"$ref":"#/$defs/sha1"},"eaclSha":{"$ref":"#/$defs/sha1"},"artifactSha256":{"$ref":"#/$defs/sha256"},"deploymentId":{"type":"string","minLength":1,"maxLength":256},"dataManifestSha256":{"$ref":"#/$defs/sha256"}}};
@@ -6217,7 +6217,7 @@ vErrors.push(err23);
 errors++;
 }
 for(const key3 in data5){
-if(!((((key3 === "kind") || (key3 === "value")) || (key3 === "exact")) || (key3 === "ceiling"))){
+if(!(((((key3 === "kind") || (key3 === "value")) || (key3 === "exact")) || (key3 === "estimatedTotal")) || (key3 === "ceiling"))){
 const err24 = {instancePath:instancePath+"/data",schemaPath:"#/$defs/count/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key3},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err24];
@@ -6278,10 +6278,10 @@ vErrors.push(err28);
 errors++;
 }
 }
-if(data5.ceiling !== undefined){
-let data10 = data5.ceiling;
-if((!(((typeof data10 == "number") && (!(data10 % 1) && !isNaN(data10))) && (isFinite(data10)))) && (data10 !== null)){
-const err29 = {instancePath:instancePath+"/data/ceiling",schemaPath:"#/$defs/count/properties/ceiling/type",keyword:"type",params:{type: schema66.properties.ceiling.type},message:"must be integer,null"};
+if(data5.estimatedTotal !== undefined){
+let data10 = data5.estimatedTotal;
+if(!(((typeof data10 == "number") && (!(data10 % 1) && !isNaN(data10))) && (isFinite(data10)))){
+const err29 = {instancePath:instancePath+"/data/estimatedTotal",schemaPath:"#/$defs/count/properties/estimatedTotal/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err29];
 }
@@ -6291,8 +6291,8 @@ vErrors.push(err29);
 errors++;
 }
 if((typeof data10 == "number") && (isFinite(data10))){
-if(data10 < 1 || isNaN(data10)){
-const err30 = {instancePath:instancePath+"/data/ceiling",schemaPath:"#/$defs/count/properties/ceiling/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(data10 < 0 || isNaN(data10)){
+const err30 = {instancePath:instancePath+"/data/estimatedTotal",schemaPath:"#/$defs/count/properties/estimatedTotal/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
 if(vErrors === null){
 vErrors = [err30];
 }
@@ -6303,14 +6303,39 @@ errors++;
 }
 }
 }
-}
-else {
-const err31 = {instancePath:instancePath+"/data",schemaPath:"#/$defs/count/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(data5.ceiling !== undefined){
+let data11 = data5.ceiling;
+if((!(((typeof data11 == "number") && (!(data11 % 1) && !isNaN(data11))) && (isFinite(data11)))) && (data11 !== null)){
+const err31 = {instancePath:instancePath+"/data/ceiling",schemaPath:"#/$defs/count/properties/ceiling/type",keyword:"type",params:{type: schema66.properties.ceiling.type},message:"must be integer,null"};
 if(vErrors === null){
 vErrors = [err31];
 }
 else {
 vErrors.push(err31);
+}
+errors++;
+}
+if((typeof data11 == "number") && (isFinite(data11))){
+if(data11 < 1 || isNaN(data11)){
+const err32 = {instancePath:instancePath+"/data/ceiling",schemaPath:"#/$defs/count/properties/ceiling/minimum",keyword:"minimum",params:{comparison: ">=", limit: 1},message:"must be >= 1"};
+if(vErrors === null){
+vErrors = [err32];
+}
+else {
+vErrors.push(err32);
+}
+errors++;
+}
+}
+}
+}
+else {
+const err33 = {instancePath:instancePath+"/data",schemaPath:"#/$defs/count/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err33];
+}
+else {
+vErrors.push(err33);
 }
 errors++;
 }
@@ -6321,24 +6346,24 @@ if(props0 !== true){
 props0 = true;
 }
 }
-const _errs37 = errors;
+const _errs39 = errors;
 if(!(validate45(data5, {instancePath:instancePath+"/data",parentData:data,parentDataProperty:"data",rootData,dynamicAnchors}))){
 vErrors = vErrors === null ? validate45.errors : vErrors.concat(validate45.errors);
 errors = vErrors.length;
 }
-var _valid0 = _errs37 === errors;
+var _valid0 = _errs39 === errors;
 valid3 = valid3 || _valid0;
 if(_valid0){
 if(props0 !== true){
 props0 = true;
 }
 }
-const _errs38 = errors;
+const _errs40 = errors;
 if(!(validate53(data5, {instancePath:instancePath+"/data",parentData:data,parentDataProperty:"data",rootData,dynamicAnchors}))){
 vErrors = vErrors === null ? validate53.errors : vErrors.concat(validate53.errors);
 errors = vErrors.length;
 }
-var _valid0 = _errs38 === errors;
+var _valid0 = _errs40 === errors;
 valid3 = valid3 || _valid0;
 if(_valid0){
 if(props0 !== true){
@@ -6346,12 +6371,12 @@ props0 = true;
 }
 }
 if(!valid3){
-const err32 = {instancePath:instancePath+"/data",schemaPath:"#/properties/data/anyOf",keyword:"anyOf",params:{},message:"must match a schema in anyOf"};
+const err34 = {instancePath:instancePath+"/data",schemaPath:"#/properties/data/anyOf",keyword:"anyOf",params:{},message:"must match a schema in anyOf"};
 if(vErrors === null){
-vErrors = [err32];
+vErrors = [err34];
 }
 else {
-vErrors.push(err32);
+vErrors.push(err34);
 }
 errors++;
 }
@@ -6369,12 +6394,12 @@ vErrors = null;
 }
 }
 else {
-const err33 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+const err35 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
 if(vErrors === null){
-vErrors = [err33];
+vErrors = [err35];
 }
 else {
-vErrors.push(err33);
+vErrors.push(err35);
 }
 errors++;
 }

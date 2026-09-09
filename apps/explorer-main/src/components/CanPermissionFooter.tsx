@@ -169,16 +169,37 @@ export function CanPermissionFooter(
       class="can-permission-footer"
       aria-label="Arbitrary EACL permission check"
     >
-      <button
-        class="checker-heading"
-        aria-expanded={expanded()}
-        onClick={() => setExpanded(!expanded())}
-      >
-        {expanded() ? "−" : "+"} Check Permission
-      </button>
+      <header class="checker-header">
+        <button
+          class="checker-heading"
+          aria-label="Toggle Check Permission"
+          aria-expanded={expanded()}
+          onClick={() => setExpanded(!expanded())}
+        >
+          <span aria-hidden="true">{expanded() ? "−" : "+"}</span> Check
+          Permission
+        </button>
+        <span class="can-permission-footer__decision" aria-live="polite">
+          =&gt;{" "}
+          <Show when={result()} fallback="—">
+            {(envelope) => (
+              <strong
+                class={
+                  envelope().data.allowed
+                    ? "decision-allowed"
+                    : "decision-denied"
+                }
+              >
+                {String(envelope().data.allowed)}
+              </strong>
+            )}
+          </Show>
+        </span>
+        <MetaTiming meta={result()?.meta} />
+      </header>
       <div class="can-permission-footer__query" hidden={!expanded()}>
-        <span class="can-permission-footer__group">
-          <span class="can-permission-footer__label">Subject:</span>
+        <fieldset class="can-permission-footer__group">
+          <legend>Subject</legend>
           <select
             aria-label="can? subject type"
             value={subjectType()}
@@ -197,18 +218,21 @@ export function CanPermissionFooter(
           <datalist id="can-permission-subject-ids">
             <For each={subjectIds()}>{(id) => <option value={id} />}</For>
           </datalist>
-        </span>
-        <select
-          aria-label="can? permission"
-          value={permission()}
-          onChange={(event) => setPermission(event.currentTarget.value)}
-        >
-          <For each={permissions()}>
-            {(name) => <option value={name}>{name}</option>}
-          </For>
-        </select>
-        <span class="can-permission-footer__group">
-          <span class="can-permission-footer__label">Resource:</span>
+        </fieldset>
+        <label class="checker-permission">
+          Permission
+          <select
+            aria-label="can? permission"
+            value={permission()}
+            onChange={(event) => setPermission(event.currentTarget.value)}
+          >
+            <For each={permissions()}>
+              {(name) => <option value={name}>{name}</option>}
+            </For>
+          </select>
+        </label>
+        <fieldset class="can-permission-footer__group">
+          <legend>Resource</legend>
           <select
             aria-label="can? resource type"
             value={resourceType()}
@@ -227,25 +251,8 @@ export function CanPermissionFooter(
           <datalist id="can-permission-resource-ids">
             <For each={resourceIds()}>{(id) => <option value={id} />}</For>
           </datalist>
-        </span>
+        </fieldset>
 
-        <span class="can-permission-footer__decision" aria-live="polite">
-          =&gt;{" "}
-          <Show when={result()} fallback="—">
-            {(envelope) => (
-              <strong
-                class={
-                  envelope().data.allowed
-                    ? "decision-allowed"
-                    : "decision-denied"
-                }
-              >
-                {String(envelope().data.allowed)}
-              </strong>
-            )}
-          </Show>
-        </span>
-        <MetaTiming meta={result()?.meta} />
         <button
           type="button"
           class="can-permission-footer__button"

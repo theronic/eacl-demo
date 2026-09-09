@@ -1,4 +1,5 @@
-import { ExplorerHeading } from "./components/Header";
+import { DesignIcon } from "./components/DesignIcon";
+import { ExplorerHeading, ViewAsLabel } from "./components/Header";
 import {
   createMemo,
   createSignal,
@@ -384,11 +385,13 @@ function StandaloneExplorer(props: {
             }
             onClick={toggleTheme}
           >
-            {theme() === "dark" ? "☀" : "☾"}
+            <DesignIcon name={theme() === "dark" ? "sun" : "moon"} />
           </button>
           <button class="view-as-button" disabled>
-            <span>View As</span>
-            <strong>{readPreferences().subjectId}</strong>
+            <ViewAsLabel
+              subjectId={readPreferences().subjectId}
+              subjectType={readPreferences().subjectType}
+            />
           </button>
         </div>
       </ExplorerHeading>

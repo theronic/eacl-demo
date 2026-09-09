@@ -131,6 +131,8 @@
                          :cursor-key cursor-key
                          :clock (constantly 1787702400000)})]
           (try
+            (with-redefs [d/datoms (fn [& _] (throw (ex-info "must not enumerate datoms" {})))]
+              (is (= 1 (:value (invoke handlers "count-objects" snapshot {:kind "relationships" :ceiling 1000})))))
             (let [later-basis (assoc public-basis :id "datahike:test:test:43")]
               (is (= later-basis
                      (:basis ((get handlers "bootstrap")
@@ -276,3 +278,12 @@
       (finally
         (d/release connection)
         (d/delete-database database-config)))))
+
+(deftest relationship-inventory-uses-certified-metadata-without-enumeration-test
+  (let [handlers (operations/create-handlers {:descriptor descriptor :cursor-key cursor-key})]
+    (with-redefs [datahike-eacl/db (constantly {:aevt ::old-index})
+                  datahike.index/-has-subtree-counts? (constantly false)
+                  eacl.datahike.storage/read-state (constantly {:phase :complete :source-count 3872112})
+                  d/datoms (fn [& _] (throw (ex-info "must not enumerate relationships" {})))]
+      (is (= {:kind "relationships" :value 1000000 :exact false :ceiling 1000000 :estimatedTotal 3872112}
+             (invoke handlers "count-objects" ::snapshot {:kind "relationships" :ceiling 1000000}))))))
