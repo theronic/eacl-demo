@@ -14,14 +14,12 @@ test("resource-first selection, counts, cache, typed picker and pagination", asy
     page.getByRole("spinbutton", { name: "Additional resources" }),
   ).toHaveValue("10000");
   await expect(page.locator(".navbar-count").nth(1)).toContainText("38,613");
-  const servers = page
-    .locator(".group-card")
-    .filter({
-      has: page.getByRole("button", {
-        name: "server type Servers",
-        exact: true,
-      }),
-    });
+  const servers = page.locator(".group-card").filter({
+    has: page.getByRole("button", {
+      name: "server type Servers",
+      exact: true,
+    }),
+  });
   await expect(servers.locator(".resource-button")).toHaveCount(20);
   await page
     .getByRole("button", {
@@ -58,6 +56,10 @@ test("resource-first selection, counts, cache, typed picker and pagination", asy
   await servers
     .getByRole("button", { name: "Next", exact: true })
     .scrollIntoViewIfNeeded();
+  // Center the target above the floating checker before measuring a user click.
+  await servers
+    .getByRole("button", { name: "Next", exact: true })
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
   const scrollBefore = await page.evaluate(() => scrollY);
   await servers.getByRole("button", { name: "Next", exact: true }).click();
   await expect(servers.locator(".group-card__range")).toHaveText("21–40");
@@ -132,4 +134,52 @@ test("connected light and dark layouts remain accessible", async ({
       fullPage: true,
     });
   }
+});
+
+test("startup and ready states share the header and nested tree indentation", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/registry/profiles/*.json", async (route) => {
+    await held;
+    await route.fallback();
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".app-title")).toHaveText("🦅 EACL Explorer");
+  const subtitle = await page.locator(".app-subtitle").textContent();
+  expect(subtitle).toContain("is a situated");
+  const font = await page
+    .locator(".app-shell")
+    .evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(font).not.toMatch(/Space Grotesk|IBM Plex/i);
+  release();
+  await expect(
+    page.getByRole("button", { name: "Seed Data", exact: true }),
+  ).toBeEnabled();
+  await expect(page.locator(".app-subtitle")).toHaveText(subtitle!);
+  expect(
+    await page
+      .locator(".app-shell")
+      .evaluate((el) => getComputedStyle(el).fontFamily),
+  ).toBe(font);
+  const node = page
+    .locator(".resource-node")
+    .filter({
+      has: page.getByRole("button", {
+        name: "server type account-0-server-0",
+        exact: true,
+      }),
+    })
+    .first();
+  await node
+    .locator(":scope > .resource-node__row > .resource-node__toggle")
+    .click();
+  const child = node.locator(":scope > .resource-node__children");
+  await expect(child).toBeVisible();
+  const parentBox = await node.boundingBox();
+  const childBox = await child.boundingBox();
+  expect(childBox!.x - parentBox!.x).toBeGreaterThanOrEqual(22);
 });

@@ -81,14 +81,7 @@ export function Header(): JSX.Element {
 
   return (
     <>
-      <header class="app-header">
-        <h1 class="app-title">
-          🦅 EACL <span>Explorer</span>
-        </h1>
-        <nav class="app-header__sources" aria-label="Source repositories">
-          <a href="https://github.com/theronic/eacl">EACL Source ↗</a>
-          <a href="https://github.com/theronic/eacl-demo">Demo Source ↗</a>
-        </nav>
+      <ExplorerHeading>
         <div class="app-header__controls">
           <div class="navbar-count">
             <strong>{ready() ? formatInteger(resourceTotal()) : "—"}</strong>
@@ -154,7 +147,7 @@ export function Header(): JSX.Element {
         <Show when={seedError()}>
           {(error) => <ErrorBlock error={error()} />}
         </Show>
-      </header>
+      </ExplorerHeading>
       <dialog
         class="view-as-dialog"
         ref={picker}
@@ -171,6 +164,23 @@ export function Header(): JSX.Element {
           <SubjectsPanel onSelect={() => picker.close()} />
         </Show>
       </dialog>
+    </>
+  );
+}
+
+export function ExplorerHeading(props: { children: JSX.Element }): JSX.Element {
+  return (
+    <>
+      <header class="app-header">
+        <h1 class="app-title">
+          🦅 EACL <span>Explorer</span>
+        </h1>
+        <nav class="app-header__sources" aria-label="Source repositories">
+          <a href="https://github.com/theronic/eacl">EACL Source ↗</a>
+          <a href="https://github.com/theronic/eacl-demo">Demo Source ↗</a>
+        </nav>
+        {props.children}
+      </header>
       <p class="app-subtitle">
         <a href="https://github.com/theronic/eacl">EACL</a> is a situated{" "}
         <a href="https://en.wikipedia.org/wiki/Relationship-based_access_control">

@@ -1,3 +1,4 @@
+import { ExplorerHeading } from "./components/Header";
 import {
   createMemo,
   createSignal,
@@ -90,18 +91,29 @@ const catalog = catalogData as {
 };
 
 export default function App(): JSX.Element {
-  const initialBackend = catalog.backends.find(({ id }) => id === catalog.defaultBackend) ?? catalog.backends[0];
-  const fromUrl = parseCanonicalUrl(window.location.search, catalog).state as Selection;
+  const initialBackend =
+    catalog.backends.find(({ id }) => id === catalog.defaultBackend) ??
+    catalog.backends[0];
+  const fromUrl = parseCanonicalUrl(window.location.search, catalog)
+    .state as Selection;
   const [selection, setSelection] = createSignal<Selection>(fromUrl);
-  const [registry, setRegistry] = createSignal(createFailClosedRegistry(availabilityData, profileData));
+  const [registry, setRegistry] = createSignal(
+    createFailClosedRegistry(availabilityData, profileData),
+  );
   const [registryLoaded, setRegistryLoaded] = createSignal(false);
-  let shouldApplyRegistryDefault = !new URLSearchParams(window.location.search).has("storage");
+  let shouldApplyRegistryDefault = !new URLSearchParams(
+    window.location.search,
+  ).has("storage");
   const publicationController = new AbortController();
   let urlController: any;
 
   onMount(() => {
     if (/^\/datascript\/?$/.test(window.location.pathname)) {
-      window.history.replaceState(window.history.state, "", `/${window.location.search}${window.location.hash}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `/${window.location.search}${window.location.hash}`,
+      );
     }
     urlController = (createUrlStateController as any)({
       catalog,
@@ -117,56 +129,100 @@ export default function App(): JSX.Element {
     urlController?.close();
   });
 
-  const visibleBackends = createMemo(() => catalog.backends.filter(({ id }) => id !== "jank"));
-  const selectedBackend = createMemo(() =>
-    catalog.backends.find(({ id }) => id === selection().backend) ?? initialBackend,
+  const visibleBackends = createMemo(() =>
+    catalog.backends.filter(({ id }) => id !== "jank"),
   );
-  const profileChoices = createMemo(() =>
-    choicesForBackend(catalog, profileData, registry(), selection().backend) as ProfileChoice[],
+  const selectedBackend = createMemo(
+    () =>
+      catalog.backends.find(({ id }) => id === selection().backend) ??
+      initialBackend,
+  );
+  const profileChoices = createMemo(
+    () =>
+      choicesForBackend(
+        catalog,
+        profileData,
+        registry(),
+        selection().backend,
+      ) as ProfileChoice[],
   );
   const selectedProfile = createMemo(() =>
-    profileChoices().find((candidate) => candidate.storage === selection().storage),
+    profileChoices().find(
+      (candidate) => candidate.storage === selection().storage,
+    ),
   );
   const configuredProfile = createMemo(() => {
     const profile = selectedProfile();
-    return profile ? profileForPlatform(profile, selection().platform) as ExplorerProfile : undefined;
+    return profile
+      ? (profileForPlatform(profile, selection().platform) as ExplorerProfile)
+      : undefined;
   });
   const availablePlatforms = createMemo(() => platformOptions(selection()));
-  const storageLabel = createMemo(() =>
-    catalog.storages.find(({ id }) => id === selection().storage)?.label ?? selection().storage,
+  const storageLabel = createMemo(
+    () =>
+      catalog.storages.find(({ id }) => id === selection().storage)?.label ??
+      selection().storage,
   );
   const registryDefault = (backend: BackendId) =>
-    registry().storageDefaults.find((candidate: { backend: string }) => candidate.backend === backend)?.storage as StorageId | null;
+    registry().storageDefaults.find(
+      (candidate: { backend: string }) => candidate.backend === backend,
+    )?.storage as StorageId | null;
 
   const selectBackend = (backend: BackendId) => {
     shouldApplyRegistryDefault = false;
-    const product = (transitionBackend as any)(catalog, selection(), backend, registryDefault(backend));
-    const next = { ...product, platform: normalizePlatform(product, selection().platform) } as Selection;
+    const product = (transitionBackend as any)(
+      catalog,
+      selection(),
+      backend,
+      registryDefault(backend),
+    );
+    const next = {
+      ...product,
+      platform: normalizePlatform(product, selection().platform),
+    } as Selection;
     setSelection(next);
-    urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+    urlController?.navigate({
+      ...parseCanonicalUrl(window.location.search, catalog).state,
+      ...next,
+    });
     queueMicrotask(() => {
-      document.querySelector<HTMLInputElement>(
-        `input[name="explorer-backend"][value="${backend}"]`,
-      )?.focus();
+      document
+        .querySelector<HTMLInputElement>(
+          `input[name="explorer-backend"][value="${backend}"]`,
+        )
+        ?.focus();
     });
   };
 
   const selectStorage = (storage: StorageId) => {
     shouldApplyRegistryDefault = false;
-    const choice = profileChoices().find((candidate) => candidate.storage === storage);
+    const choice = profileChoices().find(
+      (candidate) => candidate.storage === storage,
+    );
     if (!choice?.selectable) return;
     const product = { ...selection(), storage: choice.storage };
-    const next = { ...product, platform: normalizePlatform(product, product.platform) } as Selection;
+    const next = {
+      ...product,
+      platform: normalizePlatform(product, product.platform),
+    } as Selection;
     setSelection(next);
-    urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+    urlController?.navigate({
+      ...parseCanonicalUrl(window.location.search, catalog).state,
+      ...next,
+    });
   };
 
   const selectPlatform = (platform: PlatformId) => {
-    const option = availablePlatforms().find((candidate) => candidate.id === platform);
+    const option = availablePlatforms().find(
+      (candidate) => candidate.id === platform,
+    );
     if (!option?.selectable) return;
     const next = { ...selection(), platform };
     setSelection(next);
-    urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, ...next });
+    urlController?.navigate({
+      ...parseCanonicalUrl(window.location.search, catalog).state,
+      ...next,
+    });
   };
 
   const selector = () => (
@@ -208,10 +264,16 @@ export default function App(): JSX.Element {
         const preferred = registryDefault(selection().backend);
         if (preferred && preferred !== selection().storage) {
           const product = { ...selection(), storage: preferred };
-          const next = { ...product, platform: normalizePlatform(product, product.platform) } as Selection;
+          const next = {
+            ...product,
+            platform: normalizePlatform(product, product.platform),
+          } as Selection;
           setSelection(next);
           urlController?.navigate(
-            { ...parseCanonicalUrl(window.location.search, catalog).state, ...next },
+            {
+              ...parseCanonicalUrl(window.location.search, catalog).state,
+              ...next,
+            },
             { replace: true },
           );
         }
@@ -226,9 +288,12 @@ export default function App(): JSX.Element {
   return (
     <Show
       keyed
-      when={configuredProfile()?.state === "enabled" && configuredProfile()?.deployment
-        ? { profile: configuredProfile() as ExplorerProfile }
-        : null}
+      when={
+        configuredProfile()?.state === "enabled" &&
+        configuredProfile()?.deployment
+          ? { profile: configuredProfile() as ExplorerProfile }
+          : null
+      }
       fallback={
         <StandaloneExplorer
           backendLabel={selectedBackend().label}
@@ -246,9 +311,13 @@ export default function App(): JSX.Element {
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
           selector={selector()}
-          transport={entry.profile.backend === "datascript"
-            ? (createDataScriptProfileTransport as any)({ profile: entry.profile })
-            : undefined}
+          transport={
+            entry.profile.backend === "datascript"
+              ? (createDataScriptProfileTransport as any)({
+                  profile: entry.profile,
+                })
+              : undefined
+          }
         />
       )}
     </Show>
@@ -295,34 +364,43 @@ function StandaloneExplorer(props: {
   };
   document.documentElement.dataset.theme = theme();
   return (
-    <div class="app-shell" data-theme={theme()}>
-      <header class="app-header">
-        <div class="app-header__intro">
-          <h1 class="app-title">🦅 EACL Explorer</h1>
-          <p class="app-subtitle">
-            🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library
-            inspired by SpiceDB, built in Clojure and backed by Datomic Pro,
-            Datahike or DataScript.
-          </p>
-        </div>
-        <div class="app-header__actions">
-          <nav class="app-header__sources" aria-label="Source repositories">
-            <a class="app-header__link" href="https://github.com/theronic/eacl">EACL Source</a>
-            <a class="app-header__link" href="https://github.com/theronic/eacl-demo">Demo Source</a>
-          </nav>
-          <div class="app-header__controls">
-            <button class="graph-toggle" type="button" onClick={toggleTheme}>
-              {theme() === "dark" ? "Light theme" : "Dark theme"}
-            </button>
+    <div class="app-shell resource-first" data-theme={theme()}>
+      <ExplorerHeading>
+        <div class="app-header__controls">
+          <div class="navbar-count">
+            <strong>—</strong>
+            <span>objects</span>
           </div>
+          <div class="navbar-count">
+            <strong>—</strong>
+            <span>relationships</span>
+          </div>
+          <button
+            class="theme-button"
+            aria-label={
+              theme() === "dark"
+                ? "Switch to light theme"
+                : "Switch to dark theme"
+            }
+            onClick={toggleTheme}
+          >
+            {theme() === "dark" ? "☀" : "☾"}
+          </button>
+          <button class="view-as-button" disabled>
+            <span>View As</span>
+            <strong>{readPreferences().subjectId}</strong>
+          </button>
         </div>
-      </header>
+      </ExplorerHeading>
       {props.selector}
       <main class="loading-grid">
         <div class="panel-card">
-          <Show when={props.pending} fallback={
-            <p class="empty-state">The selected demo is not available.</p>
-          }>
+          <Show
+            when={props.pending}
+            fallback={
+              <p class="empty-state">The selected demo is not available.</p>
+            }
+          >
             <section class="startup-status" role="status" aria-live="polite">
               <span class="button-spinner" aria-hidden="true" />
               <div class="startup-status__copy">
