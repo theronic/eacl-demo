@@ -396,12 +396,13 @@ export function createProfileApi(
     }
 
     if (url.pathname === "/list-relationships") {
-      // EACL applies authorization and the parent relationship before paging.
-      // Never fan out a separate check-permission request for each candidate.
+      const removed = ["authorizationSubject", "authorizationSubjectType",
+        "authorizationSubjectId", "permission", "authorization"];
+      if (removed.some(key => Object.hasOwn(body, key))) {
+        throw new ApiError(400, { error: { code: "validation-error",
+          message: "Relationship reads do not accept authorization fields." } });
+      }
       const result = await wire<WirePage<WireObject>>("reverse-relationships", {
-        authorizationSubjectType: nestedIdentifier(body, "authorizationSubject", "type"),
-        authorizationSubjectId: nestedIdentifier(body, "authorizationSubject", "id"),
-        permission: identifier(body.permission),
         resourceType: identifier(body.resourceType),
         subjectType: nestedIdentifier(body, "subject", "type"),
         subjectId: nestedIdentifier(body, "subject", "id"),
@@ -520,7 +521,7 @@ function presentSchema(schema: WireSchema): SchemaInfo {
     resourceTypes,
     permissionsByType,
     childPaths,
-    nodes: schema.types.map((type) => ({ id: type.name, permissions: permissionsByType[type.name] ?? [] })),
+    nodes: schema.types.map((type) => ({ id: type.name, permissions: permissionsByType[type.name] ?? [], permissionDefinitions: type.permissions })),
     links: schema.types.flatMap((type) => type.relations.flatMap((relation) =>
       relation.subjectTypes.map((subjectType) => ({ source: type.name, target: subjectType, label: relation.name })))),
     resourceCount: schema.types.length,

@@ -77,11 +77,6 @@
                  :populate-cache? (not= false (:populateCache input))
                  :consistency (eacl-consistency input))
     (:resourceType input) (assoc :resource/type (keyword (:resourceType input)))
-    (:authorizationSubjectId input)
-    (assoc :authorization {:subject (eacl/spice-object (keyword (:authorizationSubjectType input))
-                                                      (:authorizationSubjectId input))
-                           :permission (keyword (:permission input))
-                           :on :resource})
     (:relation input) (assoc :resource/relation (keyword (:relation input)))
     (:cursor input) (assoc :after (:cursor input))))
 

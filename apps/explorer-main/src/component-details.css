@@ -348,39 +348,6 @@
   font-size: 0.88rem;
 }
 
-.schema-graph {
-  display: block;
-  width: 100%;
-  min-height: 430px;
-}
-
-.schema-graph__links line {
-  stroke: var(--border-strong);
-  stroke-width: 1.5;
-}
-
-.schema-graph__labels text,
-.schema-graph__node-permissions {
-  fill: var(--muted);
-  font-family: inherit;
-  font-size: 9px;
-  text-anchor: middle;
-}
-
-.schema-graph__nodes circle {
-  fill: var(--accent-soft);
-  stroke: var(--accent);
-  stroke-width: 2;
-  cursor: grab;
-}
-
-.schema-graph__node-title {
-  fill: var(--text);
-  font-size: 10px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
 .cache-snapshot-meta {
   margin: 0 0 8px;
   color: var(--muted);

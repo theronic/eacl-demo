@@ -69,6 +69,14 @@
 
 (assert (cache-controls-test-support/verify! client))
 
+;; Removed clauses must fail on presence, including nil and false.
+(doseq [clause [nil false {} {:subject (eacl/spice-object :user "user-1")
+                              :permission :view :on :resource}]]
+  (let [data (error-data #(eacl/read-relationships
+                          client {:resource/type :account :first 1
+                                  :authorization clause}))]
+    (assert (= :unknown-request-key (:reason data)))))
+
 (doseq [data
         [(error-data #(local-cache/cache "not-a-keyword" 1))
          (error-data #(local-cache/cache :answer 0))

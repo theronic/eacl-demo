@@ -21,6 +21,6 @@
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
    operations/create-handlers "datalevin-memory"))
 
-(deftest nested-branches-use-authorized-relationship-reads
+(deftest nested-branches-use-direct-relationship-reads
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-read-handler)
    operations/create-handlers "datalevin-memory"))
