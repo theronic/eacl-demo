@@ -75,3 +75,11 @@ Release verified on 2026-09-09: production `763807061bf0a2cc3a341bdb9fb81c591eb9
 Follow-up release verified on 2026-09-09: PR #98, production `49666d8c6bd7ab8d0474cd57972aa589dcdbc7fd`, workflow `34356065422` succeeded for all five jobs. CI logs confirm Datomic and Datalevin EC2 releases. All five live profile publications report that production SHA and EACL core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. Downloaded DataScript runtime SHA-256 `2f9c7d3960f32ca9c81db03d72bf6c38f0f4b42badeb682ed822b68e47a78d8a` matches its publication. Live browser verification confirms the white navbar, eagle/separator/avatar, straight tab underline, nested tree and grouped floating checker with system typography.
 
 Live navbar relationship totals: DataScript 38,613; Datalevin 38,613; Datahike/S3 approximately 3,878,244; Datahike/DynamoDB and Datomic approximately 3,872,112. All server count responses were HTTP 200. Observed server handler times were 156.47ms, 117.06ms, 4.57ms and 5.91ms for S3, DynamoDB, Datomic and Datalevin respectively; these are individual observations, not benchmarks or cold-start measurements. Datahike pages reached navbar counts in 5.46s and 5.47s from browser navigation during this check. No claim is made that the earlier reported >20s startup has been eliminated under all conditions. Local no-enumeration and sibling-query-isolation regression tests passed before release.
+
+## 9. Approved Interaction Details
+
+- [x] 9.1 Use the approved SVG disclosure artwork, keep type row geometry stable, and make the type row background expand/collapse it.
+- [x] 9.2 Add visible Subject ID/Resource ID labels, balance checker fields, and restore Allowed/Denied plus timing at the top-right.
+- [x] 9.3 Verify explicit Re-query runs resource pages, counts and expanded relationship queries; retain the current page on explicit refresh.
+- [x] 9.4 Verify desktop/mobile accessibility, query isolation, row geometry and checker presentation (12 browser tests passed).
+- [ ] 9.5 Publish and verify these presentation corrections on the live demo.

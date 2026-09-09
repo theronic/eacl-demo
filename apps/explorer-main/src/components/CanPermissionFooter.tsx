@@ -180,7 +180,6 @@ export function CanPermissionFooter(
           Permission
         </button>
         <span class="can-permission-footer__decision" aria-live="polite">
-          =&gt;{" "}
           <Show when={result()} fallback="—">
             {(envelope) => (
               <strong
@@ -190,16 +189,17 @@ export function CanPermissionFooter(
                     : "decision-denied"
                 }
               >
-                {String(envelope().data.allowed)}
+                {envelope().data.allowed ? "✓ Allowed" : "− Denied"}
               </strong>
             )}
           </Show>
+          <MetaTiming meta={result()?.meta} />
         </span>
-        <MetaTiming meta={result()?.meta} />
       </header>
       <div class="can-permission-footer__query" hidden={!expanded()}>
         <fieldset class="can-permission-footer__group">
-          <legend>Subject</legend>
+          <legend class="sr-only">Subject</legend>
+          <label>Subject Type
           <select
             aria-label="can? subject type"
             value={subjectType()}
@@ -209,12 +209,15 @@ export function CanPermissionFooter(
               {(type) => <option value={type}>{type}</option>}
             </For>
           </select>
+          </label>
+          <label class="checker-id">Subject ID
           <input
             aria-label="can? subject ID"
             list="can-permission-subject-ids"
             value={subjectId()}
             onInput={(event) => setSubjectId(event.currentTarget.value)}
           />
+          </label>
           <datalist id="can-permission-subject-ids">
             <For each={subjectIds()}>{(id) => <option value={id} />}</For>
           </datalist>
@@ -232,7 +235,8 @@ export function CanPermissionFooter(
           </select>
         </label>
         <fieldset class="can-permission-footer__group">
-          <legend>Resource</legend>
+          <legend class="sr-only">Resource</legend>
+          <label>Resource Type
           <select
             aria-label="can? resource type"
             value={resourceType()}
@@ -242,12 +246,15 @@ export function CanPermissionFooter(
               {(type) => <option value={type}>{type}</option>}
             </For>
           </select>
+          </label>
+          <label class="checker-id">Resource ID
           <input
             aria-label="can? resource ID"
             list="can-permission-resource-ids"
             value={resourceId()}
             onInput={(event) => setResourceId(event.currentTarget.value)}
           />
+          </label>
           <datalist id="can-permission-resource-ids">
             <For each={resourceIds()}>{(id) => <option value={id} />}</For>
           </datalist>
