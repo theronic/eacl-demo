@@ -83,3 +83,10 @@ Live navbar relationship totals: DataScript 38,613; Datalevin 38,613; Datahike/S
 - [x] 9.3 Verify explicit Re-query runs resource pages, counts and expanded relationship queries; retain the current page on explicit refresh.
 - [x] 9.4 Verify desktop/mobile accessibility, query isolation, row geometry and checker presentation (12 browser tests passed).
 - [ ] 9.5 Publish and verify these presentation corrections on the live demo.
+
+## 10. Authorized Nested Resource Pagination
+
+- [x] 10.1 Replace reverse-relationship enumeration plus per-candidate checks with one EACL lookup-resources request using resource/relationship.
+- [x] 10.2 Forward complete relationship filters through DataScript and all JVM adapters; reject partial filters at request boundaries.
+- [x] 10.3 Verify one request per super-user platform/account page, authorization filtering, cursor forwarding and cache controls. Static build, 14 desktop/mobile browser tests, contract checks and all four JVM adapter checks passed.
+- [ ] 10.4 Publish and verify nested lookup behavior on the live deployment (including prior task 9.5 presentation corrections).

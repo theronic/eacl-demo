@@ -54,3 +54,14 @@ test("invalid JSON, non-object bodies, oversized bodies, cursors, and consistenc
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "historical-date", atExactSnapshotAt: "not-a-date" }).code, "validation-error");
   assert.equal(post("get-object", { type: "server", id: "server-1", consistency: "historical-date", atExactSnapshotAt: "2026-08-26T00:00:00Z" }).ok, true);
 });
+
+test("resource relationship filters are complete and lookup-only", () => {
+  const input = {subjectType:"user",subjectId:"super-user",resourceType:"account",permission:"view"};
+  const filter = {relationshipSubjectType:"platform",relationshipSubjectId:"platform",relationshipRelation:"platform"};
+  assert.equal(post("lookup-resources", {...input,...filter}).ok,true);
+  for (const key of Object.keys(filter)) {
+    const partial={...filter}; delete partial[key];
+    assert.equal(post("lookup-resources",{...input,...partial}).code,"validation-error");
+  }
+  assert.equal(post("check-permission",{...input,resourceId:"account-0",...filter}).code,"validation-error");
+});

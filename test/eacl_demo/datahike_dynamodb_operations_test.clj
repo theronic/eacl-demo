@@ -193,6 +193,17 @@
                 (is (= ["user-2"] (mapv :id (:items second-page))))
                 (is (false? (get-in second-page [:pageInfo :hasNextPage])))))
 
+            ;; The same relationship scope yields only resources authorized for
+            ;; the viewing subject, before pagination is applied.
+            (doseq [[viewer expected] [["user-1" ["account-0"]] ["user-2" []]]]
+              (is (= expected
+                     (mapv :id (:items
+                       (invoke handlers "lookup-resources" snapshot
+                         {:subjectType "user" :subjectId viewer
+                          :resourceType "account" :permission "admin" :pageSize 1
+                          :relationshipSubjectType "user" :relationshipSubjectId "user-1"
+                          :relationshipRelation "owner"}))))))
+
             (is (= "account-0"
                    (get-in (invoke handlers "get-object" snapshot
                                    {:type "account" :id "account-0"})
@@ -287,3 +298,7 @@
                   d/datoms (fn [& _] (throw (ex-info "must not enumerate relationships" {})))]
       (is (= {:kind "relationships" :value 1000000 :exact false :ceiling 1000000 :estimatedTotal 3872112}
              (invoke handlers "count-objects" ::snapshot {:kind "relationships" :ceiling 1000000}))))))
+
+(deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
+   operations/create-handlers "datahike-dynamodb"))

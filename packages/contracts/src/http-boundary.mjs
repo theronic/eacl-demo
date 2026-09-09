@@ -10,7 +10,7 @@ const BODY_FIELDS = Object.freeze({
   "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", ...CONSISTENCY_FIELDS] },
-  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["relationshipSubjectType", "relationshipSubjectId", "relationshipRelation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "count-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["ceiling", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "get-schema": { optional: CONSISTENCY_FIELDS },
@@ -54,6 +54,9 @@ function validKeys(input, required, optional) {
 }
 
 function validValues(input) {
+  const filterKeys = ["relationshipSubjectType", "relationshipSubjectId", "relationshipRelation"];
+  const present = filterKeys.filter(key => key in input).length;
+  if (present !== 0 && present !== 3) return false;
   for (const [key, value] of Object.entries(input)) {
     if (["pageSize"].includes(key) && (!Number.isSafeInteger(value) || value < 1 || value > limits.maximumPageSize)) return false;
     if (key === "ceiling" && (!Number.isSafeInteger(value) || value < 1 || value > limits.countCeiling)) return false;

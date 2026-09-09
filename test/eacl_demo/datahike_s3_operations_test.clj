@@ -276,3 +276,7 @@
       (finally
         (d/release connection)
         (d/delete-database database-config)))))
+
+(deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
+   operations/create-handlers "datahike-s3"))

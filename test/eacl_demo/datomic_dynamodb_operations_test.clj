@@ -280,3 +280,7 @@
                   d/datoms (fn [& _] (throw (ex-info "must not enumerate relationships" {})))]
       (is (= {:kind "relationships" :value 1000000 :exact false :ceiling 1000000 :estimatedTotal 3872112}
              (invoke handlers "count-objects" ::snapshot {:kind "relationships" :ceiling 1000000}))))))
+
+(deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
+   operations/create-handlers "datomic-dynamodb"))
