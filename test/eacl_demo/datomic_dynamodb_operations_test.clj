@@ -284,3 +284,7 @@
 (deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
    operations/create-handlers "datomic-dynamodb"))
+
+(deftest nested-branches-use-authorized-relationship-reads
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-read-handler)
+   operations/create-handlers "datomic-dynamodb"))

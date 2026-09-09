@@ -94,3 +94,10 @@ Live navbar relationship totals: DataScript 38,613; Datalevin 38,613; Datahike/S
 PR #100 release verified on 2026-09-09: production `3a8b66440db80addfcbf2d0514cd8186ac90e9dd`, workflow `34358354487` succeeded for all five jobs including Datomic/Datalevin EC2 releases. All five live publications match production and core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. Downloaded DataScript digest `3cfa7c6e8452e7e7e8c6414a47630057d7c7f14e905d1d8969b0ee237d77754b` matches the published artifact.
 
 Live browser checks on DataScript and Datahike/S3 confirmed super-user Platforms → Accounts expansion and Next each issue exactly one filtered lookup-resources request, with no per-item check-permission requests. Five-row expansion reached rendered results in 47ms and 853ms respectively in these individual observations (not benchmarks or cold-start claims). Also verified the approved SVG path/rounded-rectangle geometry, visible ID labels, balanced checker inputs and result/timing aligned to the checker’s right edge. Desktop/mobile stable row geometry, row-background expansion, authorization, consistency and sibling-isolation regressions passed before deployment.
+
+## 11. Use the Relationship Read Path
+
+- [x] 11.1 Replace nested lookup-resources with read-relationships plus authorization on the resource across DataScript and all four JVM backends.
+- [x] 11.2 Preserve native relationship cursors, type/relation filtering, cache status and consistency; reject incomplete authorization input.
+- [x] 11.3 Verify adapter tests reject lookup-resources and scalar checks, permitted/denied viewers, and one relationship request per browser page.
+- [ ] 11.4 Publish and verify the authorized relationship-read path live.

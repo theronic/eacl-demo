@@ -8,7 +8,7 @@ const BODY_FIELDS = Object.freeze({
   "list-subjects": { optional: ["type", "pageSize", "cursor"] },
   "get-object": { required: ["type", "id"], optional: CONSISTENCY_FIELDS },
   "list-relationships": { required: ["resourceType", "resourceId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
-  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
+  "reverse-relationships": { required: ["subjectType", "subjectId"], optional: ["resourceType", "authorizationSubjectType", "authorizationSubjectId", "permission", "relation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "check-permission": { required: ["subjectType", "subjectId", "resourceType", "resourceId", "permission"], optional: ["cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "lookup-resources": { required: ["subjectType", "subjectId", "resourceType", "permission"], optional: ["relationshipSubjectType", "relationshipSubjectId", "relationshipRelation", "pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
   "lookup-subjects": { required: ["resourceType", "resourceId", "subjectType", "permission"], optional: ["pageSize", "cursor", "cache", "populateCache", ...CONSISTENCY_FIELDS] },
@@ -38,6 +38,7 @@ export function validateHttpRequest(request) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return rejected("validation-error");
   const fields = BODY_FIELDS[route.operation];
   if (!fields || !validKeys(input, fields.required ?? [], fields.optional)) return rejected("validation-error");
+  if (route.operation === "reverse-relationships" && "permission" in input && !("authorizationSubjectId" in input)) return rejected("validation-error");
   if (!validValues(input)) return rejected("validation-error");
   if (("atLeastAsFreshAs" in input || "atLeastAsFreshBasisId" in input || "atLeastAsFreshBasisCapturedAt" in input) && input.consistency !== "at-least") return rejected("validation-error");
   if ("atLeastAsFreshBasisId" in input && !("atLeastAsFreshAs" in input)) return rejected("validation-error");
@@ -54,6 +55,9 @@ function validKeys(input, required, optional) {
 }
 
 function validValues(input) {
+  if ("authorizationSubjectType" in input || "authorizationSubjectId" in input) {
+    if (!["authorizationSubjectType", "authorizationSubjectId", "permission"].every(key => key in input)) return false;
+  }
   const filterKeys = ["relationshipSubjectType", "relationshipSubjectId", "relationshipRelation"];
   const present = filterKeys.filter(key => key in input).length;
   if (present !== 0 && present !== 3) return false;

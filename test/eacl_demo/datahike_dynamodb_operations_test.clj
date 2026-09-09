@@ -198,11 +198,11 @@
             (doseq [[viewer expected] [["user-1" ["account-0"]] ["user-2" []]]]
               (is (= expected
                      (mapv :id (:items
-                       (invoke handlers "lookup-resources" snapshot
-                         {:subjectType "user" :subjectId viewer
+                       (invoke handlers "reverse-relationships" snapshot
+                         {:subjectType "user" :subjectId "user-1"
                           :resourceType "account" :permission "admin" :pageSize 1
-                          :relationshipSubjectType "user" :relationshipSubjectId "user-1"
-                          :relationshipRelation "owner"}))))))
+                          :authorizationSubjectType "user" :authorizationSubjectId viewer
+                          :relation "owner"}))))))
 
             (is (= "account-0"
                    (get-in (invoke handlers "get-object" snapshot
@@ -301,4 +301,8 @@
 
 (deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
+   operations/create-handlers "datahike-dynamodb"))
+
+(deftest nested-branches-use-authorized-relationship-reads
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-read-handler)
    operations/create-handlers "datahike-dynamodb"))

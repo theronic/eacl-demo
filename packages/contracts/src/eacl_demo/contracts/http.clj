@@ -25,7 +25,7 @@
     :optional (into #{:relation :pageSize :cursor :cache :populateCache} consistency-fields)}
    "reverse-relationships"
    {:required #{:subjectType :subjectId}
-    :optional (into #{:relation :pageSize :cursor :cache :populateCache} consistency-fields)}
+    :optional (into #{:resourceType :authorizationSubjectType :authorizationSubjectId :permission :relation :pageSize :cursor :cache :populateCache} consistency-fields)}
    "check-permission"
    {:required #{:subjectType :subjectId :resourceType :resourceId :permission}
     :optional (into #{:cache :populateCache} consistency-fields)}
@@ -120,6 +120,10 @@
               {:ok? false :code "validation-error"}
 
               (not (contains? #{0 3} (count (filter keys* [:relationshipSubjectType :relationshipSubjectId :relationshipRelation]))))
+              {:ok? false :code "validation-error"}
+
+              (and (= operation "reverse-relationships")
+                   (not (contains? #{0 3} (count (filter keys* [:authorizationSubjectType :authorizationSubjectId :permission])))))
               {:ok? false :code "validation-error"}
 
               :else
