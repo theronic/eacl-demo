@@ -430,6 +430,32 @@ async function smokeProfile(profileId, functionName, temporary, expectedIdentity
     }
     decisions.push(response);
   }
+  const relationshipInput = { subjectType: "platform", subjectId: "platform",
+    resourceType: "account", relation: "platform", pageSize: 5,
+    consistency: "minimize", cache: false, populateCache: false };
+  const relationshipPage = await invokeProfile({ profileId, functionName, temporary,
+    qualifier, operation: "reverse-relationships", method: "POST", input: relationshipInput });
+  const relationshipCursor = relationshipPage.envelope.data?.pageInfo?.endCursor;
+  if (relationshipPage.statusCode !== 200 || relationshipPage.envelope.data?.items?.length !== 5 ||
+      relationshipPage.envelope.data?.pageInfo?.hasNextPage !== true || typeof relationshipCursor !== "string") {
+    throw new Error(`${profileId} direct relationship first-page smoke failed`);
+  }
+  const relationshipNext = await invokeProfile({ profileId, functionName, temporary,
+    qualifier, operation: "reverse-relationships", method: "POST",
+    input: { ...relationshipInput, cursor: relationshipCursor } });
+  if (relationshipNext.statusCode !== 200 || relationshipNext.envelope.data?.items?.length !== 5 ||
+      new Set([...relationshipPage.envelope.data.items, ...relationshipNext.envelope.data.items]
+        .map((item) => JSON.stringify(item))).size !== 10) {
+    throw new Error(`${profileId} direct relationship continuation smoke failed`);
+  }
+  const obsoleteRelationshipCaller = await invokeProfile({ profileId, functionName, temporary,
+    qualifier, operation: "reverse-relationships", method: "POST",
+    input: { ...relationshipInput, authorizationSubjectType: "user",
+      authorizationSubjectId: "super-user", permission: "view" } });
+  if (obsoleteRelationshipCaller.statusCode !== 400 ||
+      obsoleteRelationshipCaller.envelope.error?.code !== "validation-error") {
+    throw new Error(`${profileId} obsolete relationship authorization admission smoke failed`);
+  }
   const mutation = await invokeProfile({ profileId, functionName, temporary,
     qualifier,
     operation: "seed", method: "POST", input: {} });
