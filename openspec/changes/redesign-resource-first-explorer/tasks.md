@@ -82,11 +82,22 @@ Live navbar relationship totals: DataScript 38,613; Datalevin 38,613; Datahike/S
 - [x] 9.2 Add visible Subject ID/Resource ID labels, balance checker fields, and restore Allowed/Denied plus timing at the top-right.
 - [x] 9.3 Verify explicit Re-query runs resource pages, counts and expanded relationship queries; retain the current page on explicit refresh.
 - [x] 9.4 Verify desktop/mobile accessibility, query isolation, row geometry and checker presentation (12 browser tests passed).
-- [ ] 9.5 Publish and verify these presentation corrections on the live demo.
+- [x] 9.5 Publish and verify these presentation corrections on the live demo.
 
 ## 10. Authorized Nested Resource Pagination
 
 - [x] 10.1 Replace reverse-relationship enumeration plus per-candidate checks with one EACL lookup-resources request using resource/relationship.
 - [x] 10.2 Forward complete relationship filters through DataScript and all JVM adapters; reject partial filters at request boundaries.
 - [x] 10.3 Verify one request per super-user platform/account page, authorization filtering, cursor forwarding and cache controls. Static build, 14 desktop/mobile browser tests, contract checks and all four JVM adapter checks passed.
-- [ ] 10.4 Publish and verify nested lookup behavior on the live deployment (including prior task 9.5 presentation corrections).
+- [x] 10.4 Publish and verify nested lookup behavior on the live deployment (including prior task 9.5 presentation corrections).
+
+PR #100 release verified on 2026-09-09: production `3a8b66440db80addfcbf2d0514cd8186ac90e9dd`, workflow `34358354487` succeeded for all five jobs including Datomic/Datalevin EC2 releases. All five live publications match production and core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. Downloaded DataScript digest `3cfa7c6e8452e7e7e8c6414a47630057d7c7f14e905d1d8969b0ee237d77754b` matches the published artifact.
+
+Live browser checks on DataScript and Datahike/S3 confirmed super-user Platforms → Accounts expansion and Next each issue exactly one filtered lookup-resources request, with no per-item check-permission requests. Five-row expansion reached rendered results in 47ms and 853ms respectively in these individual observations (not benchmarks or cold-start claims). Also verified the approved SVG path/rounded-rectangle geometry, visible ID labels, balanced checker inputs and result/timing aligned to the checker’s right edge. Desktop/mobile stable row geometry, row-background expansion, authorization, consistency and sibling-isolation regressions passed before deployment.
+
+## 11. Use the Relationship Read Path
+
+- [x] 11.1 Replace nested lookup-resources with read-relationships plus authorization on the resource across DataScript and all four JVM backends.
+- [x] 11.2 Preserve native relationship cursors, type/relation filtering, cache status and consistency; reject incomplete authorization input.
+- [x] 11.3 Verify adapter tests reject lookup-resources and scalar checks, permitted/denied viewers, and one relationship request per browser page.
+- [ ] 11.4 Publish and verify the authorized relationship-read path live.

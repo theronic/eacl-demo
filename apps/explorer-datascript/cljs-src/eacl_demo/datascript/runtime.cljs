@@ -200,28 +200,6 @@
                (:relation input) (:consistency input) (:pageSize input)]]
     (page-data runtime (map normalized-relationship (relationship-records runtime input)) input scope)))
 
-(defn- reverse-records [runtime input]
-  (->> (:relationships runtime)
-       (filter #(and (= (:subjectType input) (get-in % [:subject :type]))
-                     (= (:subjectId input) (get-in % [:subject :id]))
-                     (or (nil? (:relation input)) (= (:relation input) (:relation %)))))
-       (sort-by (juxt #(get-in % [:resource :type])
-                      #(get-in % [:resource :id])
-                      :relation))))
-
-(defn- reverse-data [runtime input]
-  (let [objects (->> (reverse-records runtime input)
-                     (map #(get (:objects runtime)
-                                [(get-in % [:resource :type]) (get-in % [:resource :id])]))
-                     (remove nil?)
-                     (reduce (fn [acc object]
-                               (assoc acc [(:type object) (:id object)] object)) {})
-                     vals
-                     (sort-by (juxt :type :id)))
-        scope ["reverse-relationships" (:subjectType input) (:subjectId input)
-               (:relation input) (:consistency input) (:pageSize input)]]
-    (page-data runtime objects input scope)))
-
 (defn- count-data [runtime input]
   (let [kind (:kind input)
         type (:type input)
@@ -270,6 +248,22 @@
            :populate-cache? (not (false? (:populateCache input)))}
     (= "minimize" (:consistency input))
     (assoc :consistency :minimize-latency)))
+
+(defn- reverse-data [runtime input]
+  (let [query (cond-> (merge (common-query input)
+                             {:subject/type (keyword (:subjectType input))
+                              :subject/id (:subjectId input)
+                              :first (:pageSize input)})
+                (:resourceType input) (assoc :resource/type (keyword (:resourceType input)))
+                (:relation input) (assoc :resource/relation (keyword (:relation input)))
+                (:authorizationSubjectId input)
+                (assoc :authorization {:subject (eacl/spice-object (keyword (:authorizationSubjectType input))
+                                                                  (:authorizationSubjectId input))
+                                       :permission (keyword (:permission input)) :on :resource})
+                (:cursor input) (assoc :after (:cursor input)))
+        result (eacl/read-relationships (:client runtime) query)]
+    {:data (wire-page runtime (update result :data #(mapv :resource %)))
+     :cache-status (cached-status result input)}))
 
 (defn- lookup-resources-data [runtime input]
   (let [query (cond->
@@ -361,7 +355,7 @@
 
 (defn- dispatch [request runtime]
   (try
-    (when (and (contains? #{"lookup-resources" "lookup-subjects"} (:operation request))
+    (when (and (contains? #{"lookup-resources" "lookup-subjects" "reverse-relationships"} (:operation request))
                (get-in request [:input :cursor])
                (not (contains? @(:eacl-cursors runtime) (get-in request [:input :cursor]))))
       (throw (ex-info "Stale cursor" {:code "cursor-invalid"})))
@@ -376,7 +370,8 @@
                      (success request runtime data)
                      (failure request runtime "storage-missing" "The requested fixture object does not exist."))
       "list-relationships" (success request runtime (relationships-data runtime (:input request)))
-      "reverse-relationships" (success request runtime (reverse-data runtime (:input request)))
+      "reverse-relationships" (let [{:keys [data cache-status]} (reverse-data runtime (:input request))]
+                                (success request runtime data cache-status))
       "check-permission" (let [{:keys [data cache-status]}
                                (authorization-data runtime (:input request))]
                            (success request runtime data cache-status))
@@ -651,7 +646,11 @@
             keys
             #{:subjectType :subjectId}
             #{:subjectType :subjectId :relation :consistency :pageSize :cursor
-              :cache :populateCache})
+              :cache :populateCache :resourceType :authorizationSubjectType :authorizationSubjectId :permission})
+           (let [auth-keys [:authorizationSubjectType :authorizationSubjectId :permission]
+                 present (filter #(contains? input %) auth-keys)]
+             (and (or (nil? (:resourceType input)) (identifier? (:resourceType input)))
+                  (or (empty? present) (and (= 3 (count present)) (every? identifier? (map input auth-keys))))))
            (every? identifier? ((juxt :subjectType :subjectId) input))
            (or (nil? (:relation input)) (identifier? (:relation input)))
            (consistency? (:consistency input))

@@ -28,3 +28,29 @@
     (is (= "next-page" (get-in @calls [0 1 :after])))
     (is (false? (get-in @calls [0 1 :cache?])))
     (is (false? (get-in @calls [0 1 :populate-cache?])))))
+
+(defn verify-read-handler [create-handlers profile-id]
+  (let [calls (atom [])
+        input {:subjectType "platform" :subjectId "platform" :resourceType "account"
+               :permission "view" :authorizationSubjectType "user"
+               :authorizationSubjectId "super-user" :relation "platform"
+               :pageSize 20 :cursor "next-page" :cache false :populateCache false
+               :eacl-demo/snapshot ::snapshot}
+        handlers (create-handlers {:descriptor {:identity {:profileId profile-id}} :cursor-key (apply str (repeat 32 "k"))})]
+    (with-redefs [eacl/read-relationships
+                  (fn [target query]
+                    (swap! calls conj [target query])
+                    {:data [{:resource {:type :account :id "account-1"}}]
+                     :page-info {:has-next-page? true :end-cursor "next"}})
+                  eacl/check-permission (fn [& _] (throw (ex-info "no per-item checks" {})))
+                  eacl/lookup-resources (fn [& _] (throw (ex-info "nested lists must use relationship reads" {})))]
+      (let [result ((get handlers "reverse-relationships")
+                    {:snapshot ::snapshot :input input :check-active! (fn []) :remaining-ms (constantly 30000)})]
+        (is (= "account-1" (get-in result [:items 0 :id])))
+        (is (= "next" (get-in result [:pageInfo :endCursor])))))
+    (is (= 1 (count @calls)))
+    (is (= {:subject (eacl/spice-object :user "super-user") :permission :view :on :resource}
+           (get-in @calls [0 1 :authorization])))
+    (is (= "next-page" (get-in @calls [0 1 :after])))
+    (is (false? (get-in @calls [0 1 :cache?])))
+    (is (false? (get-in @calls [0 1 :populate-cache?])))))

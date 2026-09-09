@@ -398,14 +398,14 @@ export function createProfileApi(
     if (url.pathname === "/list-relationships") {
       // EACL applies authorization and the parent relationship before paging.
       // Never fan out a separate check-permission request for each candidate.
-      const result = await wire<WirePage<WireObject>>("lookup-resources", {
-        subjectType: nestedIdentifier(body, "authorizationSubject", "type"),
-        subjectId: nestedIdentifier(body, "authorizationSubject", "id"),
+      const result = await wire<WirePage<WireObject>>("reverse-relationships", {
+        authorizationSubjectType: nestedIdentifier(body, "authorizationSubject", "type"),
+        authorizationSubjectId: nestedIdentifier(body, "authorizationSubject", "id"),
         permission: identifier(body.permission),
         resourceType: identifier(body.resourceType),
-        relationshipSubjectType: nestedIdentifier(body, "subject", "type"),
-        relationshipSubjectId: nestedIdentifier(body, "subject", "id"),
-        relationshipRelation: identifier(body.relation),
+        subjectType: nestedIdentifier(body, "subject", "type"),
+        subjectId: nestedIdentifier(body, "subject", "id"),
+        relation: identifier(body.relation),
         pageSize: number(body.pageSize, 20),
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
