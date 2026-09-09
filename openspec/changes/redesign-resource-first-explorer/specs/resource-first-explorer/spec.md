@@ -16,7 +16,7 @@ The explorer SHALL provide a large resource pane and a narrower resource access 
 - **THEN** principal selection, resource navigation, consistency controls, and the access inspector SHALL be usable without horizontal page overflow or inaccessible controls
 
 ### Requirement: Principal picker preserves subject discovery
-The principal picker SHALL retain quick-subject selection and known-user browsing, including exactly 25 users per known-user page, loading, empty, retry, and first/previous/next-page behavior independent of resource page size. The redesign MUST NOT introduce a new known-user text-filter feature. Changing the principal SHALL invalidate principal-scoped results and announce the new context. Existing user subject support MUST NOT be misrepresented as arbitrary group or subject-type support.
+The principal picker SHALL retain quick-subject selection and known-user browsing, including exactly 25 users per known-user page, loading, empty, retry, and first/previous/next-page behavior independent of resource page size. The redesign MUST NOT introduce a new known-user text-filter feature. Changing the principal SHALL invalidate principal-scoped results and announce the new context. The View As dialog SHALL support schema-defined subject types using actual bounded discovery queries, retain a stable height, and pass the chosen type and ID to EACL. It MUST NOT invent permissions or a search API.
 
 #### Scenario: User chooses a principal from a later page
 - **WHEN** a visitor opens the picker, advances the known-user list, and selects a user
@@ -83,7 +83,7 @@ The inspector SHALL identify the selected resource by type and ID, preserve its 
 - **THEN** the inspector SHALL clear the selection or explicitly revalidate a retained selection before presenting it as part of the new exploration, and old principal decisions SHALL not appear as current
 
 ### Requirement: Consistency remains explicit and semantically unchanged
-All four named consistency modes SHALL remain directly visible in a compact native-radio row above exploration, with the active mode selected and unavailable modes visibly disabled and labelled unavailable with their reason accessible. Large descriptive mode cards MUST NOT displace query results. Mode selection MUST NOT be hidden behind a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
+All four named consistency modes SHALL be visible when the collapsible Consistency Mode section is expanded, with the active mode selected and unsupported modes disabled with informative reasons and no strikethrough. The basis SHALL sit beside Refresh Snapshot. Large descriptive mode cards MUST NOT displace query results. Mode selection SHALL use the inline section rather than a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
 
 #### Scenario: Relative freshness floor
 - **WHEN** a visitor sets an at-least-as-fresh relative floor
@@ -132,7 +132,7 @@ The redesign SHALL retain backend/storage/execution selection and availability r
 - **THEN** the existing identity validation, request abortion, portable selection rules, and isolation of basis, cursor, cache, seed, and error state SHALL remain intact
 
 ### Requirement: Accessible and resilient visual system
-The explorer SHALL retain the 🦅 eagle emoji logo, EACL Explorer title, and user-supplied factual subtitle verbatim, and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, native radio buttons for mutually exclusive choices, explicit unavailable labels rather than color alone, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
+The explorer SHALL retain the 🦅 eagle emoji logo, EACL Explorer title, and user-supplied factual subtitle verbatim, and provide coherent green-accented light/dark treatments, resource identifiers of at least 16 CSS pixels, latency values of at least 14 CSS pixels, native radio buttons for mutually exclusive choices, informative disabled-option reasons rather than color alone or strikethrough, visible focus, sufficient text/control contrast, reduced-motion support, labelled inputs, keyboard-operable dialogs with focus restoration, and responsive layouts. Loading and retry affordances SHALL remain local to their failed operation whenever unrelated valid results can remain visible.
 
 #### Scenario: A panel fails
 - **WHEN** a reverse lookup fails while the resource page remains valid
@@ -154,14 +154,14 @@ The redesign SHALL preserve the existing permission schema, wire schema, resourc
 
 #### Scenario: Reviewer inspects the browser dataset
 - **WHEN** the redesigned browser preview loads its canonical 10,000-resource fixture
-- **THEN** it SHALL retain 80 subjects, 38,613 relationships, and the original six-definition, 13-relation, nine-permission schema with its existing digest
+- **THEN** it SHALL retain 80 user records, 38,613 relationships, and the original six-definition, 13-relation, nine-permission schema with its existing digest
 
 #### Scenario: Cyclic stress-test data is explored
 - **WHEN** the original fixture includes a parent cycle
 - **THEN** authorization SHALL still use the original EACL engine and schema, while the visual tree SHALL stop at repeated ancestors without deleting or rewriting the relationship
 
 ### Requirement: Preserve the original profile-selector model
-Backend, Storage, and Execution SHALL each occupy a separate stable native-radio row. Backend labels SHALL contain backend names only. Storage and execution options, availability, defaults, and compatible-choice retention SHALL follow the original selector. Unavailable choices SHALL be visibly disabled, explicitly labelled unavailable, and retain their reason. No dropdowns or repeated storage descriptions inside backend choices SHALL be introduced.
+Backend, Storage, and Execution SHALL each occupy a separate stable native-radio row. Backend labels SHALL contain backend names only. Storage and execution options, availability, defaults, and compatible-choice retention SHALL follow the original selector. Unavailable choices SHALL be visibly disabled, labelled with an informative reason, without strikethrough. No dropdowns or repeated storage descriptions inside backend choices SHALL be introduced.
 
 #### Scenario: Backend changes
 - **WHEN** the visitor changes backend at a fixed viewport size
@@ -173,3 +173,18 @@ The redesign SHALL prioritize query performance information, information density
 #### Scenario: The explorer renders its header
 - **WHEN** a visitor opens the demo
 - **THEN** the factual subtitle and eagle logo SHALL appear without an invented tagline
+
+### Requirement: Compact original controls and document scrolling
+The navbar SHALL contain the only EACL Explorer title, source and demo-source links, object/relationship totals before View As, and no principal count. Backend configuration SHALL be collapsible without a redundant heading. The tree SHALL grow in document flow; branch pagination, range/counts, and combined timing/cache badges SHALL share the branch heading row on wide screens and wrap within that row on phones. The interface SHALL omit candidate counts, visible tree API-operation names, repeated scope headings, runtime-identity controls, and local-design/healthy-runtime labels. Collapse All SHALL appear above the tree and Page Size at the top right.
+
+#### Scenario: Branch pagination is used
+- **WHEN** a visitor selects Next on a resource-type branch
+- **THEN** only that branch SHALL advance, its range SHALL update, its count SHALL retain its own timing badge, and the buttons SHALL remain visibly associated with the branch
+
+#### Scenario: Floating checker is used on a phone
+- **WHEN** the visitor opens the checker on a 390px viewport
+- **THEN** Subject and Resource type/ID pairs, discovered-ID autocomplete, Permission, and Check Permission SHALL be usable, and the checker SHALL collapse to leave tree space without making the last document rows unreachable
+
+#### Scenario: Header and footer are inspected
+- **WHEN** the preview is ready
+- **THEN** the original factual subtitle and copyright notice SHALL appear, the repeated main heading and idle checker sentence SHALL be absent, and disabled text SHALL remain readable in light and dark themes

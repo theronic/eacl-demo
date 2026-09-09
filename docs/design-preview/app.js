@@ -32,7 +32,7 @@ let preferences = {};
 try { preferences = JSON.parse(localStorage.getItem('eacl-design-v2')) || {}; } catch { /* Optional cosmetic preferences. */ }
 const requestedTheme = new URLSearchParams(location.search).get('theme');
 const state = {
-  principal: 'user-1', permission: 'view', selected: null, reversePermission: 'view',
+  principal: 'user-1', subjectType: 'user', pickerType: 'user', seeding: false, permission: 'view', selected: null, reversePermission: 'view',
   backend: 'datascript', storage: 'browser-memory', execution: 'browser', ready: false,
   epoch: 0, inspectorEpoch: 0, checkEpoch: 0, expanded: new Set(['root:account']), pages: new Map(),
   focusKey: 'root:account', compact: preferences.compact === true, view: 'explorer',
@@ -40,6 +40,7 @@ const state = {
   decisions: {}, reverse: null, subjects: { items: [], cursor: null, history: [], index: 0 },
   theme: ['light', 'dark'].includes(requestedTheme) ? requestedTheme : preferences.theme === 'dark' ? 'dark' : 'light',
 };
+const knownObjects = new Map();
 let metadata, bootstrap, schema, treeNodes = new Map(), previousDialogFocus, toastTimer;
 const connected = () => state.ready && state.backend === 'datascript';
 const permissions = (type) => schema?.types.find((entry) => entry.name === type)?.permissions || [];
@@ -47,13 +48,25 @@ const supports = (type, permission) => permissions(type).some((entry) => entry.n
 const pageSize = () => Number($('#page-size').value);
 const cacheInput = () => ({ cache: state.cache, populateCache: state.populateCache, consistency: 'minimize' });
 const authInput = (type, id, permission = state.permission, principal = state.principal) => ({
-  subjectType: 'user', subjectId: principal, resourceType: type, ...(id ? { resourceId: id } : {}), permission,
+  subjectType: state.subjectType, subjectId: principal, resourceType: type, ...(id ? { resourceId: id } : {}), permission,
 });
 const ms = (value) => typeof value === 'number' && Number.isFinite(value) ? `${value < 0.01 ? '<0.01' : value.toFixed(2)} ms` : '—';
-const cacheBadge = (meta) => `<span class="cache-badge ${escapeHtml(meta?.cacheStatus || 'unreported')}">${escapeHtml(meta?.cacheStatus || 'not reported')}</span>`;
 function evidence(meta, label = '') {
   if (!meta) return '';
-  return `<span class="operation-evidence" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}">${label ? `<small>${escapeHtml(label)}</small>` : ''}<b>${ms(meta.elapsedMs)}</b>${meta.cacheStatus ? cacheBadge(meta) : ''}</span>`;
+  return `<span class="operation-evidence cache-badge ${escapeHtml(meta.cacheStatus || '')}" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}"><b>${ms(meta.elapsedMs)}</b>${meta.cacheStatus ? `<span>${escapeHtml(meta.cacheStatus)}</span>` : ''}</span>`;
+}
+function remember(items = []) {
+  let changed = false;
+  for (const object of items) if (object?.type && object?.id && !knownObjects.has(`${object.type}:${object.id}`)) {
+    knownObjects.set(`${object.type}:${object.id}`, object); changed = true;
+    if (knownObjects.size > 2500) knownObjects.delete(knownObjects.keys().next().value);
+  }
+  if (changed) renderSuggestions();
+}
+function renderSuggestions() {
+  for (const [list, type] of [['subject-ids', $('#check-subject-type').value], ['resource-ids', $('#check-type').value]]) {
+    $(`#${list}`).innerHTML = [...knownObjects.values()].filter((item) => item.type === type).map((item) => `<option value="${escapeHtml(item.id)}"></option>`).join('');
+  }
 }
 function notify(message) {
   $('#toast').textContent = message; $('#toast').hidden = false;
@@ -64,6 +77,7 @@ async function request(operation, input = {}, epoch = state.epoch) {
   if (!connected()) throw new Error('This profile is not connected in the local design preview.');
   const response = await window.EaclDataScriptRuntime.request(operation, input, crypto.randomUUID(), owner);
   if (response.error) { const error = new Error(response.error.message); error.meta = response.meta; throw error; }
+  remember(response.data?.items || (response.data?.object ? [response.data.object] : []));
   return response;
 }
 function savePreferences() {
@@ -77,37 +91,48 @@ function applyTheme() {
 }
 function renderEnvironment() {
   const { catalog } = metadata;
-  const storageLabel = (id) => catalog.storages.find((entry) => entry.id === id).label;
-  const choice = (kind, entry, selected) => `<label class="profile-option" title="${escapeHtml(entry.reason || entry.label)}"><input type="radio" name="explorer-${kind}" value="${entry.id}" ${selected === entry.id ? 'checked' : ''} ${entry.selectable === false ? 'disabled' : ''}><span class="option-label"><span>${escapeHtml(entry.label)}</span>${entry.selectable === false ? '<small class="option-status">unavailable</small>' : ''}</span></label>`;
-  // Use the same public backend list and dependent options as the original selector.
+  const choice = (kind, entry, selected) => `<label class="profile-option" title="${escapeHtml(entry.reason || entry.label)}"><input type="radio" name="explorer-${kind}" value="${entry.id}" ${selected === entry.id ? 'checked' : ''} ${entry.selectable === false || state.seeding ? 'disabled' : ''}><span class="option-label"><span>${escapeHtml(entry.label)}</span>${entry.selectable === false ? '<small class="option-status">Not deployed for this backend</small>' : ''}</span></label>`;
   $('#backend-options').innerHTML = catalog.backends.filter((entry) => entry.id !== 'jank').map((entry) => choice('backend', entry, state.backend)).join('');
   const backend = catalog.backends.find((entry) => entry.id === state.backend);
-  $('#storage-options').innerHTML = backend.storages.map((id) => choice('storage', { id, label: storageLabel(id) }, state.storage)).join('');
+  $('#storage-options').innerHTML = backend.storages.map((id) => choice('storage', catalog.storages.find((entry) => entry.id === id), state.storage)).join('');
   const activeExecution = metadata.platforms[`${state.backend}/${state.storage}`];
   $('#execution-options').innerHTML = activeExecution.map((entry) => choice('execution', entry, state.execution)).join('');
-  // Reserve only the height needed by the original server options at this width.
-  // These inert sizing spans keep subsequent content still when Browser is the sole option.
-  $('#execution-sizing').innerHTML = metadata.platforms['datomic/dynamodb'].map((entry) => `<span class="profile-option"><span class="radio-size"></span><span class="option-label"><span>${escapeHtml(entry.label)}</span><small class="option-status">unavailable</small></span></span>`).join('');
-  $('#runtime-status').innerHTML = connected() ? '<span class="status-dot"></span>Live in your browser' : state.backend === 'datascript' ? 'Starting local DataScript…' : 'Profile not connected';
+  $('#execution-sizing').innerHTML = metadata.platforms['datomic/dynamodb'].map((entry) => `<span class="profile-option"><span class="radio-size"></span><span class="option-label"><span>${escapeHtml(entry.label)}</span><small class="option-status">Not deployed for this backend</small></span></span>`).join('');
+  $('#profile-collapsed').textContent = `${backend.label} · ${catalog.storages.find((entry) => entry.id === state.storage).label} · ${activeExecution.find((entry) => entry.id === state.execution).label}`;
+  $('#runtime-status').hidden = connected();
+  $('#runtime-status').textContent = state.backend === 'datascript' ? 'Starting EACL…' : 'Profile not connected in this preview.';
   const modes = ['minimize-latency', 'at-least-as-fresh', 'at-exact-snapshot', 'fully-consistent'];
-  const reason = 'DataScript supports minimize-latency only; historical and externally synchronized reads are unavailable.';
-  $('#consistency-options').innerHTML = modes.map((mode, index) => `<label class="consistency-radio" title="${index ? reason : 'Use the current browser-local basis'}"><input type="radio" name="consistency-semantics" value="${mode}" ${index === 0 && connected() ? 'checked' : ''} ${index > 0 || !connected() ? 'disabled' : ''}><span class="option-label"><span>${mode}</span>${index > 0 || !connected() ? '<small class="option-status">unavailable</small>' : ''}</span></label>`).join('');
-  $('#basis-summary').innerHTML = connected() ? `<span>Browser basis</span><code title="${escapeHtml(bootstrap.basis.id)}">${escapeHtml(bootstrap.basis.id.split(':').at(-1))}</code><span>DataScript supports minimize-latency only.</span>` : 'Profile not connected. Select DataScript for local queries.';
-  $('#requery').disabled = !connected();
-  $('#check-form button[type=submit]').disabled = !connected();
+  const reasons = ['', 'Requires freshness synchronization', 'Requires full history', 'Requires authoritative synchronization'];
+  $('#consistency-options').innerHTML = modes.map((mode, index) => {
+    const reason = index === 3 && state.backend === 'datahike' ? `Disabled to avoid ${state.storage === 's3' ? 'S3 GETs' : 'DynamoDB reads'} in demo` : !connected() ? 'Profile not connected' : state.seeding ? 'Adding resources' : reasons[index];
+    return `<label class="consistency-radio" title="${reason || 'Use the current browser basis'}"><input type="radio" name="consistency-semantics" value="${mode}" ${index === 0 && connected() ? 'checked' : ''} ${index > 0 || !connected() || state.seeding ? 'disabled' : ''}><span class="option-label"><span>${mode}</span>${reason ? `<small class="option-status">${reason}</small>` : ''}</span></label>`;
+  }).join('');
+  $('#basis-summary').innerHTML = connected() ? `<span>Basis</span><code title="${escapeHtml(bootstrap.basis.id)}">${escapeHtml(bootstrap.basis.id.split(':').at(-1))}</code>` : '';
+  $('#requery').disabled = !connected() || state.seeding;
+  $('#check-form button[type=submit]').disabled = !connected() || state.seeding;
+  $('#principal-trigger').disabled = !connected() || state.seeding;
+  $('#page-size').disabled = !connected() || state.seeding;
+  $('#seed-form').hidden = !connected();
+  $('#seed-form button').disabled = state.seeding;
+  $('#seed-amount').disabled = state.seeding;
+  $('#seed-amount').max = bootstrap.localSeed.maximumResources - bootstrap.dataset.logicalResourceCount;
+  $('#seed-limit').textContent = `Limit: ${bootstrap.localSeed.maximumResources.toLocaleString()}`;
+  $('#query-workspace').inert = state.seeding;
+  $('#check-form').inert = state.seeding;
 }
 function resetScope() {
   state.epoch++; state.inspectorEpoch++; state.checkEpoch++; state.pages.clear(); state.selected = null;
   state.expanded = new Set([...state.expanded].filter((key) => !key.includes('/')));
   state.decisions = {}; state.reverse = null;
-  $('#check-result').textContent = 'Ready to check · latency and cache outcome appear here.';
+  $('#check-result').textContent = '';
   renderExplorer();
   for (const type of resourceTypes()) if (isOpen(`root:${type}`)) loadGroup({ kind: 'root', key: `root:${type}`, type });
 }
-function setPrincipal(id) {
-  state.principal = id; $('#principal-name').textContent = id;
-  $('.principal-trigger .avatar').textContent = id === 'super-user' ? 'SU' : id === 'user-1' ? 'U1' : id === 'user-2' ? 'U2' : 'U';
-  resetScope(); notify(`Exploring as ${id}. Previous resource selection cleared.`);
+function setPrincipal(id, type = 'user') {
+  state.principal = id; state.subjectType = type;
+  $('#principal-name').textContent = type === 'user' ? id : `${type}:${id}`;
+  $('.principal-trigger .avatar').textContent = type === 'user' ? id === 'super-user' ? 'SU' : 'U' : type[0].toUpperCase();
+  resetScope(); notify(`View As ${type}:${id}`);
 }
 function resourceTypes() { return schema?.types.filter((type) => type.permissions.length).map((type) => type.name) || []; }
 function relationships(resource) {
@@ -151,7 +176,7 @@ async function loadGroup(node, direction = 'first') {
     } else {
       const response = await request('reverse-relationships', { subjectType: node.resource.type, subjectId: node.resource.id, relation: node.relation, pageSize: pageSize(), ...(cursor ? { cursor } : {}), ...cacheInput() }, epoch);
       if (epoch !== state.epoch) return;
-      page.meta = response.meta; page.pageInfo = response.data.pageInfo; page.candidateCount = response.data.items.length;
+      page.meta = response.meta; page.pageInfo = response.data.pageInfo; page.linkedCount = response.data.items.length;
       page.checks = [];
       for (const resource of response.data.items.filter((item) => item.type === node.type)) {
         const decision = await request('check-permission', { ...authInput(resource.type, resource.id), ...cacheInput() }, epoch);
@@ -182,27 +207,41 @@ function nodeHtml(node, level = 1, parent = null) {
   const expandable = !node.cycle && (node.kind !== 'resource' || relationships(node.resource).length > 0);
   const open = expandable && isOpen(node.key);
   const selected = node.kind === 'resource' && state.selected?.type === node.type && state.selected?.id === node.resource.id;
-  const key = escapeHtml(node.key);
+  const key = escapeHtml(node.key), label = escapeHtml(node.label || typeNames[node.type]);
   const permissionSupported = supports(node.type, state.permission);
-  const count = page?.count ? `${page.count.value.toLocaleString()}${page.count.exact ? '' : '+'}` : '…';
-  const operation = node.kind === 'root' ? 'lookup-resources' : 'reverse-relationships';
-  const query = node.kind === 'resource'
-    ? node.decision ? `<span class="query-result"><code>check-permission</code><span>✓ ${state.permission}</span>${evidence(node.decision.meta)}</span>` : ''
-    : `<span class="query-result"><code>${operation}</code>${page && !page.loading && !page.error ? `<strong>${node.kind === 'root' ? page.items.length : page.candidateCount} ${node.kind === 'root' ? 'on page' : page.candidateCount === 1 ? 'candidate' : 'candidates'}</strong>` : ''}${!permissionSupported ? '<span>Permission unavailable</span>' : page?.loading ? '<span>Querying…</span>' : evidence(page?.meta)}</span>`;
-  const countResult = node.kind === 'root' && (page?.count || page?.loading)
-    ? `<div class="query-detail"><code>count-resources</code><span class="count-measure">${page.count && !page.count.exact && page.count.ceiling < 30000 ? `<button class="count-value count-action" data-increase-count="${key}" title="Count up to ${Math.min(30000, page.count.ceiling * 2).toLocaleString()}" ${page.countLoading ? 'disabled' : ''}>${count}</button>` : `<strong class="count-value">${count}</strong>`}${page.loading ? '<span>Querying…</span>' : evidence(page.countMeta)}</span>${page.countLoading ? '<span>Counting…</span>' : ''}</div>` : '';
-  return `<li role="treeitem" class="tree-item" data-key="${key}" aria-level="${level}" ${expandable ? `aria-expanded="${open}"` : ''} ${node.kind === 'resource' ? `aria-selected="${selected}"` : ''} aria-label="${escapeHtml(node.label || typeNames[node.type])}${node.cycle ? ', cycle boundary' : ''}" tabindex="${node.key === state.focusKey ? 0 : -1}">
-    <div class="tree-row ${node.kind}-row ${selected ? 'selected' : ''}" style="--level:${level}">
-      <div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${escapeHtml(node.label || typeNames[node.type])}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><div class="row-content"><div class="row-line"><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><strong>${escapeHtml(node.label || typeNames[node.type])}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}${query}</div>${countResult}</div></div>
-    </div>
-    ${open ? `<ul role="group">${!permissionSupported ? '<li role="none" class="tree-hint">This type has no such permission in the canonical schema.</li>' : page?.error ? `<li role="none" class="tree-hint error">${escapeHtml(page.error)} <button class="text-button" data-retry="${key}">Retry from first page</button></li>` : `${children(node).map((child) => nodeHtml(child, level + 1, node.key)).join('')}${node.kind !== 'resource' && page && !page.loading && !page.items.length ? '<li role="none" class="tree-hint">No authorized results in this page.</li>' : ''}${page?.countError ? `<li role="none" class="tree-hint error">Count unavailable: ${escapeHtml(page.countError)}</li>` : ''}${node.kind !== 'resource' && page && !page.loading ? `<li role="none" class="pagination"><span>Page ${page.history.length + 1}</span><button class="text-button" data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'}>First</button><button class="text-button" data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></li>` : ''}`}</ul>` : ''}
+  let query = '';
+  if (node.kind === 'resource' && node.decision) query = evidence(node.decision.meta, `${state.permission} permission check`);
+  else if (!permissionSupported) query = '<span class="muted">Permission not defined</span>';
+  else if (page) {
+    const start = page.items.length ? page.history.length * pageSize() + 1 : 0;
+    const end = page.history.length * pageSize() + page.items.length;
+    if (node.kind === 'root') {
+      const total = Math.max(page.count?.value || 0, end);
+      const lowerBound = page.count ? !page.count.exact || end > page.count.value : page.pageInfo?.hasNextPage;
+      const count = `${total.toLocaleString()}${lowerBound ? '+' : ''}`;
+      const countHtml = page.count && !page.count.exact && page.count.ceiling < 30000
+        ? `<button class="count-value count-action" data-increase-count="${key}" title="Count up to ${Math.min(30000, page.count.ceiling * 2).toLocaleString()}" ${page.countLoading ? 'disabled' : ''}>${count}</button>`
+        : `<strong class="count-value">${page.count ? count : '…'}</strong>`;
+      query = `<span class="page-measure" title="Returned resource range"><strong>${start.toLocaleString()}–${(page.items.length ? end : 0).toLocaleString()}</strong>${evidence(page.meta, 'Resource page')}</span><span class="count-measure">of ${countHtml}${evidence(page.countMeta, 'Resource count')}${page.countLoading ? '<span>Counting…</span>' : ''}</span>`;
+    } else {
+      // The runtime supplies a bounded linked-object page, then checks each object's permission.
+      // Do not present that traversal's input size as an authorized total or include checks in its timing.
+      query = `<span class="page-measure" title="Authorized objects shown from this linked-object page; total not queried"><strong>${page.items.length} shown</strong>${evidence(page.meta, 'Linked-object page only; each shown object has a separate permission-check badge')}</span>`;
+    }
+    if (page.loading) query += '<span class="muted">Loading…</span>';
+    if (page.countError) query += `<span class="error">Count failed: ${escapeHtml(page.countError)}</span>`;
+    if (open && !page.loading) query += `<span class="branch-pagination" role="group" aria-label="${label}${node.relation ? ` via ${node.relation}` : ''} Pagination"><button data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'} aria-label="First page of ${label}">«</button><button data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Prev</button><button data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>`;
+  }
+  return `<li role="treeitem" class="tree-item" data-key="${key}" aria-level="${level}" ${expandable ? `aria-expanded="${open}"` : ''} ${node.kind === 'resource' ? `aria-selected="${selected}"` : ''} aria-label="${label}${node.cycle ? ', cycle boundary' : ''}" tabindex="${node.key === state.focusKey ? 0 : -1}">
+    <div class="tree-row ${node.kind}-row ${selected ? 'selected' : ''}" style="--level:${level}"><div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${label}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><div class="row-content"><div class="row-line"><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><strong>${label}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}${query}</div></div></div></div>
+    ${open ? `<ul role="group">${!permissionSupported ? '<li role="none" class="tree-hint">This type does not define this permission.</li>' : page?.error ? `<li role="none" class="tree-hint error">${escapeHtml(page.error)} <button data-retry="${key}">Retry</button></li>` : `${children(node).map((child) => nodeHtml(child, level + 1, node.key)).join('')}${node.kind !== 'resource' && page && !page.loading && !page.items.length ? '<li role="none" class="tree-hint">No authorized results in this page.</li>' : ''}`}</ul>` : ''}
   </li>`;
 }
 function renderTree() {
   const container = $('#resource-tree'); const top = container.scrollTop;
   const focused = container.contains(document.activeElement) ? document.activeElement.closest('[data-key]')?.dataset.key : null;
   treeNodes = new Map();
-  container.innerHTML = !connected() ? '<div class="empty-tree"><strong>Profile layout preview</strong><p>Select DataScript to explore the original fixture with live local EACL queries.</p></div>' : `<ul role="group">${resourceTypes().map((type) => nodeHtml({ kind: 'root', type, key: `root:${type}`, label: typeNames[type] })).join('')}</ul>`;
+  container.innerHTML = !connected() ? '<div class="empty-tree"><strong>Profile Not Connected</strong><p>Select DataScript to explore the original fixture with live local EACL queries.</p></div>' : `<ul role="group">${resourceTypes().map((type) => nodeHtml({ kind: 'root', type, key: `root:${type}`, label: typeNames[type] })).join('')}</ul>`;
   container.classList.toggle('compact', state.compact); container.scrollTop = top;
   const visible = visibleTreeItems();
   if (!visible.some((item) => item.dataset.key === state.focusKey)) state.focusKey = visible[0]?.dataset.key;
@@ -223,7 +262,6 @@ function toggle(key, desired) {
   if (next && node.kind !== 'resource' && !state.pages.has(key)) loadGroup(node);
 }
 function renderExplorer() {
-  $('#scope-caption').textContent = `${state.principal} · ${state.permission} permission`;
   $$('input[name="resource-permission"]').forEach((input) => { input.checked = input.value === state.permission; });
   renderTree(); renderInspector();
 }
@@ -253,16 +291,16 @@ async function loadReverse(direction = 'first') {
 }
 function renderInspector() {
   const resource = state.selected;
-  if (!resource) { $('#access-pane').innerHTML = `<div class="inspector-empty"><h2 id="access-title" tabindex="-1">Select a resource</h2><p>Inspect its permissions and who has access.</p></div>`; return; }
+  if (!resource) { $('#access-pane').innerHTML = `<div class="inspector-empty"><h2 id="access-title" tabindex="-1">Select a Resource</h2><p>Inspect its permissions and who has access.</p></div>`; return; }
   const reverse = state.reverse;
   const decisionRows = permissions(resource.type).map(({ name }) => {
     const result = state.decisions[name];
     return `<div class="decision"><strong>${name}</strong><span class="decision-value ${result?.data?.allowed ? 'allowed' : result?.data ? 'denied' : ''}">${result?.error ? 'Error' : result?.data ? result.data.allowed ? '✓ Allowed' : '− Denied' : 'Checking…'}</span>${result?.error ? `<span class="error">${escapeHtml(result.error)}</span>` : evidence(result?.meta)}</div>`;
   }).join('');
-  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions for <code>${escapeHtml(state.principal)}</code></h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who has access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-evidence query-result"><code>lookup-subjects</code>${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length} on page</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button class="text-button" data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" aria-label="Explore as ${escapeHtml(subject.id)}" title="Explore as ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}${reverse && !reverse.loading ? `<div class="pagination reverse-pagination"><span>Page ${reverse.history.length + 1}</span><button class="text-button" data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Previous</button><button class="text-button" data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next →</button></div>` : ''}<details class="object-details"><summary>Resource attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
+  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions</h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who Has Access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-evidence query-result">${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length ? reverse.history.length * 5 + 1 : 0}–${reverse.items.length ? reverse.history.length * 5 + reverse.items.length : 0}${reverse.pageInfo?.hasNextPage ? '' : ` of ${reverse.history.length * 5 + reverse.items.length}`}</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}${reverse && !reverse.loading ? `<span class="branch-pagination" role="group" aria-label="Who Has Access Pagination"><button data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Prev</button><button data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>` : ''}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" data-subject-type="${escapeHtml(subject.type)}" aria-label="View As ${escapeHtml(subject.id)}" title="View As ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}<details class="object-details"><summary>Resource Attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
 }
 function renderSchema() {
-  $('#schema-view').innerHTML = `<header class="schema-heading"><div><p class="eyebrow">CANONICAL STRESS-TEST SCHEMA</p><h2>Permission schema</h2><p>6 definitions · 13 relations · 9 permissions</p></div><span class="schema-digest">SHA-256 <code>${schema.sha256.slice(0, 16)}…</code></span></header><p>Recursive account and server parents, permission arrows, shared administration, and intentionally cyclic fixture relationships are preserved.</p><div class="schema-grid">${schema.types.map((type) => `<article class="schema-card"><h3>${icon(type.name)}${type.name}</h3><h4>Relations</h4>${type.relations.length ? type.relations.map((relation) => `<p><code>${relation.name}</code><span>→ ${relation.subjectTypes.join(' | ')}</span></p>`).join('') : '<p class="muted">No relations</p>'}<h4>Permissions</h4>${type.permissions.length ? type.permissions.map((permission) => `<div class="schema-expression"><strong>${permission.name}</strong><code>${escapeHtml(permission.expression)}</code></div>`).join('') : '<p class="muted">Subject type</p>'}</article>`).join('')}</div><details class="schema-source" open><summary>Exact source · fixtures/schema.v1.zed</summary><pre>${escapeHtml(metadata.schemaSource)}</pre></details>`;
+  $('#schema-view').innerHTML = `<header class="schema-heading"><div><p class="eyebrow">CANONICAL STRESS-TEST SCHEMA</p><h2>Permission Schema</h2><p>6 definitions · 13 relations · 9 permissions</p></div><span class="schema-digest">SHA-256 <code>${schema.sha256.slice(0, 16)}…</code></span></header><p>Recursive account and server parents, permission arrows, shared administration, and intentionally cyclic fixture relationships are preserved.</p><div class="schema-grid">${schema.types.map((type) => `<article class="schema-card"><h3>${icon(type.name)}${type.name[0].toUpperCase() + type.name.slice(1)}</h3><h4>Relations</h4>${type.relations.length ? type.relations.map((relation) => `<p><code>${relation.name}</code><span>→ ${relation.subjectTypes.join(' | ')}</span></p>`).join('') : '<p class="muted">No relations</p>'}<h4>Permissions</h4>${type.permissions.length ? type.permissions.map((permission) => `<div class="schema-expression"><strong>${permission.name}</strong><code>${escapeHtml(permission.expression)}</code></div>`).join('') : '<p class="muted">Subject type</p>'}</article>`).join('')}</div><details class="schema-source" open><summary>Exact source · fixtures/schema.v1.zed</summary><pre>${escapeHtml(metadata.schemaSource)}</pre></details>`;
 }
 function showView(view) {
   if (!schema) { notify('The canonical runtime is still starting.'); return; }
@@ -272,30 +310,36 @@ function showView(view) {
 }
 async function loadSubjects(direction = 'first') {
   if (!connected() || state.subjects.loading) return;
-  const previous = state.subjects; const history = direction === 'next' ? [...previous.history, previous.cursor || null] : [...previous.history];
+  const previous = state.subjects, type = state.pickerType, epoch = state.epoch;
+  const history = direction === 'next' ? [...previous.history, previous.cursor || null] : [...previous.history];
   const cursor = direction === 'next' ? previous.pageInfo.endCursor : direction === 'previous' ? history.pop() : null;
   if (direction === 'first') history.length = 0;
-  const page = { items: [], history, cursor, loading: true }; state.subjects = page;
-  const epoch = state.epoch; renderPrincipalPicker();
-  try { const result = await request('list-subjects', { type: 'user', pageSize: 25, ...(cursor ? { cursor } : {}) }, epoch); Object.assign(page, result.data, { meta: result.meta }); }
-  catch (error) { page.error = error.message; }
-  page.loading = false; if ($('#detail-dialog').dataset.view === 'principal' && $('#detail-dialog').open) renderPrincipalPicker();
+  const page = { items: [], history, cursor, loading: true }; state.subjects = page; renderPrincipalPicker();
+  try {
+    // list-subjects enumerates the fixture's user-role records only. Resource types use
+    // the existing bounded lookup under the canonical super-user, not an invented list/search API.
+    const result = type === 'user'
+      ? await request('list-subjects', { type, pageSize: 25, ...(cursor ? { cursor } : {}) }, epoch)
+      : await request('lookup-resources', { subjectType: 'user', subjectId: 'super-user', resourceType: type, permission: 'view', pageSize: 25, ...(cursor ? { cursor } : {}), ...cacheInput() }, epoch);
+    Object.assign(page, result.data, { meta: result.meta });
+  } catch (error) { page.error = error.message; }
+  page.loading = false;
+  if (epoch === state.epoch && state.subjects === page && $('#detail-dialog').dataset.view === 'principal' && $('#detail-dialog').open) renderPrincipalPicker();
 }
 function renderPrincipalPicker() {
-  const page = state.subjects;
-  $('#dialog-body').innerHTML = `<p>Select a known user from the canonical fixture.</p><div class="quick-subjects">${quickSubjects.map((id) => `<button class="choice ${state.principal === id ? 'active' : ''}" data-principal="${id}">${id}</button>`).join('')}</div><div class="principal-list">${page.loading ? '<p>Loading known users…</p>' : page.error ? `<p class="error">${escapeHtml(page.error)} <button data-subject-page="first">Retry</button></p>` : page.items.map((subject) => `<button class="principal-option" data-principal="${escapeHtml(subject.id)}"><span class="small-avatar">U</span><code>${escapeHtml(subject.id)}</code>${state.principal === subject.id ? '<span>✓</span>' : ''}</button>`).join('')}</div><div class="pagination"><span>${page.items.length} known users ${evidence(page.meta)} · page ${page.history.length + 1}</span><button class="text-button" data-subject-page="first" ${page.history.length && !page.loading ? '' : 'disabled'}>First</button><button class="text-button" data-subject-page="previous" ${page.history.length && !page.loading ? '' : 'disabled'}>Previous</button><button class="text-button" data-subject-page="next" ${page.pageInfo?.hasNextPage && !page.loading ? '' : 'disabled'}>Next →</button></div>`;
-  hydrateIcons();
+  const restoreTypeFocus = document.activeElement?.id === 'picker-type';
+  const page = state.subjects, start = page.items.length ? page.history.length * 25 + 1 : 0, end = page.history.length * 25 + page.items.length;
+  $('#dialog-body').innerHTML = `<label class="picker-type">Subject Type <select id="picker-type">${schema.types.map(({ name }) => `<option ${name === state.pickerType ? 'selected' : ''}>${name}</option>`).join('')}</select></label><div class="quick-subjects">${state.pickerType === 'user' ? quickSubjects.map((id) => `<button class="choice ${state.subjectType === 'user' && state.principal === id ? 'active' : ''}" data-principal="${id}" data-subject-type="user">${id}</button>`).join('') : ''}</div><div class="principal-list">${page.loading ? '<p>Loading…</p>' : page.error ? `<p class="error">${escapeHtml(page.error)} <button data-subject-page="first">Retry</button></p>` : page.items.length ? page.items.map((subject) => `<button class="principal-option" data-principal="${escapeHtml(subject.id)}" data-subject-type="${subject.type}"><span class="small-avatar">${subject.type[0].toUpperCase()}</span><code>${escapeHtml(subject.id)}</code>${state.subjectType === subject.type && state.principal === subject.id ? '<span>✓</span>' : ''}</button>`).join('') : '<p>No objects in this page.</p>'}</div><div class="pagination"><span>${start}–${page.items.length ? end : 0}${state.pickerType === 'user' ? ' of 80' : ''} ${evidence(page.meta, state.pickerType === 'user' ? 'Known users' : 'Objects visible to the canonical super-user')}</span><button data-subject-page="first" ${page.history.length && !page.loading ? '' : 'disabled'}>First</button><button data-subject-page="previous" ${page.history.length && !page.loading ? '' : 'disabled'}>Prev</button><button data-subject-page="next" ${page.pageInfo?.hasNextPage && !page.loading ? '' : 'disabled'}>Next</button></div>`;
+  if (restoreTypeFocus) $('#picker-type').focus({ preventScroll: true });
 }
 async function openDialog(name, trigger) {
   if (!bootstrap) { notify('The canonical runtime is still starting.'); return; }
   const dialog = $('#detail-dialog'); if (!dialog.open) previousDialogFocus = trigger; dialog.dataset.view = name;
-  const titles = { principal: 'Explore as a principal', consistency: 'Consistency semantics', cache: 'Cache & diagnostics', dataset: 'Canonical dataset', identity: 'Local runtime identity' };
+  const titles = { principal: 'View As', consistency: 'Consistency Semantics', cache: 'Cache Diagnostics' };
   $('#dialog-title').textContent = titles[name]; $('#dialog-body').innerHTML = '';
   if (!dialog.open) dialog.showModal();
-  if (name === 'principal') { renderPrincipalPicker(); if (!state.subjects.items.length) loadSubjects(); }
+  if (name === 'principal') { if (state.pickerType !== state.subjectType) { state.pickerType = state.subjectType; state.subjects = { items: [], history: [] }; } renderPrincipalPicker(); if (!state.subjects.items.length) loadSubjects(); }
   if (name === 'consistency') $('#dialog-body').innerHTML = `<p>All four consistency choices remain visible in a compact radio row. The active browser runtime advertises only <strong>minimize-latency</strong>; its immutable basis lasts for the page lifecycle.</p><p>Re-query reuses that basis and the current cache options. This runtime has no snapshot-refresh operation and cannot promise exact historical reads, an external freshness floor, or fully consistent authoritative reads.</p><p>The connected implementation must retain the existing relative/absolute freshness controls, exact datetime selection, at-or-before resolution, and independent snapshot refresh for profiles that support them.</p><pre>${escapeHtml(JSON.stringify({ basis: bootstrap.basis, consistencyModes: bootstrap.capabilities.consistencyModes, limitations: bootstrap.capabilities.limitations }, null, 2))}</pre>`;
-  if (name === 'dataset') $('#dialog-body').innerHTML = `<p>The original <strong>10,000-resource</strong> browser fixture is loaded by the compiled EACL runtime. It contains 80 subjects and 38,613 relationships. Identifiers, schema, recursive parent chains, and intentional cycles are unchanged.</p><pre>${escapeHtml(JSON.stringify(metadata.manifest, null, 2))}</pre>`;
-  if (name === 'identity') $('#dialog-body').innerHTML = `<p>Live queries run in the browser using the repository's compiled DataScript runtime. Other backend choices show the catalog's existing options; this page makes no remote profile requests.</p><pre>${escapeHtml(JSON.stringify({ identity: metadata.identity, basis: bootstrap.basis, runtime: bootstrap.runtime, profile: bootstrap.profile }, null, 2))}</pre>`;
   if (name === 'cache') {
     $('#dialog-body').innerHTML = '<p>Reading cache diagnostics…</p>';
     try {
@@ -315,13 +359,15 @@ async function runCheck(event) {
   event.preventDefault(); const token = ++state.checkEpoch; const epoch = state.epoch;
   const resourceType = $('#check-type').value, resourceId = $('#check-resource').value.trim(), principal = $('#check-principal').value.trim(), permission = $('#check-permission').value;
   $('#check-result').textContent = 'Checking…';
+  $('#check-form button[type=submit]').disabled = true;
   try {
     // Validate typed identifiers against the actual fixture; do not turn a missing object into a denial.
-    await request('get-object', { type: 'user', id: principal }, epoch);
+    await request('get-object', { type: $('#check-subject-type').value, id: principal }, epoch);
     await request('get-object', { type: resourceType, id: resourceId }, epoch);
-    const response = await request('check-permission', { ...authInput(resourceType, resourceId, permission, principal), ...cacheInput() }, epoch);
-    if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="query-result"><code>check-permission</code><strong class="${response.data.allowed ? 'allowed' : 'denied'}">${response.data.allowed ? '✓ Allowed' : '− Denied'}</strong>${evidence(response.meta)}</span>`;
+    const response = await request('check-permission', { ...authInput(resourceType, resourceId, permission, principal), subjectType: $('#check-subject-type').value, ...cacheInput() }, epoch);
+    if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="query-result"><strong class="${response.data.allowed ? 'allowed' : 'denied'}">${response.data.allowed ? '✓ Allowed' : '− Denied'}</strong>${evidence(response.meta)}</span>`;
   } catch (error) { if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="error">${escapeHtml(error.message)}</span>${error.meta ? evidence(error.meta) : ''}`; }
+  finally { $('#check-form button[type=submit]').disabled = !connected() || state.seeding; }
 }
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button'); if (!button || button.disabled) return;
@@ -333,11 +379,12 @@ document.addEventListener('click', (event) => {
   if (data.page) loadGroup(treeNodes.get(data.group), data.page);
   if (data.retry) loadGroup(treeNodes.get(data.retry));
   if (data.increaseCount) increaseCount(data.increaseCount);
-  if (data.principal || data.exploreAs) { $('#detail-dialog').close(); setPrincipal(data.principal || data.exploreAs); }
+  if (data.principal || data.exploreAs) { $('#detail-dialog').close(); setPrincipal(data.principal || data.exploreAs, data.subjectType); }
   if (data.subjectPage) loadSubjects(data.subjectPage);
   if (data.reversePage) loadReverse(data.reversePage);
 });
 document.addEventListener('change', (event) => {
+  if (event.target.id === 'picker-type') { state.pickerType = event.target.value; state.subjects = { items: [], history: [] }; loadSubjects(); return; }
   if (event.target.name === 'resource-permission') { state.permission = event.target.value; resetScope(); return; }
   if (event.target.name === 'reverse-permission') { state.reversePermission = event.target.value; state.reverse = null; loadReverse(); $$('.reverse-permissions input').find((input) => input.value === state.reversePermission)?.focus({ preventScroll: true }); return; }
   const input = event.target.closest('.profile-option input');
@@ -367,9 +414,11 @@ $('#collapse-all').addEventListener('click', () => { state.expanded.clear(); sta
 $('#requery').addEventListener('click', requery);
 $('#view-access').addEventListener('click', () => { $('#access-title').focus(); $('#access-pane').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 $('#check-form').addEventListener('submit', runCheck);
-$('#check-form').addEventListener('input', () => { state.checkEpoch++; $('#check-result').textContent = 'Ready to check · inputs changed.'; });
-$('#check-type').addEventListener('change', () => { $('#check-permission').innerHTML = permissions($('#check-type').value).map(({ name }) => `<option>${name}</option>`).join(''); });
+$('#check-form').addEventListener('input', () => { state.checkEpoch++; $('#check-result').textContent = ''; });
+$('#check-subject-type').addEventListener('change', renderSuggestions);
+$('#check-type').addEventListener('change', () => { renderSuggestions(); $('#check-permission').innerHTML = permissions($('#check-type').value).map(({ name }) => `<option>${name}</option>`).join(''); });
 $('#resource-tree').addEventListener('keydown', (event) => {
+  if (event.target !== document.activeElement || event.target.getAttribute('role') !== 'treeitem') return;
   const visible = visibleTreeItems(); const index = visible.findIndex((item) => item === document.activeElement); if (index < 0) return;
   const node = treeNodes.get(visible[index].dataset.key); let next;
   if (event.key === 'ArrowDown') next = visible[Math.min(index + 1, visible.length - 1)]?.dataset.key;
@@ -382,8 +431,51 @@ $('#resource-tree').addEventListener('keydown', (event) => {
   if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', ' '].includes(event.key)) event.preventDefault();
   if (next) focusTree(next);
 });
+function toggleSection(button, content, collapsed) {
+  const open = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(open)); content.hidden = !open;
+  if (collapsed) { collapsed.hidden = open; button.textContent = open ? '−' : '+'; button.setAttribute('aria-label', `${open ? 'Collapse' : 'Expand'} Backend, Storage and Execution`); }
+  else button.querySelector('span').textContent = open ? '−' : '+';
+}
+$('#environment-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#profile-rows'), $('#profile-collapsed')));
+$('#consistency-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#consistency-options')));
+$('#checker-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#check-form')));
+new ResizeObserver(() => document.documentElement.style.setProperty('--checker-height', `${$('.query-lab').getBoundingClientRect().height + 24}px`)).observe($('.query-lab'));
+async function refreshTotals() {
+  const [objects, relationships] = await Promise.all(['objects', 'relationships'].map((kind) => request('count-objects', { kind, ceiling: 1000000 })));
+  $('#dataset-stats').innerHTML = `<div><strong>${objects.data.value.toLocaleString()}</strong><span>objects</span>${evidence(objects.meta, 'Object count')}</div><div><strong>${relationships.data.value.toLocaleString()}</strong><span>relationships</span>${evidence(relationships.meta, 'Relationship count')}</div>`;
+}
+async function seedResources(retry = false) {
+  const amount = Number($('#seed-amount').value);
+  if (!retry && (!Number.isSafeInteger(amount) || amount < 1 || bootstrap.dataset.logicalResourceCount + amount > bootstrap.localSeed.maximumResources)) {
+    $('#seed-status').textContent = `Enter a positive whole number within the ${bootstrap.localSeed.maximumResources.toLocaleString()} object limit.`; return;
+  }
+  state.seeding = true; state.epoch++; state.inspectorEpoch++; state.checkEpoch++;
+  state.pages.clear(); state.selected = null; state.subjects = { items: [], history: [] }; knownObjects.clear(); renderSuggestions();
+  $('#check-result').textContent = ''; $('#seed-retry').hidden = true; renderEnvironment();
+  const update = (progress) => { $('#seed-status').textContent = `${progress.resourcesCompleted.toLocaleString()} / ${progress.resourcesTarget.toLocaleString()} added`; };
+  try {
+    let result = await request(retry ? 'seed-retry' : 'seed-start', retry ? {} : { resourceCount: amount });
+    update(result.data);
+    while (result.data.status === 'seeding') {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      result = await request('seed-status'); update(result.data);
+    }
+    if (result.data.status === 'error') throw new Error(result.data.error);
+    $('#seed-status').textContent += ' · Local changes reset on reload';
+  } catch (error) {
+    $('#seed-status').textContent = error.message;
+    try { const progress = await request('seed-status'); $('#seed-retry').hidden = progress.data.status !== 'error'; } catch { /* Keep the original error visible. */ }
+  } finally {
+    try { bootstrap = (await request('bootstrap')).data; await refreshTotals(); } catch (error) { $('#seed-status').textContent = error.message; }
+    state.seeding = false; renderEnvironment(); resetScope();
+  }
+}
+$('#seed-form').addEventListener('submit', (event) => { event.preventDefault(); if (!state.seeding && connected()) seedResources(); });
+$('#seed-retry').addEventListener('click', () => { if (!state.seeding && connected()) seedResources(true); });
 async function initialize() {
   applyTheme(); hydrateIcons();
+  if (matchMedia('(max-width: 650px)').matches) toggleSection($('#checker-toggle'), $('#check-form'));
   try {
     const response = await fetch('/preview-metadata.json'); if (!response.ok) throw new Error('Preview metadata unavailable.'); metadata = await response.json();
     await window.EaclDataScriptRuntime.initialize(metadata.identity, owner);
@@ -392,11 +484,13 @@ async function initialize() {
     state.ready = true;
     const schemaResult = await request('get-schema'); schema = schemaResult.data;
     if (schema.sha256 !== metadata.schema.sha256 || bootstrap.dataset.manifestSha256 !== metadata.identity.dataManifestSha256) throw new Error('Canonical schema or fixture identity mismatch.');
-    $('#dataset-stats').innerHTML = `<div><strong>${metadata.manifest.counts.objects.resources.total.toLocaleString()}</strong><span>resources</span></div><div><strong>${metadata.manifest.counts.relationships.total.toLocaleString()}</strong><span>relationships</span></div><div><strong>${metadata.manifest.counts.objects.subjects.total}</strong><span>principals</span></div>`;
+    await refreshTotals();
+    $('#check-subject-type').innerHTML = schema.types.map(({ name }) => `<option ${name === 'user' ? 'selected' : ''}>${name}</option>`).join('');
+    remember(quickSubjects.map((id) => ({ type: 'user', id })));
     $('#check-type').innerHTML = resourceTypes().map((type) => `<option ${type === 'server' ? 'selected' : ''}>${type}</option>`).join('');
     renderEnvironment(); renderSchema(); renderExplorer();
     await loadGroup({ kind: 'root', key: 'root:account', type: 'account' });
     const resource = state.pages.get('root:account')?.items.find((item) => item.id === 'account-0'); if (resource) selectResource(resource);
-  } catch (error) { state.ready = false; $('#runtime-status').textContent = 'Runtime unavailable'; $('#resource-tree').innerHTML = `<div class="empty-tree error"><strong>Could not initialize the canonical runtime</strong><p>${escapeHtml(error.message)}</p></div>`; }
+  } catch (error) { state.ready = false; $('#runtime-status').hidden = false; $('#runtime-status').textContent = 'Runtime unavailable'; $('#resource-tree').innerHTML = `<div class="empty-tree error"><strong>Could not initialize the canonical runtime</strong><p>${escapeHtml(error.message)}</p></div>`; }
 }
 initialize();

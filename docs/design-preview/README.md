@@ -1,75 +1,69 @@
-# EACL Explorer design preview
-
-From the `eacl-demo` repository:
+# EACL Explorer Design Preview
 
 ```sh
 npm run build:datascript-runtime
 node scripts/preview-explorer-design.mjs
 ```
 
-Open [the local preview](http://127.0.0.1:5198/?theme=light). The theme button also provides the dark treatment. `EACL_DESIGN_PORT` overrides the loopback port. Stop the server with Ctrl-C.
+Open [the local preview](http://127.0.0.1:5198/?theme=light). `EACL_DESIGN_PORT` overrides the loopback port. Stop with Ctrl-C.
 
-Branch: `design/resource-first-explorer`.
+Branch: `design/resource-first-explorer`. OpenSpec: `openspec/changes/redesign-resource-first-explorer/`.
 
-OpenSpec change: `openspec/changes/redesign-resource-first-explorer/`.
+## Current Layout
 
-## Design constraints
+- One navbar title with the 🦅 logo, prominent EACL/Demo Source links, object/relationship counts, View As, and theme toggle. No separate principal count.
+- Exact subtitle: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
+- Collapsible Backend/Storage/Execution controls with native radios, original compatible-choice behavior, and stable row positions across backend changes. No redundant section heading.
+- Collapsible Consistency Mode with native radios, informative disabled reasons without strikethrough, and basis information beside Refresh Snapshot.
+- Page Size at the top right; DataScript Add Resources controls with the advertised limit, progress, and retry.
+- A document-flow resource tree, with Collapse All above it. No internal tree scroll window, duplicate scope heading, API-operation labels, or candidate counts.
+- Root ranges and counts share the branch heading row with visibly bordered pagination buttons. Page and count queries retain separate combined latency/cache badges. Queried counts remain visible when collapsed; bounded counts still expand from 1,000 toward the 30,000 ceiling. At phone widths the controls wrap within their branch row.
+- Fixed-height View As dialog with all schema types and bounded pages. The current subject type and ID are passed to EACL.
+- A collapsible floating permission checker with Subject type/ID, Resource type/ID, Permission, and Check Permission. Autocomplete uses discovered IDs, as the original checker did. It makes no text-search request and keeps a bounded set of suggestions. The checker starts collapsed on phones; document padding tracks its actual height so the last rows remain reachable.
+- The original EPL 2.0/copyright footer. No Local Design label, Runtime Identity link, healthy-runtime slogan, idle checker sentence, or independent-selection caption.
 
-The change centers on the original request: move principal selection to the top right, give the resource tree most of the width, and place the smaller subject/access inspector on the right. Preserve original semantics, controls, data, and query information. Usability and information density take priority over decoration.
+## Runtime and Data
 
-- Retain the 🦅 eagle logo and EACL Explorer title.
-- Use the subtitle exactly: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
-- Keep native radio buttons and three stable Backend, Storage, and Execution rows. Backend labels contain names only; dependent storage/execution choices follow the original selector. Compatible selections survive backend changes. Unavailable options are explicitly labelled and retain their reason.
-- Keep the four consistency choices in a compact radio row, with the existing Re-query, Refresh Snapshot, basis context, and semantics access.
-- Keep counts prominent. Each query result and count has its own latency/cache evidence immediately beside it. Queried counts remain visible after branch collapse. No separate timing column or global query-evidence/activity dashboard.
-- Preserve bounded count expansion: start at 1,000 and double the ceiling on request, up to 30,000. A truncated result displays `+`; an exact result does not.
-- Do not add browser-only resource or known-user filtering.
-- Keep 16px resource identifiers, 14px latency values, and 12px cache badges in either density. Compact mode reduces padding rather than essential text size.
+This isolated preview calls the existing compiled EACL DataScript runtime. It starts with the original 10,000 resource-role objects, 80 user records, and 38,613 relationships. The runtime names that resource-role inventory `objects`; no count is presented as the total number of potential principals. All six definitions, 13 relations, nine permissions, recursive parents, IDs, and intentional cycles are unchanged.
 
-## Runtime and unchanged data
-
-The preview calls the existing compiled EACL DataScript runtime with its original browser fixture: 10,000 resources, 80 principals, and 38,613 relationships. It retains the original IDs, recursive parents, intentional cycles, and complete six-definition, 13-relation, nine-permission schema. No replacement fixture or local decision helper exists.
-
-The unchanged schema SHA-256 is:
+Canonical schema SHA-256:
 
 ```text
 7fa7ae57dec4e442c66815ea74a63b08f12a79d7e9a716ebc8f1d6b03ee2262c
 ```
 
-The server checks runtime/schema artifact hashes and allowlists the preview assets, compiled runtime, existing pure selection/platform modules, and metadata. The browser checks the returned schema and fixture identities. Production source, canonical fixtures, manifests, generators, and runtime source remain unchanged.
+The existing artifact is pinned to EACL Core `d153cd767a62440d133f01abaacfc3eb2edfe8c7`. The loopback server verifies the runtime/schema artifact digests; the browser verifies schema and manifest identities. Production source, runtime source, schema files, fixture manifests, and generators remain unchanged.
 
-Only DataScript is connected locally. Server profile options use the existing selector semantics but show “Profile not connected” and make no remote requests. DataScript supports minimize-latency only; other consistency modes and snapshot refresh remain visibly unavailable in this preview. Supporting production profiles retain their full consistency requirements in the apply tasks.
+Only DataScript is connected in this preview. Server profiles display their existing catalog options and an explicit disconnected status; they make no remote requests. DataScript supports minimize-latency and no snapshot refresh operation. Other modes remain disabled with reasons, not simulated guarantees. Supporting production profiles' freshness/history controls remain mandatory connected implementation work.
 
-## Query evidence
+### Typed Subject Discovery
 
-Latency comes from the specific runtime response's `elapsedMs`; cache outcomes come from its `cacheStatus`. These are browser-local operation measurements, not HTTP round-trip measurements or a cross-backend benchmark. An absent cache status receives no invented badge.
+The runtime's `list-subjects` operation enumerates its user-role records only. View As uses it for 25-user pages. For account, platform, server, team, and vpc pages, the preview calls existing bounded `lookup-resources` with the canonical `user:super-user` and `view`. It does not load the full object inventory or invent a list/search API. Selecting a result then uses its real subject type/ID for tree and inspector queries. The unchanged stress-test permission schema primarily resolves through user relations, so selecting another object type need not produce an allow.
 
-Lookup page counts and total count queries retain separate measurements. Relationship traversal shows the actual candidate count with traversal latency, while each displayed candidate's permission decision carries its own timing/cache result. The traversal measurement does not include subsequent checks. Static fixture totals describe the dataset and are not timed authorization queries.
+### Query Timings and Relationship Pages
 
-Independent cache read/populate controls and actual provider diagnostics remain available. The preview has no global last-query display or aggregate query-evidence counters.
+Every badge uses its specific runtime response's `elapsedMs` and optional `cacheStatus`. These are browser-local operation measurements, not HTTP round trips or cross-backend benchmarks. Missing cache status is not replaced by an invented hit/miss.
 
-## What to try
+Roots use separate `lookup-resources` and `count-resources` calls. The navbar uses actual `count-objects` calls for object and relationship inventory, refreshed after seeding.
 
-1. Expand Servers as `user-1`: the total is 64, immediately followed by count latency/cache status. The page's item count has its separate lookup timing. Use First/Previous/Next for cursor navigation.
-2. Select a server. Inspect admin/view decisions, then use the reverse-lookup radios and five-subject pages. Each result has adjacent latency/cache evidence.
-3. Re-query to see genuine cache hits. Disable Read cache and run a check to observe `disabled`, not an invented hit.
-4. Choose `super-user`, expand Servers, then click the bounded count. It progresses through 1,000+, 2,000+, 4,000+, and 8,000+ to the exact 9,922 servers. Collapse the branch; its count and timing remain visible.
-5. Expand `account-0 → Accounts via :parent → account-1 → Accounts via :parent`. The repeated `account-0` has an explicit cycle boundary; the original relationship is not changed.
-6. Switch backends. Backend/Storage/Execution rows retain their positions at a fixed viewport. Datahike DynamoDB / 4 GiB Lambda remains DynamoDB / 4 GiB Lambda when switching to Datomic.
-7. Use the principal picker's original quick choices and 25-user pages. Switching principal clears the old inspector and scoped results.
-8. Use arrow keys and Home/End in the tree. On narrow screens, View access focuses the inspector. Inspect the complete schema and independent permission checker.
+The removed “5 candidates” label was the size of a `reverse-relationships` response. That runtime operation scans the in-memory relationship collection for the selected object/relation, deduplicates linked objects, sorts, and returns a bounded page. The preview then checks the selected permission for each returned object of the target type and renders the authorized results. It now says only how many results are shown; it does not claim a total authorized relation count. The branch badge measures traversal only, and each displayed object has its own permission-check badge. Tooltip text preserves this distinction. No unmeasured total or combined traversal/check timing is fabricated.
 
-## Verification — 2026-09-08
+### Local Additions
 
-- Canonical runtime rebuilt against pinned Core `d153cd767a62440d133f01abaacfc3eb2edfe8c7`; identity checks passed.
-- All 23 fixture tests passed; canonical schema/fixture/production-source diffs remain empty.
-- All eight existing selection/platform tests passed.
-- The eight canonical allow/deny examples were checked through the runtime-backed permission checker, including recursive and cyclic cases.
-- Browser checks returned 64 servers for `user-1`, and count escalation reached the exact 9,922 for `super-user`. Count latency/cache stayed adjacent and remained visible after collapse.
-- Backend rows and panel height stayed identical across all four backends at each checked width: 1440, 768, and 390px. No horizontal page overflow occurred. Compatible DynamoDB / 4 GiB Lambda selection survived Datahike → Datomic.
-- Native profile, tree-permission, reverse-permission, and consistency radios rendered correctly. Unsupported consistency choices explicitly read unavailable. The compact consistency panel measured 117 CSS pixels at the checked desktop width.
-- Real cache miss/hit/bypass behavior, resource and reverse pagination, parent-cycle termination, principal paging, selection/focus, light/dark styling, and phone access were exercised.
-- The global evidence strip, timing column, resource filter, and query activity view are absent. The factual subtitle matches the supplied text.
-- JavaScript syntax checks, strict OpenSpec validation, and `git diff --check` passed. No browser warning/error entries were observed in the checked session.
+Add Resources uses the unchanged `seed-start`, `seed-status`, and `seed-retry` operations. Validation respects the 100,000-resource browser ceiling. Exploration and profile changes are disabled during seeding. Completion refreshes bootstrap/basis and inventory counts and resets scoped pages, counts, decisions, and cursors. Additions are page-local; reloading restores the canonical fixture. No fixture/schema file is edited.
 
-This is an isolated local design preview. Full production controller/recovery qualification, schema graph controls, supporting profiles' historical/freshness semantics, cache eviction, local seeding, deployed identity/availability, canonical URLs/history, and the caveats/expiry playground remain explicit connected apply tasks. The preview does not remove those features from the existing application.
+## Verification — 2026-09-09
+
+- Ten existing selection/platform and local-seeding contract tests passed.
+- JavaScript syntax, strict OpenSpec validation, and whitespace checks passed.
+- Backend/Storage/Execution row positions and panel heights were identical across all four backends at each checked width: 1440, 768, and 390px. No horizontal page overflow occurred.
+- Disabled Check Permission contrast measured 4.98:1 in light mode and 6.71:1 in dark mode; options had no computed strikethrough.
+- View As listed users, 11 accounts, the single platform, and 25-server pages. Dialog height remained 650px at the checked desktop size. Known-user Next displayed 26–50 of 80; closing restored focus to the header trigger.
+- Selecting `account:account-0` produced actual typed tree queries and a typed checker denial, consistent with the unchanged schema. User allow/deny checks and real miss/hit/disabled cache outcomes were verified.
+- Root Next changed 1–20 to 21–40, with independent page/count timing badges. Super-user count escalation displayed 1,000+ then 2,000+ and preserved the latter count/timing after collapse. The existing full escalation to 9,922 was verified in the preceding revision.
+- Parent traversal terminated at the original cycle boundary; tree operation labels and candidate text were absent.
+- Adding three resources yielded 10,003 objects, 38,617 relationships, five accessible accounts, and 66 accessible servers for user-1. The basis advanced, suggestions included discovered IDs, and reload restored 10,000/38,613.
+- The tree computed to `overflow: visible` and `max-height: none`; the phone checker started collapsed at 42px and expanded into grouped controls. Light/dark phone and desktop layouts were inspected.
+- No browser console entries were observed in the checked session.
+
+This is the local design stage. Production controller/recovery qualification, complete schema graph controls, supporting server profiles' historical/freshness semantics, cache eviction, deployed identity/availability, canonical URLs/history, and the caveats/expiry playground remain connected apply tasks. The existing production application retains those features.
