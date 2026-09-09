@@ -231,11 +231,11 @@ test("sibling disclosures do not issue unrelated EACL queries", async ({
   const calls = await page.evaluate(() => (window as any).__queryCalls);
   expect(calls.length).toBeGreaterThan(0);
   expect(calls.map((call: any) => call.operation)).toContain(
-    "reverse-relationships",
+    "lookup-resources",
   );
   expect(
     calls.every((call: any) =>
-      ["reverse-relationships", "check-permission"].includes(call.operation),
+      ["lookup-resources"].includes(call.operation),
     ),
   ).toBe(true);
   await page.evaluate(() => {
@@ -269,7 +269,7 @@ test("approved disclosure, stable type rows, checker labels and explicit tree re
   await page.evaluate(()=>{const w=window as any;w.__refreshCalls=[];const r=w.EaclDataScriptRuntime;const original=r.request;r.request=function(operation:string,input:any,...rest:any[]){w.__refreshCalls.push({operation,input});return original.call(r,operation,input,...rest)}});
   await page.getByRole('button',{name:'Re-query',exact:true}).click();
   await expect.poll(async()=>page.evaluate(()=>(window as any).__refreshCalls.filter((c:any)=>c.operation==='lookup-resources').map((c:any)=>c.input.resourceType))).toEqual(expect.arrayContaining(['account','server']));
-  await expect.poll(async()=>page.evaluate(()=>(window as any).__refreshCalls.map((c:any)=>c.operation))).toEqual(expect.arrayContaining(['count-resources','reverse-relationships']));
+  await expect.poll(async()=>page.evaluate(()=>(window as any).__refreshCalls.map((c:any)=>c.operation))).toEqual(expect.arrayContaining(['count-resources','lookup-resources']));
   const footer=page.locator('.can-permission-footer');
   if(await footer.getByRole('button',{name:'Toggle Check Permission'}).getAttribute('aria-expanded')==='false') await footer.getByRole('button',{name:'Toggle Check Permission'}).click();
   await expect(footer.locator('label').filter({hasText:'Subject ID'})).toBeVisible();
@@ -278,4 +278,28 @@ test("approved disclosure, stable type rows, checker labels and explicit tree re
   const decision=await footer.locator('.can-permission-footer__decision').boundingBox();
   const header=await footer.locator('.checker-header').boundingBox();
   expect(decision!.x+decision!.width).toBeCloseTo(header!.x+header!.width,0);
+});
+
+test("platform accounts use one authorized lookup per page, without per-account checks", async ({page}) => {
+  await page.getByRole('button',{name:'View As user-1',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Super user',exact:true}).click();
+  await page.getByRole('combobox',{name:'Page size',exact:true}).selectOption('5');
+  await page.getByRole('button',{name:'platform type Platforms',exact:true}).click();
+  await page.getByRole('button',{name:'Expand platform',exact:true}).click();
+  const accounts=page.locator('.relationship-group').filter({hasText:'Accounts via :platform'}).first();
+  await page.waitForTimeout(250);
+  await page.evaluate(()=>{const w=window as any;w.__branchCalls=[];const r=w.EaclDataScriptRuntime;const original=r.request;r.request=function(operation:string,input:any,...rest:any[]){w.__branchCalls.push({operation,input});return original.call(r,operation,input,...rest)}});
+  await accounts.locator('button[aria-expanded]').first().click();
+  await expect(accounts.locator('.resource-button')).toHaveCount(5);
+  const calls=await page.evaluate(()=>(window as any).__branchCalls);
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toMatchObject({operation:'lookup-resources',input:{subjectId:'super-user',resourceType:'account',relationshipSubjectType:'platform',relationshipSubjectId:'platform',relationshipRelation:'platform'}});
+  const firstIds=await accounts.locator('.resource-caption__id').allTextContents();
+  await page.evaluate(()=>(window as any).__branchCalls=[]);
+  await accounts.getByRole('button',{name:'Next',exact:true}).click();
+  await expect.poll(async()=>accounts.locator('.resource-caption__id').allTextContents()).not.toEqual(firstIds);
+  const nextCalls=await page.evaluate(()=>(window as any).__branchCalls);
+  expect(nextCalls).toHaveLength(1);
+  expect(nextCalls[0].operation).toBe('lookup-resources');
+  expect(nextCalls[0].input.cursor).toBeTruthy();
 });

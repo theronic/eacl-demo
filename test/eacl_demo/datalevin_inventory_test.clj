@@ -16,3 +16,7 @@
                {:snapshot ::snapshot :input {:kind "relationships" :ceiling 1000000}
                 :check-active! (fn [])}))))
     (is (= [[::database nil storage/forward-attribute nil]] @calls))))
+
+(deftest nested-lookup-delegates-authorization-and-filtering-to-eacl
+  ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
+   operations/create-handlers "datalevin-memory"))

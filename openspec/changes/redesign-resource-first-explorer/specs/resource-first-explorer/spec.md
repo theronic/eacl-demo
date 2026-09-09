@@ -212,3 +212,10 @@ Expanding or collapsing a sibling node SHALL NOT rerun unrelated resource lookup
 
 ### Requirement: Fast Relationship Inventory
 The navbar SHALL show relationship totals for all supported backends without materializing the relationship collection. DataScript SHALL maintain type totals during seeding and use its existing vector cardinality for the total. Datalevin SHALL use native attribute size. Datahike SHALL use subtree cardinality where supported and otherwise the completed migration certificate. The immutable Datomic demo SHALL use its completed migration certificate. A large certified total SHALL be exposed as an optional estimatedTotal alongside the existing bounded count result and labelled with ≈ in the navbar. These inventory estimates SHALL NOT replace authorization counts or change consistency modes.
+
+### Requirement: Nested authorization is paginated by EACL
+Nested resource branches SHALL use lookup-resources with the selected subject, permission, resource type and resource/relationship parent filter. They SHALL NOT enumerate candidates and send a separate check-permission request for every candidate. EACL SHALL apply authorization and the relationship filter before pagination; the demo SHALL preserve returned cursors, cache controls and consistency input.
+
+#### Scenario: Super-user expands platform accounts
+- **WHEN** the user expands Platforms → Accounts or requests its next page
+- **THEN** the demo sends one filtered lookup-resources request and no per-account check-permission requests

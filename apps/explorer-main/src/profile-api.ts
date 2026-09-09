@@ -396,43 +396,28 @@ export function createProfileApi(
     }
 
     if (url.pathname === "/list-relationships") {
-      const result = await wire<WirePage<WireObject>>("reverse-relationships", {
-        subjectType: nestedIdentifier(body, "subject", "type"),
-        subjectId: nestedIdentifier(body, "subject", "id"),
-        relation: identifier(body.relation),
+      // EACL applies authorization and the parent relationship before paging.
+      // Never fan out a separate check-permission request for each candidate.
+      const result = await wire<WirePage<WireObject>>("lookup-resources", {
+        subjectType: nestedIdentifier(body, "authorizationSubject", "type"),
+        subjectId: nestedIdentifier(body, "authorizationSubject", "id"),
+        permission: identifier(body.permission),
+        resourceType: identifier(body.resourceType),
+        relationshipSubjectType: nestedIdentifier(body, "subject", "type"),
+        relationshipSubjectId: nestedIdentifier(body, "subject", "id"),
+        relationshipRelation: identifier(body.relation),
         pageSize: number(body.pageSize, 20),
         cache: body.cache !== false,
         populateCache: body.populateCache !== false,
         ...(body.after ? { cursor: identifier(body.after) } : {}),
         ...consistencyInput,
       }, signal);
-      const resourceType = identifier(body.resourceType);
       const parent = object(body.subject as WireObject);
-      const candidates = result.data!.items.filter((item) => item.type === resourceType);
-      const items: RelationshipPage["items"] = [];
-      for (const item of candidates) {
-        let allowed = true;
-        if (body.authorizationSubject && body.permission) {
-          const decision = await wire<{ allowed: boolean }>("check-permission", {
-            subjectType: nestedIdentifier(body, "authorizationSubject", "type"),
-            subjectId: nestedIdentifier(body, "authorizationSubject", "id"),
-            resourceType: item.type,
-            resourceId: item.id,
-            permission: identifier(body.permission),
-            cache: body.cache !== false,
-            populateCache: body.populateCache !== false,
-            ...consistencyInput,
-          }, signal);
-          allowed = decision.data!.allowed;
-        }
-        if (allowed) {
-          items.push({
-            subject: parent,
-            relation: identifier(body.relation),
-            resource: object(item),
-          });
-        }
-      }
+      const items: RelationshipPage["items"] = result.data!.items.map(item => ({
+        subject: parent,
+        relation: identifier(body.relation),
+        resource: object(item),
+      }));
       const page: RelationshipPage = {
         items,
         pageInfo: {
