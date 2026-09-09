@@ -64,7 +64,7 @@ interface ProfileDescriptor {
     limitations: string[];
   };
   dataset: { logicalResourceCount: number; serverCount: number };
-  localSeed?: { maximumResources: number; modified: boolean; progress: LocalSeedProgress };
+  localSeed?: { modified: boolean; progress: LocalSeedProgress };
   basis: { id: string; capturedAt: string; behavior: string; fixedForEnvironment: boolean };
 }
 

@@ -299,7 +299,7 @@ html { scroll-padding-bottom: var(--checker-height); }
 .dataset-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px 0 0; font-size: 13px; }
 #seed-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 #seed-amount { width: 105px; min-height: 36px; padding: 5px 8px; }
-#seed-limit, #seed-status { color: var(--muted); font-size: 12px; }
+#seed-status { color: var(--muted); font-size: 12px; }
 .page-size-control { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .page-size-control select { min-height: 36px; padding: 4px 8px; }
 .workspace-tabs .workspace-tab { font-size: 14px; }
@@ -386,7 +386,6 @@ dialog[data-view=principal] #dialog-body { display: flex; flex-direction: column
   .option-status { font-size: 11px; line-height: 14px; }
   .dataset-tools { align-items: start; }
   #seed-form { flex: 1; }
-  #seed-limit { width: 100%; }
   .page-size-control { font-size: 12px; flex-direction: column; gap: 2px; }
   .resource-tools { padding: 7px; gap: 6px; }
   .resource-tools .quiet-button { font-size: 12px; padding: 6px; }
@@ -456,11 +455,10 @@ html, body, .workspace, .tree, .access-pane { overflow-anchor: none; }
 .topbar .dataset-stats { display: contents; }
 .topbar .dataset-stats > div { display: flex; flex-direction: column; gap: 0; }
 .topbar .dataset-stats > div:first-child { order: 0; }
-.topbar #seed-form { order: 1; display: grid; grid-template-columns: 85px auto; gap: 2px 6px; }
+.topbar #seed-form { order: 2; display: grid; grid-template-columns: 85px auto; gap: 2px 6px; }
 .topbar #seed-amount { width: 85px; }
 .topbar #seed-form button { white-space: nowrap; }
-.topbar #seed-limit { grid-column: 1 / -1; font-size: 11px; }
-.topbar .dataset-stats > div:last-child { order: 2; }
+.topbar .dataset-stats > div:last-child { order: 1; }
 .topbar #theme-toggle { order: 3; }
 .topbar #principal-trigger { order: 4; }
 .seed-progress { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
@@ -476,9 +474,9 @@ html, body, .workspace, .tree, .access-pane { overflow-anchor: none; }
 @media (max-width: 650px) {
   .top-actions { display: grid; grid-template-columns: auto minmax(0,1fr) auto; width: 100%; gap: 7px 10px; align-items: center; }
   .topbar .dataset-stats > div:first-child { grid-column: 1; grid-row: 1; }
-  .topbar #seed-form { grid-column: 2 / -1; grid-row: 1; justify-self: end; grid-template-columns: 82px auto; }
-  .topbar .dataset-stats > div:last-child { grid-column: 1; grid-row: 2; }
-  .topbar #theme-toggle { grid-column: 2; grid-row: 2; justify-self: end; width: 34px; }
+  .topbar #seed-form { grid-column: 1 / 3; grid-row: 2; justify-self: start; grid-template-columns: 82px auto; }
+  .topbar .dataset-stats > div:last-child { grid-column: 2; grid-row: 1; }
+  .topbar #theme-toggle { grid-column: 3; grid-row: 1; justify-self: end; width: 34px; }
   .topbar #principal-trigger { grid-column: 3; grid-row: 2; }
   .profile-choices { gap: 6px 18px; }
   .consistency-actions { gap: 6px; }
@@ -491,3 +489,22 @@ html, body, .workspace, .tree, .access-pane { overflow-anchor: none; }
   .row-label .resource-symbol { display: inline-flex; width: 23px; height: 23px; }
   .disclosure { width: 30px; height: 34px; }
 }
+
+/* Keep subject pagination independent of changing count and latency widths. */
+.reverse-pagination-controls { display: flex; justify-content: flex-end; width: 100%; margin: 8px 0 0; }
+.reverse-pagination-controls button { width: 68px; flex: 0 0 68px; }
+
+.branch-pagination button, .pagination button { font-size: 16px; min-height: 38px; }
+button:is([data-page="next"], [data-reverse-page="next"], [data-subject-page="next"]):not(:disabled) { background: var(--green); border-color: var(--green); color: var(--panel); font-weight: 700; }
+button:is([data-page="next"], [data-reverse-page="next"], [data-subject-page="next"]):hover:not(:disabled) { background: var(--green-hover); border-color: var(--green-hover); }
+
+.consistency-actions #requery { font-size: 16px; font-weight: 650; border-color: var(--green); background: var(--tint); color: var(--green); }
+.consistency-actions #requery:hover:not(:disabled) { border-color: var(--green-hover); color: var(--green-hover); box-shadow: inset 0 0 0 1px var(--green-hover); }
+
+.resource-row { cursor: pointer; }
+
+body:has(#cache-read:not(:checked)) .cache-badge { color: var(--error); background: var(--error-bg); border-color: var(--error); }
+.workspace-tabs > .cache-options, .cache-options .text-button { font-size: 16px; }
+.cache-options label, .cache-options .text-button { min-height: 38px; }
+.cache-options label { gap: 7px; cursor: pointer; }
+.cache-options input[type=checkbox] { width: 20px; height: 20px; flex-shrink: 0; }

@@ -28,10 +28,6 @@ export function Header(): JSX.Element {
       setSeedError(new Error("Seed size must be a positive whole number."));
       return;
     }
-    if (localSeed() && resourceTotal() + value > localSeed()!.maximumResources) {
-      setSeedError(new Error(`The browser limit is ${formatInteger(localSeed()!.maximumResources)} resources.`));
-      return;
-    }
     setSeedError(undefined);
     app.setSeedProgress({
       status: "seeding",
@@ -131,7 +127,6 @@ export function Header(): JSX.Element {
               type="number"
               min="1"
               step="1"
-              max={localSeed() ? localSeed()!.maximumResources - resourceTotal() : undefined}
               disabled={app.seeding() || !ready()}
               value={seedSize()}
               onInput={(event) => setSeedSize(event.currentTarget.value)}
@@ -148,7 +143,6 @@ export function Header(): JSX.Element {
               {app.seeding() ? "Seeding…" : "Add resources"}
             </button>
             </form>
-            <small class="seed-limit">Limit: {formatInteger(localSeed()?.maximumResources ?? 0)} resources</small>
             <Show when={localSeed()?.modified}><span class="seed-local-note">Locally modified · resets when leaving DataScript</span></Show>
           </Show>
           <button

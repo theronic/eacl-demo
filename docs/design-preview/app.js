@@ -34,7 +34,7 @@ const requestedTheme = new URLSearchParams(location.search).get('theme');
 const state = {
   principal: 'user-1', subjectType: 'user', pickerType: 'user', seeding: false, permission: 'view', selected: null, reversePermission: 'view',
   backend: 'datascript', storage: 'browser-memory', execution: 'browser', ready: false,
-  epoch: 0, inspectorEpoch: 0, checkEpoch: 0, expanded: new Set(['root:account']), pages: new Map(),
+  epoch: 0, inspectorEpoch: 0, checkEpoch: 0, expanded: new Set(['root:account', 'root:server']), pages: new Map(),
   focusKey: 'root:account', compact: preferences.compact === true, view: 'explorer',
   cache: true, populateCache: true,
   decisions: {}, reverse: null, subjects: { items: [], cursor: null, history: [], index: 0 },
@@ -51,10 +51,10 @@ const cacheInput = () => ({ cache: state.cache, populateCache: state.populateCac
 const authInput = (type, id, permission = state.permission, principal = state.principal) => ({
   subjectType: state.subjectType, subjectId: principal, resourceType: type, ...(id ? { resourceId: id } : {}), permission,
 });
-const ms = (value) => typeof value === 'number' && Number.isFinite(value) ? `${value < 0.01 ? '<0.01' : value.toFixed(2)} ms` : '—';
+const ms = (value) => typeof value === 'number' && Number.isFinite(value) ? `${value < 0.01 ? '<0.01' : value.toFixed(2)}ms` : '—';
 function evidence(meta, label = '') {
   if (!meta) return '';
-  return `<span class="operation-evidence cache-badge ${escapeHtml(meta.cacheStatus || '')}" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}"><b>${ms(meta.elapsedMs)}</b>${meta.cacheStatus ? `<span>${escapeHtml(meta.cacheStatus)}</span>` : ''}</span>`;
+  return `<span class="operation-evidence cache-badge ${escapeHtml(meta.cacheStatus || '')}" title="${escapeHtml(`${label}\nRequest: ${meta.requestId}\nBasis: ${meta.revision}`)}"><b>${ms(meta.elapsedMs)}</b>${meta.cacheStatus ? `<span>${escapeHtml(meta.cacheStatus.toUpperCase())}</span>` : ''}</span>`;
 }
 function remember(items = []) {
   let changed = false;
@@ -141,20 +141,20 @@ function renderEnvironment() {
   $('#dataset-stats').hidden = !connected();
   $('#seed-form button').disabled = state.seeding;
   $('#seed-amount').disabled = state.seeding;
-  $('#seed-amount').max = bootstrap.localSeed.maximumResources - bootstrap.dataset.logicalResourceCount;
-  $('#seed-limit').textContent = `Limit: ${bootstrap.localSeed.maximumResources.toLocaleString()}`;
   $('#query-workspace').inert = state.seeding && connected();
   $('#check-form').inert = state.seeding;
   });
 }
-function resetScope() {
-  state.epoch++; state.inspectorEpoch++; state.checkEpoch++; state.pages.clear(); state.selected = null;
+function resetScope({ preserveSelection = false } = {}) {
+  const selected = preserveSelection ? state.selected : null;
+  state.epoch++; state.inspectorEpoch++; state.checkEpoch++; state.pages.clear(); state.selected = selected;
   state.expanded = new Set([...state.expanded].filter((key) => !key.includes('/')));
   state.decisions = {}; state.reverse = null;
   $('#check-result').textContent = '';
   renderExplorer();
   scheduleCheck();
   for (const type of resourceTypes()) if (isOpen(`root:${type}`)) loadGroup({ kind: 'root', key: `root:${type}`, type });
+  if (selected) selectResource(selected);
 }
 function setPrincipal(id, type = 'user') {
   return preserveViewport(() => {
@@ -331,7 +331,7 @@ function renderInspector() {
     const result = state.decisions[name];
     return `<div class="decision"><strong>${name}</strong><span class="decision-value ${result?.data?.allowed ? 'allowed' : result?.data ? 'denied' : ''}">${result?.error ? 'Error' : result?.data ? result.data.allowed ? '✓ Allowed' : '− Denied' : 'Checking…'}</span>${result?.error ? `<span class="error">${escapeHtml(result.error)}</span>` : evidence(result?.meta)}</div>`;
   }).join('');
-  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions</h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who Has Access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-evidence query-result">${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length ? reverse.history.length * 5 + 1 : 0}–${reverse.items.length ? reverse.history.length * 5 + reverse.items.length : 0}${reverse.pageInfo?.hasNextPage ? '' : ` of ${reverse.history.length * 5 + reverse.items.length}`}</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}${reverse && !reverse.loading ? `<span class="branch-pagination" role="group" aria-label="Who Has Access Pagination"><button data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Prev</button><button data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>` : ''}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" data-subject-type="${escapeHtml(subject.type)}" aria-label="View As ${escapeHtml(subject.id)}" title="View As ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}<details class="object-details"><summary>Resource Attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
+  $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions</h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who Has Access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-pagination-controls branch-pagination" role="group" aria-label="Who Has Access Pagination"><button data-reverse-page="previous" ${reverse && !reverse.loading && reverse.history.length ? '' : 'disabled'}>Prev</button><button data-reverse-page="next" ${reverse && !reverse.loading && reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></div><div class="reverse-evidence query-result">${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length ? reverse.history.length * 5 + 1 : 0}–${reverse.items.length ? reverse.history.length * 5 + reverse.items.length : 0}${reverse.pageInfo?.hasNextPage ? '' : ` of ${reverse.history.length * 5 + reverse.items.length}`}</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" data-subject-type="${escapeHtml(subject.type)}" aria-label="View As ${escapeHtml(subject.id)}" title="View As ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}<details class="object-details"><summary>Resource Attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
   });
 }
 function renderSchema() {
@@ -422,7 +422,17 @@ async function runCheck(event) {
   finally { if (token === state.checkEpoch) $('#check-form button[type=submit]').disabled = !canCheck(); }
 }
 document.addEventListener('click', (event) => {
-  const button = event.target.closest('button'); if (!button || button.disabled) return;
+  const button = event.target.closest('button');
+  if (!button) {
+    const row = event.target.closest('.resource-row');
+    const node = row && treeNodes.get(row.closest('[data-key]').dataset.key);
+    if (node && !event.target.closest('a, input, select, textarea')) {
+      state.focusKey = node.key;
+      selectResource(node.resource);
+    }
+    return;
+  }
+  if (button.disabled) return;
   const data = button.dataset;
   if (data.dialog) openDialog(data.dialog, button);
   if (data.view) showView(data.view);
@@ -437,7 +447,7 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('change', (event) => {
   if (event.target.id === 'picker-type') { state.pickerType = event.target.value; state.subjects = { items: [], history: [] }; loadSubjects(); return; }
-  if (event.target.name === 'resource-permission') { state.permission = event.target.value; resetScope(); return; }
+  if (event.target.name === 'resource-permission') { state.permission = event.target.value; resetScope({ preserveSelection: true }); return; }
   if (event.target.name === 'reverse-permission') { state.reversePermission = event.target.value; state.reverse = null; loadReverse(); $$('.reverse-permissions input').find((input) => input.value === state.reversePermission)?.focus({ preventScroll: true }); return; }
   const input = event.target.closest('.profile-option input');
   if (!input || input.disabled) return;
@@ -459,8 +469,8 @@ $('#principal-trigger').addEventListener('click', (event) => openDialog('princip
 $('#close-dialog').addEventListener('click', () => $('#detail-dialog').close());
 $('#detail-dialog').addEventListener('close', () => { if (previousDialogFocus?.isConnected) previousDialogFocus.focus({ preventScroll: true }); });
 $('#page-size').addEventListener('change', resetScope);
-$('#cache-read').addEventListener('change', (event) => { state.cache = event.target.checked; resetScope(); });
-$('#cache-populate').addEventListener('change', (event) => { state.populateCache = event.target.checked; resetScope(); });
+$('#cache-read').addEventListener('change', (event) => { state.cache = event.target.checked; resetScope({ preserveSelection: true }); });
+$('#cache-populate').addEventListener('change', (event) => { state.populateCache = event.target.checked; resetScope({ preserveSelection: true }); });
 $('#collapse-all').addEventListener('click', () => { state.expanded.clear(); state.focusKey = 'root:account'; renderTree(); });
 $('#requery').addEventListener('click', requery);
 $('#view-access').addEventListener('click', () => { $('#access-title').focus(); $('#access-pane').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -501,8 +511,8 @@ async function refreshTotals(query = request) {
 }
 async function seedResources(retry = false) {
   const amount = Number($('#seed-amount').value);
-  if (!retry && (!Number.isSafeInteger(amount) || amount < 1 || bootstrap.dataset.logicalResourceCount + amount > bootstrap.localSeed.maximumResources)) {
-    $('#seed-status').textContent = `Enter a positive whole number within the ${bootstrap.localSeed.maximumResources.toLocaleString()} object limit.`; return;
+  if (!retry && (!Number.isSafeInteger(amount) || amount < 1)) {
+    $('#seed-status').textContent = 'Enter a positive whole number.'; return;
   }
   const seedRequest = async (operation, input = {}) => {
     const result = await window.EaclDataScriptRuntime.request(operation, input, crypto.randomUUID(), owner);
@@ -549,7 +559,7 @@ async function initialize() {
     remember(quickSubjects.map((id) => ({ type: 'user', id })));
     $('#check-type').innerHTML = resourceTypes().map((type) => `<option ${type === 'server' ? 'selected' : ''}>${type}</option>`).join('');
     renderEnvironment(); renderSchema(); renderExplorer(); scheduleCheck();
-    await loadGroup({ kind: 'root', key: 'root:account', type: 'account' });
+    await Promise.all(['account', 'server'].map((type) => loadGroup({ kind: 'root', key: `root:${type}`, type })));
     const resource = state.pages.get('root:account')?.items.find((item) => item.id === 'account-0'); if (resource) selectResource(resource);
   } catch (error) { state.ready = false; $('#runtime-status').hidden = false; $('#runtime-status').textContent = 'Runtime unavailable'; $('#resource-tree').innerHTML = `<div class="empty-tree error"><strong>Could not initialize the canonical runtime</strong><p>${escapeHtml(error.message)}</p></div>`; }
 }

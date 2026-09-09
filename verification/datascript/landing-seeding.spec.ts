@@ -43,7 +43,7 @@ test("root restores once, seeds additively, invalidates cursors, and refreshes t
     subjectType: "user", subjectId: "super-user", resourceType: addedResource.type,
     resourceId: addedResource.id, permission: "admin",
   })).data.allowed).toBe(true);
-  for (const count of [0, -1, 1.5, 100001]) expect((await request(page, "seed-start", { resourceCount: count })).error.code).toBe("validation-error");
+  for (const count of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) expect((await request(page, "seed-start", { resourceCount: count })).error.code).toBe("validation-error");
   expect((await request(page, "bootstrap")).data.dataset.logicalResourceCount).toBe(11500);
   expect(requests.filter(url => url.includes(`/datascript/assets/datascript-runtime-${artifact.artifact.sha256}.js`))).toHaveLength(1);
   expect(requests.filter(url => /lambda-url|\/api\//.test(url))).toEqual([]);
@@ -127,7 +127,7 @@ test("partial batch failure resumes only remaining additions; overlapping jobs a
   expect(result.count.data.value).toBe(11500);
 });
 
-test("seeding reaches the advertised cap with event-loop yields and stops on release", async ({ page }, testInfo) => {
+test("seeding exceeds the former cap with event-loop yields and stops on release", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   page.on("console", message => { if (message.text().startsWith("SEED-MEASURE")) console.log(message.text()); });
   await page.goto(base);
@@ -138,18 +138,18 @@ test("seeding reaches the advertised cap with event-loop yields and stops on rel
     let ticks = 0, maxGap = 0, last = performance.now();
     const timer = setInterval(() => { const now = performance.now(); maxGap = Math.max(maxGap, now-last); last=now; ticks++; }, 16);
     const start = performance.now();
-    await call("seed-start", { resourceCount: 90000 });
+    await call("seed-start", { resourceCount: 100001 });
     let result, logged = 0;
     do {
       await new Promise(r => setTimeout(r, 50)); result = await call("seed-status");
       if (performance.now() - logged > 10000) { logged = performance.now(); console.log("SEED-MEASURE", result.data.totalResources, maxGap); }
     } while (result.data.status === "seeding");
     clearInterval(timer);
-    return { elapsedMs: performance.now()-start, ticks, maxGap, result, count: await call("count-objects", { kind: "objects", ceiling: 100000 }) };
+    return { elapsedMs: performance.now()-start, ticks, maxGap, result, count: await call("count-objects", { kind: "objects", ceiling: 1000000 }) };
   });
   expect(measurement.result.data.status).toBe("ready");
-  expect(measurement.result.data.totalResources).toBe(100000);
-  expect(measurement.count.data.value).toBe(100000);
+  expect(measurement.result.data.totalResources).toBe(110001);
+  expect(measurement.count.data.value).toBe(110001);
   expect(measurement.ticks).toBeGreaterThan(10);
   expect(measurement.maxGap).toBeLessThan(500);
   const evidence = { artifactSha256: artifact.artifact.sha256, eaclCoreSha: artifact.eaclCoreSha, project: testInfo.project.name, measuredAt: new Date().toISOString(), ...measurement };
@@ -160,7 +160,7 @@ test("seeding reaches the advertised cap with event-loop yields and stops on rel
   await page.getByRole("radio", { name: "Datahike", exact: true }).check();
   await page.getByRole("radio", { name: "DataScript", exact: true }).check();
   await ready(page);
-  await request(page, "seed-start", { resourceCount: 90000 });
+  await request(page, "seed-start", { resourceCount: 100001 });
   await page.getByRole("radio", { name: "Datahike", exact: true }).check();
   await page.getByRole("radio", { name: "DataScript", exact: true }).check();
   await ready(page);

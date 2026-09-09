@@ -2,18 +2,18 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark"><title>🦅 EACL Explorer</title>
-  <link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css">
+  <meta name="color-scheme" content="light dark"><title>EACL Explorer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='32' y='52' text-anchor='middle' font-size='56'%3E%F0%9F%A6%85%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <a class="skip-link" href="#resource-tree">Skip to Resource Tree</a>
   <header class="topbar">
     <a class="brand" href="/"><span class="eagle" aria-hidden="true">🦅</span><strong>EACL</strong><span class="brand-product">Explorer</span></a>
     <nav class="source-links" aria-label="Source Repositories"><a href="https://github.com/theronic/eacl">EACL Source ↗</a><a href="https://github.com/theronic/eacl-demo">Demo Source ↗</a></nav>
-    <div class="top-actions"><div class="dataset-stats" id="dataset-stats" aria-live="polite"></div><form id="seed-form"><input id="seed-amount" aria-label="Additional Resources" type="number" min="1" step="1" value="1000" required><button class="quiet-button" type="submit">Seed Data</button><small id="seed-limit"></small></form><button class="icon-button" id="theme-toggle" aria-label="Switch to Dark Theme"></button><button class="principal-trigger" id="principal-trigger" aria-haspopup="dialog"><span class="avatar">U1</span><span><small>View As</small><strong id="principal-name">user-1</strong></span><span aria-hidden="true">⌄</span></button></div>
+    <div class="top-actions"><div class="dataset-stats" id="dataset-stats" aria-live="polite"></div><form id="seed-form"><input id="seed-amount" aria-label="Additional Resources" type="number" min="1" step="1" value="10000" required><button class="quiet-button" type="submit">Seed Data</button></form><button class="icon-button" id="theme-toggle" aria-label="Switch to Dark Theme"></button><button class="principal-trigger" id="principal-trigger" aria-haspopup="dialog"><span class="avatar">U1</span><span><small>View As</small><strong id="principal-name">user-1</strong></span><span aria-hidden="true">⌄</span></button></div>
   </header>
   <main class="workspace">
-    <p class="app-subtitle">EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.</p>
+    <p class="app-subtitle"><a href="https://github.com/theronic/eacl">EACL</a> is a situated <a href="https://en.wikipedia.org/wiki/Relationship-based_access_control">ReBAC</a> authorization library inspired by <a href="https://authzed.com/spicedb">SpiceDB</a>, built in <a href="https://clojure.org/">Clojure</a> and backed by <a href="https://datomic.com/">Datomic Pro</a>, <a href="https://datahike.io/">Datahike</a>, <a href="https://datalevin.org/">Datalevin</a> or <a href="https://github.com/tonsky/datascript">DataScript</a>.</p>
     <section class="environment" aria-label="Backend, Storage and Execution">
       <button class="section-toggle icon-button" id="environment-toggle" aria-expanded="true" aria-controls="profile-rows" aria-label="Collapse Backend, Storage and Execution">−</button>
       <div id="profile-collapsed" hidden></div>
@@ -33,7 +33,7 @@
       <nav class="workspace-tabs" aria-label="Explorer Views"><div><button class="workspace-tab active" data-view="explorer" aria-current="page">Resources</button><button class="workspace-tab" data-view="schema">Permission Schema</button></div><div class="cache-options" role="group" aria-label="Cache Controls"><label><input id="cache-read" type="checkbox" checked> Read Cache</label><label><input id="cache-populate" type="checkbox" checked> Populate Cache</label><button class="text-button" data-dialog="cache">Cache Diagnostics</button></div></nav>
       <div id="explorer-view" class="two-columns">
         <section class="resource-pane" aria-label="Resource Tree">
-          <div class="resource-tools"><fieldset class="permission-options" aria-label="Resource Permission"><label><input type="radio" name="resource-permission" value="view" checked> view</label><label><input type="radio" name="resource-permission" value="admin"> admin</label></fieldset><button class="quiet-button" id="collapse-all">Collapse All</button><button class="quiet-button mobile-access" id="view-access">View Access ↓</button><label class="page-size-control">Page Size <select id="page-size"><option>5</option><option>10</option><option selected>20</option><option>50</option><option>100</option><option>250</option><option>500</option><option>1000</option></select></label></div>
+          <div class="resource-tools"><fieldset class="permission-options" aria-label="Resource Permission"><label><input type="radio" name="resource-permission" value="view" checked> view</label><label><input type="radio" name="resource-permission" value="admin"> admin</label></fieldset><button class="quiet-button" id="collapse-all">Collapse All</button><button class="quiet-button mobile-access" id="view-access">View Access ↓</button><label class="page-size-control">Page Size <select id="page-size"><option>5</option><option>10</option><option selected>20</option><option>25</option><option>50</option><option>100</option><option>250</option><option>500</option><option>1000</option></select></label></div>
           <div id="resource-tree" class="tree" role="tree" aria-label="Resource Types and Relationships" tabindex="0"><p class="tree-hint">Starting EACL…</p></div>
         </section>
         <aside class="access-pane" id="access-pane" aria-labelledby="access-title"></aside>

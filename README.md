@@ -97,4 +97,4 @@ clj-nrepl-eval -p 7821 "(require 'clojure.test 'eacl-demo.local-test :reload) (c
 Stop the three terminal processes with Ctrl-C and run
 `docker stop eacl-v8-playground-minio` to stop MinIO. Stopping preserves both stores.
 
-DataScript opens at `/` with 10,000 logical resources automatically restored. Use **Add resources** to append browser-local data up to 100,000 resources. Switching away or reloading resets that session. Explicit server-backend URLs skip the DataScript runtime download. Existing `/datascript/` links remain compatible.
+DataScript opens at `/` with 10,000 logical resources automatically restored. Use **Add resources** to append browser-local data without a fixed resource cap. Switching away or reloading resets that session. Explicit server-backend URLs skip the DataScript runtime download. Existing `/datascript/` links remain compatible.

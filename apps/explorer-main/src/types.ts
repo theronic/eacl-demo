@@ -151,7 +151,7 @@ export interface Bootstrap {
   status: "ready" | "seeding";
   seed: SeedProgress;
   totals: Record<string, number>;
-  localSeed?: { maximumResources: number; modified: boolean };
+  localSeed?: { modified: boolean };
   schema: SchemaInfo;
   quickSubjects: Array<{ id: string; label: string }>;
   pageSizeOptions: PageSize[];

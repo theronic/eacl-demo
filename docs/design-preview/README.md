@@ -12,7 +12,7 @@ Branch: `design/resource-first-explorer`. OpenSpec: `openspec/changes/redesign-r
 ## Current Layout
 
 - One navbar title with the 🦅 logo, prominent EACL/Demo Source links, object/relationship counts without timings, Seed Data beside Objects, theme toggle, and rightmost View As. No separate principal count.
-- Exact subtitle: “EACL is Situated ReBAC Authorization Library backed by Datomic Pro, Datahike, Datalevin or DataScript.”
+- Exact subtitle: “EACL is a situated ReBAC authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike, Datalevin or DataScript.”
 - Collapsible Backend/Storage/Execution controls with plain native radios matching Consistency Mode, original compatible-choice behavior, and stable row positions across backend changes. No redundant section heading.
 - Collapsible Consistency Mode with native radios, informative disabled reasons without strikethrough, the standard panel background, and Basis before the adjacent enlarged Re-query/Refresh Snapshot buttons. No Semantics action or dialog remains.
 - Page Size at the top right inside the tree, replacing the density icon; navbar Seed Data controls with the advertised limit, progress bar, and retry. Backend selection remains enabled during seeding.
@@ -50,7 +50,7 @@ The removed “5 candidates” label was the size of a `reverse-relationships` r
 
 ### Local Additions
 
-Seed Data uses the unchanged `seed-start`, `seed-status`, and `seed-retry` operations. Validation respects the 100,000-resource browser ceiling. Exploration is disabled during seeding, but backend choices stay enabled. The job and progress polling remain pinned to the original DataScript runtime when the selected backend changes. Completion refreshes bootstrap/basis and inventory counts and resets scoped pages, counts, decisions, and cursors. Additions are page-local; reloading restores the canonical fixture. No fixture/schema file is edited.
+Seed Data uses the unchanged `seed-start`, `seed-status`, and `seed-retry` operations. Seed amounts must be positive safe integers; there is no fixed resource cap. Exploration is disabled during seeding, but backend choices stay enabled. The job and progress polling remain pinned to the original DataScript runtime when the selected backend changes. Completion refreshes bootstrap/basis and inventory counts and resets scoped pages, counts, decisions, and cursors. Additions are page-local; reloading restores the canonical fixture. No fixture/schema file is edited.
 
 ## Verification — 2026-09-09
 
