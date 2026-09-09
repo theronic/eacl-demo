@@ -92,6 +92,62 @@
           (d/release connection)
           (d/delete-database config))))))
 
+(deftest seed-resume-retains-native-source-lifecycle
+  (with-seed
+    (fn [{:keys [connection seed-id manifest-digest source-lifecycle]}]
+      (let [options {:seed-id seed-id :manifest-digest manifest-digest
+                     :schema-source (slurp "fixtures/schema.v1.zed")}
+            persisted (:eacl.demo/source-lifecycle
+                       (d/entity (d/db connection) [:eacl.demo/seed-id seed-id]))
+            resumed (seed/initialize-seed! connection options)]
+        (is (uuid? source-lifecycle))
+        (is (= source-lifecycle persisted (:source-lifecycle resumed)))
+        (d/transact connection
+                    [[:db/retract [:eacl.demo/seed-id seed-id]
+                      :eacl.demo/source-lifecycle persisted]])
+        (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo #"seed validation failed"
+             (seed/initialize-seed! connection options)))
+        (d/transact connection
+                    [[:db/add [:eacl.demo/seed-id seed-id]
+                      :eacl.demo/source-lifecycle persisted]])
+        (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo #"seed validation failed"
+             (seed/initialize-seed!
+              connection (assoc options :manifest-digest
+                                (str "sha256:" (apply str (repeat 64 "0")))))))))))
+
+(deftest file-store-reopen-preserves-lifecycle-and-resume
+  (let [store-id (UUID/randomUUID)
+        config {:store {:backend :file :id store-id
+                        :path (str (System/getProperty "java.io.tmpdir") "/eacl-seed-" store-id)}
+                :schema-flexibility :write :attribute-refs? true :keep-history? false
+                :max-string-length 0
+                :initial-tx (eacl-schema/merge-schema
+                             (edn/read-string
+                              (slurp "infra/data/datahike-demo-metadata-schema.edn")))}
+        options {:seed-id "reopen-fixture"
+                 :manifest-digest (str "sha256:" (apply str (repeat 64 "1")))
+                 :schema-source (slurp "fixtures/schema.v1.zed")}
+        input (batch 0 (records 0))]
+    (d/create-database config)
+    (try
+      (let [connection (d/connect config)
+            lifecycle (try
+                        (let [state (seed/initialize-seed! connection options)]
+                          (seed/apply-batch! state input)
+                          (:source-lifecycle state))
+                        (finally (d/release connection)))
+            reopened (d/connect config)]
+        (try
+          (let [state (seed/initialize-seed! reopened options)]
+            (is (= lifecycle (:source-lifecycle state)))
+            (is (true? (get-in (d/db reopened) [:config :attribute-refs?])))
+            (is (every? #(integer? (:a %)) (:eavt (d/db reopened))))
+            (is (= :already-committed (:status (seed/apply-batch! state input)))))
+          (finally (d/release reopened))))
+      (finally (d/delete-database config)))))
+
 (deftest batch-replay-and-finalization-are-idempotent
   (with-seed
     (fn [state]
