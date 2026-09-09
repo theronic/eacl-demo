@@ -46,7 +46,7 @@ Use the original explorer's control model, readable typography, and dense query/
 
 Backend, Storage, and Execution occupy three separate labelled rows. Backend choices contain only backend names. Storage choices and defaults follow the original selector; reuse the existing backend transition and execution-normalization functions. At a fixed viewport, reserve the execution row's required height so changing backend cannot move the rows or the following panel. Native radios show selection, and disabled controls show an informative reason without strikethrough. No dropdowns, storage descriptions in backend choices, or large backend cards.
 
-Consistency Mode is a collapsible section with a compact native-radio row above exploration, with all four mode names visible. Preserve Re-query, Refresh Snapshot, selected basis, supporting date/freshness controls, and explanations without four descriptive cards. Cache read/populate switches and the existing diagnostics remain accessible. Do not add global query-evidence or activity dashboards.
+Consistency Mode is a collapsible section with a compact native-radio row above exploration, with all four mode names visible. Preserve Re-query, Refresh Snapshot, selected basis, supporting date/freshness controls, without a Semantics action/dialog or descriptive cards. Cache read/populate switches and the existing diagnostics remain accessible. Do not add global query-evidence or activity dashboards.
 
 The resource pane takes most desktop width; the access inspector remains approximately 300–370px. Stack the inspector below the tree on narrow screens. Use at least 16px resource identifiers, 14px latency values, and 12px cache badges in both densities. Compact mode reduces spacing rather than shrinking essential text. Counts remain prominent, with their own timing/cache metadata directly adjacent. Information density and usability take priority over decoration.
 
@@ -78,7 +78,7 @@ The narrow rail must not squeeze away IDs, attributes, decision evidence, or pag
 
 ### 5. Compact, unchanged consistency controls
 
-Render all four named modes as compact native radio options above the tree, with the active mode selected and unsupported modes clearly disabled with informative reasons and no strikethrough. Use an inline collapsible section rather than a dropdown or a settings dialog; keep the selected basis beside Refresh Snapshot. Keep distinct Re-query/Refresh Snapshot actions visible. Expose the existing detailed semantics in a compact expansion or dialog; supporting freshness/date inputs appear adjacent to the selected mode in the connected implementation. Preserve all current controls and explanatory text, including:
+Render all four named modes as compact native radio options above the tree, with the active mode selected and unsupported modes clearly disabled with informative reasons and no strikethrough. Use an inline collapsible section rather than a dropdown or a settings dialog; keep the selected basis beside Refresh Snapshot. Keep distinct Re-query/Refresh Snapshot actions visible. Remove the Semantics action and dialog; retain informative inline mode reasons, and supporting freshness/date inputs appear adjacent to the selected mode in the connected implementation. Preserve all current controls and explanatory text, including:
 
 - The ordered mode set: minimize-latency, at-least-as-fresh, at-exact-snapshot, fully-consistent.
 - Descriptor-driven availability and fully-consistent limitation immediately discoverable beside the selector.
@@ -116,7 +116,7 @@ Use the existing `MetaTiming` model: query/result, count, latency, and cache sta
 
 In the local runtime's relationship adapter, do not show a candidate count. Show the number of authorized rows in the returned linked-object page with the traversal badge, whose tooltip explicitly excludes the subsequent checks. Each displayed object's permission check has its own timing badge. The runtime provides no authorized relation total, so do not invent N for these groups. Root rows display their actual range and bounded total, each with its own badge. Keep individual served basis/request details attached to the corresponding metadata. A cache-read preference is not evidence of a hit.
 
-Navbar object/relationship totals use actual `count-objects` responses and their adjacent timing badges; they are inventory totals, not authorization counts. The runtime calls its resource-role inventory `objects`; no separate principal total is displayed. Existing cache diagnostics and qualified storage-comparison rules remain available; no new global benchmark or aggregate-evidence feature is introduced.
+Navbar object/relationship totals use actual `count-objects` responses but omit their timing badges; they are inventory totals, not authorization counts. The runtime calls its resource-role inventory `objects`; no separate principal total is displayed. Existing cache diagnostics and qualified storage-comparison rules remain available; no new global benchmark or aggregate-evidence feature is introduced.
 
 ### 8. An isolated local preview over the canonical runtime
 
@@ -160,4 +160,14 @@ The resource tree follows document flow with no internal scrolling. Root and rel
 
 The checker is fixed at the viewport bottom with document padding measured by ResizeObserver so the last rows remain reachable. Subject and Resource groups each contain type and ID. ID datalists use discovered objects, as the original checker did, rather than implying EACL text search. On phones the checker starts collapsed and expands into a bounded, scrollable form with a readable disabled Check Permission button. The header remains available by normal document scrolling.
 
-DataScript additions use the unchanged seed-start/status/retry operations, advertised maximum, progress, and bootstrap refresh. Disable exploration and profile changes during seeding; clear prior query scopes/cursors and refresh inventory counts/basis when it finishes. Additions are page-local and reload restores the canonical fixture. No fixture or schema file is modified.
+DataScript additions use the unchanged seed-start/status/retry operations, advertised maximum, progress, and bootstrap refresh. Disable exploration during seeding while keeping backend choices enabled; clear prior query scopes/cursors and refresh inventory counts/basis when it finishes. Additions are page-local and reload restores the canonical fixture. No fixture or schema file is modified.
+
+### 11. Stable viewport and reactive controls
+
+Move the theme button before View As, which is the rightmost navbar control. Place Seed Data beside the object count. Its existing local seed operations run against the DataScript owner independently of the active backend, so changing backend cannot interrupt progress polling or relabel results as another backend's data. Render a progress bar and completed/target values; server profiles remain disconnected and cannot issue seed writes.
+
+Backend, Storage, Execution, and Consistency Mode use plain native radios, without surrounding button borders. The consistency panel uses the standard panel background. Display Browser In-memory, enlarge disclosure and snapshot controls, and place Basis before the adjacent Re-query/Refresh Snapshot buttons. Remove Semantics and its dialog entirely. Move Page Size into the tree toolbar in place of the density icon, include the type icon inside the resource ID's selection action, and spell out First.
+
+Place the expanded exact schema source before the inferred type cards. Rename the floating checker heading to Check Permission and restore the original 175 ms input debounce. Capture all typed identifiers/options before awaiting requests; invalidate stale responses, skip incomplete inputs, and retain manual checking.
+
+Keep the viewport stable during page/scope/render transitions. Disable automatic scroll anchoring, restore focus with preventScroll, and preserve sufficient document height when loading or shorter results would otherwise clamp the current offset. Restore the offset through the immediate layout/focus frames, but cancel that restoration on new wheel/touch/key/pointer input so the user retains control. Explicit keyboard tree navigation and View Access still provide intentional navigation.

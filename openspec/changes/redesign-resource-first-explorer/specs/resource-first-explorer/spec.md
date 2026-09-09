@@ -83,7 +83,7 @@ The inspector SHALL identify the selected resource by type and ID, preserve its 
 - **THEN** the inspector SHALL clear the selection or explicitly revalidate a retained selection before presenting it as part of the new exploration, and old principal decisions SHALL not appear as current
 
 ### Requirement: Consistency remains explicit and semantically unchanged
-All four named consistency modes SHALL be visible when the collapsible Consistency Mode section is expanded, with the active mode selected and unsupported modes disabled with informative reasons and no strikethrough. The basis SHALL sit beside Refresh Snapshot. Large descriptive mode cards MUST NOT displace query results. Mode selection SHALL use the inline section rather than a dropdown or dialog. An accessible route to full semantics SHALL remain visible. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
+All four named consistency modes SHALL be visible when the collapsible Consistency Mode section is expanded, with the active mode selected and unsupported modes disabled with informative reasons and no strikethrough. The basis SHALL precede the adjacent Re-query and Refresh Snapshot buttons. Large descriptive mode cards MUST NOT displace query results. Mode selection SHALL use the inline section rather than a dropdown or dialog. Informative mode reasons SHALL remain inline; a Semantics action or dialog SHALL NOT be rendered. Available modes and limitations SHALL derive from the deployed descriptor. The redesign SHALL preserve minimize-latency, at-least-as-fresh, at-exact-snapshot, and fully-consistent behavior where supported, including relative/absolute freshness floors, conditional exact datetime selection, selected and served basis evidence, Re-query, Refresh Snapshot, loading, and error handling. Unsupported controls MUST NOT silently substitute another guarantee.
 
 #### Scenario: Relative freshness floor
 - **WHEN** a visitor sets an at-least-as-fresh relative floor
@@ -188,3 +188,21 @@ The navbar SHALL contain the only EACL Explorer title, source and demo-source li
 #### Scenario: Header and footer are inspected
 - **WHEN** the preview is ready
 - **THEN** the original factual subtitle and copyright notice SHALL appear, the repeated main heading and idle checker sentence SHALL be absent, and disabled text SHALL remain readable in light and dark themes
+
+### Requirement: Stable viewport and original reactive checker
+Pagination, subject changes, option changes, and result rendering SHALL retain the current viewport offset, including transitions to shorter content. Restoring focus MUST NOT scroll the viewport. Explicit user scrolling and keyboard navigation SHALL remain available. Check Permission SHALL automatically query after a 175 ms debounce when complete inputs change, capture the query inputs together, discard stale responses, and clear results for incomplete inputs.
+
+#### Scenario: Pagination replaces rows
+- **WHEN** a visitor clicks a visible Next or Prev button
+- **THEN** the click-time viewport offset SHALL remain unchanged through loading and settled results
+
+#### Scenario: Checker inputs change
+- **WHEN** a visitor changes subject, permission, or resource inputs
+- **THEN** a valid check SHALL run automatically and an older response SHALL NOT overwrite the latest input's result
+
+### Requirement: Compact navigation and seeding progress
+View As SHALL be the rightmost navbar control with the theme control immediately before it. Seed Data SHALL appear beside the object count; navbar inventory counts SHALL NOT show timings. Page Size SHALL replace the density icon at the top right of the tree. The type icon SHALL share the resource ID's selection action. First pagination buttons SHALL spell out First. Schema source SHALL appear expanded before the inferred types. Profile radios SHALL use the same plain style as consistency radios, the consistency panel SHALL use the standard background, and disclosure/snapshot buttons SHALL provide larger targets.
+
+#### Scenario: Backend changes during local seeding
+- **WHEN** the visitor chooses another backend while DataScript seeding is active
+- **THEN** backend choices SHALL stay enabled, progress SHALL continue against the original local runtime, and results SHALL NOT be presented as data from the newly selected backend

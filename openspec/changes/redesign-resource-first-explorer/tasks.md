@@ -6,6 +6,8 @@
 
 - [x] 1.4 Apply the 2026-09-09 preview corrections: compact navbar/collapsible controls, typed View As, document-flow tree with branch pagination, floating typed checker/autocomplete, informative disabled states and combined timing badges, original copyright, and real DataScript additions; verify responsive layouts, counts, query semantics, and seeding reset.
 
+- [x] 1.5 Revise the local preview controls: rightmost View As/theme order, navbar Seed Data without inventory timings, neutral/plain radio styling, source-first schema, reactive checker, larger controls, icon selection, progress with enabled backend switching, and retained scroll offsets; verify browser behavior and existing contract/selector tests.
+
 ## 2. Shared shell and principal selection
 
 - [ ] 2.1 Reconcile the preservation map against current source and the active consolidation change before implementation; verify every existing control has a named destination and no unrelated active artifact is overwritten.
@@ -35,7 +37,7 @@
 
 ## 5. Consistency and retained tools
 
-- [ ] 5.1 Retain all four modes in a compact native-radio row, with informative disabled states/reasons and the existing detailed semantics; verify all advertised modes and unsupported reasons derive from the active descriptor.
+- [ ] 5.1 Retain all four modes in a compact native-radio row, with informative disabled states/reasons and inline reasons without a Semantics dialog; verify all advertised modes and unsupported reasons derive from the active descriptor.
 - [ ] 5.2 Preserve relative and absolute freshness-floor controls and exact datetime selection; verify selected-snapshot-relative now, absolute-floor refresh reset, at-or-before resolution, and unsupported date limitations against existing state tests and a supporting local profile.
 - [ ] 5.3 Preserve separate Re-query and Refresh Snapshot behavior with loading/errors; verify a fixed snapshot can remain unchanged and prior-basis results/cursors cannot become current after a transition.
 - [ ] 5.4 Preserve the complete original schema visualization and relocate detailed cache diagnostics while keeping read/populate switches accessible and each query’s measured cache outcome beside its result; verify schema expressions/toggles, independent cache read/populate switches, captured metrics/refresh, and capability-gated eviction remain accessible.

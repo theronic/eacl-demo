@@ -41,6 +41,7 @@ const state = {
   theme: ['light', 'dark'].includes(requestedTheme) ? requestedTheme : preferences.theme === 'dark' ? 'dark' : 'light',
 };
 const knownObjects = new Map();
+let checkTimer;
 let metadata, bootstrap, schema, treeNodes = new Map(), previousDialogFocus, toastTimer;
 const connected = () => state.ready && state.backend === 'datascript';
 const permissions = (type) => schema?.types.find((entry) => entry.name === type)?.permissions || [];
@@ -80,6 +81,28 @@ async function request(operation, input = {}, epoch = state.epoch) {
   remember(response.data?.items || (response.data?.object ? [response.data.object] : []));
   return response;
 }
+let viewportAnchor, viewportFrame;
+function releaseViewport() {
+  cancelAnimationFrame(viewportFrame); viewportAnchor = undefined;
+}
+for (const event of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(event, releaseViewport, { passive: true, capture: true });
+function preserveViewport(update) {
+  const anchor = viewportAnchor || { x: window.scrollX, y: window.scrollY };
+  viewportAnchor = anchor;
+  // Preserve space through a shorter loading/result view, including fractional zoom coordinates.
+  document.body.style.minHeight = `${Math.ceil(Math.max(innerHeight, anchor.y + innerHeight + 2))}px`;
+  const restore = () => window.scrollTo({ left: anchor.x, top: anchor.y, behavior: 'instant' });
+  try { return update(); }
+  finally {
+    restore(); cancelAnimationFrame(viewportFrame);
+    // Native focus and layout settle after the event handler has returned.
+    viewportFrame = requestAnimationFrame(() => {
+      if (viewportAnchor !== anchor) return;
+      restore();
+      viewportFrame = requestAnimationFrame(() => { if (viewportAnchor === anchor) { restore(); viewportAnchor = undefined; } });
+    });
+  }
+}
 function savePreferences() {
   try { localStorage.setItem('eacl-design-v2', JSON.stringify({ theme: state.theme, compact: state.compact })); } catch { /* Optional cosmetic preferences. */ }
 }
@@ -90,15 +113,17 @@ function applyTheme() {
   $('#theme-toggle').setAttribute('aria-label', `Switch to ${state.theme === 'dark' ? 'light' : 'dark'} theme`);
 }
 function renderEnvironment() {
+  return preserveViewport(() => {
   const { catalog } = metadata;
-  const choice = (kind, entry, selected) => `<label class="profile-option" title="${escapeHtml(entry.reason || entry.label)}"><input type="radio" name="explorer-${kind}" value="${entry.id}" ${selected === entry.id ? 'checked' : ''} ${entry.selectable === false || state.seeding ? 'disabled' : ''}><span class="option-label"><span>${escapeHtml(entry.label)}</span>${entry.selectable === false ? '<small class="option-status">Not deployed for this backend</small>' : ''}</span></label>`;
+  const storageLabel = (entry) => ({ ...entry, label: entry.id === 'browser-memory' ? 'Browser In-memory' : entry.label });
+  const choice = (kind, entry, selected) => `<label class="profile-option" title="${escapeHtml(entry.reason || entry.label)}"><input type="radio" name="explorer-${kind}" value="${entry.id}" ${selected === entry.id ? 'checked' : ''} ${entry.selectable === false ? 'disabled' : ''}><span class="option-label"><span>${escapeHtml(entry.label)}</span>${entry.selectable === false ? '<small class="option-status">Not deployed for this backend</small>' : ''}</span></label>`;
   $('#backend-options').innerHTML = catalog.backends.filter((entry) => entry.id !== 'jank').map((entry) => choice('backend', entry, state.backend)).join('');
   const backend = catalog.backends.find((entry) => entry.id === state.backend);
-  $('#storage-options').innerHTML = backend.storages.map((id) => choice('storage', catalog.storages.find((entry) => entry.id === id), state.storage)).join('');
+  $('#storage-options').innerHTML = backend.storages.map((id) => choice('storage', storageLabel(catalog.storages.find((entry) => entry.id === id)), state.storage)).join('');
   const activeExecution = metadata.platforms[`${state.backend}/${state.storage}`];
   $('#execution-options').innerHTML = activeExecution.map((entry) => choice('execution', entry, state.execution)).join('');
   $('#execution-sizing').innerHTML = metadata.platforms['datomic/dynamodb'].map((entry) => `<span class="profile-option"><span class="radio-size"></span><span class="option-label"><span>${escapeHtml(entry.label)}</span><small class="option-status">Not deployed for this backend</small></span></span>`).join('');
-  $('#profile-collapsed').textContent = `${backend.label} · ${catalog.storages.find((entry) => entry.id === state.storage).label} · ${activeExecution.find((entry) => entry.id === state.execution).label}`;
+  $('#profile-collapsed').textContent = `${backend.label} · ${storageLabel(catalog.storages.find((entry) => entry.id === state.storage)).label} · ${activeExecution.find((entry) => entry.id === state.execution).label}`;
   $('#runtime-status').hidden = connected();
   $('#runtime-status').textContent = state.backend === 'datascript' ? 'Starting EACL…' : 'Profile not connected in this preview.';
   const modes = ['minimize-latency', 'at-least-as-fresh', 'at-exact-snapshot', 'fully-consistent'];
@@ -113,12 +138,14 @@ function renderEnvironment() {
   $('#principal-trigger').disabled = !connected() || state.seeding;
   $('#page-size').disabled = !connected() || state.seeding;
   $('#seed-form').hidden = !connected();
+  $('#dataset-stats').hidden = !connected();
   $('#seed-form button').disabled = state.seeding;
   $('#seed-amount').disabled = state.seeding;
   $('#seed-amount').max = bootstrap.localSeed.maximumResources - bootstrap.dataset.logicalResourceCount;
   $('#seed-limit').textContent = `Limit: ${bootstrap.localSeed.maximumResources.toLocaleString()}`;
-  $('#query-workspace').inert = state.seeding;
+  $('#query-workspace').inert = state.seeding && connected();
   $('#check-form').inert = state.seeding;
+  });
 }
 function resetScope() {
   state.epoch++; state.inspectorEpoch++; state.checkEpoch++; state.pages.clear(); state.selected = null;
@@ -126,13 +153,16 @@ function resetScope() {
   state.decisions = {}; state.reverse = null;
   $('#check-result').textContent = '';
   renderExplorer();
+  scheduleCheck();
   for (const type of resourceTypes()) if (isOpen(`root:${type}`)) loadGroup({ kind: 'root', key: `root:${type}`, type });
 }
 function setPrincipal(id, type = 'user') {
+  return preserveViewport(() => {
   state.principal = id; state.subjectType = type;
   $('#principal-name').textContent = type === 'user' ? id : `${type}:${id}`;
   $('.principal-trigger .avatar').textContent = type === 'user' ? id === 'super-user' ? 'SU' : 'U' : type[0].toUpperCase();
   resetScope(); notify(`View As ${type}:${id}`);
+  });
 }
 function resourceTypes() { return schema?.types.filter((type) => type.permissions.length).map((type) => type.name) || []; }
 function relationships(resource) {
@@ -150,7 +180,7 @@ function children(node) {
   return (state.pages.get(node.key)?.items || []).map((resource) => resourceNode(resource, node.key, node.ancestors || [], state.pages.get(node.key)?.checks?.find((check) => check.id === resource.id)));
 }
 async function loadGroup(node, direction = 'first') {
-  if (!connected() || (node.kind !== 'root' && node.kind !== 'relation')) return;
+  if (!connected() || state.seeding || (node.kind !== 'root' && node.kind !== 'relation')) return;
   if (!supports(node.type, state.permission)) return;
   const previous = state.pages.get(node.key);
   if (previous?.loading) return;
@@ -230,14 +260,15 @@ function nodeHtml(node, level = 1, parent = null) {
     }
     if (page.loading) query += '<span class="muted">Loading…</span>';
     if (page.countError) query += `<span class="error">Count failed: ${escapeHtml(page.countError)}</span>`;
-    if (open && !page.loading) query += `<span class="branch-pagination" role="group" aria-label="${label}${node.relation ? ` via ${node.relation}` : ''} Pagination"><button data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'} aria-label="First page of ${label}">«</button><button data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Prev</button><button data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>`;
+    if (open && !page.loading) query += `<span class="branch-pagination" role="group" aria-label="${label}${node.relation ? ` via ${node.relation}` : ''} Pagination"><button data-page="first" data-group="${key}" ${page.history.length ? '' : 'disabled'} aria-label="First page of ${label}">First</button><button data-page="previous" data-group="${key}" ${page.history.length ? '' : 'disabled'}>Prev</button><button data-page="next" data-group="${key}" ${page.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>`;
   }
   return `<li role="treeitem" class="tree-item" data-key="${key}" aria-level="${level}" ${expandable ? `aria-expanded="${open}"` : ''} ${node.kind === 'resource' ? `aria-selected="${selected}"` : ''} aria-label="${label}${node.cycle ? ', cycle boundary' : ''}" tabindex="${node.key === state.focusKey ? 0 : -1}">
-    <div class="tree-row ${node.kind}-row ${selected ? 'selected' : ''}" style="--level:${level}"><div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${label}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><div class="row-content"><div class="row-line"><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><strong>${label}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}${query}</div></div></div></div>
+    <div class="tree-row ${node.kind}-row ${selected ? 'selected' : ''}" style="--level:${level}"><div class="tree-identity"><button class="disclosure" tabindex="-1" data-toggle="${key}" aria-label="${open ? 'Collapse' : 'Expand'} ${label}" ${expandable ? '' : 'disabled'}>${disclosure(open)}</button><div class="row-content"><div class="row-line"><button class="row-label" tabindex="-1" ${node.kind === 'resource' ? `data-select="${key}"` : `data-toggle="${key}"`}><span class="resource-symbol ${node.type}">${node.kind === 'relation' ? '↳' : icon(node.type)}</span><strong>${label}</strong>${node.kind === 'relation' ? `<small>via :${node.relation}</small>` : ''}</button>${node.cycle ? '<span class="cycle-label">cycle ↩</span>' : ''}${query}</div></div></div></div>
     ${open ? `<ul role="group">${!permissionSupported ? '<li role="none" class="tree-hint">This type does not define this permission.</li>' : page?.error ? `<li role="none" class="tree-hint error">${escapeHtml(page.error)} <button data-retry="${key}">Retry</button></li>` : `${children(node).map((child) => nodeHtml(child, level + 1, node.key)).join('')}${node.kind !== 'resource' && page && !page.loading && !page.items.length ? '<li role="none" class="tree-hint">No authorized results in this page.</li>' : ''}`}</ul>` : ''}
   </li>`;
 }
 function renderTree() {
+  return preserveViewport(() => {
   const container = $('#resource-tree'); const top = container.scrollTop;
   const focused = container.contains(document.activeElement) ? document.activeElement.closest('[data-key]')?.dataset.key : null;
   treeNodes = new Map();
@@ -248,6 +279,7 @@ function renderTree() {
   visible.forEach((item) => { item.tabIndex = item.dataset.key === state.focusKey ? 0 : -1; });
   container.tabIndex = visible.length ? -1 : 0;
   if (focused) focusTree(visible.some((item) => item.dataset.key === focused) ? focused : state.focusKey, false);
+  });
 }
 function visibleTreeItems() { return $$('[role=treeitem]', $('#resource-tree')); }
 function focusTree(key, scroll = true) {
@@ -258,7 +290,7 @@ function toggle(key, desired) {
   const node = treeNodes.get(key); if (!node || node.cycle) return;
   const next = desired ?? !isOpen(key);
   if (next) state.expanded.add(key); else state.expanded.delete(key);
-  state.focusKey = key; renderTree(); focusTree(key);
+  state.focusKey = key; renderTree(); focusTree(key, false);
   if (next && node.kind !== 'resource' && !state.pages.has(key)) loadGroup(node);
 }
 function renderExplorer() {
@@ -266,6 +298,7 @@ function renderExplorer() {
   renderTree(); renderInspector();
 }
 async function selectResource(resource) {
+  if (!connected() || state.seeding) return;
   state.selected = resource; state.reversePermission = supports(resource.type, state.reversePermission) ? state.reversePermission : permissions(resource.type)[0].name;
   state.decisions = {}; state.reverse = null; const token = ++state.inspectorEpoch; const epoch = state.epoch;
   renderTree(); renderInspector();
@@ -290,6 +323,7 @@ async function loadReverse(direction = 'first') {
   if (token === state.inspectorEpoch && epoch === state.epoch && permission === state.reversePermission && state.reverse === page) { page.loading = false; renderInspector(); }
 }
 function renderInspector() {
+  return preserveViewport(() => {
   const resource = state.selected;
   if (!resource) { $('#access-pane').innerHTML = `<div class="inspector-empty"><h2 id="access-title" tabindex="-1">Select a Resource</h2><p>Inspect its permissions and who has access.</p></div>`; return; }
   const reverse = state.reverse;
@@ -298,15 +332,20 @@ function renderInspector() {
     return `<div class="decision"><strong>${name}</strong><span class="decision-value ${result?.data?.allowed ? 'allowed' : result?.data ? 'denied' : ''}">${result?.error ? 'Error' : result?.data ? result.data.allowed ? '✓ Allowed' : '− Denied' : 'Checking…'}</span>${result?.error ? `<span class="error">${escapeHtml(result.error)}</span>` : evidence(result?.meta)}</div>`;
   }).join('');
   $('#access-pane').innerHTML = `<header class="pane-heading inspector-heading"><div><h2 id="access-title" tabindex="-1">${escapeHtml(resource.id)}</h2><span class="type-tag">${resource.type}</span></div><span class="resource-symbol ${resource.type}">${icon(resource.type)}</span></header><div class="inspector-body"><h3>Permissions</h3><div class="decision-list">${decisionRows}</div><div class="reverse-heading"><h3>Who Has Access?</h3></div><fieldset class="permission-options reverse-permissions" aria-label="Subject lookup permission">${permissions(resource.type).map(({ name }) => `<label><input type="radio" name="reverse-permission" value="${name}" ${name === state.reversePermission ? 'checked' : ''}> ${name}</label>`).join('')}</fieldset><div class="reverse-evidence query-result">${reverse && !reverse.loading && !reverse.error ? `<strong>${reverse.items.length ? reverse.history.length * 5 + 1 : 0}–${reverse.items.length ? reverse.history.length * 5 + reverse.items.length : 0}${reverse.pageInfo?.hasNextPage ? '' : ` of ${reverse.history.length * 5 + reverse.items.length}`}</strong>` : ''}${reverse?.loading ? '<span>Querying…</span>' : evidence(reverse?.meta)}${reverse && !reverse.loading ? `<span class="branch-pagination" role="group" aria-label="Who Has Access Pagination"><button data-reverse-page="previous" ${reverse.history.length ? '' : 'disabled'}>Prev</button><button data-reverse-page="next" ${reverse.pageInfo?.hasNextPage ? '' : 'disabled'}>Next</button></span>` : ''}</div>${reverse?.error ? `<p class="error">${escapeHtml(reverse.error)} <button data-reverse-page="first">Retry</button></p>` : `<ul class="holder-list">${(reverse?.items || []).map((subject) => `<li><span class="small-avatar">${subject.id === 'super-user' ? 'SU' : 'U'}</span><code>${escapeHtml(subject.id)}</code><button class="explore-as" data-explore-as="${escapeHtml(subject.id)}" data-subject-type="${escapeHtml(subject.type)}" aria-label="View As ${escapeHtml(subject.id)}" title="View As ${escapeHtml(subject.id)}">↗</button></li>`).join('')}</ul>`}<details class="object-details"><summary>Resource Attributes</summary><pre>${escapeHtml(JSON.stringify(resource, null, 2))}</pre></details></div>`;
+  });
 }
 function renderSchema() {
-  $('#schema-view').innerHTML = `<header class="schema-heading"><div><p class="eyebrow">CANONICAL STRESS-TEST SCHEMA</p><h2>Permission Schema</h2><p>6 definitions · 13 relations · 9 permissions</p></div><span class="schema-digest">SHA-256 <code>${schema.sha256.slice(0, 16)}…</code></span></header><p>Recursive account and server parents, permission arrows, shared administration, and intentionally cyclic fixture relationships are preserved.</p><div class="schema-grid">${schema.types.map((type) => `<article class="schema-card"><h3>${icon(type.name)}${type.name[0].toUpperCase() + type.name.slice(1)}</h3><h4>Relations</h4>${type.relations.length ? type.relations.map((relation) => `<p><code>${relation.name}</code><span>→ ${relation.subjectTypes.join(' | ')}</span></p>`).join('') : '<p class="muted">No relations</p>'}<h4>Permissions</h4>${type.permissions.length ? type.permissions.map((permission) => `<div class="schema-expression"><strong>${permission.name}</strong><code>${escapeHtml(permission.expression)}</code></div>`).join('') : '<p class="muted">Subject type</p>'}</article>`).join('')}</div><details class="schema-source" open><summary>Exact source · fixtures/schema.v1.zed</summary><pre>${escapeHtml(metadata.schemaSource)}</pre></details>`;
+  return preserveViewport(() => {
+  $('#schema-view').innerHTML = `<header class="schema-heading"><div><p class="eyebrow">CANONICAL STRESS-TEST SCHEMA</p><h2>Permission Schema</h2><p>6 definitions · 13 relations · 9 permissions</p></div><span class="schema-digest">SHA-256 <code>${schema.sha256.slice(0, 16)}…</code></span></header><p>Recursive account and server parents, permission arrows, shared administration, and intentionally cyclic fixture relationships are preserved.</p><details class="schema-source" open><summary>Exact source · fixtures/schema.v1.zed</summary><pre>${escapeHtml(metadata.schemaSource)}</pre></details><div class="schema-grid">${schema.types.map((type) => `<article class="schema-card"><h3>${icon(type.name)}${type.name[0].toUpperCase() + type.name.slice(1)}</h3><h4>Relations</h4>${type.relations.length ? type.relations.map((relation) => `<p><code>${relation.name}</code><span>→ ${relation.subjectTypes.join(' | ')}</span></p>`).join('') : '<p class="muted">No relations</p>'}<h4>Permissions</h4>${type.permissions.length ? type.permissions.map((permission) => `<div class="schema-expression"><strong>${permission.name}</strong><code>${escapeHtml(permission.expression)}</code></div>`).join('') : '<p class="muted">Subject type</p>'}</article>`).join('')}</div>`;
+  });
 }
 function showView(view) {
+  return preserveViewport(() => {
   if (!schema) { notify('The canonical runtime is still starting.'); return; }
   state.view = view; for (const name of ['explorer', 'schema']) $(`#${name}-view`).hidden = name !== view;
   $$('[data-view]').forEach((button) => { button.classList.toggle('active', button.dataset.view === view); if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); });
   if (view === 'schema') renderSchema();
+  });
 }
 async function loadSubjects(direction = 'first') {
   if (!connected() || state.subjects.loading) return;
@@ -335,11 +374,10 @@ function renderPrincipalPicker() {
 async function openDialog(name, trigger) {
   if (!bootstrap) { notify('The canonical runtime is still starting.'); return; }
   const dialog = $('#detail-dialog'); if (!dialog.open) previousDialogFocus = trigger; dialog.dataset.view = name;
-  const titles = { principal: 'View As', consistency: 'Consistency Semantics', cache: 'Cache Diagnostics' };
+  const titles = { principal: 'View As', cache: 'Cache Diagnostics' };
   $('#dialog-title').textContent = titles[name]; $('#dialog-body').innerHTML = '';
   if (!dialog.open) dialog.showModal();
   if (name === 'principal') { if (state.pickerType !== state.subjectType) { state.pickerType = state.subjectType; state.subjects = { items: [], history: [] }; } renderPrincipalPicker(); if (!state.subjects.items.length) loadSubjects(); }
-  if (name === 'consistency') $('#dialog-body').innerHTML = `<p>All four consistency choices remain visible in a compact radio row. The active browser runtime advertises only <strong>minimize-latency</strong>; its immutable basis lasts for the page lifecycle.</p><p>Re-query reuses that basis and the current cache options. This runtime has no snapshot-refresh operation and cannot promise exact historical reads, an external freshness floor, or fully consistent authoritative reads.</p><p>The connected implementation must retain the existing relative/absolute freshness controls, exact datetime selection, at-or-before resolution, and independent snapshot refresh for profiles that support them.</p><pre>${escapeHtml(JSON.stringify({ basis: bootstrap.basis, consistencyModes: bootstrap.capabilities.consistencyModes, limitations: bootstrap.capabilities.limitations }, null, 2))}</pre>`;
   if (name === 'cache') {
     $('#dialog-body').innerHTML = '<p>Reading cache diagnostics…</p>';
     try {
@@ -355,19 +393,33 @@ async function requery() {
   if (state.selected) await selectResource(state.selected);
   notify('Re-queried the same browser basis with the current cache settings.');
 }
+function canCheck() {
+  return connected() && !state.seeding && ['check-subject-type', 'check-principal', 'check-type', 'check-resource', 'check-permission'].every((id) => $(`#${id}`).value.trim());
+}
+function scheduleCheck() {
+  clearTimeout(checkTimer); state.checkEpoch++;
+  $('#check-result').textContent = '';
+  $('#check-form button[type=submit]').disabled = !canCheck();
+  if (canCheck()) checkTimer = setTimeout(() => runCheck(), 175);
+}
 async function runCheck(event) {
-  event.preventDefault(); const token = ++state.checkEpoch; const epoch = state.epoch;
-  const resourceType = $('#check-type').value, resourceId = $('#check-resource').value.trim(), principal = $('#check-principal').value.trim(), permission = $('#check-permission').value;
+  event?.preventDefault(); clearTimeout(checkTimer);
+  const token = ++state.checkEpoch, epoch = state.epoch;
+  const subjectType = $('#check-subject-type').value, resourceType = $('#check-type').value;
+  const resourceId = $('#check-resource').value.trim(), principal = $('#check-principal').value.trim(), permission = $('#check-permission').value;
+  if (!connected() || state.seeding || !subjectType || !resourceType || !resourceId || !principal || !permission) return;
+  const input = { ...authInput(resourceType, resourceId, permission, principal), subjectType, ...cacheInput() };
   $('#check-result').textContent = 'Checking…';
   $('#check-form button[type=submit]').disabled = true;
   try {
-    // Validate typed identifiers against the actual fixture; do not turn a missing object into a denial.
-    await request('get-object', { type: $('#check-subject-type').value, id: principal }, epoch);
+    await request('get-object', { type: subjectType, id: principal }, epoch);
+    if (token !== state.checkEpoch || epoch !== state.epoch) return;
     await request('get-object', { type: resourceType, id: resourceId }, epoch);
-    const response = await request('check-permission', { ...authInput(resourceType, resourceId, permission, principal), subjectType: $('#check-subject-type').value, ...cacheInput() }, epoch);
+    if (token !== state.checkEpoch || epoch !== state.epoch) return;
+    const response = await request('check-permission', input, epoch);
     if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="query-result"><strong class="${response.data.allowed ? 'allowed' : 'denied'}">${response.data.allowed ? '✓ Allowed' : '− Denied'}</strong>${evidence(response.meta)}</span>`;
   } catch (error) { if (token === state.checkEpoch && epoch === state.epoch) $('#check-result').innerHTML = `<span class="error">${escapeHtml(error.message)}</span>${error.meta ? evidence(error.meta) : ''}`; }
-  finally { $('#check-form button[type=submit]').disabled = !connected() || state.seeding; }
+  finally { if (token === state.checkEpoch) $('#check-form button[type=submit]').disabled = !canCheck(); }
 }
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button'); if (!button || button.disabled) return;
@@ -405,18 +457,18 @@ document.addEventListener('change', (event) => {
 $('#theme-toggle').addEventListener('click', () => { state.theme = state.theme === 'light' ? 'dark' : 'light'; applyTheme(); });
 $('#principal-trigger').addEventListener('click', (event) => openDialog('principal', event.currentTarget));
 $('#close-dialog').addEventListener('click', () => $('#detail-dialog').close());
-$('#detail-dialog').addEventListener('close', () => { if (previousDialogFocus?.isConnected) previousDialogFocus.focus(); });
+$('#detail-dialog').addEventListener('close', () => { if (previousDialogFocus?.isConnected) previousDialogFocus.focus({ preventScroll: true }); });
 $('#page-size').addEventListener('change', resetScope);
 $('#cache-read').addEventListener('change', (event) => { state.cache = event.target.checked; resetScope(); });
 $('#cache-populate').addEventListener('change', (event) => { state.populateCache = event.target.checked; resetScope(); });
-$('#density-toggle').addEventListener('click', () => { state.compact = !state.compact; savePreferences(); $('#density-toggle').setAttribute('aria-label', `Use ${state.compact ? 'comfortable' : 'compact'} rows`); renderTree(); });
 $('#collapse-all').addEventListener('click', () => { state.expanded.clear(); state.focusKey = 'root:account'; renderTree(); });
 $('#requery').addEventListener('click', requery);
 $('#view-access').addEventListener('click', () => { $('#access-title').focus(); $('#access-pane').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 $('#check-form').addEventListener('submit', runCheck);
-$('#check-form').addEventListener('input', () => { state.checkEpoch++; $('#check-result').textContent = ''; });
+$('#check-form').addEventListener('input', scheduleCheck);
+$('#check-form').addEventListener('change', scheduleCheck);
 $('#check-subject-type').addEventListener('change', renderSuggestions);
-$('#check-type').addEventListener('change', () => { renderSuggestions(); $('#check-permission').innerHTML = permissions($('#check-type').value).map(({ name }) => `<option>${name}</option>`).join(''); });
+$('#check-type').addEventListener('change', () => { renderSuggestions(); const prior = $('#check-permission').value; $('#check-permission').innerHTML = permissions($('#check-type').value).map(({ name }) => `<option ${name === prior ? 'selected' : ''}>${name}</option>`).join(''); });
 $('#resource-tree').addEventListener('keydown', (event) => {
   if (event.target !== document.activeElement || event.target.getAttribute('role') !== 'treeitem') return;
   const visible = visibleTreeItems(); const index = visible.findIndex((item) => item === document.activeElement); if (index < 0) return;
@@ -432,42 +484,50 @@ $('#resource-tree').addEventListener('keydown', (event) => {
   if (next) focusTree(next);
 });
 function toggleSection(button, content, collapsed) {
+  return preserveViewport(() => {
   const open = button.getAttribute('aria-expanded') !== 'true';
   button.setAttribute('aria-expanded', String(open)); content.hidden = !open;
   if (collapsed) { collapsed.hidden = open; button.textContent = open ? '−' : '+'; button.setAttribute('aria-label', `${open ? 'Collapse' : 'Expand'} Backend, Storage and Execution`); }
   else button.querySelector('span').textContent = open ? '−' : '+';
+  });
 }
 $('#environment-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#profile-rows'), $('#profile-collapsed')));
 $('#consistency-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#consistency-options')));
 $('#checker-toggle').addEventListener('click', (event) => toggleSection(event.currentTarget, $('#check-form')));
 new ResizeObserver(() => document.documentElement.style.setProperty('--checker-height', `${$('.query-lab').getBoundingClientRect().height + 24}px`)).observe($('.query-lab'));
-async function refreshTotals() {
-  const [objects, relationships] = await Promise.all(['objects', 'relationships'].map((kind) => request('count-objects', { kind, ceiling: 1000000 })));
-  $('#dataset-stats').innerHTML = `<div><strong>${objects.data.value.toLocaleString()}</strong><span>objects</span>${evidence(objects.meta, 'Object count')}</div><div><strong>${relationships.data.value.toLocaleString()}</strong><span>relationships</span>${evidence(relationships.meta, 'Relationship count')}</div>`;
+async function refreshTotals(query = request) {
+  const [objects, relationships] = await Promise.all(['objects', 'relationships'].map((kind) => query('count-objects', { kind, ceiling: 1000000 })));
+  $('#dataset-stats').innerHTML = `<div><strong>${objects.data.value.toLocaleString()}</strong><span>objects</span></div><div><strong>${relationships.data.value.toLocaleString()}</strong><span>relationships</span></div>`;
 }
 async function seedResources(retry = false) {
   const amount = Number($('#seed-amount').value);
   if (!retry && (!Number.isSafeInteger(amount) || amount < 1 || bootstrap.dataset.logicalResourceCount + amount > bootstrap.localSeed.maximumResources)) {
     $('#seed-status').textContent = `Enter a positive whole number within the ${bootstrap.localSeed.maximumResources.toLocaleString()} object limit.`; return;
   }
+  const seedRequest = async (operation, input = {}) => {
+    const result = await window.EaclDataScriptRuntime.request(operation, input, crypto.randomUUID(), owner);
+    if (result.error) throw new Error(result.error.message);
+    return result;
+  };
   state.seeding = true; state.epoch++; state.inspectorEpoch++; state.checkEpoch++;
   state.pages.clear(); state.selected = null; state.subjects = { items: [], history: [] }; knownObjects.clear(); renderSuggestions();
   $('#check-result').textContent = ''; $('#seed-retry').hidden = true; renderEnvironment();
-  const update = (progress) => { $('#seed-status').textContent = `${progress.resourcesCompleted.toLocaleString()} / ${progress.resourcesTarget.toLocaleString()} added`; };
+  $('#seed-progress').hidden = false; $('#seed-bar').value = 0;
+  const update = (progress) => preserveViewport(() => { $('#seed-progress strong').textContent = progress.status === 'seeding' ? 'Seeding DataScript' : progress.status === 'error' ? 'DataScript Seed Failed' : 'DataScript Seed Complete'; $('#seed-status').textContent = `${progress.resourcesCompleted.toLocaleString()} / ${progress.resourcesTarget.toLocaleString()} added`; $('#seed-bar').value = 100 * progress.resourcesCompleted / Math.max(1, progress.resourcesTarget); });
   try {
-    let result = await request(retry ? 'seed-retry' : 'seed-start', retry ? {} : { resourceCount: amount });
+    let result = await seedRequest(retry ? 'seed-retry' : 'seed-start', retry ? {} : { resourceCount: amount });
     update(result.data);
     while (result.data.status === 'seeding') {
       await new Promise((resolve) => setTimeout(resolve, 150));
-      result = await request('seed-status'); update(result.data);
+      result = await seedRequest('seed-status'); update(result.data);
     }
     if (result.data.status === 'error') throw new Error(result.data.error);
     $('#seed-status').textContent += ' · Local changes reset on reload';
   } catch (error) {
     $('#seed-status').textContent = error.message;
-    try { const progress = await request('seed-status'); $('#seed-retry').hidden = progress.data.status !== 'error'; } catch { /* Keep the original error visible. */ }
+    try { const progress = await seedRequest('seed-status'); $('#seed-retry').hidden = progress.data.status !== 'error'; } catch { /* Keep the original error visible. */ }
   } finally {
-    try { bootstrap = (await request('bootstrap')).data; await refreshTotals(); } catch (error) { $('#seed-status').textContent = error.message; }
+    try { bootstrap = (await seedRequest('bootstrap')).data; await refreshTotals(seedRequest); } catch (error) { $('#seed-status').textContent = error.message; }
     state.seeding = false; renderEnvironment(); resetScope();
   }
 }
@@ -488,7 +548,7 @@ async function initialize() {
     $('#check-subject-type').innerHTML = schema.types.map(({ name }) => `<option ${name === 'user' ? 'selected' : ''}>${name}</option>`).join('');
     remember(quickSubjects.map((id) => ({ type: 'user', id })));
     $('#check-type').innerHTML = resourceTypes().map((type) => `<option ${type === 'server' ? 'selected' : ''}>${type}</option>`).join('');
-    renderEnvironment(); renderSchema(); renderExplorer();
+    renderEnvironment(); renderSchema(); renderExplorer(); scheduleCheck();
     await loadGroup({ kind: 'root', key: 'root:account', type: 'account' });
     const resource = state.pages.get('root:account')?.items.find((item) => item.id === 'account-0'); if (resource) selectResource(resource);
   } catch (error) { state.ready = false; $('#runtime-status').hidden = false; $('#runtime-status').textContent = 'Runtime unavailable'; $('#resource-tree').innerHTML = `<div class="empty-tree error"><strong>Could not initialize the canonical runtime</strong><p>${escapeHtml(error.message)}</p></div>`; }
