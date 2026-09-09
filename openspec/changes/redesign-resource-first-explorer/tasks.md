@@ -1,3 +1,5 @@
+> **Superseded relationship-read requirements (2026-09-09):** The later `2026-09-09-use-direct-relationship-expansion` change replaces every requirement below to retain, construct, validate or migrate to `read-relationships :authorization`. Nested demo branches use plain indexed reads with the exact parent/type/relation, pagination, consistency and cache controls, and perform no endpoint permission checks. Removed authorization fields are rejected on presence, including nil/null. Viewing subject and permission remain inputs to root lookups, the access inspector and permission checks only. Library callers needing endpoint authorization compose direct reads with `can?` or `check-permissions` on one snapshot and own filtered pagination. Historical completed tasks and measurements below describe the earlier release, not the new contract. All unrelated requirements remain in force. Apply the companion delta before archiving; do not restore the superseded clauses.
+
 ## 1. Proposal and local design study
 
 - [x] 1.1 Inspect current explorer capabilities and 0tx/Peach/eDrive reference code; verify that `design.md` records source references and a feature-preservation map.
@@ -103,3 +105,10 @@ Live browser checks on DataScript and Datahike/S3 confirmed super-user Platforms
 - [x] 11.4 Publish and verify the authorized relationship-read path live.
 
 PR #101 release verified on 2026-09-09: production `77bf776b7e69ef4f5ed6ac8f5480710b8edb96f9`, workflow `34360030066` succeeded for all five jobs, including Datomic and Datalevin EC2 releases. All live profile publications match production and core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`. Downloaded DataScript artifact digest `35c0b2e3cecec675d500d96ff6179a7565f9184131035168e4413fef6f81d70a` matches its publication. Live DataScript and Datahike/S3 super-user Platforms → platform → Accounts expansion and Next each made exactly one reverse-relationships request, with the parent/type/relation and resource authorization filter, no nested lookup-resources or per-item check-permission requests. Subsequent query-kind labels are separate uncommitted local review changes and were not published.
+
+## 12. Query Labels
+
+- [x] 12.1 Add locally reviewed query labels beside pagination for lookup-resources, read-relationships and lookup-subjects.
+- [x] 12.2 Publish after user approval and verify desktop/mobile production presentation.
+
+PR #102 release verified on 2026-09-09: production `8ffb7758573e06eda507286775fa7829aa155fea`, workflow `34372389744` succeeded for all five jobs. All live publications match production and core `6c3f33f2449ea10ba56b88b3e9d9f076b1ab2d56`; downloaded runtime digest `35c0b2e3cecec675d500d96ff6179a7565f9184131035168e4413fef6f81d70a` matches the publication. Live desktop/mobile browser checks confirmed all three query labels and no horizontal overflow. This publishes the previously local query labels following explicit user approval.

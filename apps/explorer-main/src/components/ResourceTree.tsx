@@ -76,72 +76,37 @@ function RelationshipGroup(props: {
   const [cursors, setCursors] = createSignal<string[]>([]);
   const cursor = () => cursors().at(-1);
   const relationshipScope = () =>
-    scopeKey(
-      props.parent.type,
-      props.parent.id,
-      props.path.resourceType,
-      props.path.relation,
-      app.subjectId(),
-      app.permission(),
-      app.activeQueryBasis(),
-      JSON.stringify([app.consistency(), app.subjectType()]),
-    );
-  const relationshipScopeFromInput = (input: readonly unknown[]) =>
-    scopeKey(
-      input[0],
-      input[1],
-      input[2],
-      input[3],
-      input[4],
-      input[5],
-      input[10],
-      input[13],
-    );
-  const source = () =>
-    expanded() && app.permission()
-      ? ([
-          props.parent.type,
-          props.parent.id,
-          props.path.resourceType,
-          props.path.relation,
-          app.subjectId(),
-          app.permission(),
-          app.pageSize(),
-          cursor() ?? "",
-          app.cacheEnabled(),
-          app.populateCache(),
-          app.activeQueryBasis(),
-          app.basisGeneration(),
-          app.queryGeneration(),
-          JSON.stringify([app.consistency(), app.subjectType()]),
-        ] as const)
-      : false;
-  const [relationships, { refetch }] = createResource(
-    source,
-    async (input) =>
-      ({
-        scope: relationshipScopeFromInput(input),
-        envelope: await app.runQuery<RelationshipPage>(
-          request,
-          "/list-relationships",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              subject: { type: input[0], id: input[1] },
-              resourceType: input[2],
-              relation: input[3],
-              authorizationSubject: { type: app.subjectType(), id: input[4] },
-              permission: input[5],
-              pageSize: input[6],
-              after: input[7] || undefined,
-              cache: input[8],
-              populateCache: input[9],
-              consistency: app.consistency(),
-            }),
-          },
-        ),
-      }) satisfies ScopedSuccess<RelationshipPage>,
-  );
+    scopeKey(props.parent.type, props.parent.id, props.path.resourceType,
+      props.path.relation, app.activeQueryBasis(), JSON.stringify(app.consistency()));
+  const source = () => expanded() ? ({
+    subject: { type: props.parent.type, id: props.parent.id },
+    resourceType: props.path.resourceType,
+    relation: props.path.relation,
+    pageSize: app.pageSize(),
+    after: cursor(),
+    cache: app.cacheEnabled(),
+    populateCache: app.populateCache(),
+    consistency: app.consistency(),
+    scope: relationshipScope(),
+    basisGeneration: app.basisGeneration(),
+    queryGeneration: app.queryGeneration(),
+  }) : false;
+  const [relationships, { refetch }] = createResource(source, async (input) => ({
+    scope: input.scope,
+    envelope: await app.runQuery<RelationshipPage>(request, "/list-relationships", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: input.subject,
+        resourceType: input.resourceType,
+        relation: input.relation,
+        pageSize: input.pageSize,
+        after: input.after,
+        cache: input.cache,
+        populateCache: input.populateCache,
+        consistency: input.consistency,
+      }),
+    }),
+  }) satisfies ScopedSuccess<RelationshipPage>);
   const [displayedRelationships, setDisplayedRelationships] =
     createSignal<ApiSuccess<RelationshipPage>>();
   const [displayedRelationshipScope, setDisplayedRelationshipScope] =
@@ -167,11 +132,9 @@ function RelationshipGroup(props: {
     on(
       () =>
         [
-          app.subjectId(),
-          app.permission(),
           app.pageSize(),
           app.basisGeneration(),
-          JSON.stringify([app.consistency(), app.subjectType()]),
+          JSON.stringify(app.consistency()),
         ] as const,
       () => setCursors((current) => (current.length ? [] : current)),
       { defer: true },
@@ -505,7 +468,14 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
     if (page.loading || page.error) return;
     const result = page();
     if (!result) return;
-    setDisplayedPage(result.envelope);
+    // Objects are identified solely by type/id. Retain unchanged row instances
+    // so a refreshed root lookup does not remount independent relationship reads.
+    setDisplayedPage((previous) => {
+      const existing = new Map(previous?.data.items.map((item) => [resourceKey(item), item]));
+      return { ...result.envelope, data: { ...result.envelope.data,
+        items: result.envelope.data.items.map((item) => existing.get(resourceKey(item)) ?? item),
+      } };
+    });
     app.rememberResources(result.envelope.data.items);
     setDisplayedPageScope(result.scope);
     setDisplayedCursors([...cursors()]);
@@ -774,10 +744,11 @@ function ResourceTypeGroup(props: { resourceType: string }): JSX.Element {
               retry={() => void refetchCount()}
             />
           </Show>
-          <Show when={settledPage()}>
+          <Show when={supported() && displayedPage()}>
             {(envelope: () => ApiSuccess<ObjectPage>) => (
               <>
-                <div class="resource-tree" aria-busy={page.loading}>
+                <div class="resource-tree" aria-busy={page.loading}
+                  style={{ visibility: settledPage() ? undefined : "hidden" }}>
                   <For
                     each={envelope().data.items}
                     fallback={

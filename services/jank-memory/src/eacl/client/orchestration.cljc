@@ -730,48 +730,7 @@
   #{:subject/type :subject/id :resource/type :resource/id
     :resource/relation :first :last :after :before :consistency
     :timeout-ms :cancellation-token :cache? :populate-cache? :evaluation
-    :aggregate-limits :authorization})
-
-(def ^:private scan-authorization-keys #{:subject :permission :on})
-
-(defn- normalize-scan-authorization
-  [filters value]
-  (when-not (map? value)
-    (fail! :eacl.filters/invalid-authorization-clause
-           :authorization-must-be-map {:position :authorization}))
-  (let [unknown (vec (remove scan-authorization-keys (keys value)))
-        missing (vec (remove #(contains? value %) scan-authorization-keys))]
-    (when (seq unknown)
-      (fail! :eacl.filters/invalid-authorization-clause
-             :unknown-authorization-key
-             {:position :authorization :unknown-keys unknown
-              :known-keys scan-authorization-keys}))
-    (when (seq missing)
-      (fail! :eacl.filters/invalid-authorization-clause
-             :missing-authorization-key
-             {:position :authorization :missing-keys missing})))
-  (let [subject (domain/normalize-object (:subject value))
-        permission (:permission value)
-        on (:on value)
-        required-type (case on
-                        :subject :subject/type
-                        :resource :resource/type
-                        nil)]
-    (when (:relation subject)
-      (fail! :eacl.pagination/unsupported-filter
-             :subject-relation-unsupported
-             {:filter :authorization/subject-relation}))
-    (when-not (keyword? permission)
-      (fail! :eacl.filters/invalid-authorization-clause
-             :invalid-permission {:position :authorization}))
-    (when-not required-type
-      (fail! :eacl.filters/invalid-authorization-clause
-             :invalid-authorization-endpoint {:on on}))
-    (when-not (keyword? (get filters required-type))
-      (fail! :eacl.filters/invalid-authorization-clause
-             :missing-authorization-endpoint-type
-             {:on on :required-filter required-type}))
-    {:subject subject :permission permission :on on}))
+    :aggregate-limits})
 
 (defn- normalize-relationship-page
   [client query]
@@ -814,24 +773,18 @@
            (:aggregate-limits query))]
       ;; Complete filter validation occurs before cursor decoding or selection.
       (relationship-filters/validate! filters)
-      (let [authorization
-            (when (contains? query :authorization)
-              (normalize-scan-authorization filters (:authorization query)))
-            route (if authorization
-                    :authorized-relationship-scan
-                    :raw-relationship-scan)]
-        {:request query :filters filters :authorization authorization
-         :aggregate-limits limits :direction direction
-         :page-size size :cursor anchor-string
-         :cursor-scope
-         {:route route
-          :filters filters
-          :authorization authorization
-          :direction direction
-          :page-size size
-          :aggregate-limits limits
-          :scalar-limits (get-in client [::options :scalar-limits])
-          :evaluation :demand}}))))
+      {:request query :filters filters
+       :aggregate-limits limits :direction direction
+       :page-size size :cursor anchor-string
+       :cursor-scope
+       {:route :raw-relationship-scan
+        :filters filters
+        ;; Preserve the fixed field in existing raw cursor fingerprints.
+        :authorization nil
+        :direction direction :page-size size
+        :aggregate-limits limits
+        :scalar-limits (get-in client [::options :scalar-limits])
+        :evaluation :demand}})))
 
 (defn- decode-cursor!
   [client encoded]
@@ -987,16 +940,7 @@
      :cached? cache-hit?
      :cache-basis (when enabled? (page-provenance request-context))}))
 
-(declare authorization-relationship-page-in-context
-         discovery-error aggregate-values check-aggregate-state!)
-
-(defn- dispatch-relationship-page-in-context
-  [client request-context page cursor-payload]
-  (if (:authorization page)
-    (authorization-relationship-page-in-context
-     client request-context page cursor-payload)
-    (relationship-page-in-context
-     client request-context page cursor-payload)))
+(declare discovery-error aggregate-values check-aggregate-state!)
 
 (defn read-relationships
   [target query]
@@ -1020,14 +964,11 @@
       (let [fixed (fixed-request! target (:request page))
             page (assoc page :request fixed)]
         (try
-          (dispatch-relationship-page-in-context
+          (relationship-page-in-context
            client (::context target) page cursor-payload)
           (catch #?(:jank cpp/jank.runtime.object_ref
                     :clj Throwable) error
-            (throw
-             (if (:authorization page)
-               (discovery-error error)
-               error)))))
+            (throw error))))
       (let [request (:request page)
             _ (execution/check! contract :before-cursor-selection)
             descriptor
@@ -1038,7 +979,7 @@
             request-context (make-request-context client descriptor contract)]
         (try
           (let [result
-                (dispatch-relationship-page-in-context
+                (relationship-page-in-context
                  client request-context page cursor-payload)]
             (context/close! request-context)
             result)
@@ -1046,192 +987,7 @@
                     :clj Throwable) error
             (close-after-error!
              request-context
-             (if (:authorization page)
-               (discovery-error error)
-               error))))))))
-
-(defn- prepare-authorization-scan!
-  [request-context page]
-  (discovery/validate-relationship-filters!
-   request-context (:filters page))
-  (let [{:keys [subject permission on]} (:authorization page)
-        endpoint-type
-        (get-in page [:filters (if (= :subject on)
-                                 :subject/type :resource/type)])
-        root
-        (discovery/validate-root!
-         request-context (:type subject) endpoint-type permission
-         :read-relationships)
-        fixed-eid (indexed/object-eid! request-context (:id subject))]
-    {:root root :fixed-object subject :fixed-eid fixed-eid
-     :endpoint on :empty? (nil? fixed-eid)}))
-
-(defn- authorization-relationship-step!
-  [client request-context page prepared bound authorize?]
-  (context/begin-demand! request-context)
-  (let [attempt
-        (try
-          (do
-            (context/consume! request-context :commands)
-            (let [window
-                  (operation-value!
-                   ((get-in client [::operations :read-relationship-window])
-                    (context/database request-context) (:filters page)
-                    (:direction page) bound 1
-                    (get-in page
-                            [:aggregate-limits :max-candidates-examined])
-                    (context/contract request-context))
-                   :read-relationship-window)
-                  _ (context/consume! request-context
-                                      :fetched-values (:examined window))
-                  entry (first (:entries window))]
-              (if-not entry
-                {:value {:entry nil} :error nil}
-                (if-not authorize?
-                  {:value {:entry entry} :error nil}
-                  (do
-                    (context/record! request-context :candidates-examined)
-                    (let [relationship (:relationship entry)
-                          endpoint (get relationship (:endpoint prepared))
-                          endpoint-eid
-                          (indexed/object-eid! request-context (:id endpoint))
-                          decision
-                          (render-point
-                           request-context
-                           (discovery/prepared-candidate
-                            request-context (:root prepared)
-                            :read-relationships
-                            (:fixed-object prepared) endpoint
-                            (:fixed-eid prepared) endpoint-eid)
-                           client (:request page))]
-                      {:value {:entry entry
-                               :accepted? (:allowed? decision)}
-                       :error nil}))))))
-          (catch #?(:jank cpp/jank.runtime.object_ref
-                    :clj Throwable) error
-            {:value nil :error error}))
-        _ (context/end-demand! request-context)]
-    (if-let [error (:error attempt)]
-      (throw (discovery-error error))
-      (:value attempt))))
-
-(defn- execute-authorization-relationship-page!
-  [client request-context page prepared initial-bound aggregate-before]
-  (if (:empty? prepared)
-    {:entries [] :progress-anchor initial-bound
-     :more? false :bounded? false}
-    (loop [bound initial-bound
-           examined 0
-           accepted []]
-      (context/cut-point! request-context
-                          :authorization-relationship-candidate-schedule)
-      (if (= examined (get-in page [:aggregate-limits :candidate-window]))
-        (let [more?
-              (boolean
-               (:entry
-                (authorization-relationship-step!
-                 client request-context page prepared bound false)))]
-          (check-aggregate-state!
-           (:aggregate-limits page) aggregate-before request-context
-           (count accepted) nil)
-          {:entries accepted :progress-anchor bound
-           :more? more? :bounded? more?})
-        (let [step
-              (authorization-relationship-step!
-               client request-context page prepared bound true)
-              entry (:entry step)]
-          (if-not entry
-            {:entries accepted :progress-anchor bound
-             :more? false :bounded? false}
-            (let [next-examined (inc examined)
-                  next-accepted
-                  (if (:accepted? step) (conj accepted entry) accepted)]
-              (check-aggregate-state!
-               (:aggregate-limits page) aggregate-before request-context
-               (min (count next-accepted) (:page-size page)) nil)
-              (if (> (count next-accepted) (:page-size page))
-                {:entries (vec (take (:page-size page) next-accepted))
-                 :progress-anchor bound :more? true :bounded? false}
-                (recur (:anchor entry) next-examined next-accepted)))))))))
-
-(defn- render-authorization-relationship-page
-  [client request-context page cursor-payload artifact cache-hit? enabled?]
-  (let [direction (:direction page)
-        selected-direction (:entries artifact)
-        display
-        (if (= :backward direction)
-          (vec (reverse selected-direction)) selected-direction)
-        progress (:progress-anchor artifact)
-        first-anchor (:anchor (first display))
-        last-anchor (:anchor (last display))
-        start-anchor
-        (if (= :forward direction) (or first-anchor progress) progress)
-        end-anchor
-        (if (= :forward direction) progress (or last-anchor progress))
-        prior? (boolean cursor-payload)]
-    (context/cut-point! request-context
-                        :authorization-relationship-page-render)
-    {:data (mapv :relationship display)
-     :page-info
-     {:start-cursor
-      (when start-anchor
-        (issue-page-cursor client request-context page start-anchor))
-      :end-cursor
-      (when end-anchor
-        (issue-page-cursor client request-context page end-anchor))
-      :has-next-page?
-      (if (= :forward direction) (:more? artifact) prior?)
-      :has-previous-page?
-      (if (= :forward direction) prior? (:more? artifact))
-      :bounded? (boolean (:bounded? artifact))}
-     :cached? (boolean cache-hit?)
-     :cache-basis (when enabled? (page-provenance request-context))}))
-
-(defn authorization-relationship-page-in-context
-  [client request-context page cursor-payload]
-  (let [aggregate-before (context/aggregate-counters request-context)
-        prepared (prepare-authorization-scan! request-context page)
-        proof (get-in prepared [:root :proof])
-        proof-fingerprint (cursor/fingerprint proof)
-        page (assoc page :dependency-proof proof
-                    :dependency-proof-fingerprint proof-fingerprint)]
-    (when cursor-payload
-      (when-not (and (= (:native-revision cursor-payload)
-                        (get-in (context/selection request-context) [:basis]))
-                     (= (:schema-generation cursor-payload)
-                        (context/schema-generation request-context))
-                     (= (:dependency-proof-fingerprint cursor-payload)
-                        proof-fingerprint))
-        (fail! :eacl.pagination/invalid-cursor
-               :cursor-snapshot-mismatch {})))
-    (check-aggregate-state!
-     (:aggregate-limits page) aggregate-before request-context 0 nil)
-    (let [enabled? (cache-enabled? client (:request page))
-          populate? (cache-population-enabled? client (:request page))
-          cache (get-in client [::caches :continuation])
-          key
-          [:authorized-relationship-page
-           (context/source-scope request-context)
-           (get-in (context/selection request-context) [:basis])
-           (context/schema-generation request-context)
-           proof (:cursor-scope page) (:anchor cursor-payload)
-           (get-in client [::operations :ordering-abi])]
-          cached (when enabled? (local-cache/lookup! cache key))
-          artifact
-          (if (and cached (:found? cached))
-            (:value cached)
-            (do
-              (when-not enabled? (local-cache/bypass! cache))
-              (let [built
-                    (execute-authorization-relationship-page!
-                     client request-context page prepared
-                     (:anchor cursor-payload) aggregate-before)]
-                (if populate?
-                  (local-cache/install! cache key built)
-                  built))))]
-      (render-authorization-relationship-page
-       client request-context page cursor-payload artifact
-       (and cached (:found? cached)) enabled?))))
+             error)))))))
 
 (defn- discovery-types
   [page]

@@ -66,12 +66,13 @@ test("resource relationship filters are complete and lookup-only", () => {
   assert.equal(post("check-permission",{...input,resourceId:"account-0",...filter}).code,"validation-error");
 });
 
-test("authorized relationship reads reject incomplete authorization", () => {
+test("direct relationship reads reject every removed authorization field", () => {
   const input={subjectType:"platform",subjectId:"platform",resourceType:"account",relation:"platform"};
-  const authorization={authorizationSubjectType:"user",authorizationSubjectId:"super-user",permission:"view"};
-  assert.equal(post("reverse-relationships",{...input,...authorization}).ok,true);
-  for(const key of Object.keys(authorization)) {
-    const partial={...authorization};delete partial[key];
-    assert.equal(post("reverse-relationships",{...input,...partial}).code,"validation-error");
+  assert.equal(post("reverse-relationships",input).ok,true);
+  for (const key of ["authorizationSubjectType", "authorizationSubjectId", "authorizationSubject", "authorization", "permission"]) {
+    for (const value of [null, "view", {}, false]) {
+      assert.equal(post("reverse-relationships",{...input,[key]:value}).code,"validation-error");
+    }
   }
+  assert.equal(post("reverse-relationships",{...input,authorizationSubjectType:"user",authorizationSubjectId:"super-user",permission:"view"}).code,"validation-error");
 });

@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, Show, type JSX } from "solid-js";
+import { createEffect, createSignal, onMount, onCleanup, Show, type JSX } from "solid-js";
 import { CachePanel } from "./components/CachePanel";
 import {
   CanPermissionFooter,
@@ -58,14 +58,18 @@ function SeedProgress(): JSX.Element {
 }
 
 export function Explorer(props: {
+  view?: string;
+  onViewChange: (view: string) => void;
   backendLabel: string;
   storageLabel: string;
   profileSelector: JSX.Element;
   execution: "lambda" | "ec2" | "browser";
 }): JSX.Element {
   const app = useAppState();
-  const [view, setView] = createSignal("resources");
-  const [schemaVisited, setSchemaVisited] = createSignal(false);
+  const view = () => props.view === "schema" || props.view === "graph" ? props.view : "resources";
+  const setView = (next: string) => { if (next !== view()) props.onViewChange(next); };
+  const [schemaVisited, setSchemaVisited] = createSignal(view() !== "resources");
+  createEffect(() => { if (view() !== "resources") setSchemaVisited(true); });
   const hasBootstrap = () => Boolean(app.bootstrapData());
   const startupSeconds = () => (app.healthElapsedMs() / 1000).toFixed(1);
   const healthyEaclSha = () =>
@@ -223,12 +227,21 @@ export function Explorer(props: {
               >
                 Permission Schema
               </button>
+              <button
+                aria-pressed={view() === "graph"}
+                onClick={() => {
+                  setSchemaVisited(true);
+                  setView("graph");
+                }}
+              >
+                Schema Graph
+              </button>
             </div>
             <CachePanel />
           </nav>
           <Show when={schemaVisited()}>
-            <div hidden={view() !== "schema"}>
-              <SchemaPanel />
+            <div hidden={view() === "resources"}>
+              <SchemaPanel view={view()} />
             </div>
           </Show>
           <main class="panel-grid" hidden={view() !== "resources"}>

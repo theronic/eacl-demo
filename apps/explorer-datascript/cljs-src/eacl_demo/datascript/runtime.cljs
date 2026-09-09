@@ -256,10 +256,6 @@
                               :first (:pageSize input)})
                 (:resourceType input) (assoc :resource/type (keyword (:resourceType input)))
                 (:relation input) (assoc :resource/relation (keyword (:relation input)))
-                (:authorizationSubjectId input)
-                (assoc :authorization {:subject (eacl/spice-object (keyword (:authorizationSubjectType input))
-                                                                  (:authorizationSubjectId input))
-                                       :permission (keyword (:permission input)) :on :resource})
                 (:cursor input) (assoc :after (:cursor input)))
         result (eacl/read-relationships (:client runtime) query)]
     {:data (wire-page runtime (update result :data #(mapv :resource %)))
@@ -646,11 +642,8 @@
             keys
             #{:subjectType :subjectId}
             #{:subjectType :subjectId :relation :consistency :pageSize :cursor
-              :cache :populateCache :resourceType :authorizationSubjectType :authorizationSubjectId :permission})
-           (let [auth-keys [:authorizationSubjectType :authorizationSubjectId :permission]
-                 present (filter #(contains? input %) auth-keys)]
-             (and (or (nil? (:resourceType input)) (identifier? (:resourceType input)))
-                  (or (empty? present) (and (= 3 (count present)) (every? identifier? (map input auth-keys))))))
+              :cache :populateCache :resourceType})
+           (or (nil? (:resourceType input)) (identifier? (:resourceType input)))
            (every? identifier? ((juxt :subjectType :subjectId) input))
            (or (nil? (:relation input)) (identifier? (:relation input)))
            (consistency? (:consistency input))

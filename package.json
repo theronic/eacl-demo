@@ -9,15 +9,15 @@
   },
   "packageManager": "npm@11.19.0",
   "dependencies": {
+    "@dschz/solid-flow": "0.2.6",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
-    "d3": "7.9.0",
+    "elkjs": "0.12.0",
     "solid-js": "1.9.15"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.62.1",
-    "@types/d3": "7.4.3",
     "@types/node": "26.4.0",
     "typescript": "7.0.2",
     "vite": "8.2.2",

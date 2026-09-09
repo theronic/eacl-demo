@@ -193,16 +193,12 @@
                 (is (= ["user-2"] (mapv :id (:items second-page))))
                 (is (false? (get-in second-page [:pageInfo :hasNextPage])))))
 
-            ;; The same relationship scope yields only resources authorized for
-            ;; the viewing subject, before pagination is applied.
-            (doseq [[viewer expected] [["user-1" ["account-0"]] ["user-2" []]]]
-              (is (= expected
-                     (mapv :id (:items
-                       (invoke handlers "reverse-relationships" snapshot
-                         {:subjectType "user" :subjectId "user-1"
-                          :resourceType "account" :permission "admin" :pageSize 1
-                          :authorizationSubjectType "user" :authorizationSubjectId viewer
-                          :relation "owner"}))))))
+            ;; A nested branch reads the stored edge without a viewing subject.
+            (is (= ["account-0"]
+                   (mapv :id (:items
+                     (invoke handlers "reverse-relationships" snapshot
+                       {:subjectType "user" :subjectId "user-1"
+                        :resourceType "account" :pageSize 1 :relation "owner"})))))
 
             (is (= "account-0"
                    (get-in (invoke handlers "get-object" snapshot
@@ -303,6 +299,6 @@
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-handler)
    operations/create-handlers "datahike-dynamodb"))
 
-(deftest nested-branches-use-authorized-relationship-reads
+(deftest nested-branches-use-direct-relationship-reads
   ((requiring-resolve 'eacl-demo.relationship-filter-test/verify-read-handler)
    operations/create-handlers "datahike-dynamodb"))

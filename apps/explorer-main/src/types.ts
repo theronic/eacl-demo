@@ -106,6 +106,7 @@ export interface SchemaPreset {
 }
 
 export interface SchemaNode {
+  permissionDefinitions?: { name: string; expression: string }[];
   id: string;
   permissions: string[];
 }

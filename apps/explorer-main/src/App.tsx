@@ -46,6 +46,7 @@ type PlatformId = "lambda-1769" | "lambda-4096" | "ec2" | "browser";
 type ProfileState = "enabled" | "disabled" | "qualifying" | "unavailable";
 
 interface Selection {
+  view?: string;
   backend: BackendId;
   storage: StorageId;
   platform: PlatformId;
@@ -97,7 +98,11 @@ export default function App(): JSX.Element {
     catalog.backends[0];
   const fromUrl = parseCanonicalUrl(window.location.search, catalog)
     .state as Selection;
-  const [selection, setSelection] = createSignal<Selection>(fromUrl);
+  const [view, setView] = createSignal(fromUrl.view);
+  const [selection, setSelection] = createSignal<Selection>(
+    { backend: fromUrl.backend, storage: fromUrl.storage, platform: fromUrl.platform },
+    { equals: (left, right) => left.backend === right.backend && left.storage === right.storage && left.platform === right.platform },
+  );
   const [registry, setRegistry] = createSignal(
     createFailClosedRegistry(availabilityData, profileData),
   );
@@ -121,7 +126,10 @@ export default function App(): JSX.Element {
       history: window.history,
       location: window.location,
       eventTarget: window,
-      onState: (state: unknown) => setSelection(state as Selection),
+      onState: (state: Selection) => {
+        setView(state.view);
+        setSelection({ backend: state.backend, storage: state.storage, platform: state.platform });
+      },
     });
     void refreshProfilePublications();
   });
@@ -308,6 +316,10 @@ export default function App(): JSX.Element {
       {(entry) => (
         <ConfiguredExplorer
           profile={entry.profile}
+          view={view()}
+          onViewChange={(view) => {
+            urlController?.navigate({ ...parseCanonicalUrl(window.location.search, catalog).state, view });
+          }}
           execution={executionForPlatform(selection().platform)}
           backendLabel={selectedBackend().label}
           storageLabel={storageLabel()}
@@ -326,6 +338,8 @@ export default function App(): JSX.Element {
 }
 
 function ConfiguredExplorer(props: {
+  view?: string;
+  onViewChange: (view: string) => void;
   profile: ExplorerProfile;
   execution: "lambda" | "ec2" | "browser";
   backendLabel: string;
@@ -339,6 +353,8 @@ function ConfiguredExplorer(props: {
     <ApiProvider dispatcher={api.dispatcher}>
       <AppStateProvider>
         <Explorer
+          view={props.view}
+          onViewChange={props.onViewChange}
           backendLabel={props.backendLabel}
           storageLabel={props.storageLabel}
           profileSelector={props.selector}

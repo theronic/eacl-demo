@@ -214,7 +214,6 @@ export const AppStateProvider: ParentComponent = (props) => {
   const requery = () => setQueryGeneration((value) => value + 1);
   const rerunBasisQueries = () => setBasisGeneration((value) => value + 1);
   const setSubjectId = (value: string) => {
-    if (value !== subjectId()) setSelectedResource(undefined);
     setSubjectSignal(value);
   };
   const setPermission = (value: string) => {
