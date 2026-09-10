@@ -23,7 +23,7 @@ const DATAHIKE_ORIGINS = Object.freeze({
 const SERVER_OPTIONS = Object.freeze([
   Object.freeze({ id: DEFAULT_LAMBDA, label: "1,769 MiB Lambda (1 vCPU)" }),
   Object.freeze({ id: LARGE_LAMBDA, label: "4 GiB Lambda" }),
-  Object.freeze({ id: "ec2", label: "EC2 t3.micro (1 GiB)" })
+  Object.freeze({ id: "ec2", label: "EC2 t3.small (2 GiB)" })
 ]);
 
 export function defaultPlatform(selection) {

@@ -80,6 +80,26 @@ Watch it:
 gh run watch --repo theronic/eacl-demo
 ```
 
+### EC2 host changes are a separate CloudFormation update
+
+The `production` push only replaces the jar and the release lines of
+`/etc/eacl-demo-datomic.env` over SSM. Instance type, JVM options
+(`EACL_JAVA_OPTS`), the Datomic object cache, swap, and the CloudWatch agent
+configuration live in `infra/profiles/datomic-dynamodb-ec2.yaml`, and take
+effect only through a stack update, which stops and starts the instance:
+
+```sh
+aws cloudformation deploy --stack-name eacl-demo-datomic-dynamodb-ec2 --template-file infra/profiles/datomic-dynamodb-ec2.yaml --capabilities CAPABILITY_IAM --parameter-overrides InstanceType=t3.small --no-fail-on-empty-changeset
+```
+
+`deploy` keeps every parameter you do not override at its current stack
+value, so pass `InstanceType` explicitly when changing it. The
+`RuntimeArtifactAssociation` re-applies the env, unit, and agent files on the
+running instance after the update; check `free -m` and the
+`EaclDemo/Host` memory and swap metrics afterwards. Datahike Lambdas take
+their store cache size (`EACL_STORE_CACHE_SIZE`) from
+`scripts/deploy-live-demo.mjs` on every production deploy.
+
 ## 4. After the deploy
 
 - Spot-check the explorer at the live origin and one server profile's

@@ -32,14 +32,33 @@ test("CloudFront reaches each adapter on its own host", () => {
   assert.match(ingress, /FromPort: 8080[\s\S]*ToPort: 8081/u);
 });
 
-test("the shared t3.micro provisions persistent low-swappiness headroom before starting either JVM", () => {
+test("the Datomic t3.small provisions persistent low-swappiness headroom before starting the JVM", () => {
   const userData = /UserData:[\s\S]*?(?=\n\s{2}RuntimeArtifactAssociation:)/u.exec(source)?.[0];
   assert.ok(userData);
+  assert.match(source, /InstanceType:\n    Type: String\n    Default: t3\.small\n/u);
+  assert.match(source, /InstanceType: t3\.small/u);
   assert.match(userData, /fallocate -l 1G \/swapfile[\s\S]*mkswap \/swapfile/u);
   assert.match(userData, /swapon --show=NAME --noheadings[\s\S]*swapon \/swapfile/u);
   assert.match(userData, /\/swapfile none swap sw 0 0/u);
   assert.match(userData, /vm\.swappiness=10/u);
   assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
+});
+
+test("the Datomic JVM heap and object cache are pinned in one env line that first boot and every stack update both own", () => {
+  const options = "-Xms1024m -Xmx1024m -XX:\\+UseG1GC -XX:\\+ExitOnOutOfMemoryError -Ddatomic\\.objectCacheMax=576m";
+  const userData = /UserData:[\s\S]*?(?=\n\s{2}RuntimeArtifactAssociation:)/u.exec(source)?.[0];
+  const association = /RuntimeArtifactAssociation:[\s\S]*?(?=\n\s{2}InitializationAlarm:)/u.exec(source)?.[0];
+  assert.ok(userData);
+  assert.ok(association);
+  assert.match(userData, new RegExp(`echo "EACL_JAVA_OPTS=${options}"`, "u"));
+  assert.match(userData, /echo "EACL_RUNTIME_MEMORY_MIB=2048"/u);
+  assert.match(userData, /ExecStart=\/usr\/bin\/java \$EACL_JAVA_OPTS -cp \/opt\/eacl-demo\/function\.jar clojure\.main -m eacl-demo\.datomic-dynamodb\.http-server/u);
+  assert.doesNotMatch(source, /Xmx640m|Xms384m/u);
+  assert.match(association, new RegExp(`EACL_JAVA_OPTS=\\.\\*\\|EACL_JAVA_OPTS=${options}\\|`, "u"));
+  assert.match(association, /EACL_RUNTIME_MEMORY_MIB=2048/u);
+  assert.match(association, /s\|\^ExecStart=\.\*\|ExecStart=\/usr\/bin\/java \$EACL_JAVA_OPTS -cp[\s\S]*systemctl daemon-reload && systemctl restart eacl-demo-datomic\.service/u);
+  assert.match(userData, /"metrics": \{"namespace": "EaclDemo\/Host"[\s\S]*mem_used_percent[\s\S]*swap_used_percent/u);
+  assert.match(association, /EaclDemo\/Host[\s\S]*amazon-cloudwatch-agent-ctl -a fetch-config/u);
 });
 
 test("Datomic EC2 admits four engine requests while Datalevin keeps its independent limit", () => {
