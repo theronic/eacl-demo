@@ -39,6 +39,18 @@ import {
 } from "../schema-expression";
 import type { SchemaLink, SchemaNode } from "../types";
 
+// elk.bundled.js lays out in-process through a fake worker that only
+// implements postMessage/onmessage, while ELK#terminateWorker assumes a real
+// Worker and throws "terminate is not a function". A throwing cleanup aborts
+// SolidJS disposal for the whole subtree, which froze profile switching once a
+// graph had rendered. Only terminate workers that can actually be terminated.
+const releaseLayoutEngine = (engine: InstanceType<typeof ELK>) => {
+  const worker = (
+    engine as unknown as { worker?: { worker?: { terminate?: unknown } } }
+  ).worker?.worker;
+  if (typeof worker?.terminate === "function") engine.terminateWorker();
+};
+
 type Inspection = {
   title: string;
   refs: SchemaReference[];
@@ -622,7 +634,7 @@ function Graph(props: GraphProps): JSX.Element {
   onCleanup(() => {
     generation++;
     observer?.disconnect();
-    elk.terminateWorker();
+    releaseLayoutEngine(elk);
   });
   return (
     <div class="schema-flow">
