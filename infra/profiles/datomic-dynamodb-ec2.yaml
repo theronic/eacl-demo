@@ -6,7 +6,7 @@ Metadata:
     Profiles: datomic-dynamodb,datalevin-memory
     Platform: ec2
     Runtime: java25
-    InstanceType: t3.micro
+    InstanceType: t3.small
 
 Parameters:
   AmiId:
@@ -14,7 +14,7 @@ Parameters:
     Default: ami-0332d564d76dbd8d6
   InstanceType:
     Type: String
-    Default: t3.micro
+    Default: t3.small
     AllowedValues: [t3.micro, t3.small, t3.medium]
   ArtifactBucket:
     Type: String
@@ -277,7 +277,8 @@ Resources:
           dnf install -y java-25-amazon-corretto-headless amazon-cloudwatch-agent awscli
           install -d -m 0755 /opt/eacl-demo /var/log/eacl-demo
           # Preserve management-plane and JVM liveness during transient heap growth
-          # on the shared 1 GiB host without encouraging steady-state swapping.
+          # without encouraging steady-state swapping. The 1 GiB fixed heap plus
+          # the Peer's explicit object cache must stay resident on the 2 GiB host.
           if [ ! -e /swapfile ]; then
             fallocate -l 1G /swapfile
             chmod 0600 /swapfile
@@ -305,7 +306,8 @@ Resources:
             echo "EACL_HTTP_PORT=8080"
             echo "EACL_MAXIMUM_CONCURRENCY=4"
             echo "EACL_RUNTIME_EXECUTION=ec2"
-            echo "EACL_RUNTIME_MEMORY_MIB=1024"
+            echo "EACL_RUNTIME_MEMORY_MIB=2048"
+            echo "EACL_JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m"
           } > /etc/eacl-demo-datomic.env
           cat > /etc/systemd/system/eacl-demo-datomic.service <<'SERVICE'
           [Unit]
@@ -316,7 +318,7 @@ Resources:
           [Service]
           Type=simple
           EnvironmentFile=/etc/eacl-demo-datomic.env
-          ExecStart=/usr/bin/java -Xms384m -Xmx640m -XX:+ExitOnOutOfMemoryError -cp /opt/eacl-demo/function.jar clojure.main -m eacl-demo.datomic-dynamodb.http-server
+          ExecStart=/usr/bin/java $EACL_JAVA_OPTS -cp /opt/eacl-demo/function.jar clojure.main -m eacl-demo.datomic-dynamodb.http-server
           Restart=on-failure
           RestartSec=3
           StandardOutput=append:/var/log/eacl-demo/datomic.log
@@ -330,6 +332,7 @@ Resources:
           cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'AGENT'
           {
             "agent": {"metrics_collection_interval": 60},
+            "metrics": {"namespace": "EaclDemo/Host", "metrics_collected": {"mem": {"measurement": ["mem_used_percent", "mem_available"]}, "swap": {"measurement": ["swap_used_percent"]}}},
             "logs": {"logs_collected": {"files": {"collect_list": [
               {"file_path": "/var/log/eacl-demo/datomic.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/runtime"},
               {"file_path": "/var/log/eacl-demo-bootstrap.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/bootstrap"}
@@ -378,6 +381,11 @@ Resources:
           - !Sub "sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
           - "sed -i '/^EACL_HTTP_WORKERS=/d' /etc/eacl-demo-datomic.env"
           - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|' /etc/eacl-demo-datomic.env"
+          - "sed -i 's|^EACL_RUNTIME_MEMORY_MIB=.*|EACL_RUNTIME_MEMORY_MIB=2048|' /etc/eacl-demo-datomic.env"
+          - "grep -q '^EACL_JAVA_OPTS=' /etc/eacl-demo-datomic.env || echo 'EACL_JAVA_OPTS=' >> /etc/eacl-demo-datomic.env"
+          - "sed -i 's|^EACL_JAVA_OPTS=.*|EACL_JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m|' /etc/eacl-demo-datomic.env"
+          - "sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/java $EACL_JAVA_OPTS -cp /opt/eacl-demo/function.jar clojure.main -m eacl-demo.datomic-dynamodb.http-server|' /etc/systemd/system/eacl-demo-datomic.service"
+          - "grep -q '\"namespace\": \"EaclDemo/Host\"' /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json || (python3 -c 'import json,sys; p=\"/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json\"; c=json.load(open(p)); c[\"metrics\"]={\"namespace\": \"EaclDemo/Host\", \"metrics_collected\": {\"mem\": {\"measurement\": [\"mem_used_percent\", \"mem_available\"]}, \"swap\": {\"measurement\": [\"swap_used_percent\"]}}}; json.dump(c, open(p, \"w\"), indent=2)' && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json)"
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-
             for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1

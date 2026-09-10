@@ -3,6 +3,19 @@
             [eacl.core :as eacl]
             [eacl-demo.contracts.http :as http]))
 
+(deftest lookup-admission-rejects-removed-relationship-filter-fields
+  (let [input {:subjectType "user" :subjectId "super-user"
+               :resourceType "account" :permission "view"}
+        filter {:relationshipSubjectType "platform" :relationshipSubjectId "platform"
+                :relationshipRelation "platform"}]
+    (is (:ok? (http/normalize-input "lookup-resources" input #{"minimize"})))
+    (is (= "validation-error"
+           (:code (http/normalize-input "lookup-resources" (merge input filter) #{"minimize"}))))
+    (doseq [[key value] filter]
+      (is (= "validation-error"
+             (:code (http/normalize-input "lookup-resources"
+                      (assoc input key value) #{"minimize"})))))))
+
 (deftest direct-read-admission-rejects-removed-authorization-fields
   (let [input {:subjectType "platform" :subjectId "platform"
                :resourceType "account" :relation "platform"}]
@@ -17,8 +30,7 @@
 (defn verify-handler [create-handlers profile-id]
   (let [calls (atom [])
         input {:subjectType "user" :subjectId "super-user" :resourceType "account"
-               :permission "view" :relationshipSubjectType "platform"
-               :relationshipSubjectId "platform" :relationshipRelation "platform"
+               :permission "view"
                :pageSize 20 :cursor "next-page" :cache false :populateCache false
                :eacl-demo/snapshot ::snapshot}
         handlers (create-handlers {:descriptor {:identity {:profileId profile-id}} :cursor-key (apply str (repeat 32 "k"))})]
@@ -35,8 +47,9 @@
         (is (= "account-1" (get-in result [:items 0 :id])))
         (is (= "next" (get-in result [:pageInfo :endCursor])))))
     (is (= 1 (count @calls)))
-    (is (= {:relation :platform :subject (eacl/spice-object :platform "platform")}
-           (get-in @calls [0 1 :resource/relationship])))
+    (is (not (contains? (get-in @calls [0 1]) :resource/relationship)))
+    (is (= {:subject (eacl/spice-object :user "super-user") :permission :view :resource/type :account}
+           (select-keys (get-in @calls [0 1]) [:subject :permission :resource/type])))
     (is (= "next-page" (get-in @calls [0 1 :after])))
     (is (false? (get-in @calls [0 1 :cache?])))
     (is (false? (get-in @calls [0 1 :populate-cache?])))))

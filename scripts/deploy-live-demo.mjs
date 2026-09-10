@@ -77,6 +77,18 @@ else if (target === "datalevin-memory") await deployDatalevinPlatforms();
 else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
 else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
 
+// Datahike keeps decoded index nodes in a per-environment LRU. The 1,000-entry
+// default evicted the working set between requests, so ordinary walks
+// re-fetched ~100 nodes from S3 or DynamoDB each time. 8,000 entries hold
+// roughly 300 MiB of decoded nodes (~10 KiB serialized each) inside the
+// 1,769 MiB functions; nothing is primed, requests still pay for every node
+// they touch first.
+const DATAHIKE_STORE_CACHE_SIZE = "8000";
+function datahikeStoreCacheEnvironment(profileId) {
+  return profileId.startsWith("datahike-")
+    ? { EACL_STORE_CACHE_SIZE: DATAHIKE_STORE_CACHE_SIZE }
+    : {};
+}
 async function deployDatomicPlatforms() {
   // Comparisons must be ready before the primary deployment publishes the new
   // registry identity. Otherwise the explorer would advertise stale targets
@@ -199,6 +211,7 @@ async function deployProfile(profileId, profile, targetId = profileId,
   const deploymentId = `production:${demoSha()}:${profileId}`;
   const variables = { ...(current.Environment?.Variables ?? {}),
     ...storageV8Environment(profileId),
+    ...datahikeStoreCacheEnvironment(profileId),
     EACL_ARTIFACT_SHA256: artifactSha,
     EACL_CORE_SHA: eaclSha(),
     EACL_DEMO_SHA: demoSha(),

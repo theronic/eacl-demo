@@ -31,7 +31,7 @@
     :optional (into #{:cache :populateCache} consistency-fields)}
    "lookup-resources"
    {:required #{:subjectType :subjectId :resourceType :permission}
-    :optional (into #{:relationshipSubjectType :relationshipSubjectId :relationshipRelation :pageSize :cursor :cache :populateCache} consistency-fields)}
+    :optional (into #{:pageSize :cursor :cache :populateCache} consistency-fields)}
    "lookup-subjects"
    {:required #{:resourceType :resourceId :subjectType :permission}
     :optional (into #{:pageSize :cursor :cache :populateCache} consistency-fields)}
@@ -117,9 +117,6 @@
               {:ok? false :code "validation-error"}
 
               (not (every? allowed keys*))
-              {:ok? false :code "validation-error"}
-
-              (not (contains? #{0 3} (count (filter keys* [:relationshipSubjectType :relationshipSubjectId :relationshipRelation]))))
               {:ok? false :code "validation-error"}
 
               :else

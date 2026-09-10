@@ -49,7 +49,7 @@ Parameters:
     AllowedPattern: "^[ -~]{32,256}$"
   StoreCacheSize:
     Type: Number
-    Default: 1000
+    Default: 8000
     MinValue: 1
     MaxValue: 100000
   SearchCacheSize:

@@ -32,7 +32,7 @@ Browser -- GET demo.eacl.dev ----------------> CloudFront
    +-- Datomic / DynamoDB -----> Lambda Function URL -> Java 25 x86_64, 1,024 or 4,096 MiB
    |                                                     -> read-only Peer
    |                                                     -> DynamoDB table
-   |                         \-> EC2 t3.micro, 1,024 MiB -> same read-only Peer/table
+   |                         \-> EC2 t3.small, 2,048 MiB -> same read-only Peer/table
    |
    +-- Datalevin / memory -----> Lambda Function URL -> Java 25 arm64, 1,024 MiB
    |                                                     -> SnapStart
@@ -85,8 +85,9 @@ The exact serving resources inspected on 2026-08-28 are:
 - DataScript/browser memory: the `/datascript/` static artifact, with no
   server-side storage.
 
-The Datomic comparison is served by `i-01f2d07f50ad1cb5d`, a `t3.micro` with
-one admission slot per HTTP worker and four HTTP workers. The stopped legacy
+The Datomic comparison is served by `i-01f2d07f50ad1cb5d`, a `t3.small` with
+a fixed 1 GiB JVM heap, a 576 MiB Datomic object cache, and four admission
+permits. The stopped legacy
 Datahike instance `i-04761ff3afba454ab` (`t4g.large`, retained Elastic IP
 `54.163.189.23`) is a separately retained fallback and is not on the request
 path. The temporary Datahike/DynamoDB seed machine and all of its temporary
