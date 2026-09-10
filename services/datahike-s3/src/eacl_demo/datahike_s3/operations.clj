@@ -254,11 +254,6 @@
                  :cache? (not= false (:cache input))
                  :populate-cache? (not= false (:populateCache input))
                  :consistency (eacl-consistency input)}
-                 (:relationshipRelation input)
-                 (assoc :resource/relationship
-                        {:relation (keyword (:relationshipRelation input))
-                         :subject (eacl/spice-object (keyword (:relationshipSubjectType input))
-                                                     (:relationshipSubjectId input))})
                  (:cursor input) (assoc :after (:cursor input))))]
           (check-active!)
           (response-meta/with-cache-status

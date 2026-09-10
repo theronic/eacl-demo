@@ -403,21 +403,36 @@
       (fail! :subject-lookup-exemplar-mismatch))))
 
 (defn- verify-filter-exemplar!
+  "The relationship-filter exemplar is verified as a plain relationship read
+  composed with one decision per related resource; lookups no longer accept a
+  relationship filter."
   [client exemplar]
   (let [query (get exemplar "query")
         relationship-filter (get query "relationshipFilter")
-        page (eacl/lookup-resources
-              client
-              {:subject (endpoint (get query "subject"))
-               :permission (keyword (get query "permission"))
-               :resource/type (keyword (get query "resourceType"))
-               :resource/relationship
-               {:relation (keyword (get relationship-filter "relation"))
-                :subject (endpoint (get relationship-filter "subject"))}
-               :first 100
-               :cache? false
-               :timeout-ms verification-timeout-ms})]
-    (when-not (= (get-in exemplar ["expected" "ids"]) (ids page))
+        related (eacl/read-relationships
+                 client
+                 {:subject/type (keyword (get-in relationship-filter ["subject" "type"]))
+                  :subject/id (get-in relationship-filter ["subject" "id"])
+                  :resource/type (keyword (get query "resourceType"))
+                  :resource/relation (keyword (get relationship-filter "relation"))
+                  :first 100
+                  :cache? false
+                  :timeout-ms verification-timeout-ms})
+        allowed (filterv
+                 (fn [relationship]
+                   (:allowed?
+                    (eacl/check-permission
+                     client
+                     {:subject (endpoint (get query "subject"))
+                      :permission (keyword (get query "permission"))
+                      :resource (:resource relationship)
+                      :cache? false
+                      :timeout-ms verification-timeout-ms})))
+                 (:data related))
+        actual (mapv #(get-in % [:resource :id]) allowed)
+        expected (get-in exemplar ["expected" "ids"])]
+    (when-not (and (= (count expected) (count actual))
+                   (= (set expected) (set actual)))
       (fail! :relationship-filter-exemplar-mismatch))))
 
 (defn- verify-count-exemplar!

@@ -270,11 +270,6 @@
                  :resource/type (keyword (:resourceType input))
                  :permission (keyword (:permission input))
                  :first (:pageSize input)})
-                (:relationshipRelation input)
-                (assoc :resource/relationship
-                       {:relation (keyword (:relationshipRelation input))
-                        :subject (eacl/spice-object (keyword (:relationshipSubjectType input))
-                                                    (:relationshipSubjectId input))})
                 (:cursor input) (assoc :after (:cursor input)))
         result (eacl/lookup-resources (:client runtime) query)]
     {:data (wire-page runtime result)
@@ -664,11 +659,7 @@
             keys
             #{:subjectType :subjectId :resourceType :permission}
             #{:subjectType :subjectId :resourceType :permission :pageSize
-              :cursor :cache :populateCache :consistency :relationshipSubjectType :relationshipSubjectId :relationshipRelation})
-           (let [filter-keys [:relationshipSubjectType :relationshipSubjectId :relationshipRelation]
-                 present (filter #(contains? input %) filter-keys)]
-             (or (empty? present)
-                 (and (= 3 (count present)) (every? identifier? (map input filter-keys)))))
+              :cursor :cache :populateCache :consistency})
            (every? identifier? ((juxt :subjectType :subjectId :resourceType :permission) input))
            (or (nil? (:pageSize input)) (page-size? (:pageSize input)))
            (or (nil? (:cursor input)) (cursor? (:cursor input)))
