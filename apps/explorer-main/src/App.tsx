@@ -347,7 +347,12 @@ function ConfiguredExplorer(props: {
   selector: JSX.Element;
   transport?: ExplorerTransport;
 }): JSX.Element {
-  const api = createProfileApi(props.profile, { transport: props.transport });
+  // Lambda-executed profiles issue one request at a time so the session
+  // stays on the execution environment that already holds its index nodes.
+  const api = createProfileApi(props.profile, {
+    transport: props.transport,
+    sequential: props.execution === "lambda",
+  });
   onCleanup(() => void api.release());
   return (
     <ApiProvider dispatcher={api.dispatcher}>

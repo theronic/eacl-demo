@@ -51,6 +51,16 @@ read responses; it is not authorization. EACL still evaluates every
 authorization request, while Lambda roles and route tables deny storage writes
 and maintenance operations.
 
+A Lambda execution environment serves one request at a time and starts with
+an empty Datahike or Datomic index-node cache, so concurrent Explorer requests
+fan out to separate cold environments that each re-read the same nodes from
+storage. The Explorer therefore issues requests to a Lambda-executed profile
+one at a time, in call order, so a browsing session keeps landing on the
+environment that already holds the nodes its previous requests touched. EC2
+profiles keep concurrent requests: they are one resident peer with an
+admission limit. Nothing is primed; every request still pays for whatever it
+touches first, and its cache status reports exactly that.
+
 CloudFront has one origin: the private static S3 bucket. Its only additional
 cache behavior is the separate `/datascript/*` static artifact. The content
 security policy permits connections to the four exact Function URL origins,

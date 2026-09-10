@@ -77,7 +77,7 @@ test("both deployments instantiate the canonical Explorer through one App", () =
   const app = file(resolve(demoSource, "App.tsx"));
   assert.match(app, /createDataScriptProfileTransport/u);
   assert.doesNotMatch(app, /window\.location\.(assign|replace)/u);
-  assert.match(app, /const api = createProfileApi\(props\.profile, \{ transport: props\.transport \}\)/u);
+  assert.match(app, /const api = createProfileApi\(props\.profile, \{\n\s+transport: props\.transport,\n\s+sequential: props\.execution === "lambda",\n\s+\}\)/u);
   assert.equal((app.match(/<Explorer\s/gu) ?? []).length, 1);
   assert.doesNotMatch(app, /packages\/ui|ServerExplorer/u);
 });
