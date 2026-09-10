@@ -225,6 +225,16 @@ Resources:
                 Resource:
                   - !Sub "${RuntimeLogGroup.Arn}:*"
                   - !Sub "${DatalevinRuntimeLogGroup.Arn}:*"
+        - PolicyName: exact-host-metric-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: EaclDemo/Host
       Tags:
         - {Key: Project, Value: eacl-demo}
         - {Key: Profile, Value: datomic-dynamodb}
