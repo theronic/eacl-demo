@@ -306,8 +306,14 @@ Resources:
             echo "EACL_HTTP_PORT=8080"
             echo "EACL_MAXIMUM_CONCURRENCY=4"
             echo "EACL_RUNTIME_EXECUTION=ec2"
-            echo "EACL_RUNTIME_MEMORY_MIB=2048"
-            echo "EACL_JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m"
+            echo "EACL_RUNTIME_MEMORY_MIB=$(( ( $(awk '/MemTotal/ {print $2}' /proc/meminfo) + 1048575 ) / 1048576 * 1024 ))"
+            # A 2 GiB host runs a fixed 1 GiB heap with an explicit Peer object
+            # cache; anything smaller keeps the original 640 MiB heap.
+            if [ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -ge 1900000 ]; then
+              echo "EACL_JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m"
+            else
+              echo "EACL_JAVA_OPTS=-Xms384m -Xmx640m -XX:+ExitOnOutOfMemoryError"
+            fi
           } > /etc/eacl-demo-datomic.env
           cat > /etc/systemd/system/eacl-demo-datomic.service <<'SERVICE'
           [Unit]
@@ -332,7 +338,6 @@ Resources:
           cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'AGENT'
           {
             "agent": {"metrics_collection_interval": 60},
-            "metrics": {"namespace": "EaclDemo/Host", "metrics_collected": {"mem": {"measurement": ["mem_used_percent", "mem_available"]}, "swap": {"measurement": ["swap_used_percent"]}}},
             "logs": {"logs_collected": {"files": {"collect_list": [
               {"file_path": "/var/log/eacl-demo/datomic.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/runtime"},
               {"file_path": "/var/log/eacl-demo-bootstrap.log", "log_group_name": "${RuntimeLogGroup}", "log_stream_name": "{instance_id}/bootstrap"}
@@ -340,6 +345,8 @@ Resources:
           }
           AGENT
           /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          printf '%s\n' '{"metrics": {"namespace": "EaclDemo/Host", "metrics_collected": {"mem": {"measurement": ["mem_used_percent", "mem_available"]}, "swap": {"measurement": ["swap_used_percent"]}}}}' > /opt/aws/amazon-cloudwatch-agent/etc/eacl-host-metrics.json
+          /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a append-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/eacl-host-metrics.json || true
           systemctl daemon-reload
           systemctl enable --now eacl-demo-datomic.service
           for attempt in $(seq 1 180); do
@@ -370,22 +377,32 @@ Resources:
           - !Sub "printf '%s\\n' 'ARTIFACT_KEY=${ArtifactKey}' >> /etc/eacl-demo-release.env"
           - !Sub "printf '%s\\n' 'ARTIFACT_VERSION=${ArtifactVersion}' >> /etc/eacl-demo-release.env"
           - !Sub "printf '%s\\n' 'ARTIFACT_SHA256=${ArtifactSha256}' >> /etc/eacl-demo-release.env"
+          # Production releases arrive over SSM after the stack was last updated, so
+          # the stack's artifact parameters lag the host. Never replace a verified
+          # installed release with the stack's older artifact: only install the stack
+          # artifact when nothing verifiable is installed.
+          - !Sub >-
+            installed=$(sed -n 's/^EACL_ARTIFACT_SHA256=//p' /etc/eacl-demo-datomic.env); if [ -n "$installed" ] && [ "$installed" != "${ArtifactSha256}" ] && echo "$installed  /opt/eacl-demo/function.jar" | sha256sum --check --strict --status; then touch /etc/eacl-demo-keep-release; else rm -f /etc/eacl-demo-keep-release; fi
           - >-
-            . /etc/eacl-demo-release.env; aws s3api get-object --region us-east-1 --bucket $ARTIFACT_BUCKET --key $ARTIFACT_KEY --version-id $ARTIFACT_VERSION /opt/eacl-demo/function.jar.next
-          - >-
-            . /etc/eacl-demo-release.env; echo "$ARTIFACT_SHA256  /opt/eacl-demo/function.jar.next" | sha256sum --check --strict
-          - install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar
-          - !Sub "sed -i 's|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${ArtifactSha256}|' /etc/eacl-demo-datomic.env"
-          - !Sub "sed -i 's|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${EaclSha}|' /etc/eacl-demo-datomic.env"
-          - !Sub "sed -i 's|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${DemoSha}|' /etc/eacl-demo-datomic.env"
-          - !Sub "sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
+            test -e /etc/eacl-demo-keep-release || { . /etc/eacl-demo-release.env; aws s3api get-object --region us-east-1 --bucket $ARTIFACT_BUCKET --key $ARTIFACT_KEY --version-id $ARTIFACT_VERSION /opt/eacl-demo/function.jar.next && echo "$ARTIFACT_SHA256  /opt/eacl-demo/function.jar.next" | sha256sum --check --strict && install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar; }
+          - !Sub "test -e /etc/eacl-demo-keep-release || sed -i 's|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${ArtifactSha256}|' /etc/eacl-demo-datomic.env"
+          - !Sub "test -e /etc/eacl-demo-keep-release || sed -i 's|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${EaclSha}|' /etc/eacl-demo-datomic.env"
+          - !Sub "test -e /etc/eacl-demo-keep-release || sed -i 's|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${DemoSha}|' /etc/eacl-demo-datomic.env"
+          - !Sub "test -e /etc/eacl-demo-keep-release || sed -i 's|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${DeploymentId}|' /etc/eacl-demo-datomic.env"
           - "sed -i '/^EACL_HTTP_WORKERS=/d' /etc/eacl-demo-datomic.env"
           - "sed -i 's|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|' /etc/eacl-demo-datomic.env"
-          - "sed -i 's|^EACL_RUNTIME_MEMORY_MIB=.*|EACL_RUNTIME_MEMORY_MIB=2048|' /etc/eacl-demo-datomic.env"
+          # Runtime memory and JVM options follow the host that is actually running,
+          # so an instance type change and this association stay consistent.
+          - >-
+            sed -i "s|^EACL_RUNTIME_MEMORY_MIB=.*|EACL_RUNTIME_MEMORY_MIB=$(( ( $(awk '/MemTotal/ {print $2}' /proc/meminfo) + 1048575 ) / 1048576 * 1024 ))|" /etc/eacl-demo-datomic.env
           - "grep -q '^EACL_JAVA_OPTS=' /etc/eacl-demo-datomic.env || echo 'EACL_JAVA_OPTS=' >> /etc/eacl-demo-datomic.env"
-          - "sed -i 's|^EACL_JAVA_OPTS=.*|EACL_JAVA_OPTS=-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m|' /etc/eacl-demo-datomic.env"
+          - >-
+            if [ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -ge 1900000 ]; then opts='-Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -Ddatomic.objectCacheMax=576m'; else opts='-Xms384m -Xmx640m -XX:+ExitOnOutOfMemoryError'; fi; sed -i "s|^EACL_JAVA_OPTS=.*|EACL_JAVA_OPTS=$opts|" /etc/eacl-demo-datomic.env
           - "sed -i 's|^ExecStart=.*|ExecStart=/usr/bin/java $EACL_JAVA_OPTS -cp /opt/eacl-demo/function.jar clojure.main -m eacl-demo.datomic-dynamodb.http-server|' /etc/systemd/system/eacl-demo-datomic.service"
-          - "grep -q '\"namespace\": \"EaclDemo/Host\"' /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json || (python3 -c 'import json,sys; p=\"/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json\"; c=json.load(open(p)); c[\"metrics\"]={\"namespace\": \"EaclDemo/Host\", \"metrics_collected\": {\"mem\": {\"measurement\": [\"mem_used_percent\", \"mem_available\"]}, \"swap\": {\"measurement\": [\"swap_used_percent\"]}}}; json.dump(c, open(p, \"w\"), indent=2)' && /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json)"
+          - >-
+            printf '%s\n' '{"metrics": {"namespace": "EaclDemo/Host", "metrics_collected": {"mem": {"measurement": ["mem_used_percent", "mem_available"]}, "swap": {"measurement": ["swap_used_percent"]}}}}' > /opt/aws/amazon-cloudwatch-agent/etc/eacl-host-metrics.json
+          - >-
+            /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a append-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/eacl-host-metrics.json || true
           - systemctl daemon-reload && systemctl restart eacl-demo-datomic.service
           - >-
             for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-artifact-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done; exit 1
