@@ -11,7 +11,7 @@ const datahikeSource = resolve(repository, "../eacl-datahike-demo/client/src");
 const datomicSource = resolve(repository, "../eacl-datomic-solidjs/client/src");
 
 const exactDatahikeFiles = new Map([
-  ["components/SchemaGraph.tsx", "98709de62da77c47dbf35999b9bd69c5ba6f716ec178690f54a0ecbb64aa0c00"],
+  ["components/SchemaGraph.tsx", "26997e38de43190a4b30bc185a20ba7598198db2b4c245e6aaf42e6aa47ab6fd"],
   ["format.ts", "f0bfe6aa90b3708ecb82647f3977481bc6db23844f21a0f292b6ef10359445d0"],
 ]);
 
