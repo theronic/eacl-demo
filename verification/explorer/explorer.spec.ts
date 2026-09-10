@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/?backend=datahike&storage=s3&platform=lambda-1024");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("EACL Explorer");
   await expect(page.locator(".app-subtitle")).toHaveText(
-    "🦅 EACL: Enterprise Access ControL is a ReBAC Authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike or DataScript.",
+    "EACL is a situated ReBAC authorization library inspired by SpiceDB, built in Clojure and backed by Datomic Pro, Datahike, Datalevin or DataScript.",
   );
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
 });
@@ -469,3 +469,91 @@ test("an enabled publication opens the schema-validated server explorer over the
   expect(apiRequests.every(({ origin }) => origin === "https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws")).toBe(true);
   expect(apiRequests.every(({ payloadHash }) => payloadHash === null)).toBe(true);
 });
+
+test("switching Backend after the schema graph has rendered disposes the previous explorer", async ({ page }) => {
+  // Regression: the graph's cleanup used to call ELK#terminateWorker on the
+  // bundled in-process layout worker, which has no terminate(); the thrown
+  // TypeError aborted SolidJS disposal and froze the profile selector.
+  await mockEnabledDatahikeProfile(page);
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Backend, Storage and Execution" })).toBeVisible();
+  await page.getByRole("button", { name: "Schema Graph", exact: true }).click();
+  const graph = page.locator('[aria-label="Schema connections"]');
+  await expect(graph).toBeVisible();
+  await expect(graph).toHaveAttribute("aria-busy", "false");
+  await expect(page.getByRole("button", { name: "Show source for server", exact: true })).toBeVisible();
+
+  const datascript = page.getByRole("radio", { name: "DataScript", exact: true });
+  await Promise.all([page.waitForURL(/backend=datascript/u), datascript.click()]);
+  await expect(datascript).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Datahike", exact: true })).not.toBeChecked();
+  await expect(graph).toHaveCount(0);
+});
+
+async function mockEnabledDatahikeProfile(page: import("@playwright/test").Page) {
+  const now = new Date();
+  const deployedAt = new Date(now.getTime() - 1_000).toISOString();
+  const identity = {
+    profileId: "datahike-s3",
+    demoSha: "a".repeat(40),
+    eaclSha: "6982d388b4f4472cfc69dae0f92adc58c62438d8",
+    artifactSha256: "b".repeat(64),
+    deploymentId: "datahike-s3:browser-test-graph",
+    dataManifestSha256: "c".repeat(64)
+  };
+  const profile = {
+    id: identity.profileId, backend: "datahike", storage: "s3", state: "enabled", reason: null, route: "/",
+    deployment: {
+      demoSha: identity.demoSha, eaclSha: identity.eaclSha,
+      artifact: { kind: "lambda-version", sha256: identity.artifactSha256, version: "7" },
+      deploymentId: identity.deploymentId, dataManifestSha256: identity.dataManifestSha256, deployedAt
+    },
+    lastOutcome: { outcome: "succeeded", attemptedDemoSha: identity.demoSha, attemptedEaclSha: identity.eaclSha, artifactSha256: identity.artifactSha256, at: deployedAt, message: "The exact browser-test candidate passed its qualification gate." }
+  };
+  const publication = await createProfilePublication({
+    profile,
+    definition: { id: profile.id, backend: profile.backend, storage: profile.storage },
+    publishedAt: now.toISOString(),
+    gate: { kind: "merge-smoke", evidenceId: `sha256:${"9".repeat(64)}` }
+  });
+  const basis = { behavior: "request-snapshot", id: "datahike:test-basis-graph", capturedAt: deployedAt, fixedForEnvironment: false };
+  const descriptor = {
+    contract: { name: "explorer.v1", routeMajor: 1, revision: 4, minimumClientRevision: 1 }, identity,
+    profile: { backend: "datahike", storage: "s3" },
+    runtime: { execution: "lambda", name: "java25", architecture: "arm64", snapStart: "enabled" },
+    capabilities: {
+      operations: ["health", "bootstrap", "list-subjects", "get-object", "list-relationships", "reverse-relationships", "check-permission", "lookup-resources", "lookup-subjects", "count-resources", "get-schema", "get-cache-info", "count-objects"],
+      consistencyModes: ["minimize", "at-least"], snapshotBehavior: "request-snapshot", cacheBehavior: "environment-local", mutationLocality: "none", limitations: ["read-only"]
+    },
+    limits: [{ name: "page-size", value: 100 }, { name: "count-ceiling", value: 1_000_000 }],
+    dataset: { fixtureId: "eacl-demo-fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
+  };
+  await page.route("**/registry/profiles/datahike-s3.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(publication) }));
+  await page.route("https://nkpogjjpx5wyb4imujlrefedqu0qpqwu.lambda-url.us-east-1.on.aws/**", async (route) => {
+    const request = route.request();
+    const operation = new URL(request.url()).pathname.split("/").at(-1)!;
+    const input = request.method() === "POST" ? request.postDataJSON() as Record<string, unknown> : {};
+    const pageInfo = { hasNextPage: false, endCursor: null, pageSize: input.pageSize ?? 1 };
+    const object = { type: input.type ?? input.resourceType ?? "server", id: input.id ?? input.resourceId ?? "server-1", displayName: "Server one", attributes: [] };
+    const data: Record<string, unknown> = {
+      health: { status: "ready", ready: true, identity, basis },
+      bootstrap: descriptor,
+      "list-subjects": { items: [{ type: "user", id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
+      "get-object": { object },
+      "list-relationships": { items: [{ resourceType: input.resourceType, resourceId: input.resourceId, relation: input.relation ?? "owner", subjectType: "user", subjectId: "user-1", subjectRelation: null }], pageInfo },
+      "reverse-relationships": { items: [object], pageInfo },
+      "check-permission": { allowed: true },
+      "lookup-resources": { items: [{ type: input.resourceType, id: "server-1", displayName: "Server one", attributes: [] }], pageInfo },
+      "lookup-subjects": { items: [{ type: input.subjectType, id: "user-1", displayName: "User one", attributes: [] }], pageInfo },
+      "count-resources": { kind: "objects", value: 1, exact: true, ceiling: input.ceiling },
+      "get-schema": { sha256: "d".repeat(64), types: [{ name: "user", relations: [], permissions: [] }, { name: "server", relations: [{ name: "owner", subjectTypes: ["user"] }], permissions: [{ name: "view", expression: "owner" }] }] },
+      "get-cache-info": { provider: { "exact-hits": 0, misses: 0, tiers: {} }, operations: {}, capturedAt: deployedAt },
+      "count-objects": { kind: input.kind, value: input.ceiling, exact: false, ceiling: input.ceiling }
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ meta: { requestId: request.headers()["x-eacl-request-id"] ?? null, revision: basis.id, elapsedMs: 1.25, cacheStatus: "hit" }, data: data[operation] })
+    });
+  });
+}
