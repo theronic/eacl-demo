@@ -69,14 +69,6 @@ const profiles = {
   }
 };
 
-if (target === "static") await deployStatic();
-else if (target === "datahike-s3") await deployDatahikePlatforms("datahike-s3");
-else if (target === "datahike-dynamodb") await deployDatahikePlatforms("datahike-dynamodb");
-else if (target === "datomic-dynamodb") await deployDatomicPlatforms();
-else if (target === "datalevin-memory") await deployDatalevinPlatforms();
-else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
-else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
-
 // Datahike keeps decoded index nodes in a per-environment LRU. The 1,000-entry
 // default evicted the working set between requests, so ordinary walks
 // re-fetched ~100 nodes from S3 or DynamoDB each time. 8,000 entries hold
@@ -89,6 +81,14 @@ function datahikeStoreCacheEnvironment(profileId) {
     ? { EACL_STORE_CACHE_SIZE: DATAHIKE_STORE_CACHE_SIZE }
     : {};
 }
+if (target === "static") await deployStatic();
+else if (target === "datahike-s3") await deployDatahikePlatforms("datahike-s3");
+else if (target === "datahike-dynamodb") await deployDatahikePlatforms("datahike-dynamodb");
+else if (target === "datomic-dynamodb") await deployDatomicPlatforms();
+else if (target === "datalevin-memory") await deployDatalevinPlatforms();
+else if (profiles[target]) await deployProfile(profiles[target].profileId ?? target, profiles[target], target);
+else throw new Error(`target must be static or one of ${Object.keys(profiles).join(", ")}`);
+
 async function deployDatomicPlatforms() {
   // Comparisons must be ready before the primary deployment publishes the new
   // registry identity. Otherwise the explorer would advertise stale targets

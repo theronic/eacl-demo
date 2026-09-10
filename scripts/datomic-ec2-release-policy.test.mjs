@@ -105,3 +105,12 @@ test("Datalevin compute and releases never target or restart the Datomic host", 
   assert.match(deploySource, /deployDatalevinEc2\(release\) \{\n  const instanceId = ec2InstanceId\("DATALEVIN_EC2_INSTANCE_ID"\)/u);
   assert.doesNotMatch(deploySource, /SHARED_EC2_INSTANCE_ID/u);
 });
+
+test("the Datahike store cache policy is declared before the deploy dispatch that uses it", () => {
+  const declaration = deploySource.indexOf('const DATAHIKE_STORE_CACHE_SIZE = "8000";');
+  const dispatch = deploySource.indexOf('if (target === "static") await deployStatic();');
+  assert.ok(declaration > 0 && dispatch > 0);
+  assert.ok(declaration < dispatch, "top-level dispatch runs before later const declarations initialize");
+  assert.match(deploySource, /\.\.\.datahikeStoreCacheEnvironment\(profileId\),/u);
+  assert.match(deploySource, /profileId\.startsWith\("datahike-"\)\n\s+\? \{ EACL_STORE_CACHE_SIZE: DATAHIKE_STORE_CACHE_SIZE \}/u);
+});
