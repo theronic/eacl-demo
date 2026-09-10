@@ -94,11 +94,19 @@ aws cloudformation deploy --stack-name eacl-demo-datomic-dynamodb-ec2 --template
 
 `deploy` keeps every parameter you do not override at its current stack
 value, so pass `InstanceType` explicitly when changing it. The
-`RuntimeArtifactAssociation` re-applies the env, unit, and agent files on the
-running instance after the update; check `free -m` and the
-`EaclDemo/Host` memory and swap metrics afterwards. Datahike Lambdas take
-their store cache size (`EACL_STORE_CACHE_SIZE`) from
-`scripts/deploy-live-demo.mjs` on every production deploy.
+`RuntimeArtifactAssociation` then re-applies the env, unit, and agent files
+on the running instance and restarts the service. It derives
+`EACL_RUNTIME_MEMORY_MIB` and `EACL_JAVA_OPTS` from the host's RAM (a 2 GiB
+host gets the fixed 1 GiB heap and 576 MiB object cache; smaller hosts keep
+the 640 MiB heap), and it never replaces a verified SSM release with the
+stack's older artifact parameters, which lag behind production. Pass the
+current release's `ArtifactKey`, `ArtifactVersion`, `ArtifactSha256`,
+`DemoSha`, `EaclSha`, and `DeploymentId` as overrides too when you update
+the stack, so a replacement instance boots the artifact that is actually
+in production. Check `free -m` and the `EaclDemo/Host` memory and swap
+metrics afterwards. Datahike Lambdas take their store cache size
+(`EACL_STORE_CACHE_SIZE`) from `scripts/deploy-live-demo.mjs` on every
+production deploy.
 
 ## 4. After the deploy
 

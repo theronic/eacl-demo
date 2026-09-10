@@ -44,21 +44,31 @@ test("the Datomic t3.small provisions persistent low-swappiness headroom before 
   assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
 });
 
-test("the Datomic JVM heap and object cache are pinned in one env line that first boot and every stack update both own", () => {
-  const options = "-Xms1024m -Xmx1024m -XX:\\+UseG1GC -XX:\\+ExitOnOutOfMemoryError -Ddatomic\\.objectCacheMax=576m";
+test("the Datomic JVM heap and object cache follow the running host and are owned by first boot and every stack update", () => {
+  const big = "-Xms1024m -Xmx1024m -XX:\\+UseG1GC -XX:\\+ExitOnOutOfMemoryError -Ddatomic\\.objectCacheMax=576m";
+  const small = "-Xms384m -Xmx640m -XX:\\+ExitOnOutOfMemoryError";
   const userData = /UserData:[\s\S]*?(?=\n\s{2}RuntimeArtifactAssociation:)/u.exec(source)?.[0];
   const association = /RuntimeArtifactAssociation:[\s\S]*?(?=\n\s{2}InitializationAlarm:)/u.exec(source)?.[0];
   assert.ok(userData);
   assert.ok(association);
-  assert.match(userData, new RegExp(`echo "EACL_JAVA_OPTS=${options}"`, "u"));
-  assert.match(userData, /echo "EACL_RUNTIME_MEMORY_MIB=2048"/u);
+  assert.match(userData, /echo "EACL_RUNTIME_MEMORY_MIB=\$\(\( \( \$\(awk '\/MemTotal\/ \{print \$2\}' \/proc\/meminfo\) \+ 1048575 \) \/ 1048576 \* 1024 \)\)"/u);
+  assert.match(userData, new RegExp(`-ge 1900000 \\]; then\\n\\s+echo "EACL_JAVA_OPTS=${big}"\\n\\s+else\\n\\s+echo "EACL_JAVA_OPTS=${small}"`, "u"));
   assert.match(userData, /ExecStart=\/usr\/bin\/java \$EACL_JAVA_OPTS -cp \/opt\/eacl-demo\/function\.jar clojure\.main -m eacl-demo\.datomic-dynamodb\.http-server/u);
-  assert.doesNotMatch(source, /Xmx640m|Xms384m/u);
-  assert.match(association, new RegExp(`EACL_JAVA_OPTS=\\.\\*\\|EACL_JAVA_OPTS=${options}\\|`, "u"));
-  assert.match(association, /EACL_RUNTIME_MEMORY_MIB=2048/u);
-  assert.match(association, /s\|\^ExecStart=\.\*\|ExecStart=\/usr\/bin\/java \$EACL_JAVA_OPTS -cp[\s\S]*systemctl daemon-reload && systemctl restart eacl-demo-datomic\.service/u);
-  assert.match(userData, /"metrics": \{"namespace": "EaclDemo\/Host"[\s\S]*mem_used_percent[\s\S]*swap_used_percent/u);
-  assert.match(association, /EaclDemo\/Host[\s\S]*amazon-cloudwatch-agent-ctl -a fetch-config/u);
+  assert.match(userData, /eacl-host-metrics\.json[\s\S]*amazon-cloudwatch-agent-ctl -a append-config/u);
+  assert.match(association, /EACL_RUNTIME_MEMORY_MIB=\$\(\( \( \$\(awk '\/MemTotal\/ \{print \$2\}' \/proc\/meminfo\) \+ 1048575 \) \/ 1048576 \* 1024 \)\)/u);
+  assert.match(association, new RegExp(`-ge 1900000 \\]; then opts='${big}'; else opts='${small}'; fi; sed -i "s\\|\\^EACL_JAVA_OPTS=\\.\\*\\|EACL_JAVA_OPTS=\\$opts\\|"`, "u"));
+  assert.match(association, /s\|\^ExecStart=\.\*\|ExecStart=\/usr\/bin\/java \$EACL_JAVA_OPTS -cp[\s\S]*eacl-host-metrics\.json[\s\S]*append-config[\s\S]*systemctl daemon-reload && systemctl restart eacl-demo-datomic\.service/u);
+  assert.doesNotMatch(source, /EACL_RUNTIME_MEMORY_MIB=(?:1024|2048)"/u);
+});
+
+test("a stack update never replaces a verified SSM release with the stack's older artifact", () => {
+  const association = /RuntimeArtifactAssociation:[\s\S]*?(?=\n\s{2}InitializationAlarm:)/u.exec(source)?.[0];
+  assert.ok(association);
+  assert.match(association, /installed=\$\(sed -n 's\/\^EACL_ARTIFACT_SHA256=\/\/p' \/etc\/eacl-demo-datomic\.env\); if \[ -n "\$installed" \] && \[ "\$installed" != "\$\{ArtifactSha256\}" \] && echo "\$installed  \/opt\/eacl-demo\/function\.jar" \| sha256sum --check --strict --status; then touch \/etc\/eacl-demo-keep-release; else rm -f \/etc\/eacl-demo-keep-release; fi/u);
+  for (const line of association.split("\n").filter((candidate) => /get-object|function\.jar\.next|EACL_ARTIFACT_SHA256=\$|EACL_CORE_SHA=\$|EACL_DEMO_SHA=\$|EACL_DEPLOYMENT_ID=\$/u.test(candidate))) {
+    assert.match(line, /test -e \/etc\/eacl-demo-keep-release \|\|/u, line);
+  }
+  assert.match(association, /sha256sum --check --strict && install -m 0644 \/opt\/eacl-demo\/function\.jar\.next \/opt\/eacl-demo\/function\.jar/u);
 });
 
 test("Datomic EC2 admits four engine requests while Datalevin keeps its independent limit", () => {
@@ -104,4 +114,13 @@ test("Datalevin compute and releases never target or restart the Datomic host", 
   assert.doesNotMatch(source, /DatalevinRuntimeAssociation:/u);
   assert.match(deploySource, /deployDatalevinEc2\(release\) \{\n  const instanceId = ec2InstanceId\("DATALEVIN_EC2_INSTANCE_ID"\)/u);
   assert.doesNotMatch(deploySource, /SHARED_EC2_INSTANCE_ID/u);
+});
+
+test("the Datahike store cache policy is declared before the deploy dispatch that uses it", () => {
+  const declaration = deploySource.indexOf('const DATAHIKE_STORE_CACHE_SIZE = "8000";');
+  const dispatch = deploySource.indexOf('if (target === "static") await deployStatic();');
+  assert.ok(declaration > 0 && dispatch > 0);
+  assert.ok(declaration < dispatch, "top-level dispatch runs before later const declarations initialize");
+  assert.match(deploySource, /\.\.\.datahikeStoreCacheEnvironment\(profileId\),/u);
+  assert.match(deploySource, /profileId\.startsWith\("datahike-"\)\n\s+\? \{ EACL_STORE_CACHE_SIZE: DATAHIKE_STORE_CACHE_SIZE \}/u);
 });
