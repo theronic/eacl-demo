@@ -29,12 +29,14 @@ export function createServerProfileTransport({
   validateResponse,
   fetchImpl = globalThis.fetch,
   timeoutMs = 35_000,
-  maximumResponseBytes = 1_048_576
+  maximumResponseBytes = 1_048_576,
+  sequential = false
 }) {
   validateProfile(profile);
   if (typeof fetchImpl !== "function" || typeof validateRequest !== "function" || typeof validateResponse !== "function") {
     throw new TypeError("HTTP profile transport dependencies are required");
   }
+  if (typeof sequential !== "boolean") throw new TypeError("HTTP profile sequential flag must be a boolean");
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000) throw new RangeError("HTTP profile timeout is invalid");
   if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 1_048_576) throw new RangeError("HTTP response limit is invalid");
   const apiOrigin = validateApiOrigin(profile.apiOrigin);
@@ -43,9 +45,20 @@ export function createServerProfileTransport({
   const lifecycle = new AbortController();
   let released = false;
   let sequence = 0;
+  // A Lambda execution environment serves one request at a time and starts
+  // with an empty index-node cache. Concurrent Explorer requests therefore
+  // fan out to separate cold environments that each re-read the same index
+  // nodes from storage. A sequential transport issues one request at a time
+  // so a browsing session keeps landing on the environment that already
+  // holds the nodes its previous requests touched. Nothing is primed: every
+  // request still pays for whatever it touches first.
+  let lane = Promise.resolve();
 
   function request(operation, input = {}, options = {}) {
-    return performRequest(operation, input, options);
+    if (!sequential) return performRequest(operation, input, options);
+    const turn = lane.then(() => performRequest(operation, input, options));
+    lane = turn.then(() => undefined, () => undefined);
+    return turn;
   }
 
   async function performRequest(operation, input, options) {

@@ -146,7 +146,7 @@ const validateResponse = createRuntimeBoundaryValidator(
 
 export function createProfileApi(
   profile: ExplorerProfile,
-  options: { transport?: ExplorerTransport } = {},
+  options: { transport?: ExplorerTransport; sequential?: boolean } = {},
 ): {
   dispatcher: ApiDispatcher;
   release: () => Promise<void>;
@@ -155,6 +155,7 @@ export function createProfileApi(
     profile,
     validateRequest,
     validateResponse,
+    sequential: options.sequential === true,
   });
   let descriptor: ProfileDescriptor | undefined;
   let schema: SchemaInfo | undefined;

@@ -96,6 +96,45 @@ test("server transport allows concurrent independent operations", async () => {
   assert.equal(maximumInFlight, 3);
 });
 
+test("a sequential transport issues one request at a time in call order", async () => {
+  let inFlight = 0;
+  let maximumInFlight = 0;
+  const started = [];
+  const transport = createTransport(async (url, init) => {
+    inFlight += 1;
+    maximumInFlight = Math.max(maximumInFlight, inFlight);
+    const requestId = init.headers["x-eacl-request-id"];
+    started.push(requestId);
+    await new Promise((resolve) => setTimeout(resolve, requestId === "lane-1" ? 20 : 1));
+    const operation = new URL(url).pathname.split("/").at(-1);
+    inFlight -= 1;
+    return response(success(operation, requestId, { allowed: true }));
+  }, { sequential: true });
+  const requests = ["lane-1", "lane-2", "lane-3"].map((requestId) => transport.request("check-permission", {}, { requestId }));
+  const envelopes = await Promise.all(requests);
+  assert.equal(envelopes.every(({ data }) => data.allowed === true), true);
+  assert.equal(maximumInFlight, 1);
+  assert.deepEqual(started, ["lane-1", "lane-2", "lane-3"]);
+});
+
+test("a sequential transport keeps serving after a queued request fails or is aborted", async () => {
+  const transport = createTransport(async (url, init) => {
+    const requestId = init.headers["x-eacl-request-id"];
+    if (init.signal?.aborted) throw new DOMException("aborted", "AbortError");
+    if (requestId === "lane-fail") throw new Error("upstream failure");
+    const operation = new URL(url).pathname.split("/").at(-1);
+    return response(success(operation, requestId, { allowed: true }));
+  }, { sequential: true });
+  const aborted = new AbortController();
+  aborted.abort();
+  const failing = transport.request("check-permission", {}, { requestId: "lane-fail" });
+  const cancelled = transport.request("check-permission", {}, { requestId: "lane-cancelled", signal: aborted.signal });
+  const after = transport.request("check-permission", {}, { requestId: "lane-after" });
+  await assert.rejects(failing, /upstream failure/u);
+  await assert.rejects(cancelled, (error) => error.name === "AbortError");
+  assert.equal((await after).data.allowed, true);
+});
+
 test("POST bodies go directly to Lambda without CloudFront signing headers", async () => {
   let observed;
   const transport = createTransport(async (url, init) => {
@@ -190,7 +229,8 @@ function createTransport(fetchImpl, overrides = {}) {
     profile: overrides.profile ?? profile,
     validateRequest: (value) => value,
     validateResponse: (value) => value,
-    fetchImpl
+    fetchImpl,
+    ...(overrides.sequential === undefined ? {} : { sequential: overrides.sequential })
   });
 }
 
