@@ -16,7 +16,6 @@ export class ApiError extends Error {
 }
 export type FetchImplementation = typeof fetch;
 let fetchImplementation: FetchImplementation = (...args) => fetch(...args);
-let requestTimeoutMs = 35_000;
 
 export function apiPath(path: string): string {
   if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?.*)?$/u.test(path)) {
@@ -27,10 +26,6 @@ export function apiPath(path: string): string {
 
 export function setFetchImplementation(implementation?: FetchImplementation): void {
   fetchImplementation = implementation ?? ((...args) => fetch(...args));
-}
-
-export function setRequestTimeoutMs(value = 35_000): void {
-  requestTimeoutMs = value;
 }
 
 function isSuccess<T>(value: unknown): value is ApiSuccess<T> {
@@ -58,20 +53,9 @@ export async function apiRequest<T>(
   options: RequestInit = {},
 ): Promise<ApiSuccess<T>> {
   const callerSignal = options.signal;
-  const controller = new AbortController();
-  let timedOut = false;
-  const abortFromCaller = () => controller.abort(callerSignal?.reason);
-  if (callerSignal?.aborted) abortFromCaller();
-  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
-  const timeout = window.setTimeout(() => {
-    timedOut = true;
-    controller.abort(new DOMException("Request timed out", "TimeoutError"));
-  }, requestTimeoutMs);
-
   try {
     const response = await fetchImplementation(apiPath(path), {
       ...options,
-      signal: controller.signal,
       headers: {
         accept: "application/json",
         ...(options.body ? { "content-type": "application/json" } : {}),
@@ -84,7 +68,6 @@ export async function apiRequest<T>(
       payload = await response.json();
     } catch (error) {
       if (
-        timedOut ||
         callerSignal?.aborted ||
         error instanceof TypeError ||
         (error instanceof DOMException && error.name === "AbortError")
@@ -121,14 +104,6 @@ export async function apiRequest<T>(
     return payload;
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    if (timedOut) {
-      throw new ApiError(408, {
-        error: {
-          code: "client-timeout",
-          message: `The request did not finish within ${Math.max(1, Math.ceil(requestTimeoutMs / 1000))} seconds.`,
-        },
-      });
-    }
     if (callerSignal?.aborted) throw error;
     throw new ApiError(0, {
       error: {
@@ -136,9 +111,6 @@ export async function apiRequest<T>(
         message: "The request could not reach the server. Check the connection and retry.",
       },
     });
-  } finally {
-    window.clearTimeout(timeout);
-    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 }
 

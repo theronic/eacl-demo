@@ -255,7 +255,11 @@
                         (.method "OPTIONS" (HttpRequest$BodyPublishers/noBody))
                         (.build))
             response (.send client request (HttpResponse$BodyHandlers/ofString))]
-        (is (= 204 (.statusCode response))))
+        (is (= 204 (.statusCode response)))
+        (is (= "86400"
+               (.orElse (.firstValue (.headers response)
+                                     "access-control-max-age")
+                        "missing"))))
       (finally
         (http-server/stop-server! running)))))
 

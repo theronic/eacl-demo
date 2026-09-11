@@ -20,7 +20,7 @@ const descriptor = {
   dataset: { fixtureId: "fixture-v1", logicalResourceCount: 1_000_000, serverCount: 1_000_000, manifestSha256: identity.dataManifestSha256 }, basis
 };
 
-test("server transport validates health before bootstrap", async () => {
+async function observeHandshake(overrides = {}) {
   const calls = [];
   let inFlight = 0;
   let maximumInFlight = 0;
@@ -35,14 +35,27 @@ test("server transport validates health before bootstrap", async () => {
       : response(success("bootstrap", "browser-4-2", descriptor));
     inFlight -= 1;
     return result;
-  });
-  assert.deepEqual(await transport.bootstrap({ epoch: 4 }), descriptor);
+  }, overrides);
+  const bootstrapped = await transport.bootstrap({ epoch: 4 });
+  return { transport, calls, maximumInFlight, bootstrapped };
+}
+
+test("server transport sends health and bootstrap together and validates both", async () => {
+  const { transport, calls, maximumInFlight, bootstrapped } = await observeHandshake();
+  assert.deepEqual(bootstrapped, descriptor);
   assert.deepEqual(calls.map(({ url }) => url), ["https://direct.lambda-url.us-east-1.on.aws/health", "https://direct.lambda-url.us-east-1.on.aws/bootstrap"]);
-  assert.equal(maximumInFlight, 1);
+  assert.equal(maximumInFlight, 2);
   assert.equal(calls.every(({ init }) => init.method === "GET" && !("body" in init) && init.credentials === "omit" && init.redirect === "error"), true);
   assert.deepEqual(calls.map(({ init }) => init.headers["x-eacl-request-id"]).sort(), ["browser-4-1", "browser-4-2"]);
   assert.equal(await transport.release(), true);
   assert.equal(await transport.release(), false);
+});
+
+test("a sequential transport runs the startup handshake one request at a time, health first", async () => {
+  const { calls, maximumInFlight, bootstrapped } = await observeHandshake({ sequential: true });
+  assert.deepEqual(bootstrapped, descriptor);
+  assert.deepEqual(calls.map(({ url }) => new URL(url).pathname), ["/health", "/bootstrap"]);
+  assert.equal(maximumInFlight, 1);
 });
 
 test("bootstrap returns the basis captured by the health handshake", async () => {
@@ -133,6 +146,62 @@ test("a sequential transport keeps serving after a queued request fails or is ab
   await assert.rejects(failing, /upstream failure/u);
   await assert.rejects(cancelled, (error) => error.name === "AbortError");
   assert.equal((await after).data.allowed, true);
+});
+
+test("a slow response is never cut off by a client deadline, but cancellation still ends it", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const answers = new Map();
+  const transport = createTransport((url, init) => new Promise((resolve, reject) => {
+    const requestId = init.headers["x-eacl-request-id"];
+    init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    answers.set(requestId, () => resolve(response(success("check-permission", requestId, { allowed: true }))));
+  }));
+  const slow = transport.request("check-permission", {}, { requestId: "cold-1" });
+  t.mock.timers.tick(10 * 60_000);
+  answers.get("cold-1")();
+  assert.equal((await slow).data.allowed, true);
+  const caller = new AbortController();
+  const cancelled = transport.request("check-permission", {}, { requestId: "cold-2", signal: caller.signal });
+  caller.abort("user-cancel");
+  await assert.rejects(cancelled, (reason) => reason === "user-cancel");
+  const inFlight = transport.request("check-permission", {}, { requestId: "cold-3" });
+  await transport.release();
+  await assert.rejects(inFlight, (reason) => reason === "transport-release");
+});
+
+test("startup stops waiting after 30 seconds with a retryable error, and a retry starts over", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let hang = true;
+  const abandoned = [];
+  const transport = createTransport((url, init) => {
+    const operation = new URL(url).pathname.split("/").at(-1);
+    const requestId = init.headers["x-eacl-request-id"];
+    if (!hang) {
+      return Promise.resolve(response(success(operation, requestId, operation === "health" ? { status: "ready", ready: true, identity, basis } : descriptor)));
+    }
+    return new Promise((_, reject) => {
+      const abandon = () => {
+        abandoned.push(requestId);
+        reject(init.signal.reason);
+      };
+      if (init.signal.aborted) abandon();
+      else init.signal.addEventListener("abort", abandon, { once: true });
+    });
+  }, { sequential: true });
+  let settled = false;
+  const first = transport.bootstrap();
+  first.then(() => { settled = true; }, () => { settled = true; });
+  t.mock.timers.tick(29_999);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  t.mock.timers.tick(1);
+  await assert.rejects(first, (error) => error.code === "startup-timeout" && error.retryable === true && error.message === "Stopped waiting after 30 seconds.");
+  await new Promise((resolve) => setImmediate(resolve));
+  // The in-flight health request is aborted; the bootstrap still queued in
+  // the lane is cancelled before it can go out.
+  assert.deepEqual(abandoned, ["browser-0-1", "browser-0-2"]);
+  hang = false;
+  assert.deepEqual(await transport.bootstrap(), descriptor);
 });
 
 test("POST bodies go directly to Lambda without CloudFront signing headers", async () => {

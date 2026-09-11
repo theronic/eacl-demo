@@ -28,7 +28,7 @@ export function createServerProfileTransport({
   validateRequest,
   validateResponse,
   fetchImpl = globalThis.fetch,
-  timeoutMs = 35_000,
+  startupDeadlineMs = 30_000,
   maximumResponseBytes = 1_048_576,
   sequential = false
 }) {
@@ -37,7 +37,7 @@ export function createServerProfileTransport({
     throw new TypeError("HTTP profile transport dependencies are required");
   }
   if (typeof sequential !== "boolean") throw new TypeError("HTTP profile sequential flag must be a boolean");
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000) throw new RangeError("HTTP profile timeout is invalid");
+  if (!Number.isSafeInteger(startupDeadlineMs) || startupDeadlineMs < 1_000 || startupDeadlineMs > 60_000) throw new RangeError("HTTP profile startup deadline is invalid");
   if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 1_048_576) throw new RangeError("HTTP response limit is invalid");
   const apiOrigin = validateApiOrigin(profile.apiOrigin);
   const route = "/";
@@ -76,13 +76,15 @@ export function createServerProfileTransport({
     const path = `/${operation}`;
     const url = new URL(path, apiOrigin);
     if (url.origin !== apiOrigin || url.pathname !== path || url.search || url.hash) throw new Error("HTTP profile request escaped its deployment route");
-    const bounded = boundedSignal([lifecycle.signal, options.signal], timeoutMs);
+    // Operations carry no client deadline: server-side deadlines already bound
+    // them. Only the startup handshake in bootstrap() gives up on the client.
+    const linked = linkedSignal([lifecycle.signal, options.signal]);
     try {
       const response = await fetchImpl(url.href, {
         method,
         headers,
         ...(body === null ? {} : { body }),
-        signal: bounded.signal,
+        signal: linked.signal,
         redirect: "error",
         credentials: "omit",
         cache: "no-store",
@@ -94,34 +96,58 @@ export function createServerProfileTransport({
       const envelope = validateResponse(await readBoundedJsonResponse(response, { maximumBytes: maximumResponseBytes }));
       validateEnvelopeBinding(envelope, requestId, response.status);
       return envelope;
-    } catch (error) {
-      if (bounded.timedOut()) throw publicError("deadline-exceeded", "The profile request exceeded its client deadline.", true);
-      throw error;
     } finally {
-      bounded.close();
+      linked.close();
     }
+  }
+
+  async function performHandshake(startupOptions) {
+    // Health and bootstrap are independent reads, so they go out together and
+    // startup costs one round trip. A sequential transport still runs them one
+    // at a time, health first, through its lane.
+    const [firstHealth, bootstrap] = await Promise.all([
+      request("health", {}, startupOptions),
+      request("bootstrap", {}, startupOptions)
+    ]);
+    let health = firstHealth;
+    if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
+    if (bootstrap.error) throw publicError(bootstrap.error.code, bootstrap.error.message, retryableError(bootstrap.error.code));
+    if (!sameBasis(health.data?.basis, bootstrap.data?.basis)) {
+      health = await request("health", {}, startupOptions);
+      if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
+    }
+    const handshake = validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
+    // The descriptor is immutable, but request-snapshot profiles capture a
+    // fresh basis during the health half of this handshake. Preserve that
+    // newly captured basis so Refresh Snapshot visibly advances the UI.
+    return {
+      ...bootstrap.data,
+      basis: health.data.basis,
+      ...(handshake.identityWarning ? { identityWarning: handshake.identityWarning } : {})
+    };
   }
 
   return Object.freeze({
     async bootstrap(options = {}) {
-      const { requestId: _ignoredRequestId, ...startupOptions } = options;
-      let health = await request("health", {}, startupOptions);
-      if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
-      const bootstrap = await request("bootstrap", {}, startupOptions);
-      if (bootstrap.error) throw publicError(bootstrap.error.code, bootstrap.error.message, retryableError(bootstrap.error.code));
-      if (!sameBasis(health.data?.basis, bootstrap.data?.basis)) {
-        health = await request("health", {}, startupOptions);
-        if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
+      const { requestId: _ignoredRequestId, signal, ...startupOptions } = options;
+      // A runtime that has not finished the handshake by the startup deadline
+      // becomes a retryable failure instead of an endless wait. The abandoned
+      // handshake is cancelled, including a request still queued in the lane.
+      const expiry = new AbortController();
+      const startup = linkedSignal([signal, expiry.signal]);
+      let timer;
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(publicError("startup-timeout", `Stopped waiting after ${Math.round(startupDeadlineMs / 1000)} seconds.`, true));
+          expiry.abort("startup-deadline");
+        }, startupDeadlineMs);
+      });
+      try {
+        return await Promise.race([performHandshake({ ...startupOptions, signal: startup.signal }), deadline]);
+      } finally {
+        clearTimeout(timer);
+        startup.close();
       }
-      const handshake = validateDescriptorHandshake({ registryProfile: profile, route: profile.route, health: health.data, bootstrap: bootstrap.data });
-      // The descriptor is immutable, but request-snapshot profiles capture a
-      // fresh basis during the health half of this handshake. Preserve that
-      // newly captured basis so Refresh Snapshot visibly advances the UI.
-      return {
-        ...bootstrap.data,
-        basis: health.data.basis,
-        ...(handshake.identityWarning ? { identityWarning: handshake.identityWarning } : {})
-      };
     },
     request,
     cancel() { return false; },
@@ -168,9 +194,8 @@ function validateApiOrigin(value) {
   return url.origin;
 }
 
-function boundedSignal(signals, timeoutMs) {
+function linkedSignal(signals) {
   const controller = new AbortController();
-  let timeout = false;
   const listeners = [];
   const abort = (signal) => controller.abort(signal?.reason ?? "parent-abort");
   for (const signal of signals.filter(Boolean)) {
@@ -181,12 +206,9 @@ function boundedSignal(signals, timeoutMs) {
       listeners.push([signal, listener]);
     }
   }
-  const timer = setTimeout(() => { timeout = true; controller.abort("client-deadline"); }, timeoutMs);
   return {
     signal: controller.signal,
-    timedOut: () => timeout,
     close() {
-      clearTimeout(timer);
       for (const [signal, listener] of listeners) signal.removeEventListener("abort", listener);
     }
   };

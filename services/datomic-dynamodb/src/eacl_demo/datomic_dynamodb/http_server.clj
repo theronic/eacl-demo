@@ -95,6 +95,10 @@
                         "GET, POST, OPTIONS"
                         "access-control-allow-headers"
                         "accept, content-type, x-eacl-request-id"
+                        ;; Same preflight lifetime as the Function URL CORS
+                        ;; configuration. Without it browsers repeat the
+                        ;; preflight for every request path after 5 seconds.
+                        "access-control-max-age" "86400"
                         "vary" "Origin"})]
     {:status status :headers headers :body (when-not (= 204 status) body)}))
 

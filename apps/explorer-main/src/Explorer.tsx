@@ -161,7 +161,14 @@ export function Explorer(props: {
       <Show when={app.health.error && !hasBootstrap()}>
         <main class="loading-grid">
           <ErrorBlock
-            label={`${props.backendLabel} startup failed`}
+            label={
+              (app.health.error as { code?: unknown } | undefined)?.code === "startup-timeout" &&
+              props.execution !== "browser"
+                ? props.execution === "lambda"
+                  ? `${props.backendLabel} Lambda did not start`
+                  : `Could not connect to ${props.backendLabel} EC2`
+                : `${props.backendLabel} startup failed`
+            }
             error={app.health.error}
             retry={app.refetchHealth}
           />
