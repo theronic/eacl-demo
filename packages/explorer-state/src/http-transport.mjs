@@ -102,9 +102,15 @@ export function createServerProfileTransport({
   }
 
   async function performHandshake(startupOptions) {
-    let health = await request("health", {}, startupOptions);
+    // Health and bootstrap are independent reads, so they go out together and
+    // startup costs one round trip. A sequential transport still runs them one
+    // at a time, health first, through its lane.
+    const [firstHealth, bootstrap] = await Promise.all([
+      request("health", {}, startupOptions),
+      request("bootstrap", {}, startupOptions)
+    ]);
+    let health = firstHealth;
     if (health.error) throw publicError(health.error.code, health.error.message, retryableError(health.error.code));
-    const bootstrap = await request("bootstrap", {}, startupOptions);
     if (bootstrap.error) throw publicError(bootstrap.error.code, bootstrap.error.message, retryableError(bootstrap.error.code));
     if (!sameBasis(health.data?.basis, bootstrap.data?.basis)) {
       health = await request("health", {}, startupOptions);
