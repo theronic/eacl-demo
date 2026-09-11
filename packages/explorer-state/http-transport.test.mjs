@@ -135,6 +135,55 @@ test("a sequential transport keeps serving after a queued request fails or is ab
   assert.equal((await after).data.allowed, true);
 });
 
+test("a slow response is never cut off by a client deadline, but cancellation still ends it", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const answers = new Map();
+  const transport = createTransport((url, init) => new Promise((resolve, reject) => {
+    const requestId = init.headers["x-eacl-request-id"];
+    init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    answers.set(requestId, () => resolve(response(success("check-permission", requestId, { allowed: true }))));
+  }));
+  const slow = transport.request("check-permission", {}, { requestId: "cold-1" });
+  t.mock.timers.tick(10 * 60_000);
+  answers.get("cold-1")();
+  assert.equal((await slow).data.allowed, true);
+  const caller = new AbortController();
+  const cancelled = transport.request("check-permission", {}, { requestId: "cold-2", signal: caller.signal });
+  caller.abort("user-cancel");
+  await assert.rejects(cancelled, (reason) => reason === "user-cancel");
+  const inFlight = transport.request("check-permission", {}, { requestId: "cold-3" });
+  await transport.release();
+  await assert.rejects(inFlight, (reason) => reason === "transport-release");
+});
+
+test("startup stops waiting after 30 seconds with a retryable error, and a retry starts over", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let hang = true;
+  const abandoned = [];
+  const transport = createTransport((url, init) => {
+    const operation = new URL(url).pathname.split("/").at(-1);
+    const requestId = init.headers["x-eacl-request-id"];
+    if (!hang) {
+      return Promise.resolve(response(success(operation, requestId, operation === "health" ? { status: "ready", ready: true, identity, basis } : descriptor)));
+    }
+    return new Promise((_, reject) => init.signal.addEventListener("abort", () => {
+      abandoned.push(requestId);
+      reject(init.signal.reason);
+    }, { once: true }));
+  }, { sequential: true });
+  let settled = false;
+  const first = transport.bootstrap();
+  first.then(() => { settled = true; }, () => { settled = true; });
+  t.mock.timers.tick(29_999);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  t.mock.timers.tick(1);
+  await assert.rejects(first, (error) => error.code === "startup-timeout" && error.retryable === true && error.message === "Stopped waiting after 30 seconds.");
+  assert.deepEqual(abandoned, ["browser-0-1"]);
+  hang = false;
+  assert.deepEqual(await transport.bootstrap(), descriptor);
+});
+
 test("POST bodies go directly to Lambda without CloudFront signing headers", async () => {
   let observed;
   const transport = createTransport(async (url, init) => {
