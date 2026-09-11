@@ -69,7 +69,10 @@ bootstrap together, so startup costs one round trip; Lambda profiles send them
 in lane order. Both EC2 adapters answer CORS preflights with the Function URLs'
 `Access-Control-Max-Age` of 86400 seconds (browsers cap it, Chrome at two
 hours), so a browser reuses each preflight instead of repeating it for every
-request path.
+request path. For the same reason Explorer requests keep the default fetch
+cache mode: Chromium skips its preflight cache for `no-store` and `no-cache`
+requests, and every response's own `cache-control: no-store` already keeps it
+out of the HTTP cache.
 
 CloudFront has one origin: the private static S3 bucket. Its only additional
 cache behavior is the separate `/datascript/*` static artifact. The content

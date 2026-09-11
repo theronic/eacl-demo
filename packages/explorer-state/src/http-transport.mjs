@@ -87,7 +87,10 @@ export function createServerProfileTransport({
         signal: linked.signal,
         redirect: "error",
         credentials: "omit",
-        cache: "no-store",
+        // Default cache mode on purpose: Chromium skips its CORS preflight
+        // cache for no-store and no-cache requests, which would add a round
+        // trip to every call. Responses carry cache-control: no-store, so
+        // the browser never stores them.
         referrerPolicy: "no-referrer"
       });
       if (!response || response.redirected === true) throw publicError("invalid-response", "The profile returned an invalid response.", false);

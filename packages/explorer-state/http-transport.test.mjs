@@ -216,7 +216,7 @@ test("POST bodies go directly to Lambda without CloudFront signing headers", asy
   assert.equal(observed.init.headers["x-eacl-request-id"], "9-2");
   assert.equal(observed.url, "https://direct.lambda-url.us-east-1.on.aws/check-permission");
   assert.equal(observed.init.headers["x-amz-content-sha256"], undefined);
-  assert.equal(observed.init.cache, "no-store");
+  assert.equal("cache" in observed.init, false);
 });
 
 test("every backend accepts the same original compact decision metadata", async () => {
