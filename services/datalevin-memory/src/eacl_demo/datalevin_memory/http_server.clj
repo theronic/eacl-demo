@@ -94,6 +94,8 @@
     (.set response-headers "access-control-allow-methods" "GET, POST, OPTIONS")
     (.set response-headers "access-control-allow-headers"
           "accept, content-type, x-eacl-request-id")
+    ;; Same preflight lifetime as the Function URL CORS configuration.
+    (.set response-headers "access-control-max-age" "86400")
     (.set response-headers "vary" "Origin")
     (if (= 204 status)
       (.sendResponseHeaders exchange status -1)

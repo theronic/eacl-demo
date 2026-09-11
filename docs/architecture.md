@@ -61,6 +61,16 @@ profiles keep concurrent requests: they are one resident peer with an
 admission limit. Nothing is primed; every request still pays for whatever it
 touches first, and its cache status reports exactly that.
 
+Startup is the only request with a client deadline. The health/bootstrap
+handshake that identifies a profile must finish within 30 seconds, otherwise
+the Explorer cancels it and offers Retry. Ordinary requests have no client
+deadline because the runtimes enforce their own. EC2 profiles send health and
+bootstrap together, so startup costs one round trip; Lambda profiles send them
+in lane order. Both EC2 adapters answer CORS preflights with the Function URLs'
+`Access-Control-Max-Age` of 86400 seconds (browsers cap it, Chrome at two
+hours), so a browser reuses each preflight instead of repeating it for every
+request path.
+
 CloudFront has one origin: the private static S3 bucket. Its only additional
 cache behavior is the separate `/datascript/*` static artifact. The content
 security policy permits connections to the four exact Function URL origins,
