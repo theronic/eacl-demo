@@ -32,7 +32,7 @@
 (defn validate-config
   [{:keys [region table database maximum-concurrency security-key] :as config}]
   (when-not (and (= #{:region :table :database :maximum-concurrency :security-key}
-                     (set (keys config)))
+                    (set (keys config)))
                  (string? region) (re-matches region-pattern region)
                  (string? table) (re-matches table-pattern table)
                  (string? database) (re-matches database-pattern database)
@@ -277,6 +277,15 @@
                (try
                  (if (= "historical-date" (:consistency input))
                    (let [instant (Instant/parse (:atExactSnapshotAt input))
+                         ;; Datomic as-of clamps future dates to existing data.
+                         ;; Reject them before minting an otherwise valid token.
+                         _ (when (.isAfter instant (clock))
+                             (throw
+                              (ex-info
+                               "An exact snapshot cannot be selected in the future."
+                               {:type :eacl-demo/historical-basis-unavailable
+                                :reason :future-snapshot
+                                :code "unsupported-consistency"})))
                          {:keys [revision captured-at]}
                          (resolve-as-of fixed-db instant)]
                      (when-not (and (integer? revision)
