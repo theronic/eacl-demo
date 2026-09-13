@@ -13,7 +13,10 @@ The Lambda profile exposes its fixed startup basis. The EC2 profile additionally
 exposes `historical-date`: it resolves the requested instant against the retained
 Datomic history, issues an authenticated token for the resulting native
 transaction basis, and keeps the complete request—including cursor pages—on
-that exact basis. The initial wire
+that exact basis. Dates after the server's current time fail with
+`unsupported-consistency` before history resolution or token issuance; Datomic's
+native `as-of` would otherwise resolve a future date to existing data.
+The initial wire
 basis remains `fixed-environment`; a selected historical basis is reported as
 `request-snapshot`.
 

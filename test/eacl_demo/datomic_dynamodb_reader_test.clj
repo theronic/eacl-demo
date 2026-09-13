@@ -1,6 +1,7 @@
 (ns eacl-demo.datomic-dynamodb-reader-test
   (:require [clojure.test :refer [deftest is testing]]
             [eacl.causal-token :as causal-token]
+            [eacl-demo.datomic-dynamodb.boundary :as boundary]
             [eacl-demo.datomic-dynamodb.reader :as reader])
   (:import [java.time Instant]))
 
@@ -48,6 +49,48 @@
       (let [snapshot ((:capture-snapshot opened))]
         (is (= :fixed-snapshot (:value snapshot)))
         ((:release! snapshot)))
+      (finally (reader/close-reader! opened)))))
+
+(deftest future-historical-date-fails-before-resolution-and-releases-its-lease-test
+  (let [now (Instant/parse "2026-09-13T12:00:00Z")
+        calls (atom [])
+        opened (open-fixed-reader
+                {:clock (constantly now)
+                 :resolve-as-of (fn [& _] (swap! calls conj :resolve)
+                                  {:revision 424242 :captured-at now})
+                 :issue-exact-token (fn [& _] (swap! calls conj :issue) "token")
+                 :select-exact-snapshot (fn [& _] (swap! calls conj :select) :historical)})]
+    (try
+      (doseq [at ["2026-09-30T00:00:00Z" (str (.plusNanos now 1))]]
+        (is (= {:type :eacl-demo/historical-basis-unavailable
+                :reason :future-snapshot
+                :code "unsupported-consistency"}
+               (try (let [snapshot ((:capture-snapshot opened)
+                                    {:consistency "historical-date" :atExactSnapshotAt at})]
+                      ((:release! snapshot)))
+                    :unexpected-success
+                    (catch clojure.lang.ExceptionInfo error (ex-data error))))))
+      (is (empty? @calls))
+      (let [profile (boundary/create-boundary
+                     {:descriptor {:identity {:profileId "datomic-dynamodb"}
+                                   :capabilities {:consistencyModes ["historical-date"]}}
+                      :capture-snapshot (:capture-snapshot opened)
+                      :handlers (zipmap (keys boundary/method-by-operation)
+                                        (repeat (fn [_] (swap! calls conj :handler))))})
+            response (boundary/invoke!
+                      profile
+                      {:path "/get-schema" :method :post :request-id "future-date"
+                       :input {:consistency "historical-date"
+                               :atExactSnapshotAt "2026-09-30T00:00:00Z"}})]
+        (is (= "unsupported-consistency" (get-in response [:error :code])))
+        (is (not (contains? response :data)))
+        (is (empty? @calls)))
+      ;; The current instant is allowed; no lease from the rejected reads leaks.
+      (let [snapshot ((:capture-snapshot opened)
+                      {:consistency "historical-date" :atExactSnapshotAt (str now)})]
+        (is (= :historical (:value snapshot)))
+        ((:release! snapshot)))
+      (is (= [:resolve :issue :select] @calls))
       (finally (reader/close-reader! opened)))))
 
 (deftest historical-token-retains-scope-and-authenticates-the-resolved-revision-test
