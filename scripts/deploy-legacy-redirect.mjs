@@ -50,10 +50,12 @@ console.log(JSON.stringify(preview.Changes.map(({ResourceChange: r}) => ({resour
 aws('cloudformation', 'execute-change-set', '--change-set-name', change.Id);
 wait('cloudformation', 'wait', 'stack-update-complete', '--stack-name', stackArn);
 wait('cloudfront', 'wait', 'distribution-deployed', '--id', distribution);
+// Legacy request state the redirect must drop. The values are inert markers.
+const opaqueState = new URLSearchParams({cursor: 'must-not-forward', token: 'must-not-forward'});
 const checks = [];
 for (const [method, path, expected] of [
   ['GET', '/', 301], ['HEAD', '/datahike/', 301],
-  ['GET', '/datahike/assets/retired.js?cursor=must-not-forward&token=must-not-forward', 301],
+  ['GET', `/datahike/assets/retired.js?${opaqueState}`, 301],
   ['POST', '/datahike/api/check-permission', 410]
 ]) {
   const response = await fetch(origin + path, {method, redirect: 'manual'});

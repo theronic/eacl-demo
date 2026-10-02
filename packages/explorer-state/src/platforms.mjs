@@ -23,7 +23,7 @@ const DATAHIKE_ORIGINS = Object.freeze({
 const SERVER_OPTIONS = Object.freeze([
   Object.freeze({ id: DEFAULT_LAMBDA, label: "1,769 MiB Lambda (1 vCPU)" }),
   Object.freeze({ id: LARGE_LAMBDA, label: "4 GiB Lambda" }),
-  Object.freeze({ id: "ec2", label: "EC2 t3.small (2 GiB)" })
+  Object.freeze({ id: "ec2", label: "EC2" })
 ]);
 
 export function defaultPlatform(selection) {
@@ -46,6 +46,7 @@ export function platformOptions(selection) {
   const datalevin = isDatalevinEmbedded(selection);
   return SERVER_OPTIONS.map((option) => ({
     ...option,
+    label: option.id === "ec2" ? ec2Label(selection) : option.label,
     selectable: option.id === DEFAULT_LAMBDA || datomic ||
       (datahike && option.id === LARGE_LAMBDA) || (datalevin && option.id === "ec2"),
     reason: option.id === DEFAULT_LAMBDA || datomic ||
@@ -78,6 +79,14 @@ export function executionForPlatform(platform) {
   if (platform === "ec2") return "ec2";
   if (platform === BROWSER_PLATFORM) return "browser";
   return "lambda";
+}
+
+// Each EC2 backend runs on its own host, so the option names the instance
+// that infra/profiles/*-ec2.yaml provisions for the selected one.
+function ec2Label(selection) {
+  if (isDatomicDynamo(selection)) return "EC2 t3.small (2 GiB)";
+  if (isDatalevinEmbedded(selection)) return "EC2 t3.micro (1 GiB)";
+  return "EC2";
 }
 
 function supportedPlatform(selection, platform) {

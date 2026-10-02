@@ -7,7 +7,9 @@ const root = path.resolve(import.meta.dirname, "..");
 const mainRoot = path.join(root, "dist", "explorer-main", "static");
 const runtimePath = path.join(root, "dist", "datascript-runtime", "datascript-runtime.js");
 const evidencePath = path.join(root, "target", "verification", "datascript", "bundle-isolation.json");
-const runtimeWitnesses = ["dev.eacl/eacl-datascript", "cljs.core", readEaclCore(root).sha];
+// The adapter is witnessed by a namespace its compiled symbols keep. Its Maven
+// coordinate is absent from runtimes built on the published EACL release.
+const runtimeWitnesses = ["eacl.datascript.impl", "cljs.core", readEaclCore(root).sha];
 const forbiddenSourceFragments = [
   "__vite-browser-external",
   "apps/explorer-datascript",
@@ -23,6 +25,7 @@ const forbiddenBundleMarkers = [
   "node:path",
   "dev.eacl/eacl-datascript",
   "eacl.datascript.core",
+  "eacl.datascript.impl",
   "datascript.core",
   "cljs.core",
   "EaclKernel.browser"

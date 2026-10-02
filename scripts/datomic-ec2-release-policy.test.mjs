@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { platformOptions } from "../packages/explorer-state/src/platforms.mjs";
+
 const [source, deploySource, httpServerSource, depsSource, datalevinSource] = await Promise.all([
   readFile(new URL("../infra/profiles/datomic-dynamodb-ec2.yaml", import.meta.url), "utf8"),
   readFile(new URL("./deploy-live-demo.mjs", import.meta.url), "utf8"),
@@ -42,6 +44,23 @@ test("the Datomic t3.small provisions persistent low-swappiness headroom before 
   assert.match(userData, /\/swapfile none swap sw 0 0/u);
   assert.match(userData, /vm\.swappiness=10/u);
   assert.match(userData, /vm\.swappiness=10[\s\S]*systemctl enable --now eacl-demo-datomic\.service/u);
+});
+
+test("the Explorer's EC2 option names the instance each template provisions", () => {
+  // Memory AWS publishes for the instance types these templates admit.
+  const publishedGiB = { "t3.micro": 1, "t3.small": 2, "t3.medium": 4 };
+  const datomicType = /\n  InstanceType:\n    Type: String\n    Default: (\S+)\n/u.exec(source)?.[1];
+  const datalevinType = /\n      InstanceType: (\S+)\n/u.exec(datalevinSource)?.[1];
+  assert.ok(datomicType in publishedGiB, `unrecognised Datomic instance type ${datomicType}`);
+  assert.ok(datalevinType in publishedGiB, `unrecognised Datalevin instance type ${datalevinType}`);
+  const label = (selection) => platformOptions(selection).find(({ id }) => id === "ec2").label;
+  assert.equal(label({ backend: "datomic", storage: "dynamodb" }),
+    `EC2 ${datomicType} (${publishedGiB[datomicType]} GiB)`);
+  assert.equal(label({ backend: "datalevin", storage: "embedded" }),
+    `EC2 ${datalevinType} (${publishedGiB[datalevinType]} GiB)`);
+  // The Datalevin host reports the same memory through its descriptor.
+  assert.match(datalevinSource,
+    new RegExp(`echo 'EACL_RUNTIME_MEMORY_MIB=${publishedGiB[datalevinType] * 1024}'`, "u"));
 });
 
 test("the Datomic JVM heap and object cache follow the running host and are owned by first boot and every stack update", () => {

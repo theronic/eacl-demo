@@ -101,7 +101,11 @@ for (const metric of ["Requests", "Errors", "Duration", "Initialization",
 assert.doesNotMatch(observabilitySource,
   /stack-trace|\.getMessage|Throwable->map|AWS_SECRET/iu);
 assert.match(readerSource, /:read-only\? true/u);
-assert.match(readerSource, /:writer read-only-writer\/config/u);
+// The reader holds the pinned generation's local head through Datahike's
+// native writer. Storage mutation is denied beneath it, by the Konserve
+// facade and SDK membrane audited below, and above it by the read-only client.
+assert.match(readerSource,
+  /:writer \{:backend :self :writer-ownership :exclusive\s+:transaction-queue-size 1 :commit-queue-size 1\}/u);
 assert.match(readerSource, /:backend read-only-store\/backend/u);
 assert.doesNotMatch(readerSource, /:backend :s3/u,
   "the serving reader must not dispatch to upstream S3 connect-store");
@@ -109,10 +113,16 @@ assert.match(handlerSource, /\(not= 1 concurrency\)/u);
 assert.match(clientSource, /allowed-signatures/u);
 assert.match(clientSource, /\["getObject"/u);
 assert.match(clientSource, /\["headObject"/u);
+assert.match(clientSource, /\(denied! method\)/u);
 assert.doesNotMatch(clientSource,
   /\["(?:putObject|deleteObject|copyObject|createBucket|deleteBucket|listObjects)/u,
   "a write, administration, or enumeration method entered the SDK allowlist");
 assert.match(konserveSource, /def backend :eacl-demo-s3-read-only-store/u);
+for (const denied of [
+  "sync-blob", "write-header", "write-meta", "write-value", "write-binary",
+  "delete-blob", "migrate", "copy", "atomic-move", "delete-store",
+  "enumerate-store-keys", "migrate-foreign-key",
+]) assert.match(konserveSource, new RegExp(`denied! :${denied}\\)`, "u"));
 assert.match(konserveSource,
   /\(-create-store \[_ env\][\s\S]*?:eacl-demo\/missing-s3-store/u);
 assert.doesNotMatch(konserveSource,
@@ -125,7 +135,9 @@ assert.match(writerSource, /denied!/u);
 assert.match(writerSource, /defmethod writer\/create-database[\s\S]*?denied!/u);
 assert.match(writerSource, /defmethod writer\/delete-database[\s\S]*?denied!/u);
 assert.match(operationsSource,
-  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics\]/u);
+  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics authorization-reader\]/u);
+// Authorization queries run on the reader's own read-only EACL client.
+assert.match(handlerSource, /:authorization-reader \(:client opened\)/u);
 assert.match(operationsSource,
   /cache-metrics\/snapshot \(cache-stats\) operation-metrics/u);
 assert.match(handlerSource, /datahike-eacl\/cache-stats/u);

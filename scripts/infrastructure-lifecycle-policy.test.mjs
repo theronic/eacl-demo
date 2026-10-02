@@ -10,14 +10,18 @@ const profileIds = [
   "datalevin-memory",
   "jank-memory"
 ];
-const [foundation, staticTemplate, datahikeTable, datomicTable, observability, directDeploy, legacyReadme] = await Promise.all([
+const [foundation, staticTemplate, datahikeTable, datomicTable, observability, directDeploy, legacyReadme,
+  legacyRedirect, ordinaryWorkflow, redirectWorkflow] = await Promise.all([
   read("infra/foundation/template.yaml"),
   read("infra/static/template.yaml"),
   read("infra/data/datahike-dynamodb-table.yaml"),
   read("infra/data/datomic-dynamodb-table.yaml"),
   read("infra/observability/template.yaml"),
   read("scripts/deploy-live-demo.mjs"),
-  read("infra/legacy/README.md")
+  read("infra/legacy/README.md"),
+  read("infra/legacy/serverless-datahike-redirect.json").then(JSON.parse),
+  read(".github/workflows/deploy-demos.yml"),
+  read(".github/workflows/redirect-legacy-demo.yml")
 ]);
 const runtimes = Object.fromEntries(await Promise.all(profileIds.map(async (profileId) => [
   profileId,
@@ -73,9 +77,37 @@ test("per-profile alias rollback cannot target a sibling or shared static resour
   }
 });
 
-test("legacy compatibility remains non-executable until exact fallback and retirement evidence exist", async () => {
+test("legacy compatibility is executable only as the one authorized, evidenced redirect", async () => {
   const entries = await readdir(new URL("../infra/legacy/", import.meta.url));
-  assert.deepEqual(entries.sort(), ["README.md"]);
+  assert.deepEqual(entries.sort(), ["README.md", "serverless-datahike-redirect.json"]);
   assert.match(legacyReadme, /Fallback hostnames/u);
   assert.match(legacyReadme, /No automatic\s+destructive action/u);
+
+  // The template is admitted by the recorded authorization and the completed
+  // retirement evidence, not by its presence.
+  assert.match(legacyReadme, /^## Authorized legacy Datahike retirement \(2026-09-08\)$/mu);
+  assert.match(legacyReadme, /`serverless-datahike-redirect\.json` updates the existing independent HTTPS\/domain\s+stack through the manually dispatched `redirect-legacy-demo\.yml` CI workflow/u);
+  const completed = legacyReadme.slice(legacyReadme.indexOf("\n## Completed retirement\n"));
+  assert.match(completed, /^\n## Completed retirement\n/u);
+  assert.match(completed, /\[Redirect CI\]\(https:\/\/github\.com\/theronic\/eacl-demo\/actions\/runs\/[0-9]+\)/u);
+  assert.match(completed, /passed at demo commit `[0-9a-f]{40}`/u);
+
+  // It owns compatibility DNS/redirect resources only: no storage, compute or
+  // identity that could stop, replace or delete a service or its data.
+  assert.deepEqual(
+    [...new Set(Object.values(legacyRedirect.Resources).map(({ Type }) => Type))].sort(),
+    [
+      "AWS::CertificateManager::Certificate",
+      "AWS::CloudFront::Distribution",
+      "AWS::CloudFront::Function",
+      "AWS::Route53::RecordSet"
+    ]
+  );
+
+  // Only the manually dispatched workflow applies it; ordinary deployment never does.
+  assert.match(redirectWorkflow, /^on:\n  workflow_dispatch:\npermissions:/mu);
+  assert.match(redirectWorkflow, /run: node scripts\/deploy-legacy-redirect\.mjs$/mu);
+  for (const source of [ordinaryWorkflow, directDeploy]) {
+    assert.doesNotMatch(source, /infra\/legacy|legacy-redirect|serverless-datahike-redirect/u);
+  }
 });
