@@ -70,6 +70,20 @@ test("the landing page defaults to the first, zero-Lambda DataScript option", as
   await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
 });
 
+test("the Execution option names the EC2 host behind each backend", async ({ page }) => {
+  const execution = page.getByRole("group", { name: "Execution", exact: true });
+  // Datahike has no EC2 deployment, so its unavailable option claims no instance.
+  await expect(execution.getByRole("radio", { name: "EC2", exact: true })).toBeDisabled();
+  await expect(execution.locator("label", { has: page.getByRole("radio", { name: "EC2", exact: true }) })).toHaveAttribute(
+    "title", "EC2 is currently deployed only for Datomic/DynamoDB and Datalevin/Embedded disk.");
+  await page.getByRole("radio", { name: "Datomic", exact: true }).check();
+  await expect(execution.getByRole("radio", { name: "EC2 t3.small (2 GiB)", exact: true })).toBeEnabled();
+  await page.getByRole("radio", { name: "Datalevin", exact: true }).check();
+  await expect(execution.getByRole("radio", { name: "EC2 t3.micro (1 GiB)", exact: true })).toBeEnabled();
+  await expect(execution.getByRole("radio")).toHaveCount(3);
+  await expect(execution.getByText(/t3\.small/u)).toHaveCount(0);
+});
+
 test("a coherent Datomic EC2 version drift remains usable and shows registry/service detail", async ({ page }) => {
   const deployedAt = new Date().toISOString();
   const identity = {
@@ -189,6 +203,7 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
   });
 
   await page.goto("/?backend=datomic&storage=dynamodb&platform=ec2");
+  await expect(page.getByRole("radio", { name: "EC2 t3.small (2 GiB)", exact: true })).toBeChecked();
   const warning = page.locator(".deployment-warning");
   await expect(warning).toContainText("Datomic service version warning");
   await expect(warning).toContainText("out-of-date EACL version");

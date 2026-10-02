@@ -11,9 +11,10 @@ storage is embedded LMDB, and the public descriptor reports
   It creates LMDB under `/tmp/eacl-demo-datalevin` during published-version
   initialization. Lambda SnapStart captures the initialized process and the
   `/tmp` files, so restored environments do not reload the fixture.
-- EC2 runs the same artifact on the shared `t3.micro` Datomic comparison host.
-  Its x86_64 LMDB lives at `/var/lib/eacl-demo/datalevin` on the encrypted EBS
-  root volume and survives service and instance restarts.
+- EC2 runs the same artifact on a dedicated `t3.micro`
+  (`infra/profiles/datalevin-memory-ec2.yaml`), separate from the Datomic
+  `t3.small`. Its x86_64 LMDB lives at `/var/lib/eacl-demo/datalevin` on the
+  encrypted EBS root volume and survives service and instance restarts.
 - Both platforms expose the same closed HTTP boundary and immutable 10,000
   logical-resource fixture. They have no public writer or remote Datalevin
   server.

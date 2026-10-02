@@ -8,7 +8,29 @@ import {
   profileForPlatform
 } from "./src/platforms.mjs";
 
-test("Datomic and Datalevin share EC2 while Datahike exposes only Lambda sizes", () => {
+test("the EC2 option names the host behind the selected backend", () => {
+  const ec2 = (selection) => platformOptions(selection).find(({ id }) => id === "ec2");
+  assert.equal(ec2({ backend: "datomic", storage: "dynamodb" }).label, "EC2 t3.small (2 GiB)");
+  assert.equal(ec2({ backend: "datalevin", storage: "embedded" }).label, "EC2 t3.micro (1 GiB)");
+  // Datahike has no EC2 host, so its unavailable option claims no instance.
+  for (const storage of ["s3", "dynamodb"]) {
+    const option = ec2({ backend: "datahike", storage });
+    assert.equal(option.label, "EC2");
+    assert.equal(option.selectable, false);
+    assert.equal(option.reason, "EC2 is currently deployed only for Datomic/DynamoDB and Datalevin/Embedded disk.");
+  }
+  // The Lambda sizes are one deployment shape for every backend.
+  for (const selection of [
+    { backend: "datomic", storage: "dynamodb" },
+    { backend: "datalevin", storage: "embedded" },
+    { backend: "datahike", storage: "s3" }
+  ]) {
+    assert.deepEqual(platformOptions(selection).slice(0, 2).map(({ label }) => label),
+      ["1,769 MiB Lambda (1 vCPU)", "4 GiB Lambda"]);
+  }
+});
+
+test("Datomic and Datalevin both offer EC2 while Datahike exposes only Lambda sizes", () => {
   const datomic = { backend: "datomic", storage: "dynamodb" };
   assert.deepEqual(platformOptions(datomic).map(({ id, selectable }) => [id, selectable]), [
     ["lambda-1769", true], ["lambda-4096", true], ["ec2", true]
