@@ -8,6 +8,10 @@ Parameters:
   FunctionLogGroupArn:
     Type: String
     AllowedPattern: "^arn:[a-z0-9-]+:logs:[a-z0-9-]+:[0-9]{12}:log-group:/aws/lambda/eacl-demo-datomic-dynamodb-[A-Za-z0-9_-]+$"
+  ComparisonFunctionLogGroupArn:
+    Type: String
+    AllowedPattern: "^arn:[a-z0-9-]+:logs:[a-z0-9-]+:[0-9]{12}:log-group:/aws/lambda/eacl-demo-datomic-dynamodb-[A-Za-z0-9_-]+$"
+    Description: Log group of the comparison function, which runs under this same role.
 
 Resources:
   ServingRole:
@@ -42,7 +46,9 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Sub "${FunctionLogGroupArn}:*"
+                Resource:
+                  - !Sub "${FunctionLogGroupArn}:*"
+                  - !Sub "${ComparisonFunctionLogGroupArn}:*"
       Tags:
         - Key: Project
           Value: eacl-demo
