@@ -196,6 +196,33 @@ Rollback is per unit, never fleet-wide:
   immutable version using the recorded revision precondition and restore only
   its exact versioned status object. If either precondition has changed, stop
   and reconcile the current identity instead of overwriting a newer run.
+- EC2 hosts: the release command keeps the jar and environment file it
+  replaces as `<jar>.previous` and `<env>.previous`. When the new release does
+  not answer `/health` on the host within 360 s, the command prints
+  `systemctl status` and the last service log lines, links the kept pair back
+  into place, restarts the unit and waits for health again. The command and
+  the job still fail; the job log names the SSM command
+  (`sent <profile>-ec2 command <id>`) whose output holds those lines. A
+  release that answers `/health` on the host but fails a public smoke stays
+  installed.
+
+  A release is kept only while it answers `/health` under the identity in its
+  environment file, so retrying a failed release leaves the last good one
+  kept, and the next release over a healthy one replaces it. A release that is
+  already installed and answering is left alone: running its job again does
+  not restart it. To put the kept pair back by hand, alongside the alias move
+  above, run on the Datalevin host:
+
+  ```sh
+  ln -f /etc/eacl-demo-datalevin.env.previous /etc/eacl-demo-datalevin.env
+  ln -f /opt/eacl-demo/datalevin.jar.previous /opt/eacl-demo/datalevin.jar
+  systemctl restart eacl-demo-datalevin.service
+  ```
+
+  `ln -f` replaces the live name in one step and needs no free disk space.
+
+  The Datomic host uses `/etc/eacl-demo-datomic.env`,
+  `/opt/eacl-demo/function.jar` and `eacl-demo-datomic.service`.
 - Data: select the prior retained blue/green generation together with the
   runtime/descriptor that names it. Do not roll back by editing or deleting a
   generation.
