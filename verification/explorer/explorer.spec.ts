@@ -202,6 +202,10 @@ test("a coherent Datomic EC2 version drift remains usable and shows registry/ser
   await expect(exactDate).toBeEnabled();
   await exactDate.fill("2026-08-24T10:00");
   await expect(exactDate).toHaveValue("2026-08-24T10:00");
+  // The permission console starts collapsed at or below 800px, where its
+  // submit button is reachable only after the disclosure is opened.
+  const canToggle = page.getByRole("button", { name: "Toggle Check Permission", exact: true });
+  if (await canToggle.getAttribute("aria-expanded") !== "true") await canToggle.click();
   await page.getByRole("button", { name: "Check Permission", exact: true }).click();
   const expectedExactDate = await page.evaluate(
     () => new Date("2026-08-24T10:00:00").toISOString(),
@@ -434,16 +438,24 @@ test("an enabled publication opens the schema-validated server explorer over the
   await expect(page.locator(".cache-timing__status", { hasText: "HIT" }).first()).toBeVisible();
   const canFooter = page.getByLabel("Arbitrary EACL permission check");
   await expect(canFooter).toBeVisible();
+  // At or below 800px the console starts collapsed; its decision stays in the
+  // header, and the inputs and submit button appear once it is opened.
+  const compact = testInfo.project.name.startsWith("mobile");
+  const canToggle = canFooter.getByRole("button", { name: "Toggle Check Permission", exact: true });
+  await expect(canToggle).toHaveAttribute("aria-expanded", compact ? "false" : "true");
+  await expect(canFooter.locator(".can-permission-footer__decision .decision-allowed")).toHaveText("✓ Allowed");
+  if (compact) await canToggle.click();
   await expect(canFooter.getByLabel("can? subject type")).toHaveValue("user");
   await expect(canFooter.getByLabel("can? subject ID")).toHaveValue("user-1");
   await expect(canFooter.getByLabel("can? resource type")).toHaveValue("server");
   await expect(canFooter.getByLabel("can? resource ID")).toHaveValue("server-1");
   await expect(canFooter.getByLabel("can? permission")).toHaveValue("view");
-  await expect(canFooter).toContainText("=> true");
   const canRequestsBefore = apiRequests.filter(({ operation }) => operation === "check-permission").length;
   await canFooter.getByRole("button", { name: "Check Permission", exact:true }).click();
   await expect.poll(() => apiRequests.filter(({ operation }) => operation === "check-permission").length)
     .toBeGreaterThan(canRequestsBefore);
+  // Collapse it again so the fixed console does not cover the resource tree.
+  if (compact) await canToggle.click();
   const atLeastRequests = apiRequests.filter(({ input }) => input.consistency === "at-least");
   expect(atLeastRequests.length).toBeGreaterThan(0);
   expect(atLeastRequests.every(({ input }) =>
