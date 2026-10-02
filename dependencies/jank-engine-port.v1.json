@@ -10,8 +10,8 @@
       "services/jank-memory/src/eacl"
     ],
     "fileCount": 50,
-    "bytes": 476576,
-    "contentSha256": "sha256:ca3f7976c030ea5ccae849a39e5bf8735de814af5a2bcb6f15f60524ab6e23c3",
+    "bytes": 465439,
+    "contentSha256": "sha256:e475ccc7f51431112a6df8cd04c2b3a489bd546609d56b627ca85506581b91a8",
     "releaseIdentity": "the eventual immutable eacl-demo Git commit containing this exact vendored tree"
   },
   "port": {
