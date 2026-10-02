@@ -239,6 +239,20 @@ test("the shared seed controls show partial failure and retry the remaining reso
   expect(failed.status).toBe("error");
   expect(failed.resourcesCompleted).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Retry", exact: true }).click();
-  await expect(page.getByText("11,500 resources", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // The header total reaches 10,000 + 1,500 only if the retry adds exactly the
+  // resources the failed job had not committed.
+  const objects = page.locator(".navbar-count").first();
+  await expect(objects.locator("strong")).toHaveText("11,500", { timeout: 30_000 });
+  // Count only once the job has settled: a retry that re-added committed
+  // resources would pass through 11,500 on its way to a larger total.
+  await ready(page);
+  await expect(page.getByText("Seeding failed", { exact: true })).toHaveCount(0);
+  await expect(objects).toBeVisible();
+  await expect(objects.locator("strong")).toHaveText("11,500");
+  await expect(objects.locator("span")).toHaveText("objects");
+  const settled = (await request(page, "seed-status")).data;
+  expect(settled.status).toBe("ready");
+  expect(settled.resourcesCompleted).toBe(1500);
+  expect(settled.totalResources).toBe(11500);
   expect((await request(page, "count-objects", { kind: "objects", ceiling: 100000 })).data.value).toBe(11500);
 });

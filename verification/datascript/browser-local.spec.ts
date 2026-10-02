@@ -79,20 +79,33 @@ test("fixture initialization and authorization stay in the direct browser runtim
     contentType: "application/json",
     body: JSON.stringify(benchmarkIndex),
   }));
+  // The analytics script logs a warning when the page is served from this
+  // loopback origin (demo.eacl.dev logs none), and it would be the only one.
+  // Stub that third-party URL: the warning check below then covers first-party
+  // code and needs no external network.
+  await page.route("https://scripts.simpleanalyticscdn.com/**", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript",
+    body: "",
+  }));
 
   const startupStartedAt = Date.now();
   await page.goto(process.env.EACL_DATASCRIPT_URL ?? "http://127.0.0.1:4174/");
   await expect(page.getByText(/SolidJS/iu)).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Backend & Storage" })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
-  await expect(page.getByRole("radio", { name: "Browser memory", exact: true })).toBeChecked();
-  const consistencyDisclosure = page.getByRole("button", { name: "Consistency Semantics" });
+  const selector = page.getByRole("region", { name: "Backend, Storage and Execution" });
+  await expect(selector).toBeVisible();
+  await expect(selector.getByRole("radio", { name: "DataScript", exact: true })).toBeChecked();
+  await expect(selector.getByRole("radio", { name: "Browser In-memory", exact: true })).toBeChecked();
+  await expect(selector.getByRole("radio", { name: "Browser", exact: true })).toBeChecked();
+  const consistencyDisclosure = page.getByRole("button", { name: "Consistency Mode", exact: true });
   await expect(consistencyDisclosure).toBeVisible({ timeout: 60_000 });
   if (await consistencyDisclosure.getAttribute("aria-expanded") !== "true") {
     await consistencyDisclosure.click();
   }
-  await expect(page.locator(".basis-info__note--consistency")).toHaveCount(0);
-  await expect(page.getByRole("radio", { name: "fully-consistent", exact: true })).toBeDisabled();
+  // DataScript has no authority to synchronize with: the mode is disabled with
+  // the generic reason, never a server profile's cost or synchronization note.
+  await expect(page.getByRole("radio", { name: "fully-consistent Requires authoritative synchronization", exact: true })).toBeDisabled();
+  await expect(page.getByText(/cost-controlled demo|authoritative-head synchronization/iu)).toHaveCount(0);
   const startupElapsedMs = Date.now() - startupStartedAt;
   await testInfo.attach("datascript-startup.json", {
     body: JSON.stringify({ startupElapsedMs }),
@@ -104,7 +117,10 @@ test("fixture initialization and authorization stay in the direct browser runtim
   expect(requests.some(({ url }) => url.endsWith(`/registry/profiles/datascript-browser-memory.json`))).toBe(true);
   expect(requests.some(({ url }) => url.endsWith(`/datascript/assets/datascript-runtime-${artifact.artifact.sha256}.js`))).toBe(true);
   expect(await page.evaluate(() => (globalThis as typeof globalThis & { __eaclWorkerCount?: number }).__eaclWorkerCount)).toBe(0);
-  await expect(page.getByText("10,000 resources", { exact: true })).toBeVisible();
+  const objectCount = page.locator(".navbar-count").first();
+  await expect(objectCount).toBeVisible();
+  await expect(objectCount.locator("strong")).toHaveText("10,000");
+  await expect(objectCount.locator("span")).toHaveText("objects");
 
   const defaults = await page.evaluate(async () => {
     const runtime = (globalThis as typeof globalThis & { EaclDataScriptRuntime?: { request: (operation: string, input: Record<string, unknown>, requestId: string) => Promise<any> } }).EaclDataScriptRuntime;
@@ -191,29 +207,36 @@ test("fixture initialization and authorization stay in the direct browser runtim
   expect(Date.parse(defaults.cache.data.capturedAt)).not.toBeNaN();
 
   requests.length = 0;
-  await expect(page.getByRole("heading", { name: "Subjects" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Resources" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Detail" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Schema" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cache", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Accounts" }).click();
-  await expect(page.locator(".resource-button").first()).toBeVisible();
-  await page.locator(".resource-button").first().click();
-  await expect(page.getByRole("heading", { name: "Can active subject?" })).toBeVisible();
-  await expect(page.locator(".permission-decision__status--allowed").first()).toBeVisible();
-  await expect(page.locator(".cache-timing").first()).toBeVisible();
-  await expect(page.locator(".cache-timing__status").first()).toHaveText(/^(?:hit|miss)$/u);
+  // Subjects are chosen in the View As dialog, quick subjects first.
+  await page.getByRole("button", { name: "View As user-1", exact: true }).click();
+  const viewAs = page.getByRole("dialog");
+  await expect(viewAs.getByRole("heading", { name: "View As", exact: true })).toBeVisible();
+  await expect(viewAs.getByRole("button", { name: "User 1", exact: true })).toBeVisible();
+  await viewAs.getByRole("button", { name: "Close View As", exact: true }).click();
+  await expect(viewAs).toBeHidden();
+  await expect(page.getByRole("button", { name: "Resources", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Permission Schema", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Schema Graph", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cache Diagnostics", exact: true })).toBeVisible();
+  await expect(page.getByText("Click a resource to inspect it.", { exact: true })).toBeVisible();
+  // Accounts start expanded, and user-1 administers account-0.
+  await expect(page.getByRole("button", { name: "account type Accounts", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "account type account-0", exact: true }).click();
+  await expect(page.locator(".detail-header__id")).toHaveText("account-0");
+  await expect(page.getByRole("heading", { name: "Permissions", exact: true })).toBeVisible();
+  const adminDecision = page.locator('.permission-decision[data-permission="admin"]');
+  await expect(adminDecision.locator(".permission-decision__status--allowed")).toBeVisible();
+  await expect(adminDecision.locator(".cache-timing")).toBeVisible();
+  await expect(adminDecision.locator(".cache-timing__status")).toHaveText(/^(?:HIT|MISS)$/u);
 
   const panelTops = await page.locator(".panel-grid > .panel-host").evaluateAll((panels) =>
     panels.map((panel) => Math.round(panel.getBoundingClientRect().top)),
   );
-  expect(panelTops).toHaveLength(3);
+  expect(panelTops).toHaveLength(2);
   if (testInfo.project.name.startsWith("desktop")) {
     expect(new Set(panelTops).size).toBe(1);
   } else {
     expect(panelTops[0]).toBeLessThan(panelTops[1]);
-    expect(panelTops[1]).toBeLessThan(panelTops[2]);
   }
 
   expect(requests).toEqual([]);
