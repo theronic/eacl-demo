@@ -201,10 +201,28 @@ Rollback is per unit, never fleet-wide:
   not answer `/health` on the host within 360 s, the command prints
   `systemctl status` and the last service log lines, links the kept pair back
   into place, restarts the unit and waits for health again. The command and
-  the job still fail; the job log names the SSM command
-  (`sent <profile>-ec2 command <id>`) whose output holds those lines. A
-  release that answers `/health` on the host but fails a public smoke stays
-  installed.
+  the job still fail. A release that answers `/health` on the host but fails a
+  public smoke stays installed.
+
+  While the job waits for the public origin it reads the command's result
+  every few seconds and logs the command's status when it changes. Once the
+  command has failed, the job prints the command's standard output and error
+  and fails without waiting out its 900 s; the alias and the registry are
+  handled as for any failed release. Success is still decided by the public
+  origin alone.
+
+  The read needs `ssm:GetCommandInvocation` on the deploy role. A role without
+  it says so once in the job log and waits out the public origin, and the
+  output then has to be fetched by hand, with the command ID the job log names
+  (`sent <profile>-ec2 command <id>`):
+
+  ```sh
+  aws ssm get-command-invocation --command-id <id> --instance-id <instance> --query '[StandardOutputContent,StandardErrorContent]' --output text
+  ```
+
+  The job log is public. The release command prints no secret, and the job
+  withholds any line that names `EACL_CURSOR_KEY`; a change to what the
+  command prints has to keep the key's value out of it.
 
   A release is kept only while it answers `/health` under the identity in its
   environment file, so retrying a failed release leaves the last good one

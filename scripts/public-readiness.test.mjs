@@ -72,3 +72,52 @@ test("a longer startup budget still rejects stale identity and invalid browser C
     }), /public origin smoke failed/u);
   }
 });
+
+const stale = () => ready({ artifactSha256: "d".repeat(64) });
+
+test("the caller is asked after every attempt that misses and once more when the time is up", async () => {
+  const timer = clock();
+  const asked = [];
+  await assert.rejects(smokeFunctionUrl(identity.profileId, origin, identity, {
+    ...timer,
+    timeoutMs: 5_000,
+    fetchResponse: async () => stale(),
+    whileWaiting: async (state) => { asked.push({ ...state, at: timer.now() }); }
+  }), /public origin smoke failed after deployment propagation: \{"status":200,/u);
+  assert.deepEqual(asked, [
+    { final: false, at: 0 }, { final: false, at: 2_000 }, { final: false, at: 4_000 }, { final: true, at: 5_000 }
+  ]);
+});
+
+test("a caller that throws ends the wait there with its own error", async () => {
+  for (const [throwsAt, final] of [[2_000, false], [5_000, true]]) {
+    const timer = clock();
+    let calls = 0;
+    await assert.rejects(smokeFunctionUrl(identity.profileId, origin, identity, {
+      ...timer,
+      timeoutMs: 5_000,
+      fetchResponse: async () => { calls += 1; return stale(); },
+      whileWaiting: async (state) => {
+        if (timer.now() >= throwsAt && state.final === final) throw new Error("the host command failed");
+      }
+    }), /^Error: the host command failed$/u);
+    assert.equal(timer.now(), throwsAt);
+    assert.equal(calls, final ? 3 : 2);
+  }
+});
+
+test("the caller is not asked once the expected identity has appeared", async () => {
+  const timer = clock();
+  let asked = 0;
+  await smokeFunctionUrl(identity.profileId, origin, identity, {
+    ...timer,
+    timeoutMs: 900_000,
+    fetchResponse: async () => (timer.now() < 4_000 ? stale() : ready()),
+    whileWaiting: async () => {
+      asked += 1;
+      if (timer.now() >= 4_000) throw new Error("asked after the identity appeared");
+    }
+  });
+  assert.equal(timer.now(), 4_000);
+  assert.equal(asked, 2);
+});

@@ -10,6 +10,7 @@ import { createProfilePublication } from "../packages/explorer-state/src/profile
 import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 import { committedEaclCore } from "./lib/eacl-core.mjs";
 import { smokeFunctionUrl } from "./lib/public-readiness.mjs";
+import { releaseCommandWatch } from "./lib/release-command-result.mjs";
 import { stalePublishedVersions } from "./lib/lambda-version-retention.mjs";
 import { storageV8Environment } from "./lib/storage-v8.mjs";
 
@@ -346,7 +347,7 @@ async function deployDatomicEc2(release) {
       "datomic-dynamodb",
       "https://datomic.demo.eacl.dev",
       expectedIdentityFor("datomic-dynamodb", release.artifactSha256, release.deploymentId),
-      { timeoutMs: 900_000 }
+      { timeoutMs: 900_000, whileWaiting: ec2ReleaseWatch("datomic-dynamodb-ec2", commandId, instanceId) }
     );
     await smokeDatomicHistoricalUrl("https://datomic.demo.eacl.dev");
     await smokeDatomicAdmissionQueueUrl("https://datomic.demo.eacl.dev");
@@ -396,7 +397,7 @@ async function deployDatalevinEc2(release) {
       "datalevin-memory",
       "https://datalevin.demo.eacl.dev",
       expectedIdentityFor("datalevin-memory", release.artifactSha256, release.deploymentId),
-      { timeoutMs: 900_000 }
+      { timeoutMs: 900_000, whileWaiting: ec2ReleaseWatch("datalevin-memory-ec2", commandId, instanceId) }
     );
     process.stdout.write(`deployed datalevin-memory-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
@@ -404,13 +405,57 @@ async function deployDatalevinEc2(release) {
   }
 }
 
+// While the job waits for the public origin it reads the release command's
+// result, so a release that has failed on its host fails the job at once and
+// leaves the command's output in the job log. The deploy role needs
+// ssm:GetCommandInvocation for that, which IAM cannot limit to one command.
+// A role without it is told so once and waits for the origin as before.
+function ec2ReleaseWatch(target, commandId, instanceId) {
+  return releaseCommandWatch({
+    label: `${target} command ${commandId}`,
+    readInvocation: () => ec2CommandInvocation(commandId, instanceId),
+    // One stream keeps the report in order, and the job goes on to fail only
+    // after the report has been written out.
+    write: (text) => new Promise((resolve) => { process.stdout.write(text, () => resolve()); }),
+    workflowCommands: process.env.GITHUB_ACTIONS === "true"
+  });
+}
+
+// One read of the command's result. It does not go through aws(), which
+// copies the CLI's stderr into the job log and rejects: a denied read is the
+// expected answer until the role is updated, its message names the role
+// session, and no failed read may fail the deployment.
+function ec2CommandInvocation(commandId, instanceId) {
+  return new Promise((resolve) => {
+    execFile("aws", ["--cli-connect-timeout", "5", "--cli-read-timeout", "10",
+      "--region", required("AWS_REGION"), "ssm", "get-command-invocation",
+      "--command-id", commandId, "--instance-id", instanceId, "--output", "json"], {
+      cwd: root, encoding: "utf8", timeout: 20_000
+    }, (error, stdout, stderr) => {
+      if (error) {
+        const code = /An error occurred \((\w+)\) when calling the GetCommandInvocation operation/u.exec(stderr)?.[1];
+        resolve(code?.startsWith("AccessDenied")
+          ? { denied: true }
+          : { unavailable: code ?? (error.killed ? "no answer from the AWS CLI" : "the AWS CLI failed") });
+        return;
+      }
+      try {
+        resolve({ invocation: JSON.parse(stdout) });
+      } catch {
+        resolve({ unavailable: "an answer that is not JSON" });
+      }
+    });
+  });
+}
+
 // A jar that passed the Lambda smoke can still fail to start on its host, and
 // systemd then restarts it until someone reinstalls the old artifact by hand.
 // The command therefore keeps the jar and environment file it replaces and
 // puts them back when the new release never answers /health. It still exits
-// non-zero, and the origin then serves the previous identity, so the public
-// smoke fails the job as before: the alias rolls back and the registry is
-// not published.
+// non-zero, so the job fails, the alias rolls back and the registry is not
+// published. The job sees that in the command's result where its role may
+// read it, and otherwise in the public smoke as before, because the origin
+// then serves the previous identity.
 //
 // Only a release that is answering /health as itself is kept. Otherwise a
 // second attempt at a broken release would replace the last good one with the

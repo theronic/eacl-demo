@@ -5,6 +5,8 @@ import { access, chmod, constants, link, mkdir, mkdtemp, readFile, rm, stat, sym
 import os from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
+import { smokeFunctionUrl } from "./lib/public-readiness.mjs";
+import { releaseCommandWatch } from "./lib/release-command-result.mjs";
 import { storageV8Environment } from "./lib/storage-v8.mjs";
 
 const [deploySource, datomicTemplate, datalevinTemplate] = await Promise.all([
@@ -22,6 +24,7 @@ const bucket = "eacl-demo-artifacts";
 const region = "us-east-1";
 const instanceId = "i-0123456789abcdef0";
 const commandId = "0f1e2d3c-4b5a-4697-8877-665544332211";
+const deployRoot = "/checkout";
 const epoch = 1_800_000_000;
 // GetCommandInvocation returns only this much of what a command prints.
 const ssmStandardOutputCharacters = 24_000;
@@ -114,7 +117,10 @@ function lifted(name) {
   return match[0];
 }
 
-async function sentCommand(host, artifact) {
+// `wait` stands in for what follows the send: the wait for the public origin
+// and the AWS CLI that reads the command's result during it. Without it the
+// origin shows the release at once and nothing is read.
+function deployment(host, artifact, wait = {}) {
   const release = {
     artifactKey: `artifacts/${host.profile}/${demoSha}/${sha256(artifact)}.jar`,
     artifactSha256: sha256(artifact),
@@ -125,7 +131,14 @@ async function sentCommand(host, artifact) {
   const written = [];
   const scope = {
     mkdtemp, writeFile, rm, os, path,
-    process: { stdout: { write: (text) => written.push(text) } },
+    root: deployRoot,
+    process: {
+      env: wait.environment ?? {},
+      stdout: { write: (text, flushed) => {
+        written.push(text);
+        flushed?.();
+      } }
+    },
     storageV8Environment,
     required: (name) => ({ ARTIFACT_BUCKET: bucket, AWS_REGION: region })[name] ??
       assert.fail(`unexpected required(${name})`),
@@ -135,25 +148,90 @@ async function sentCommand(host, artifact) {
     },
     demoSha: () => demoSha,
     eaclSha: () => eaclSha,
-    expectedIdentityFor: (...identity) => identity,
-    smokeFunctionUrl: async () => {},
+    expectedIdentityFor: (profileId, artifactSha256, deploymentId) =>
+      ({ profileId, demoSha, eaclSha, artifactSha256, deploymentId }),
+    smokeFunctionUrl: wait.smokeFunctionUrl ?? (async () => {}),
     smokeDatomicHistoricalUrl: async () => {},
     smokeDatomicAdmissionQueueUrl: async () => {},
+    releaseCommandWatch: wait.releaseCommandWatch ?? releaseCommandWatch,
+    execFile: wait.execFile ?? (() => assert.fail("the job read a result it had no reason to read")),
     awsJson: async (args) => {
       const parameters = args[args.indexOf("--parameters") + 1];
       sent.push({ args, parameters: JSON.parse(await readFile(new URL(parameters), "utf8")) });
       return { Command: { CommandId: commandId } };
     }
   };
-  const declarations = ["deployDatomicEc2", "deployDatalevinEc2", "ec2ReleaseScript", "shellQuote"].map(lifted);
+  const declarations = [
+    "deployDatomicEc2", "deployDatalevinEc2", "ec2ReleaseWatch", "ec2CommandInvocation", "ec2ReleaseScript", "shellQuote"
+  ].map(lifted);
   const functions = new Function(...Object.keys(scope),
     `${declarations.join("\n")}\nreturn { deployDatomicEc2, deployDatalevinEc2 };`)(...Object.values(scope));
-  await functions[host.deploy](release);
+  return { release, sent, written, done: functions[host.deploy](release) };
+}
+
+async function sentCommand(host, artifact) {
+  const { release, sent, written, done } = deployment(host, artifact);
+  await done;
   assert.equal(sent.length, 1);
   assert.deepEqual(Object.keys(sent[0].parameters), ["commands"]);
   assert.equal(sent[0].parameters.commands.length, 1);
   return { args: sent[0].args, command: sent[0].parameters.commands[0], release, written };
 }
+
+// What the installed AWS CLI writes to stderr when SSM refuses or fails a
+// request, as CLI 2.34 prints it and as earlier releases did.
+const cliErrors = (code, message) => [
+  `\naws: [ERROR]: An error occurred (${code}) when calling the GetCommandInvocation operation: ${message}\n`,
+  `\nAn error occurred (${code}) when calling the GetCommandInvocation operation (reached max retries: 2): ${message}\n`
+];
+const deniedMessage = "User: arn:aws:sts::123456789012:assumed-role/example-deploy/example-session is not authorized to perform: ssm:GetCommandInvocation on resource: arn:aws:ssm:us-east-1:123456789012:* because no identity-based policy allows the ssm:GetCommandInvocation action";
+
+// The job's side of a release: the real wait for the public origin and the
+// real reading of the command's result, on a clock that only the wait's own
+// sleeps move. `origin` says which identity /health serves at a given second
+// and `ssm` what the AWS CLI then answers: an invocation, or
+// `{ stderr, killed }` for a call that failed.
+function waiting({ origin, ssm, environment = {} }) {
+  let elapsed = 0;
+  const timer = { now: () => elapsed, sleep: async (ms) => { elapsed += ms; } };
+  const reads = [];
+  return {
+    environment,
+    reads,
+    seconds: () => elapsed / 1_000,
+    smokeFunctionUrl: (profileId, url, identity, options) => smokeFunctionUrl(profileId, url, identity, {
+      ...options,
+      ...timer,
+      fetchResponse: async () => new Response(JSON.stringify({
+        data: { ready: true, identity: { ...identity, ...origin(elapsed / 1_000) } },
+        meta: { revision: "fixture:17", requestId: "ec2-release-test" }
+      }), { headers: {
+        "content-type": "application/json", "access-control-allow-origin": "https://demo.eacl.dev"
+      } })
+    }),
+    releaseCommandWatch: (options) => releaseCommandWatch({ ...options, now: timer.now }),
+    execFile: (file, args, options, callback) => {
+      reads.push({ file, args, options, second: elapsed / 1_000 });
+      const answer = ssm(elapsed / 1_000);
+      if (answer.stderr === undefined) callback(null, `${JSON.stringify(answer, null, 4)}\n`, "");
+      else callback(Object.assign(new Error("Command failed: aws"), { code: 254, killed: answer.killed === true }), "", answer.stderr);
+    }
+  };
+}
+
+const invocation = (status, responseCode, standardOutput = "", standardError = "") => ({
+  CommandId: commandId, InstanceId: instanceId, Comment: "", DocumentName: "AWS-RunShellScript",
+  DocumentVersion: "$DEFAULT", PluginName: "aws:runShellScript", ResponseCode: responseCode,
+  ExecutionStartDateTime: "", ExecutionElapsedTime: "", ExecutionEndDateTime: "",
+  Status: status, StatusDetails: status, StandardOutputContent: standardOutput, StandardOutputUrl: "",
+  StandardErrorContent: standardError, StandardErrorUrl: "",
+  CloudWatchOutputConfig: { CloudWatchLogGroupName: "", CloudWatchOutputEnabled: false }
+});
+// The origin goes on serving, or serves again, the release before this one.
+const previousRelease = () => ({
+  demoSha: previousDemoSha, eaclSha: previousEaclSha, artifactSha256: sha256(previousJar),
+  deploymentId: `production:${previousDemoSha}:previous`
+});
 
 // Children get no standard input. A pipe from Node is a socket, and a
 // top-level `bash -c` that reads from a socket takes itself for a remote
@@ -440,6 +518,84 @@ test("the fake host matches the paths, ports and stop timeouts the templates giv
   assert.match(datalevinTemplate, /TimeoutStopSec=15\n/u);
 });
 
+test("the job reads a command's result with one bounded AWS CLI call that cannot fail the deployment", async () => {
+  const calls = [];
+  const read = (answer) => new Function("execFile", "required", "root",
+    `${lifted("ec2CommandInvocation")}\nreturn ec2CommandInvocation;`)(
+    (file, args, options, callback) => {
+      calls.push({ file, args, options });
+      answer(callback);
+    },
+    (name) => ({ AWS_REGION: region })[name] ?? assert.fail(`unexpected required(${name})`),
+    deployRoot
+  )(commandId, instanceId);
+  const failing = (stderr, fields = {}) => (callback) =>
+    callback(Object.assign(new Error("Command failed: aws"), { code: 254, killed: false, ...fields }), "", stderr);
+
+  const restored = invocation("Failed", 1, "The previous release is restored and healthy.\n", "failed to run commands: exit status 1");
+  assert.deepEqual(await read((callback) => callback(null, `${JSON.stringify(restored, null, 4)}\n`, "")),
+    { invocation: restored });
+  assert.deepEqual(calls, [{
+    file: "aws",
+    args: ["--cli-connect-timeout", "5", "--cli-read-timeout", "10", "--region", region,
+      "ssm", "get-command-invocation", "--command-id", commandId, "--instance-id", instanceId, "--output", "json"],
+    options: { cwd: deployRoot, encoding: "utf8", timeout: 20_000 }
+  }]);
+
+  for (const stderr of cliErrors("AccessDeniedException", deniedMessage)) {
+    assert.deepEqual(await read(failing(stderr)), { denied: true });
+  }
+  // Every other failure is one to read past. Only the error code decides,
+  // not a message that happens to mention permission.
+  for (const [code, message] of [
+    ["InvocationDoesNotExist", ""],
+    ["InvalidInstanceId", "You don't have permission to access the managed node."],
+    ["InternalServerError", "AccessDeniedException from a dependency"],
+    ["ThrottlingException", "Rate exceeded"],
+    ["ExpiredTokenException", "The security token included in the request is expired"]
+  ]) {
+    for (const stderr of cliErrors(code, message)) {
+      assert.deepEqual(await read(failing(stderr)), { unavailable: code });
+    }
+  }
+  assert.deepEqual(await read(failing("", { code: null, killed: true, signal: "SIGTERM" })),
+    { unavailable: "no answer from the AWS CLI" });
+  assert.deepEqual(await read(failing("\nUnable to locate credentials. You can configure credentials by running \"aws login\".\n", { code: 253 })),
+    { unavailable: "the AWS CLI failed" });
+  assert.deepEqual(await read((callback) => callback(null, "", "")), { unavailable: "an answer that is not JSON" });
+});
+
+test("the job's report is on its way out of the process before the job goes on to fail", async () => {
+  for (const [environment, workflowCommands] of [[{}, false], [{ GITHUB_ACTIONS: "true" }, true], [{ GITHUB_ACTIONS: "1" }, false]]) {
+    let options = null;
+    const events = [];
+    const watch = new Function("releaseCommandWatch", "process", "ec2CommandInvocation",
+      `${lifted("ec2ReleaseWatch")}\nreturn ec2ReleaseWatch;`)(
+      (given) => {
+        options = given;
+        return "the watch";
+      },
+      // A write that takes a callback has not left the process until the
+      // callback runs.
+      { env: environment, stdout: { write: (text, flushed) => {
+        events.push(`writing ${text}`);
+        setImmediate(() => {
+          events.push("flushed");
+          flushed();
+        });
+      } } },
+      (...read) => read
+    )("datalevin-memory-ec2", commandId, instanceId);
+    assert.equal(watch, "the watch");
+    assert.deepEqual(Object.keys(options).sort(), ["label", "readInvocation", "workflowCommands", "write"]);
+    assert.equal(options.label, `datalevin-memory-ec2 command ${commandId}`);
+    assert.equal(options.workflowCommands, workflowCommands);
+    assert.deepEqual(options.readInvocation(), [commandId, instanceId]);
+    await options.write("report").then(() => events.push("the job goes on"));
+    assert.deepEqual(events, ["writing report", "flushed", "the job goes on"]);
+  }
+});
+
 for (const host of hosts) {
   describe(`${host.profile} EC2 release command`, { concurrency: true, skip }, () => {
     test("is one bash command for the profile's own instance, named in the job log", async () => {
@@ -696,6 +852,119 @@ for (const host of hosts) {
       ]);
       assert.ok(outcome.stdout.length < ssmStandardOutputCharacters, `printed ${outcome.stdout.length} characters`);
       assert.ok(outcome.elapsed >= 840 && outcome.elapsed <= 900, `took ${outcome.elapsed} s`);
+    });
+
+    test("the job prints what a failed release printed and fails without waiting out the public origin", async (t) => {
+      const outcome = await release(t, host, { artifact: brokenJar });
+      assert.equal(outcome.status, 1);
+      // SSM adds this line to what a failed command wrote to stderr.
+      const failed = invocation("Failed", outcome.status, outcome.stdout,
+        `${outcome.stderr}failed to run commands: exit status ${outcome.status}`);
+      const wait = waiting({
+        origin: previousRelease,
+        ssm: (second) => (second < outcome.elapsed ? invocation("InProgress", -1) : failed)
+      });
+      const { written, done } = deployment(host, brokenJar, wait);
+      await assert.rejects(done,
+        new RegExp(`^Error: ${host.profile}-ec2 command ${commandId} failed on its host: Failed, exit code 1$`, "u"));
+      assert.ok(wait.seconds() >= outcome.elapsed && wait.seconds() <= outcome.elapsed + 8,
+        `the job failed after ${wait.seconds()} s, the command after ${outcome.elapsed} s`);
+      const log = written.join("");
+      assertOrdered(log, [
+        `sent ${host.profile}-ec2 command ${commandId}\n`,
+        `${host.profile}-ec2 command ${commandId} is InProgress\n`,
+        `${host.profile}-ec2 command ${commandId} ended on its host: Failed, exit code 1\n`,
+        "standard output:\n",
+        "The new release did not become healthy.",
+        `${host.unit}: activating (auto-restart) release-2`,
+        "release-2: Execution error (ExceptionInfo) :datalevin/frozen-attribute-write",
+        `Restoring artifact ${sha256(previousJar)}.`,
+        "The previous release is restored and healthy.",
+        "standard error:\n",
+        "failed to run commands: exit status 1\n"
+      ]);
+      assert.ok(log.includes(outcome.stdout), "the job log lacks part of what the command printed");
+      assert.equal(log.includes(cursorKey), false, "the job printed the cursor key");
+      assert.doesNotMatch(log, /^deployed /mu);
+      assert.doesNotMatch(log, /stop-commands/u);
+      // Every read asks for the command this job sent, on this profile's instance.
+      assert.ok(wait.reads.length > 60);
+      for (const read of wait.reads) {
+        assert.deepEqual(read.args.slice(-6), ["--command-id", commandId, "--instance-id", instanceId, "--output", "json"]);
+      }
+    });
+
+    test("the job keeps what the host printed apart from workflow commands when it runs in a workflow", async (t) => {
+      const outcome = await release(t, host, { artifact: brokenJar });
+      const wait = waiting({
+        origin: previousRelease,
+        environment: { GITHUB_ACTIONS: "true" },
+        ssm: () => invocation("Failed", outcome.status, outcome.stdout, outcome.stderr)
+      });
+      const { written, done } = deployment(host, brokenJar, wait);
+      await assert.rejects(done, /failed on its host: Failed, exit code 1$/u);
+      const report = written.at(-1).split("\n");
+      const token = /^::stop-commands::([0-9a-f-]{36})$/u.exec(report[1])?.[1];
+      assert.ok(token, report[1]);
+      assert.deepEqual(report.slice(-2), [`::${token}::`, ""]);
+      assert.equal(report.indexOf("standard output:"), 2);
+    });
+
+    test("the job waits for the public origin as it did before when its role may not read the result", async () => {
+      const artifact = jar("release-2", 30);
+      const told = `${host.profile}-ec2 command ${commandId}: this job's role may not read the command's result (ssm:GetCommandInvocation), so only the public origin is checked\n`;
+      for (const stderr of cliErrors("AccessDeniedException", deniedMessage)) {
+        // The release never shows at the origin, as after a restore.
+        const restored = waiting({ origin: previousRelease, ssm: () => ({ stderr }) });
+        const failing = deployment(host, artifact, restored);
+        await assert.rejects(failing.done, new RegExp(
+          `^Error: ${host.profile} public origin smoke failed after deployment propagation: ` +
+          `\\{"status":200,"contentType":"application/json","identity":\\{.*"artifactSha256":"${sha256(previousJar)}"`, "u"));
+        assert.equal(restored.seconds(), 900);
+        assert.equal(restored.reads.length, 1);
+        assert.deepEqual(failing.written, [`sent ${host.profile}-ec2 command ${commandId}\n`, told]);
+
+        // The release shows at the origin after 40 s.
+        const released = waiting({ origin: (second) => (second < 40 ? previousRelease() : {}), ssm: () => ({ stderr }) });
+        const passing = deployment(host, artifact, released);
+        await passing.done;
+        assert.equal(released.seconds(), 40);
+        assert.equal(released.reads.length, 1);
+        assert.deepEqual(passing.written, [
+          `sent ${host.profile}-ec2 command ${commandId}\n`,
+          told,
+          `deployed ${host.profile}-ec2 command ${commandId} sha256:${sha256(artifact)}\n`
+        ]);
+      }
+    });
+
+    test("the job still waits for the public origin after the command has succeeded", async (t) => {
+      const artifact = jar("release-2", 30);
+      const outcome = await release(t, host, { artifact });
+      assert.equal(outcome.status, 0, outcome.stderr);
+      const running = `${host.profile}-ec2 command ${commandId} is InProgress\n`;
+      const succeeded = `${host.profile}-ec2 command ${commandId} succeeded on its host\n`;
+      const result = (second) => (second < outcome.elapsed
+        ? invocation("InProgress", -1)
+        : invocation("Success", 0, outcome.stdout, outcome.stderr));
+
+      const shown = waiting({ origin: (second) => (second < outcome.elapsed + 10 ? previousRelease() : {}), ssm: result });
+      const passing = deployment(host, artifact, shown);
+      await passing.done;
+      assert.ok(shown.seconds() >= outcome.elapsed + 10 && shown.seconds() <= outcome.elapsed + 12,
+        `the job passed after ${shown.seconds()} s, the command after ${outcome.elapsed} s`);
+      assert.deepEqual(passing.written, [
+        `sent ${host.profile}-ec2 command ${commandId}\n`,
+        running,
+        succeeded,
+        `deployed ${host.profile}-ec2 command ${commandId} sha256:${sha256(artifact)}\n`
+      ]);
+
+      const unseen = waiting({ origin: previousRelease, ssm: result });
+      const failing = deployment(host, artifact, unseen);
+      await assert.rejects(failing.done, new RegExp(`^Error: ${host.profile} public origin smoke failed after deployment propagation: `, "u"));
+      assert.equal(unseen.seconds(), 900);
+      assert.deepEqual(failing.written, [`sent ${host.profile}-ec2 command ${commandId}\n`, running, succeeded]);
     });
   });
 }
