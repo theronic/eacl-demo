@@ -211,9 +211,11 @@ Rollback is per unit, never fleet-wide:
   handled as for any failed release. Success is still decided by the public
   origin alone.
 
-  The read needs `ssm:GetCommandInvocation` on the deploy role. A role without
-  it says so once in the job log and waits out the public origin, and the
-  output then has to be fetched by hand, with the command ID the job log names
+  The read needs `ssm:GetCommandInvocation` on the deploy role (the policy
+  `regional-command-result-read` in
+  `infra/deployment/server-profile-deploy-role.yaml`). A role without it says
+  so once in the job log and waits out the public origin, and the output then
+  has to be fetched by hand, with the command ID the job log names
   (`sent <profile>-ec2 command <id>`):
 
   ```sh

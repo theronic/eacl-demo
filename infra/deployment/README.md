@@ -70,6 +70,15 @@ alter Function URLs or permissions, invalidate or modify distributions, access
 stateful data, start compute, pass roles, delete objects, or use KMS. This local
 definition is not evidence that any role or ordinary workflow is live.
 
+The two profiles with an EC2 host also send one `AWS-RunShellScript` command
+to their own instance and read that command's result. The read is the role's
+only grant that is not bound to a resource. IAM defines no resource type and
+no condition key for `ssm:GetCommandInvocation`, so the separate policy
+`regional-command-result-read` allows it for any Run Command invocation in the
+stack's Region whose command and instance IDs the caller knows. It is kept out
+of `exact-demo-delivery`, and the role has no action that lists commands or
+instances.
+
 Generate or verify the deterministic policy bundle with:
 
 ```sh
