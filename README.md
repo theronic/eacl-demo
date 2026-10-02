@@ -23,8 +23,8 @@ npm run upgrade:eacl -- <commit-or-ref>
 Merge the upgrade through a PR to `main`, then fast-forward `production` to the
 reviewed commit. The deployment workflow builds and
 smoke-tests the static, Datahike/S3, Datahike/DynamoDB, Datomic/DynamoDB, and
-Datalevin/memory demos. There is no readiness ledger, qualification workflow,
-or artifact-handoff gate in this path.
+Datalevin/embedded disk demos. There is no readiness ledger, qualification
+workflow, or artifact-handoff gate in this path.
 
 The v8 readers provision native UUID lifecycle values in their source configuration.
 Keep each value across replicas and restarts; rotate it when replacing that
@@ -49,9 +49,13 @@ operation; its candidate smoke must pass before promotion. See
 ## Delivery topology
 
 CloudFront serves the shared private static explorer and its conditional DataScript
-entry. The shared explorer calls the selected server profile's public,
-alias-qualified Lambda Function URL directly. See `docs/architecture.md` for
-the exact profile, runtime, storage, and request paths.
+entry. The shared explorer calls the selected server profile's API origin
+directly: a public, alias-qualified Lambda Function URL, or
+`datomic.demo.eacl.dev` or `datalevin.demo.eacl.dev` for the EC2 platform. Those
+two hostnames are API-only CloudFront distributions in front of the EC2 hosts;
+the `demo.eacl.dev` distribution serves static files only. See
+`docs/architecture.md` for the exact profile, runtime, storage, and request
+paths.
 
 ## Local Caveats and expiry playground
 
