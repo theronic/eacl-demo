@@ -61,12 +61,22 @@ test("the Datomic JVM heap and object cache follow the running host and are owne
   assert.doesNotMatch(source, /EACL_RUNTIME_MEMORY_MIB=(?:1024|2048)"/u);
 });
 
-test("a stack update never replaces a verified SSM release with the stack's older artifact", () => {
+test("a stack update never replaces a verified SSM release or rewrites its release lines", () => {
   const association = /RuntimeArtifactAssociation:[\s\S]*?(?=\n\s{2}InitializationAlarm:)/u.exec(source)?.[0];
   assert.ok(association);
-  assert.match(association, /installed=\$\(sed -n 's\/\^EACL_ARTIFACT_SHA256=\/\/p' \/etc\/eacl-demo-datomic\.env\); if \[ -n "\$installed" \] && \[ "\$installed" != "\$\{ArtifactSha256\}" \] && echo "\$installed  \/opt\/eacl-demo\/function\.jar" \| sha256sum --check --strict --status; then touch \/etc\/eacl-demo-keep-release; else rm -f \/etc\/eacl-demo-keep-release; fi/u);
+  // A release is verified when the installed jar has the sha256 that the
+  // environment file names. The guard does not ask for a sha256 other than
+  // the stack's: consecutive commits often build the same jar, and the later
+  // release carries its own commit and deployment.
+  assert.match(association, /\n\s+installed=\$\(sed -n 's\/\^EACL_ARTIFACT_SHA256=\/\/p' \/etc\/eacl-demo-datomic\.env\); if \[ -n "\$installed" \] && echo "\$installed  \/opt\/eacl-demo\/function\.jar" \| sha256sum --check --strict --status; then touch \/etc\/eacl-demo-keep-release; else rm -f \/etc\/eacl-demo-keep-release; fi\n/u);
+  // The marker skips the fetch and every command that writes a release line.
   for (const line of association.split("\n").filter((candidate) => /get-object|function\.jar\.next|EACL_ARTIFACT_SHA256=\$|EACL_CORE_SHA=\$|EACL_DEMO_SHA=\$|EACL_DEPLOYMENT_ID=\$/u.test(candidate))) {
     assert.match(line, /test -e \/etc\/eacl-demo-keep-release \|\|/u, line);
+  }
+  // No other command names a release parameter, except to record the stack's
+  // artifact for that fetch, so the guard decides without them.
+  for (const line of association.split("\n").filter((candidate) => /\$\{(?:ArtifactSha256|EaclSha|DemoSha|DeploymentId)\}/u.test(candidate))) {
+    assert.match(line, /test -e \/etc\/eacl-demo-keep-release \|\||>> \/etc\/eacl-demo-release\.env"$/u, line);
   }
   assert.match(association, /sha256sum --check --strict && install -m 0644 \/opt\/eacl-demo\/function\.jar\.next \/opt\/eacl-demo\/function\.jar/u);
 });

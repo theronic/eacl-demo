@@ -389,10 +389,14 @@ Resources:
           - !Sub "printf '%s\\n' 'ARTIFACT_SHA256=${ArtifactSha256}' >> /etc/eacl-demo-release.env"
           # Production releases arrive over SSM after the stack was last updated, so
           # the stack's artifact parameters lag the host. Never replace a verified
-          # installed release with the stack's older artifact: only install the stack
-          # artifact when nothing verifiable is installed.
-          - !Sub >-
-            installed=$(sed -n 's/^EACL_ARTIFACT_SHA256=//p' /etc/eacl-demo-datomic.env); if [ -n "$installed" ] && [ "$installed" != "${ArtifactSha256}" ] && echo "$installed  /opt/eacl-demo/function.jar" | sha256sum --check --strict --status; then touch /etc/eacl-demo-keep-release; else rm -f /etc/eacl-demo-keep-release; fi
+          # installed release with the stack's artifact, and never rewrite its
+          # release lines: only install the stack artifact when nothing verifiable is
+          # installed. A release is verified when the installed jar has the sha256
+          # that the environment file names. That includes a release that names the
+          # stack's own artifact: consecutive commits often build the same jar, and
+          # the later release carries its own commit and deployment.
+          - >-
+            installed=$(sed -n 's/^EACL_ARTIFACT_SHA256=//p' /etc/eacl-demo-datomic.env); if [ -n "$installed" ] && echo "$installed  /opt/eacl-demo/function.jar" | sha256sum --check --strict --status; then touch /etc/eacl-demo-keep-release; else rm -f /etc/eacl-demo-keep-release; fi
           - >-
             test -e /etc/eacl-demo-keep-release || { . /etc/eacl-demo-release.env; aws s3api get-object --region us-east-1 --bucket $ARTIFACT_BUCKET --key $ARTIFACT_KEY --version-id $ARTIFACT_VERSION /opt/eacl-demo/function.jar.next && echo "$ARTIFACT_SHA256  /opt/eacl-demo/function.jar.next" | sha256sum --check --strict && install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar; }
           - !Sub "test -e /etc/eacl-demo-keep-release || sed -i 's|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${ArtifactSha256}|' /etc/eacl-demo-datomic.env"
