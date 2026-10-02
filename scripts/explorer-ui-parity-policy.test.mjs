@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
@@ -7,21 +6,6 @@ import test from "node:test";
 const repository = resolve(import.meta.dirname, "..");
 const demoSource = resolve(repository, "apps/explorer-main/src");
 const datascriptSource = resolve(repository, "apps/explorer-datascript/src");
-const datahikeSource = resolve(repository, "../eacl-datahike-demo/client/src");
-const datomicSource = resolve(repository, "../eacl-datomic-solidjs/client/src");
-
-const exactDatahikeFiles = new Map([
-  ["components/SchemaGraph.tsx", "26997e38de43190a4b30bc185a20ba7598198db2b4c245e6aaf42e6aa47ab6fd"],
-  ["format.ts", "f0bfe6aa90b3708ecb82647f3977481bc6db23844f21a0f292b6ef10359445d0"],
-]);
-
-test("unchanged Explorer components remain byte-identical to the current Datahike Explorer", () => {
-  for (const [relative, canonicalHash] of exactDatahikeFiles) {
-    assert.equal(sha(file(resolve(demoSource, relative))), canonicalHash, relative);
-    const sibling = resolve(datahikeSource, relative);
-    if (existsSync(sibling)) assert.equal(sha(file(sibling)), canonicalHash, `source ${relative}`);
-  }
-});
 
 test("resource-first shell retains one shared connected explorer and simple scrolling", () => {
   const explorer=file(resolve(demoSource,"Explorer.tsx"));
@@ -120,10 +104,6 @@ test("original paging and timing metadata are present end to end", () => {
 
 function file(path) {
   return readFileSync(path, "utf8");
-}
-
-function sha(value) {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 function between(value, startText, endText) {

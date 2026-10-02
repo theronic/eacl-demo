@@ -1,5 +1,15 @@
 # Explorer source parity ledger
 
+> **Historical record.** This ledger describes the consolidation as it stood
+> on 2026-08-27. The resource-first redesign
+> (`openspec/changes/redesign-resource-first-explorer`, shipped 2026-09-09)
+> replaced the sibling Explorers as the visual and interaction authority, and
+> the legacy Datahike demo was retired on 2026-09-08. The comparison below no
+> longer describes `apps/explorer-main/src`, and
+> `scripts/explorer-ui-parity-policy.test.mjs` no longer compares source
+> digests with a sibling checkout; it keeps the structural policies that can be
+> checked inside this repository.
+
 This ledger records the line-by-line comparison used by the consolidated
 Explorer. The visual and interaction authority is the current source in:
 
