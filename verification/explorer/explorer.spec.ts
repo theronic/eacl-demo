@@ -248,7 +248,7 @@ test("an enabled publication opens the schema-validated server explorer over the
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "6982d388b4f4472cfc69dae0f92adc58c62438d8",
+    eaclSha: "eeb1f844e42efd5a04e05372bdac3cf4774808b1",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-7",
     dataManifestSha256: "c".repeat(64)
@@ -496,7 +496,7 @@ async function mockEnabledDatahikeProfile(page: import("@playwright/test").Page)
   const identity = {
     profileId: "datahike-s3",
     demoSha: "a".repeat(40),
-    eaclSha: "6982d388b4f4472cfc69dae0f92adc58c62438d8",
+    eaclSha: "eeb1f844e42efd5a04e05372bdac3cf4774808b1",
     artifactSha256: "b".repeat(64),
     deploymentId: "datahike-s3:browser-test-graph",
     dataManifestSha256: "c".repeat(64)

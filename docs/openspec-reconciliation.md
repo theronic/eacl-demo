@@ -4,8 +4,9 @@ This record reconciles the consolidated demo with the active planning changes
 under `/Users/petrus/code/eacl/openspec/changes`. It does not edit, complete, or
 archive those changes and does not turn their dirty local worktrees into release
 inputs. The consolidated repository consumes EACL Core only through
-the single `deps.edn` pin, currently
-`6982d388b4f4472cfc69dae0f92adc58c62438d8`.
+the single `deps.edn` pin, currently the published release
+`8.0.0-RC-2026-10-02` (source commit
+`eeb1f844e42efd5a04e05372bdac3cf4774808b1`).
 
 ## Decision matrix
 

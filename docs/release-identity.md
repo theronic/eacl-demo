@@ -7,7 +7,7 @@ demo-sha = exact 40-hex commit in https://github.com/theronic/eacl-demo.git
 eacl-sha = exact 40-hex commit in https://github.com/theronic/eacl.git
 ```
 
-The `eacl-sha` is derived only from the `deps.edn` committed at `demo-sha` (`scripts/lib/eacl-core.mjs`). It is never looked up from a Core branch during a deployment. The checked-out Core repository must be clean, use the canonical origin, and have `HEAD` equal to the derived pin exactly. The pin carries no parallel branch, reachability, or dependency-certification state.
+The `eacl-sha` is derived only from the `deps.edn` committed at `demo-sha` (`scripts/lib/eacl-core.mjs`): it is the source commit of the pinned published EACL release, which that release's POM records as its SCM tag (checked by `scripts/lib/prepare-eacl-core.mjs`). It is never looked up from a Core branch during a deployment. The checked-out Core repository must be clean, use the canonical origin, and have `HEAD` equal to the derived pin exactly. The pin carries no parallel branch, reachability, or dependency-certification state.
 
 The following are invalid release identities:
 

@@ -1,14 +1,8 @@
 (ns build
-  (:require [clojure.edn :as edn]
-            [clojure.tools.build.api :as b]))
+  (:require [clojure.tools.build.api :as b]))
 
 (def datomic-class-dir "target/datomic-dynamodb-lambda/classes")
 (def datomic-uber-file "dist/datomic-dynamodb/function.jar")
-(def datomic-generated-classes-dir
-  (str "target/eacl-core-source/"
-       (get-in (edn/read-string (slurp "deps.edn"))
-               [:aliases :datomic-dynamodb :extra-deps 'dev.eacl/eacl-datomic :git/sha])
-       "/target/formal/java/classes"))
 (def datomic-source-dirs
   ["packages/contracts/src"
    "services/datomic-dynamodb/src"])
@@ -105,8 +99,7 @@
     (b/delete {:path datahike-s3-class-dir})
     (b/delete {:path datahike-s3-uber-file})
     (generate-build-identity! datahike-s3-class-dir)
-    (b/copy-dir {:src-dirs (conj datahike-s3-source-dirs
-                                  datomic-generated-classes-dir)
+    (b/copy-dir {:src-dirs datahike-s3-source-dirs
                  :target-dir datahike-s3-class-dir})
     (doseq [[src target] datahike-contract-files]
       (b/copy-file {:src src
@@ -146,8 +139,7 @@
     (b/delete {:path datahike-dynamodb-class-dir})
     (b/delete {:path datahike-dynamodb-uber-file})
     (generate-build-identity! datahike-dynamodb-class-dir)
-    (b/copy-dir {:src-dirs (conj datahike-dynamodb-source-dirs
-                                  datomic-generated-classes-dir)
+    (b/copy-dir {:src-dirs datahike-dynamodb-source-dirs
                  :target-dir datahike-dynamodb-class-dir})
     (doseq [[src target] datahike-contract-files]
       (b/copy-file {:src src
@@ -188,8 +180,7 @@
                 :aliases [:datahike-dynamodb-maintenance]})]
     (b/delete {:path datahike-seed-class-dir})
     (b/delete {:path datahike-seed-uber-file})
-    (b/copy-dir {:src-dirs (conj datahike-seed-source-dirs
-                                  datomic-generated-classes-dir)
+    (b/copy-dir {:src-dirs datahike-seed-source-dirs
                  :target-dir datahike-seed-class-dir})
     (doseq [[src target]
             [["fixtures/schema.v1.zed" "schema.v1.zed"]
@@ -231,8 +222,7 @@
     (b/delete {:path datomic-class-dir})
     (b/delete {:path datomic-uber-file})
     (generate-build-identity! datomic-class-dir)
-    (b/copy-dir {:src-dirs (conj datomic-source-dirs
-                                  datomic-generated-classes-dir)
+    (b/copy-dir {:src-dirs datomic-source-dirs
                  :target-dir datomic-class-dir})
     (b/copy-file {:src "fixtures/schema-wire.v1.json"
                   :target (str datomic-class-dir "/schema-wire.v1.json")})
@@ -268,8 +258,7 @@
                           :datomic-maintenance]})]
     (b/delete {:path datomic-seed-class-dir})
     (b/delete {:path datomic-seed-uber-file})
-    (b/copy-dir {:src-dirs (conj datomic-seed-source-dirs
-                                  datomic-generated-classes-dir)
+    (b/copy-dir {:src-dirs datomic-seed-source-dirs
                  :target-dir datomic-seed-class-dir})
     (doseq [[src target]
             [["fixtures/schema.v1.zed"
@@ -319,8 +308,7 @@
                {:project "deps.edn"
                 :aliases [:datalevin-memory :lambda-jvm]})]
     (b/copy-dir
-     {:src-dirs (conj datalevin-memory-source-dirs
-                      datomic-generated-classes-dir)
+     {:src-dirs datalevin-memory-source-dirs
       :target-dir datalevin-memory-class-dir})
     (doseq [[src target]
             (concat datahike-contract-files

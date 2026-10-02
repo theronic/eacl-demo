@@ -6,7 +6,7 @@ import test from "node:test";
 const root = path.resolve(import.meta.dirname, "..");
 const read = (relative) => readFile(path.join(root, relative), "utf8");
 
-test("EACL Core preparation uses the upstream Java 25 default and validates the packaged classes", async () => {
+test("EACL preparation checks the published core JAR against the Java 25 runtime and the pinned source commit", async () => {
   const [prepare, build, toolchain] = await Promise.all([
     read("scripts/lib/prepare-eacl-core.mjs"),
     read("build.clj"),
@@ -16,16 +16,17 @@ test("EACL Core preparation uses the upstream Java 25 default and validates the 
   assert.equal(toolchain.jvm.javaRuntimeRelease, "25.0.4.1");
   assert.equal(toolchain.jvm.javaRuntimeBuild, "1");
   assert.doesNotMatch(prepare, /EACL_JAVA_RELEASE/u);
+  assert.doesNotMatch(prepare, /"-T:build", "prep"/u,
+    "the published dev.eacl/eacl JAR replaces building the EACL kernel from source");
   assert.match(prepare, /const REQUIRED_CLASS_MAJOR = 69;/u);
-  assert.match(prepare,
-    /path\.join\(checkout, "target", "formal", "java", "classes"\)/u);
-  assert.match(prepare,
-    /run\("clojure", \["-T:build", "prep"\], coreModule\);/u);
-  assert.match(prepare, /const classFiles = await filesBelow\(generatedClasses, "\.class"\);/u);
+  assert.match(prepare, /META-INF\/maven\/dev\.eacl\/eacl\/pom\.xml/u);
+  assert.match(prepare, /if \(tag !== release\.sha\)/u);
+  assert.match(prepare, /const classFiles = await filesBelow\(temporary, "\.class"\);/u);
   assert.match(prepare, /for \(const classFile of classFiles\)/u);
   assert.match(prepare, /major !== REQUIRED_CLASS_MAJOR/u);
 
-  assert.match(build, /\/target\/formal\/java\/classes/u);
+  assert.doesNotMatch(build, /target\/formal\/java\/classes/u,
+    "JVM artifacts take the generated kernel from the published dev.eacl/eacl JAR");
   assert.doesNotMatch(build, /[0-9a-f]{40}/u,
     "build paths must use the dependency lock instead of a duplicated commit pin");
   assert.equal((build.match(/scripts\/prepare-eacl-core\.mjs/gu) ?? []).length, 6,

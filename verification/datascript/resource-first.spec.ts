@@ -194,6 +194,11 @@ test("sibling disclosures do not issue unrelated EACL queries", async ({
     })
     .click();
   await expect(page.locator(".reverse-result")).toBeVisible();
+  // The footer checker's first query is debounced; let it settle so it is
+  // not mistaken for a disclosure query when the runtime starts quickly.
+  await expect(page.locator(".can-permission-footer__decision")).toContainText(
+    "Allowed",
+  );
   await page.evaluate(() => {
     const w = window as any;
     w.__queryCalls = [];

@@ -24,21 +24,19 @@
   {:extra-paths ["apps/explorer-datascript/cljs-src"]
    :extra-deps
    {org.clojure/clojurescript {:mvn/version "1.12.145"}
-    dev.eacl/eacl-datascript
-    {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "6982d388b4f4472cfc69dae0f92adc58c62438d8"
-     :deps/root "modules/eacl-datascript"}}}
+    dev.eacl/eacl-datascript {:mvn/version "8.0.0-RC-2026-10-02"}
+    ;; EACL's ClojureScript cache is a Git fork, which Maven metadata cannot
+    ;; declare; the EACL README asks ClojureScript consumers to add it.
+    com.github.theronic/cljs-cache
+    {:git/url "https://github.com/theronic/cljs-cache.git"
+     :git/sha "4143cc036446a47f0c6dfd9f8dde90363835051c"}}}
   :datahike-s3
   {:extra-paths
    ["services/datahike-s3/src"
-    "fixtures"
-    "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/target/formal/java/classes"]
+    "fixtures"]
    :extra-deps
    {org.clojure/data.json {:mvn/version "2.5.2"}
-    dev.eacl/eacl-datahike
-    {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "6982d388b4f4472cfc69dae0f92adc58c62438d8"
-     :deps/root "modules/eacl-datahike"}
+    dev.eacl/eacl-datahike {:mvn/version "8.0.0-RC-2026-10-02"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
      :exclusions [org.clojure/clojurescript]}
@@ -57,13 +55,9 @@
   :datahike-dynamodb
   {:extra-paths
    ["services/datahike-dynamodb/src"
-    "fixtures"
-    "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/target/formal/java/classes"]
+    "fixtures"]
    :extra-deps
-   {dev.eacl/eacl-datahike
-    {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "6982d388b4f4472cfc69dae0f92adc58c62438d8"
-     :deps/root "modules/eacl-datahike"}
+   {dev.eacl/eacl-datahike {:mvn/version "8.0.0-RC-2026-10-02"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
      :exclusions [org.clojure/clojurescript]}
@@ -80,14 +74,10 @@
   {:extra-paths ["maintenance/datahike-dynamodb/src"
                  "services/datahike-dynamodb/src"
                  "infra/data"
-                 "fixtures"
-                 "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/target/formal/java/classes"]
+                 "fixtures"]
    :extra-deps
    {org.clojure/data.json {:mvn/version "2.5.2"}
-    dev.eacl/eacl-datahike
-    {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "6982d388b4f4472cfc69dae0f92adc58c62438d8"
-     :deps/root "modules/eacl-datahike"}
+    dev.eacl/eacl-datahike {:mvn/version "8.0.0-RC-2026-10-02"}
     org.replikativ/datahike
     {:mvn/version "0.8.1862"
      :exclusions [org.clojure/clojurescript]}
@@ -108,13 +98,9 @@
   :datomic-dynamodb
   {:extra-paths
    ["services/datomic-dynamodb/src"
-    "fixtures"
-    "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/target/formal/java/classes"]
+    "fixtures"]
    :extra-deps
-   {dev.eacl/eacl-datomic
-    {:git/url "https://github.com/theronic/eacl.git"
-     :git/sha "6982d388b4f4472cfc69dae0f92adc58c62438d8"
-     :deps/root "modules/eacl-datomic"}
+   {dev.eacl/eacl-datomic {:mvn/version "8.0.0-RC-2026-10-02"}
     com.datomic/peer {:mvn/version "1.0.7705"}
     software.amazon.awssdk/dynamodb
     {:mvn/version "2.54.7"
@@ -141,8 +127,7 @@
   :datalevin-memory
   {:extra-paths
    ["services/datalevin-memory/src"
-    "fixtures"
-    "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/target/formal/java/classes"]
+    "fixtures"]
    :jvm-opts ["--enable-native-access=ALL-UNNAMED"
               "--add-opens=java.base/java.lang=ALL-UNNAMED"
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
@@ -156,6 +141,10 @@
      "dist/datalevin-native-al2023/dtlvnative-linux-arm64-0.18.8-eacl.al2023.1.jar"}}
    :extra-deps
    {org.clojure/data.json {:mvn/version "2.5.2"}
+    ;; eacl-datalevin is not published (its Datalevin fork is unpublished),
+    ;; so it builds from the release's source commit against the published
+    ;; core. The top-level core pin replaces the module's ../eacl local root.
+    dev.eacl/eacl {:mvn/version "8.0.0-RC-2026-10-02"}
     dev.eacl/eacl-datalevin
     {:local/root
-     "target/eacl-core-source/6982d388b4f4472cfc69dae0f92adc58c62438d8/modules/eacl-datalevin"}}}}}
+     "target/eacl-core-source/eeb1f844e42efd5a04e05372bdac3cf4774808b1/modules/eacl-datalevin"}}}}}
