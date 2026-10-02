@@ -41,7 +41,7 @@ test("every server profile has an auditable serving role with no action or whole
   for (const [profileId, source] of Object.entries(serving)) {
     assert.match(source, /Type: AWS::IAM::Role/u, `${profileId} serving role is missing`);
     assert.match(source, new RegExp(`Value: ${profileId}`, "u"), `${profileId} role tag is missing`);
-    assert.doesNotMatch(source, /Action:\s*["']?\*|-[ \t]+[a-z]+:\*|Resource:\s*["']?\*/iu, `${profileId} role contains a wildcard`);
+    assert.doesNotMatch(source, /Action:\s*["']?\*|-[ \t]+[a-z]+:\*|Resource:\s*["']?\*|^[ \t]*-[ \t]+["']?\*["']?[ \t]*$/imu, `${profileId} role contains a wildcard`);
     assert.doesNotMatch(source, /NotAction:|NotResource:|ManagedPolicyArns:/u, `${profileId} role hides a broader policy surface`);
     assert.doesNotMatch(source, /iam:PassRole|sts:AssumeRoleWithWebIdentity/u, `${profileId} serving role can delegate identity`);
   }
@@ -58,6 +58,9 @@ test("serving permissions are confined to each profile's declared storage and lo
   assert.match(datomicRole, /Resource: !Ref TableArn/u);
   assert.doesNotMatch(datomicRole, /s3:|datahike/u);
   assert.match(datomicRuntime, /Role: !Ref ExecutionRoleArn/u);
+  assert.deepEqual(actions(datomicRole, "logs"), ["logs:CreateLogStream", "logs:PutLogEvents"]);
+  assert.match(datomicRole,
+    /Resource:\n\s+- !Sub "\$\{FunctionLogGroupArn\}:\*"\n\s+- !Sub "\$\{ComparisonFunctionLogGroupArn\}:\*"\n\s+Tags:/u);
 
   assert.doesNotMatch(datalevin, /s3:|dynamodb:/u);
   assert.deepEqual(actions(datalevin, "logs"), ["logs:CreateLogStream", "logs:PutLogEvents"]);

@@ -26,9 +26,14 @@ promotion of a healthy version to a live alias remains a separate operation.
 
 `datomic-dynamodb-serving-role.yaml` grants the read-only Peer exactly the four
 DynamoDB actions documented by Datomic (`GetItem`, `BatchGetItem`, `Scan`, and
-`Query`) on one generation table. Its only other permissions deliver logs to a
-pre-created, exact function log group. Writes, administration, KMS, other
-tables, seed operations, and transactor operations are implicit-deny.
+`Query`) on one generation table. The primary function and its 4096 MiB
+comparison function both run under this role, so its only other permissions
+deliver logs to their two pre-created, exact function log groups
+(`FunctionLogGroupArn` and `ComparisonFunctionLogGroupArn`). Writes,
+administration, KMS, other tables, seed operations, and transactor operations
+are implicit-deny. No workflow applies this template: a change reaches the live
+role only through an update of its stack, and a function added under the role
+cannot log until its group is named here.
 
 `datalevin-memory-runtime.yaml` defines only the eventual qualification
 boundary: managed Java 25/arm64, one in-process concurrency slot, a 512 MiB
