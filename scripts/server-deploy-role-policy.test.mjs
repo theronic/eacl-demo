@@ -39,7 +39,43 @@ test("server deployment role can mutate only one artifact prefix, status key, fu
     "function:${FunctionName}*",
     "distribution/${DistributionId}"
   ]) assert.ok(source.includes(resource));
-  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)|Resource:\s*["']?\*["']?/iu);
+  assert.doesNotMatch(source, /-\s+(?:s3:Delete|s3:List|lambda:CreateFunction|lambda:AddPermission|cloudfront:GetDistribution|kms:|dynamodb:|ec2:|iam:PassRole)/iu);
+});
+
+test("only the read of Run Command results is not bound to a resource, and it stays outside the exact policy", () => {
+  const wholeResource = /Resource:\s*["']?\*["']?|^[ \t]*-[ \t]+["']?\*["']?[ \t]*$/imu;
+  // IAM has no resource type and no condition key for this action, so the
+  // statement is held to one action, the stack's Region and the two profiles
+  // that send a command.
+  const read = [
+    "        - !If",
+    "          - UsesEc2",
+    "          - PolicyName: regional-command-result-read",
+    "            PolicyDocument:",
+    "              Version: \"2012-10-17\"",
+    "              Statement:",
+    "                - Sid: ReadCommandResultsInRegion",
+    "                  Effect: Allow",
+    "                  Action: ssm:GetCommandInvocation",
+    "                  Resource: \"*\"",
+    "                  Condition:",
+    "                    StringEquals:",
+    "                      aws:RequestedRegion: !Ref AWS::Region",
+    "          - !Ref AWS::NoValue",
+    "      Tags:"
+  ].join("\n");
+  assert.equal(source.split(read).length, 2);
+  assert.doesNotMatch(source.replace(read, ""), wholeResource);
+  const exact = source.slice(source.indexOf("        - PolicyName: exact-demo-delivery\n"), source.indexOf(read));
+  assert.match(exact, /^ {8}- PolicyName: exact-demo-delivery\n[\s\S]*Sid: PublishExactRuntimeArtifact[\s\S]*Sid: ReconcileExactEc2Runtime[\s\S]*Sid: InvalidateExactProfileRegistry/u);
+  assert.doesNotMatch(exact, /Action: ssm:GetCommandInvocation|aws:RequestedRegion/u);
+  assert.deepEqual([...new Set(source.match(/\bssm:[A-Za-z]+/gu))].sort(), ["ssm:GetCommandInvocation", "ssm:SendCommand"]);
+  assert.equal((source.match(/PolicyName:/gu) ?? []).length, 2);
+  assert.doesNotMatch(source, /NotAction:|NotResource:|ManagedPolicyArns:|Action:\s*["']?\*|-[ \t]+[a-z]+:\*/iu);
+  // The job reads only the command it has just sent, on the instance it sent it to.
+  assert.match(deploySource, /function ec2CommandInvocation\(commandId, instanceId\)[\s\S]*?"ssm", "get-command-invocation",\n\s+"--command-id", commandId, "--instance-id", instanceId, "--output", "json"\]/u);
+  assert.equal((deploySource.match(/get-command-invocation/gu) ?? []).length, 1);
+  assert.doesNotMatch(deploySource, /list-command-invocations|list-commands|describe-instance-information/u);
 });
 
 test("only profiles with deployed comparisons may promote their exact comparison runtimes", () => {

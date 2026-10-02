@@ -89,7 +89,9 @@ gh run watch --repo theronic/eacl-demo
 ### EC2 host changes are a separate CloudFormation update
 
 The `production` push only replaces the jar and the release lines of
-`/etc/eacl-demo-datomic.env` over SSM. Instance type, JVM options
+`/etc/eacl-demo-datomic.env` over SSM. It keeps the pair it replaces and
+puts it back when the new release does not answer `/health` on the host
+(docs/operator-runbook.md §Rollback). Instance type, JVM options
 (`EACL_JAVA_OPTS`), the Datomic object cache, swap, and the CloudWatch agent
 configuration live in `infra/profiles/datomic-dynamodb-ec2.yaml`, and take
 effect only through a stack update, which stops and starts the instance:

@@ -10,6 +10,7 @@ import { createProfilePublication } from "../packages/explorer-state/src/profile
 import { summarizeDemoSmoke, validateDemoSmokeEnvelope } from "./lib/demo-smoke-result.mjs";
 import { committedEaclCore } from "./lib/eacl-core.mjs";
 import { smokeFunctionUrl } from "./lib/public-readiness.mjs";
+import { releaseCommandWatch } from "./lib/release-command-result.mjs";
 import { stalePublishedVersions } from "./lib/lambda-version-retention.mjs";
 import { storageV8Environment } from "./lib/storage-v8.mjs";
 
@@ -310,21 +311,20 @@ async function deployDatomicEc2(release) {
   const instanceId = ec2InstanceId("DATOMIC_DYNAMODB_EC2_INSTANCE_ID");
   const bucket = required("ARTIFACT_BUCKET");
   const region = required("AWS_REGION");
-  const script = [
-    "set -euo pipefail",
+  const script = ec2ReleaseScript({
+    jar: "/opt/eacl-demo/function.jar",
+    environmentFile: "/etc/eacl-demo-datomic.env",
+    unit: "eacl-demo-datomic.service",
+    logFile: "/var/log/eacl-demo/datomic.log",
+    port: 8080
+  }, [
     "install -d -m 0755 /opt/eacl-demo",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/function.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/function.jar.next`)} | sha256sum --check --strict`,
     `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote(`s|^EACL_DATOMIC_TABLE=.*|EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}|`)} -e ${shellQuote("/^EACL_HTTP_WORKERS=/d")} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=4|")} /etc/eacl-demo-datomic.env > /etc/eacl-demo-datomic.env.next`,
     `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=") } /etc/eacl-demo-datomic.env.next)" -eq 5`,
-    `grep -Fx -- ${shellQuote(`EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}`)} /etc/eacl-demo-datomic.env.next`,
-    "install -m 0600 /etc/eacl-demo-datomic.env.next /etc/eacl-demo-datomic.env",
-    "install -m 0644 /opt/eacl-demo/function.jar.next /opt/eacl-demo/function.jar",
-    "systemctl restart eacl-demo-datomic.service",
-    "for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-release-health' http://127.0.0.1:8080/health >/dev/null && exit 0; sleep 2; done",
-    "systemctl status eacl-demo-datomic.service --no-pager",
-    "exit 1"
-  ].join("\n");
+    `grep -Fx -- ${shellQuote(`EACL_DATOMIC_TABLE=${storageV8Environment("datomic-dynamodb").EACL_DATOMIC_TABLE}`)} /etc/eacl-demo-datomic.env.next`
+  ]);
   const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-ec2-release-"));
   try {
     const parametersFile = path.join(temporary, "parameters.json");
@@ -341,11 +341,13 @@ async function deployDatomicEc2(release) {
     if (!/^[0-9a-f-]{36}$/u.test(commandId ?? "")) {
       throw new Error("SSM did not accept the Datomic EC2 release command");
     }
+    // A failed release leaves its status and log lines in this invocation.
+    process.stdout.write(`sent datomic-dynamodb-ec2 command ${commandId}\n`);
     await smokeFunctionUrl(
       "datomic-dynamodb",
       "https://datomic.demo.eacl.dev",
       expectedIdentityFor("datomic-dynamodb", release.artifactSha256, release.deploymentId),
-      { timeoutMs: 900_000 }
+      { timeoutMs: 900_000, whileWaiting: ec2ReleaseWatch("datomic-dynamodb-ec2", commandId, instanceId) }
     );
     await smokeDatomicHistoricalUrl("https://datomic.demo.eacl.dev");
     await smokeDatomicAdmissionQueueUrl("https://datomic.demo.eacl.dev");
@@ -359,21 +361,20 @@ async function deployDatalevinEc2(release) {
   const instanceId = ec2InstanceId("DATALEVIN_EC2_INSTANCE_ID");
   const bucket = required("ARTIFACT_BUCKET");
   const region = required("AWS_REGION");
-  const script = [
-    "set -euo pipefail",
+  const script = ec2ReleaseScript({
+    jar: "/opt/eacl-demo/datalevin.jar",
+    environmentFile: "/etc/eacl-demo-datalevin.env",
+    unit: "eacl-demo-datalevin.service",
+    logFile: "/var/log/eacl-demo/datalevin.log",
+    port: 8081
+  }, [
     "test -s /etc/eacl-demo-datalevin.env",
     "test -s /etc/systemd/system/eacl-demo-datalevin.service",
     `aws s3api get-object --region ${shellQuote(region)} --bucket ${shellQuote(bucket)} --key ${shellQuote(release.artifactKey)} --version-id ${shellQuote(release.artifactVersion)} /opt/eacl-demo/datalevin.jar.next`,
     `echo ${shellQuote(`${release.artifactSha256}  /opt/eacl-demo/datalevin.jar.next`)} | sha256sum --check --strict`,
     `sed -e ${shellQuote(`s|^EACL_ARTIFACT_SHA256=.*|EACL_ARTIFACT_SHA256=${release.artifactSha256}|`)} -e ${shellQuote(`s|^EACL_CORE_SHA=.*|EACL_CORE_SHA=${eaclSha()}|`)} -e ${shellQuote(`s|^EACL_DEMO_SHA=.*|EACL_DEMO_SHA=${demoSha()}|`)} -e ${shellQuote(`s|^EACL_DEPLOYMENT_ID=.*|EACL_DEPLOYMENT_ID=${release.deploymentId}|`)} -e ${shellQuote("s|^EACL_MAXIMUM_CONCURRENCY=.*|EACL_MAXIMUM_CONCURRENCY=1|")} /etc/eacl-demo-datalevin.env > /etc/eacl-demo-datalevin.env.next`,
-    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=")} /etc/eacl-demo-datalevin.env.next)" -eq 5`,
-    "install -m 0600 /etc/eacl-demo-datalevin.env.next /etc/eacl-demo-datalevin.env",
-    "install -m 0644 /opt/eacl-demo/datalevin.jar.next /opt/eacl-demo/datalevin.jar",
-    "systemctl restart eacl-demo-datalevin.service",
-    "for attempt in $(seq 1 180); do curl --fail --silent -H 'x-eacl-request-id: ec2-release-health' http://127.0.0.1:8081/health >/dev/null && exit 0; sleep 2; done",
-    "systemctl status eacl-demo-datalevin.service --no-pager",
-    "exit 1"
-  ].join("\n");
+    `test "$(grep -Ec ${shellQuote("^(EACL_ARTIFACT_SHA256|EACL_CORE_SHA|EACL_DEMO_SHA|EACL_DEPLOYMENT_ID|EACL_MAXIMUM_CONCURRENCY)=")} /etc/eacl-demo-datalevin.env.next)" -eq 5`
+  ]);
   const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-datalevin-ec2-release-"));
   try {
     const parametersFile = path.join(temporary, "parameters.json");
@@ -390,16 +391,147 @@ async function deployDatalevinEc2(release) {
     if (!/^[0-9a-f-]{36}$/u.test(commandId ?? "")) {
       throw new Error("SSM did not accept the Datalevin EC2 release command");
     }
+    // A failed release leaves its status and log lines in this invocation.
+    process.stdout.write(`sent datalevin-memory-ec2 command ${commandId}\n`);
     await smokeFunctionUrl(
       "datalevin-memory",
       "https://datalevin.demo.eacl.dev",
       expectedIdentityFor("datalevin-memory", release.artifactSha256, release.deploymentId),
-      { timeoutMs: 900_000 }
+      { timeoutMs: 900_000, whileWaiting: ec2ReleaseWatch("datalevin-memory-ec2", commandId, instanceId) }
     );
     process.stdout.write(`deployed datalevin-memory-ec2 command ${commandId} sha256:${release.artifactSha256}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
+}
+
+// While the job waits for the public origin it reads the release command's
+// result, so a release that has failed on its host fails the job at once and
+// leaves the command's output in the job log. The deploy role needs
+// ssm:GetCommandInvocation for that, which IAM cannot limit to one command.
+// A role without it is told so once and waits for the origin as before.
+function ec2ReleaseWatch(target, commandId, instanceId) {
+  return releaseCommandWatch({
+    label: `${target} command ${commandId}`,
+    readInvocation: () => ec2CommandInvocation(commandId, instanceId),
+    // One stream keeps the report in order, and the job goes on to fail only
+    // after the report has been written out.
+    write: (text) => new Promise((resolve) => { process.stdout.write(text, () => resolve()); }),
+    workflowCommands: process.env.GITHUB_ACTIONS === "true"
+  });
+}
+
+// One read of the command's result. It does not go through aws(), which
+// copies the CLI's stderr into the job log and rejects: a denied read is the
+// expected answer until the role is updated, its message names the role
+// session, and no failed read may fail the deployment.
+function ec2CommandInvocation(commandId, instanceId) {
+  return new Promise((resolve) => {
+    execFile("aws", ["--cli-connect-timeout", "5", "--cli-read-timeout", "10",
+      "--region", required("AWS_REGION"), "ssm", "get-command-invocation",
+      "--command-id", commandId, "--instance-id", instanceId, "--output", "json"], {
+      cwd: root, encoding: "utf8", timeout: 20_000
+    }, (error, stdout, stderr) => {
+      if (error) {
+        const code = /An error occurred \((\w+)\) when calling the GetCommandInvocation operation/u.exec(stderr)?.[1];
+        resolve(code?.startsWith("AccessDenied")
+          ? { denied: true }
+          : { unavailable: code ?? (error.killed ? "no answer from the AWS CLI" : "the AWS CLI failed") });
+        return;
+      }
+      try {
+        resolve({ invocation: JSON.parse(stdout) });
+      } catch {
+        resolve({ unavailable: "an answer that is not JSON" });
+      }
+    });
+  });
+}
+
+// A jar that passed the Lambda smoke can still fail to start on its host, and
+// systemd then restarts it until someone reinstalls the old artifact by hand.
+// The command therefore keeps the jar and environment file it replaces and
+// puts them back when the new release never answers /health. It still exits
+// non-zero, so the job fails, the alias rolls back and the registry is not
+// published. The job sees that in the command's result where its role may
+// read it, and otherwise in the public smoke as before, because the origin
+// then serves the previous identity.
+//
+// Only a release that is answering /health as itself is kept. Otherwise a
+// second attempt at a broken release would replace the last good one with the
+// broken one. A release that is already installed and answering is left as it
+// is, so running the job again neither restarts it nor replaces what is kept.
+//
+// Nothing is copied: the old pair is kept by a link, the new pair is renamed
+// into place and a restore links the kept pair back, which leaves it kept.
+// None of that needs free space, so a full disk cannot leave half a jar where
+// the unit looks for it, and a release that fills the disk while starting can
+// still be undone.
+//
+// The job waits 900 s for the public origin. The new release gets the same
+// 360 s as before and a restore gets what is left of 840 s, so both waits end
+// inside that window. Each health request is bounded, because a restore that
+// waits on a hung request never runs. Status and log lines are printed before
+// the restore, which restarts the unit and appends to the same log.
+function ec2ReleaseScript({ jar, environmentFile, unit, logFile, port }, prepare) {
+  const installed = (name) => `$(sed -n 's/^${name}=//p' ${environmentFile})`;
+  return [
+    "set -euo pipefail",
+    // The staged environment file carries the cursor key from its first byte,
+    // and a redirect into a file left by an earlier command would keep that
+    // file's mode.
+    "umask 077",
+    `rm -f ${environmentFile}.next ${jar}.next`,
+    "started=$(date +%s)",
+    ...prepare,
+    "health() {",
+    `  curl --fail --silent --max-time 10 -H 'x-eacl-request-id: ec2-release-health' http://127.0.0.1:${port}/health`,
+    "}",
+    "wait_for_health() {",
+    "  until health >/dev/null; do",
+    `    [ "$(date +%s)" -lt "$1" ] || return 1`,
+    "    sleep 2",
+    "  done",
+    "}",
+    "diagnose() {",
+    `  systemctl status ${unit} --no-pager || true`,
+    `  echo 'Last lines of ${logFile}:'`,
+    `  tail -n 40 ${logFile} | tail -c 6000 || true`,
+    "}",
+    `artifact=${installed("EACL_ARTIFACT_SHA256")}`,
+    `demo=${installed("EACL_DEMO_SHA")}`,
+    "answer=",
+    "if wait_for_health $(( $(date +%s) + 30 )); then answer=$(health || true); fi",
+    `if [[ -n $artifact && -n $demo && $answer == *"\\"$artifact\\""* && $answer == *"\\"$demo\\""* ]] && echo "$artifact  ${jar}" | sha256sum --check --strict --status; then`,
+    `  if [ "$(sha256sum < ${environmentFile})" = "$(sha256sum < ${environmentFile}.next)" ]; then`,
+    `    rm -f ${environmentFile}.next ${jar}.next`,
+    "    echo 'This release is already installed and answering /health.'",
+    "    exit 0",
+    "  fi",
+    `  ln -f ${environmentFile} ${environmentFile}.previous`,
+    `  ln -f ${jar} ${jar}.previous`,
+    "else",
+    "  echo 'The installed release is not kept: it is not answering /health as itself.'",
+    "fi",
+    `if chmod 0600 ${environmentFile}.next && chmod 0644 ${jar}.next && mv -f ${environmentFile}.next ${environmentFile} && mv -f ${jar}.next ${jar} && systemctl restart ${unit} && wait_for_health $(( $(date +%s) + 360 )); then`,
+    "  exit 0",
+    "fi",
+    "echo 'The new release did not become healthy.'",
+    "diagnose",
+    `if [ ! -e ${jar}.previous ] || [ ! -e ${environmentFile}.previous ]; then`,
+    "  echo 'No earlier release is kept on this host, so the new release stays installed.'",
+    "  exit 1",
+    "fi",
+    `echo "Restoring artifact $(sed -n 's/^EACL_ARTIFACT_SHA256=//p' ${environmentFile}.previous)."`,
+    `if ln -f ${environmentFile}.previous ${environmentFile} && ln -f ${jar}.previous ${jar} && systemctl restart ${unit} && wait_for_health $(( started + 840 )); then`,
+    "  echo 'The previous release is restored and healthy.'",
+    `  systemctl status ${unit} --no-pager || true`,
+    "else",
+    "  echo 'The previous release did not become healthy either.'",
+    "  diagnose",
+    "fi",
+    "exit 1"
+  ].join("\n");
 }
 
 async function smokeProfile(profileId, functionName, temporary, expectedIdentity,

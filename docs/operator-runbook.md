@@ -196,6 +196,53 @@ Rollback is per unit, never fleet-wide:
   immutable version using the recorded revision precondition and restore only
   its exact versioned status object. If either precondition has changed, stop
   and reconcile the current identity instead of overwriting a newer run.
+- EC2 hosts: the release command keeps the jar and environment file it
+  replaces as `<jar>.previous` and `<env>.previous`. When the new release does
+  not answer `/health` on the host within 360 s, the command prints
+  `systemctl status` and the last service log lines, links the kept pair back
+  into place, restarts the unit and waits for health again. The command and
+  the job still fail. A release that answers `/health` on the host but fails a
+  public smoke stays installed.
+
+  While the job waits for the public origin it reads the command's result
+  every few seconds and logs the command's status when it changes. Once the
+  command has failed, the job prints the command's standard output and error
+  and fails without waiting out its 900 s; the alias and the registry are
+  handled as for any failed release. Success is still decided by the public
+  origin alone.
+
+  The read needs `ssm:GetCommandInvocation` on the deploy role (the policy
+  `regional-command-result-read` in
+  `infra/deployment/server-profile-deploy-role.yaml`). A role without it says
+  so once in the job log and waits out the public origin, and the output then
+  has to be fetched by hand, with the command ID the job log names
+  (`sent <profile>-ec2 command <id>`):
+
+  ```sh
+  aws ssm get-command-invocation --command-id <id> --instance-id <instance> --query '[StandardOutputContent,StandardErrorContent]' --output text
+  ```
+
+  The job log is public. The release command prints no secret, and the job
+  withholds any line that names `EACL_CURSOR_KEY`; a change to what the
+  command prints has to keep the key's value out of it.
+
+  A release is kept only while it answers `/health` under the identity in its
+  environment file, so retrying a failed release leaves the last good one
+  kept, and the next release over a healthy one replaces it. A release that is
+  already installed and answering is left alone: running its job again does
+  not restart it. To put the kept pair back by hand, alongside the alias move
+  above, run on the Datalevin host:
+
+  ```sh
+  ln -f /etc/eacl-demo-datalevin.env.previous /etc/eacl-demo-datalevin.env
+  ln -f /opt/eacl-demo/datalevin.jar.previous /opt/eacl-demo/datalevin.jar
+  systemctl restart eacl-demo-datalevin.service
+  ```
+
+  `ln -f` replaces the live name in one step and needs no free disk space.
+
+  The Datomic host uses `/etc/eacl-demo-datomic.env`,
+  `/opt/eacl-demo/function.jar` and `eacl-demo-datomic.service`.
 - Data: select the prior retained blue/green generation together with the
   runtime/descriptor that names it. Do not roll back by editing or deleting a
   generation.

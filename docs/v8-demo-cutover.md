@@ -22,7 +22,11 @@ fixture that 6982d388 had built.
 EC2 readiness checks use a bounded 15-minute elapsed-time budget, including
 artifact download, JVM loading and fixture preparation. A fast CloudFront error
 response does not shorten that startup window. Publication still requires the
-exact candidate identity, ready status and browser CORS response.
+exact candidate identity, ready status and browser CORS response. On the host
+itself a new release has 360 s after its restart to answer `/health`. After
+that the release command puts back the release it kept (see the Rollback
+section of `docs/operator-runbook.md`). The job fails as soon as it reads the
+command's failed result, or when its budget ends if its role may not read it.
 
 Datalevin authorization operations use the live EACL client so resource cursors
 can continue across HTTP requests at fresh trusted times. Physical fixture

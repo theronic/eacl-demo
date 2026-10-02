@@ -183,6 +183,28 @@ Resources:
                 Action:
                   - cloudfront:CreateInvalidation
                 Resource: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DistributionId}"
+        # The one grant that is not exact, kept out of the policy above for
+        # that reason. The deployment reads the result of the command it sent
+        # to its instance. IAM defines no resource type and no condition key
+        # for ssm:GetCommandInvocation, so this cannot name that command or
+        # that instance. It allows reading the status, exit code and output of
+        # any Run Command invocation in this account and Region whose command
+        # and instance IDs the caller knows. The role has no action that lists
+        # commands or instances.
+        - !If
+          - UsesEc2
+          - PolicyName: regional-command-result-read
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Sid: ReadCommandResultsInRegion
+                  Effect: Allow
+                  Action: ssm:GetCommandInvocation
+                  Resource: "*"
+                  Condition:
+                    StringEquals:
+                      aws:RequestedRegion: !Ref AWS::Region
+          - !Ref AWS::NoValue
       Tags:
         - Key: Project
           Value: eacl-demo

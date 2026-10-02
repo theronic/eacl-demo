@@ -4,7 +4,8 @@ export async function smokeFunctionUrl(profileId, origin, expectedIdentity, {
   timeoutMs = 180_000,
   now = () => performance.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  fetchResponse = fetch
+  fetchResponse = fetch,
+  whileWaiting = null
 } = {}) {
   const url = new URL("/health", origin);
   // SSM can spend several minutes downloading, loading the JVM and preparing
@@ -45,8 +46,15 @@ export async function smokeFunctionUrl(profileId, origin, expectedIdentity, {
     } finally {
       clearTimeout(timeout);
     }
+    // The caller can learn before this deadline that the identity will never
+    // appear, as an EC2 release does once its host command has failed. It
+    // says so by throwing. It is asked after each attempt that did not find
+    // the identity and once more when the time is up, so the identity alone
+    // decides success and a failure in the last seconds is still reported.
+    if (whileWaiting !== null) await whileWaiting({ final: false });
     const remaining = deadline - now();
     if (remaining > 0) await sleep(Math.min(2_000, remaining));
   }
+  if (whileWaiting !== null) await whileWaiting({ final: true });
   throw new Error(`${profileId} public origin smoke failed after deployment propagation: ${JSON.stringify(observed)}`);
 }
