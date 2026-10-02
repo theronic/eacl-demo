@@ -110,32 +110,67 @@ Resources:
       WaitForSuccessTimeoutSeconds: 900
       Parameters:
         commands:
+          # Production releases arrive over SSM after the stack was last updated, so
+          # the stack's artifact parameters lag the host. Never replace a verified
+          # installed release with the stack's older artifact, and never rewrite its
+          # release lines: the stack artifact and the stack's four release lines are
+          # installed only when nothing verifiable is installed. A release is
+          # verified when the environment file holds each release line once and the
+          # installed jar has the sha256 it names. That includes a release that
+          # names the stack's own artifact: consecutive commits often build the
+          # same jar, and the later release carries its own commit and deployment.
+          #
+          # The cursor key is the host's own. The other environment lines, the unit
+          # and the agent configuration come from this template on every run. The
+          # jar, the environment file and the unit are staged and then renamed into
+          # place, never written in place: a run that fails before the first rename
+          # leaves all three as they were, and a hard link to a replaced file, which
+          # is how a release command can keep the pair it replaces, still holds the
+          # old content. The service is restarted when, and only when, a run
+          # replaced one of the three, so that the health wait is answered by a
+          # process that has read them. The marker under /run outlives a run that
+          # is cut off between replacing a file and restarting, so the next run
+          # still restarts.
           - !Sub |
               set -euo pipefail
               for attempt in $(seq 1 300); do test -f /opt/eacl-demo/bootstrap-ready && break; sleep 2; done
               test -f /opt/eacl-demo/bootstrap-ready
               install -d -m 0700 /var/lib/eacl-demo/datalevin
-              aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${ArtifactKey} --version-id ${ArtifactVersion} /opt/eacl-demo/datalevin.jar.next
-              echo '${ArtifactSha256}  /opt/eacl-demo/datalevin.jar.next' | sha256sum --check --strict
-              install -m 0644 /opt/eacl-demo/datalevin.jar.next /opt/eacl-demo/datalevin.jar
-              cursor_key=$(sed -n 's/^EACL_CURSOR_KEY=//p' /etc/eacl-demo-datalevin.env 2>/dev/null || true)
+              trap 'rm -f /opt/eacl-demo/datalevin.jar.stack /etc/eacl-demo-datalevin.env.stack /etc/systemd/system/eacl-demo-datalevin.service.stack' EXIT
+              installed() { sed -n "s/^$1=//p" /etc/eacl-demo-datalevin.env 2>/dev/null || true; }
+              artifact=$(installed EACL_ARTIFACT_SHA256)
+              core=$(installed EACL_CORE_SHA)
+              demo=$(installed EACL_DEMO_SHA)
+              deployment=$(installed EACL_DEPLOYMENT_ID)
+              if [ -n "$artifact" ] && [ -n "$core" ] && [ -n "$demo" ] && [ -n "$deployment" ] && [ "$(grep -Ec '^EACL_(ARTIFACT_SHA256|CORE_SHA|DEMO_SHA|DEPLOYMENT_ID)=' /etc/eacl-demo-datalevin.env)" -eq 4 ] && echo "$artifact  /opt/eacl-demo/datalevin.jar" | sha256sum --check --strict --status; then
+                echo "Keeping the installed release: artifact $artifact, commit $demo."
+              else
+                echo 'No verified release is installed. Installing the stack artifact ${ArtifactSha256}.'
+                aws s3api get-object --region ${AWS::Region} --bucket ${ArtifactBucket} --key ${ArtifactKey} --version-id ${ArtifactVersion} /opt/eacl-demo/datalevin.jar.stack
+                echo '${ArtifactSha256}  /opt/eacl-demo/datalevin.jar.stack' | sha256sum --check --strict
+                artifact='${ArtifactSha256}'
+                core='${EaclSha}'
+                demo='${DemoSha}'
+                deployment='${DeploymentId}'
+              fi
+              cursor_key=$(installed EACL_CURSOR_KEY)
               if test $(printf '%s' "$cursor_key" | wc -c) -lt 32; then cursor_key=$(head -c 48 /dev/urandom | base64 | tr -d '\n'); fi
-              install -m 0600 /dev/null /etc/eacl-demo-datalevin.env
+              install -m 0600 /dev/null /etc/eacl-demo-datalevin.env.stack
               {
                 echo 'AWS_LAMBDA_FUNCTION_NAME=eacl-demo-datalevin-memory-ec2'
-                echo 'EACL_ARTIFACT_SHA256=${ArtifactSha256}'
-                echo 'EACL_CORE_SHA=${EaclSha}'
+                echo "EACL_ARTIFACT_SHA256=$artifact"
+                echo "EACL_CORE_SHA=$core"
                 echo "EACL_CURSOR_KEY=$cursor_key"
-                echo 'EACL_DEMO_SHA=${DemoSha}'
-                echo 'EACL_DEPLOYMENT_ID=${DeploymentId}'
+                echo "EACL_DEMO_SHA=$demo"
+                echo "EACL_DEPLOYMENT_ID=$deployment"
                 echo 'EACL_DATALEVIN_DIRECTORY=/var/lib/eacl-demo/datalevin'
                 echo 'EACL_HTTP_PORT=8081'
                 echo 'EACL_HTTP_WORKERS=1'
                 echo 'EACL_MAXIMUM_CONCURRENCY=1'
                 echo 'EACL_RUNTIME_EXECUTION=ec2'
                 echo 'EACL_RUNTIME_MEMORY_MIB=1024'
-              } > /etc/eacl-demo-datalevin.env
-              cat > /etc/systemd/system/eacl-demo-datalevin.service <<'SERVICE'
+              } > /etc/eacl-demo-datalevin.env.stack
+              cat > /etc/systemd/system/eacl-demo-datalevin.service.stack <<'SERVICE'
               [Unit]
               Description=EACL read-only Datalevin embedded demo
               Wants=network-online.target
@@ -164,8 +199,29 @@ Resources:
               ]}}}}
               AGENT
               /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+              replace() {
+                if [ -e "$1" ] && [ "$(sha256sum < "$1")" = "$(sha256sum < "$1.stack")" ]; then
+                  rm -f "$1.stack"
+                else
+                  touch /run/eacl-demo-datalevin.restart-required
+                  mv -f "$1.stack" "$1"
+                  echo "Installed $1."
+                fi
+                chmod "$2" "$1"
+              }
+              if [ -e /opt/eacl-demo/datalevin.jar.stack ]; then replace /opt/eacl-demo/datalevin.jar 0644; fi
+              replace /etc/eacl-demo-datalevin.env 0600
+              replace /etc/systemd/system/eacl-demo-datalevin.service 0644
               systemctl daemon-reload
-              systemctl enable --now eacl-demo-datalevin.service
+              systemctl enable eacl-demo-datalevin.service
+              if [ -e /run/eacl-demo-datalevin.restart-required ]; then
+                echo 'Restarting the service, because a file it starts from changed.'
+                systemctl restart eacl-demo-datalevin.service
+                rm -f /run/eacl-demo-datalevin.restart-required
+              else
+                echo 'Nothing the service starts from changed, so a running service is not restarted.'
+                systemctl start eacl-demo-datalevin.service
+              fi
               for attempt in $(seq 1 180); do curl --fail --silent http://127.0.0.1:8081/health >/dev/null && exit 0; sleep 2; done
               systemctl status eacl-demo-datalevin.service --no-pager
               exit 1
