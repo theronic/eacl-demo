@@ -105,7 +105,9 @@ on the running instance and restarts the service. It derives
 `EACL_RUNTIME_MEMORY_MIB` and `EACL_JAVA_OPTS` from the host's RAM (a 2 GiB
 host gets the fixed 1 GiB heap and 576 MiB object cache; smaller hosts keep
 the 640 MiB heap), and it never replaces a verified SSM release with the
-stack's older artifact parameters, which lag behind production. Pass the
+stack's artifact parameters, which lag behind production, nor rewrites its
+release lines. A release is verified when the installed jar has the sha256
+that the env file names, whether or not that is the stack's own. Pass the
 current release's `ArtifactKey`, `ArtifactVersion`, `ArtifactSha256`,
 `DemoSha`, `EaclSha`, and `DeploymentId` as overrides too when you update
 the stack, so a replacement instance boots the artifact that is actually
