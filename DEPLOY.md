@@ -7,26 +7,32 @@ demo serves it". The authoritative contracts live in
 incidents), and [docs/dependency-locks.md](docs/dependency-locks.md)
 (pin policy); this file sequences them.
 
-## 1. Bump the EACL Core pin
+## 1. Bump the EACL release
 
-One command rewrites every pinned SHA in tracked sources, stages the pinned
-Core source and its generated kernel classes under
-`target/eacl-core-source/<sha>/`, and fails if the old SHA survives anywhere
-in current source:
+The demo consumes published EACL releases from Clojars. One command moves
+every `dev.eacl` Maven coordinate in `deps.edn` to the new version, rewrites
+the release's source commit (read from the published POMs' SCM tag) wherever
+current source carries it, stages that commit's source under
+`target/eacl-core-source/<sha>/` for the unpublished `eacl-datalevin` module,
+and fails if the old commit survives anywhere in current source:
 
 ```sh
-npm run upgrade:eacl -- <eacl commit, branch, or tag>
+npm run upgrade:eacl -- <published EACL version, e.g. 8.0.0-RC-2026-10-02>
 ```
 
 Notes:
-- The reference is resolved against `https://github.com/theronic/eacl.git`;
-  the commit must be pushed there first.
-- Never hand-edit SHAs: `deps.edn`, `build.clj`, Lambda handler tests, and the
+- Every published module must exist on Clojars at that version and name the
+  same source commit; the commit must be fetchable from
+  `https://github.com/theronic/eacl.git`.
+- Never hand-edit versions or SHAs: `deps.edn`, Lambda handler tests, and the
   jank engine port manifest all carry the pin and must move together (the
-  script enforces this, and `scripts/lib/eacl-core.mjs` fails any build where
-  the `deps.edn` pins disagree).
-- `deps.edn` is the sole source of truth for the Core commit; demos build and
-  deploy from exactly that pin — never Core `HEAD`.
+  script enforces this, `scripts/lib/eacl-core.mjs` fails any build where the
+  `deps.edn` versions or SHAs disagree, and every build checks the published
+  POM against the SHA).
+- `deps.edn` is the sole source of truth for the EACL release; demos build
+  and deploy from exactly that release — never Core `HEAD`.
+- The DataScript runtime alias also pins EACL's `cljs-cache` Git fork, which
+  Maven metadata cannot carry; keep it at the SHA the EACL README names.
 
 ## 2. Verify locally
 

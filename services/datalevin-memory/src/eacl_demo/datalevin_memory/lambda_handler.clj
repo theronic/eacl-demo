@@ -81,12 +81,16 @@
      :cursor-key cursor-key
      ;; EC2 preserves this base directory between deployments. Rebuild the
      ;; derived fixture beside older storage instead of reopening incompatible
-     ;; tuples or deleting the retained rollback data. Replicas/restarts of the
-     ;; same fixture and ABI select the same directory.
+     ;; tuples or deleting the retained rollback data. An EACL release can add
+     ;; physical attributes without changing the relationship storage version,
+     ;; and a fixture's frozen write policy then rejects the newer schema when
+     ;; the connection opens, so the pinned EACL commit is part of the name.
+     ;; Replicas/restarts of the same fixture and EACL release select the same
+     ;; directory.
      :database-directory
      (.resolve ^Path database-directory
                (str "storage-v" relationship-storage/version "-"
-                    profile/data-manifest-sha256))
+                    profile/data-manifest-sha256 "-eacl-" baked-eacl-sha))
      :memory-mib memory-mib
      :maximum-concurrency maximum-concurrency
      :execution execution}))

@@ -20,7 +20,9 @@ await rm(compilerOutput, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await mkdir(compilerOutput, { recursive: true });
 
-const override = `{:paths ["packages/contracts/src" "packages/fixture-types/src" ${ednString(prepared.generatedClasses)}] :deps {org.clojure/data.json {:mvn/version "2.5.2"}} :override-deps {dev.eacl/eacl-datascript {:local/root ${ednString(prepared.datascriptModule)}}}}`;
+// The published dev.eacl/eacl JAR supplies the generated kernel classes for the
+// JVM snapshot program and EaclKernel.browser.js for the ClojureScript build.
+const override = `{:deps {org.clojure/data.json {:mvn/version "2.5.2"}}}`;
 const compilerOptions = `{:closure-defines {eacl-demo.datascript.runtime/core-sha ${ednString(prepared.lock.sha)}}}`;
 const snapshotProgram = `
 (require '[clojure.data.json :as json]

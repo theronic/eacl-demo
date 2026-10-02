@@ -6,10 +6,18 @@ fixture with the pinned Core revision. Durable Datahike and Datomic stores retai
 their data when an application artifact is deployed.
 
 Datalevin treats `EACL_DATALEVIN_DIRECTORY` as a fixture root and selects a child
-directory using the relationship storage version and fixture manifest digest.
-This also applies to the persistent EC2 host: v8 rebuilds its derived fixture
-beside older data, while restarts of the same ABI and fixture reopen their existing
-child directory. No old fixture directory is deleted during deployment.
+directory using the relationship storage version, fixture manifest digest and
+pinned EACL commit. This also applies to the persistent EC2 host: each EACL
+release rebuilds its derived fixture beside older data, while restarts of the
+same release and fixture reopen their existing child directory. No old fixture
+directory is deleted during deployment.
+
+The EACL commit is part of the name because a release can add physical
+attributes without changing the relationship storage version. EACL freezes the
+write policy of a Datalevin store, so opening an older fixture with the newer
+schema fails with `:datalevin/frozen-attribute-write` before the reader starts.
+The 8.0.0-RC-2026-10-02 upgrade (wildcard Relation attributes) hit this on the
+fixture that 6982d388 had built.
 
 EC2 readiness checks use a bounded 15-minute elapsed-time budget, including
 artifact download, JVM loading and fixture preparation. A fast CloudFront error

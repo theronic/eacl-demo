@@ -8,7 +8,7 @@
            [java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers
             HttpResponse$BodyHandlers]))
 
-(def baked-eacl-sha "6982d388b4f4472cfc69dae0f92adc58c62438d8")
+(def baked-eacl-sha "eeb1f844e42efd5a04e05372bdac3cf4774808b1")
 
 (use-fixtures :each
   (fn [run]
@@ -34,9 +34,14 @@
                         "EACL_MAXIMUM_CONCURRENCY" "1")))]
     (is (= "lambda" (:execution lambda)))
     (is (= (str "/tmp/eacl-demo-datalevin-handler-test/storage-v8-"
-                profile/data-manifest-sha256)
+                profile/data-manifest-sha256 "-eacl-" baked-eacl-sha)
            (str (:database-directory lambda))))
     (is (= (:database-directory lambda) (:database-directory ec2)))
+    ;; A fixture built by another EACL release is never reopened.
+    (is (not= (:database-directory lambda)
+              (with-redefs [build-identity/eacl-sha
+                            (constantly (apply str (repeat 40 "c")))]
+                (:database-directory (handler/parse-environment environment)))))
     (is (= 1 (:maximum-concurrency lambda)))
     (is (= "ec2" (:execution ec2)))
     (is (= 1 (:maximum-concurrency ec2)))

@@ -5,4 +5,4 @@ import { prepareLockedEaclCore } from "./lib/prepare-eacl-core.mjs";
 const root = path.resolve(import.meta.dirname, "..");
 const prepared = await prepareLockedEaclCore(root);
 
-console.log(`Prepared EACL Core ${prepared.lock.sha}`);
+console.log(`Prepared EACL ${prepared.release.version} (source ${prepared.lock.sha})`);

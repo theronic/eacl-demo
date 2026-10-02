@@ -4,18 +4,23 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { EACL_REPOSITORY, readEaclCore } from "./lib/eacl-core.mjs";
+import { DEPS_EDN_PATH, EACL_REPOSITORY, pomScmTag, readEaclRelease } from "./lib/eacl-core.mjs";
 
-const SHA1 = /^[0-9a-f]{40}$/u;
+const CLOJARS = "https://repo.clojars.org";
+const MAVEN_VERSION = /^[0-9][0-9A-Za-z.+-]*$/u;
 const root = path.resolve(import.meta.dirname, "..");
-const reference = process.argv[2];
+const version = process.argv[2];
 
-if (!reference || reference.startsWith("-")) {
-  throw new Error("usage: npm run upgrade:eacl -- <EACL commit, branch, or tag>");
+if (!version || !MAVEN_VERSION.test(version)) {
+  throw new Error("usage: npm run upgrade:eacl -- <published EACL version, e.g. 8.0.0-RC-2026-10-02>");
 }
 
-const oldSha = readEaclCore(root).sha;
-const resolved = await resolveReference(EACL_REPOSITORY, reference);
+const previous = readEaclRelease(root);
+const depsEdn = await readFile(path.join(root, DEPS_EDN_PATH), "utf8");
+const publishedArtifacts = [...new Set([...depsEdn.matchAll(
+  /dev\.eacl\/(eacl[a-z0-9-]*)\s*\{\s*:mvn\/version\s+"/gu)].map((match) => match[1]))].sort();
+const sha = await publishedSourceCommit(version, publishedArtifacts);
+await verifyFetch(EACL_REPOSITORY, sha);
 const changed = [];
 
 for (const relative of trackedFiles()) {
@@ -23,60 +28,61 @@ for (const relative of trackedFiles()) {
   const absolute = path.join(root, relative);
   if (!existsSync(absolute)) continue;
   const source = await readFile(absolute, "utf8");
-  if (!source.includes(oldSha)) continue;
-  const updated = source.replaceAll(oldSha, resolved.sha);
+  let updated = source.replaceAll(previous.sha, sha);
+  if (relative === DEPS_EDN_PATH) {
+    updated = updated.replace(
+      /(dev\.eacl\/eacl[a-z0-9-]*\s*\{\s*:mvn\/version\s+")([^"]*)(")/gu,
+      (_, before, current, after) => current === previous.version ? `${before}${version}${after}` : `${before}${current}${after}`);
+  }
   if (updated !== source) {
     await writeFile(absolute, updated);
     changed.push(relative);
   }
 }
 
-const identity = readEaclCore(root);
-if (identity.sha !== resolved.sha) {
-  throw new Error(`deps.edn still pins ${identity.sha} after the rewrite; expected ${resolved.sha}`);
+const identity = readEaclRelease(root);
+if (identity.version !== version || identity.sha !== sha) {
+  throw new Error(`deps.edn pins ${identity.version} (source ${identity.sha}) after the rewrite; expected ${version} (source ${sha})`);
 }
 
 run("node", ["scripts/prepare-eacl-core.mjs"]);
 
-const stale = staleFiles(oldSha, resolved.sha);
+const stale = staleFiles(previous.sha, sha);
 if (stale.length > 0) {
-  throw new Error(`old EACL SHA remains in current source: ${stale.join(", ")}`);
+  throw new Error(`old EACL source commit remains in current source: ${stale.join(", ")}`);
 }
 
 process.stdout.write([
-  `EACL ${oldSha} -> ${resolved.sha}`,
-  `Resolved from ${resolved.remoteRef}`,
+  `EACL ${previous.version} (source ${previous.sha}) -> ${version} (source ${sha})`,
   `Updated ${new Set(changed).size} tracked files.`,
-  "Merge to main, then fast-forward production to rebuild and deploy every live demo.",
+  "Ship it as described in DEPLOY.md; the production push rebuilds and deploys every live demo.",
   ""
 ].join("\n"));
 
-async function resolveReference(repository, input) {
-  if (SHA1.test(input)) {
-    await verifyFetch(repository, input);
-    return { sha: input, remoteRef: input };
+// Every published module the demo pins must exist at this version and name
+// one source commit as its SCM tag.
+async function publishedSourceCommit(release, artifacts) {
+  const tags = new Map();
+  for (const artifact of artifacts) {
+    const url = `${CLOJARS}/dev/eacl/${artifact}/${release}/${artifact}-${release}.pom`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`dev.eacl/${artifact} ${release} is not published on Clojars (${response.status} ${url})`);
+    const tag = pomScmTag(await response.text());
+    if (!tag) throw new Error(`dev.eacl/${artifact} ${release} records no source commit as its SCM tag`);
+    tags.set(artifact, tag);
   }
-  const requested = input.startsWith("refs/")
-    ? [input]
-    : [`refs/heads/${input}`, `refs/tags/${input}^{}`, `refs/tags/${input}`];
-  const rows = execFileSync("git", ["ls-remote", repository, ...requested], {
-    cwd: root,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"]
-  }).trim().split(/\r?\n/u).filter(Boolean).map((line) => line.split(/\s+/u));
-  if (rows.length === 0) throw new Error(`EACL reference does not exist: ${input}`);
-  const dereferenced = rows.find(([, remoteRef]) => remoteRef.endsWith("^{}"));
-  const [sha, remoteRef] = dereferenced ?? rows[0];
-  if (!SHA1.test(sha)) throw new Error(`EACL reference did not resolve to a commit: ${input}`);
-  await verifyFetch(repository, sha);
-  return { sha, remoteRef };
+  const commits = [...new Set(tags.values())];
+  if (commits.length !== 1) {
+    throw new Error(`dev.eacl ${release} modules name different source commits: ${JSON.stringify(Object.fromEntries(tags))}`);
+  }
+  return commits[0];
 }
 
-async function verifyFetch(repository, sha) {
+async function verifyFetch(repository, commit) {
   const temporary = await mkdtemp(path.join(os.tmpdir(), "eacl-demo-upgrade-"));
   try {
     execFileSync("git", ["init", "--quiet"], { cwd: temporary, stdio: "ignore" });
-    execFileSync("git", ["fetch", "--quiet", "--depth=1", repository, sha], {
+    execFileSync("git", ["fetch", "--quiet", "--depth=1", repository, commit], {
       cwd: temporary,
       stdio: "inherit"
     });
@@ -84,7 +90,7 @@ async function verifyFetch(repository, sha) {
       cwd: temporary,
       encoding: "utf8"
     }).trim();
-    if (fetched !== sha) throw new Error(`fetched ${fetched}, expected ${sha}`);
+    if (fetched !== commit) throw new Error(`fetched ${fetched}, expected ${commit}`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
