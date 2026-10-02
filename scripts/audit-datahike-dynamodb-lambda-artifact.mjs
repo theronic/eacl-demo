@@ -91,7 +91,11 @@ for (const metric of ["Requests", "Errors", "Duration", "Initialization",
 assert.doesNotMatch(observabilitySource,
   /stack-trace|\.getMessage|Throwable->map|AWS_SECRET/iu);
 assert.match(sources.reader, /:read-only\? true/u);
-assert.match(sources.reader, /:writer read-only-writer\/config/u);
+// The reader holds the pinned generation's local head through Datahike's
+// native writer. Storage mutation is denied beneath it, by the Konserve
+// facade and SDK membrane audited below, and above it by the read-only client.
+assert.match(sources.reader,
+  /:writer \{:backend :self :writer-ownership :exclusive\s+:transaction-queue-size 1 :commit-queue-size 1\}/u);
 assert.match(sources.reader, /:security-key \(:security-key config\)/u);
 assert.match(sources.lambda_handler, /\(not= 1 concurrency\)/u);
 assert.match(sources.read_only_writer,
@@ -116,7 +120,9 @@ assert.match(sources.errors, /defn classify/u);
 assert.match(sources.retry, /full-jitter-delay-ms/u);
 assert.match(sources.retry, /\(<= 1 \(:max-attempts value\) 8\)/u);
 assert.match(sources.operations,
-  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics\]/u);
+  /:keys \[descriptor cursor-key clock refresh-snapshot! cache-stats\s+operation-metrics authorization-reader\]/u);
+// Authorization queries run on the reader's own read-only EACL client.
+assert.match(sources.lambda_handler, /:authorization-reader \(:client opened\)/u);
 assert.match(sources.operations,
   /cache-metrics\/snapshot \(cache-stats\) operation-metrics/u);
 assert.match(sources.lambda_handler, /datahike-eacl\/cache-stats/u);
