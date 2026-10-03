@@ -21,7 +21,7 @@ test("the shared persistent host may read only its two immutable profile prefixe
 
 test("the SSM release association and runtime command both verify the artifact before restart", () => {
   assert.match(source, /RuntimeArtifactAssociation:[\s\S]*get-object[\s\S]*--version-id[\s\S]*sha256sum --check --strict[\s\S]*systemctl restart eacl-demo-datomic\.service/u);
-  assert.match(datalevinSource, /RuntimeAssociation:[\s\S]*datalevin\.jar\.next[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl enable --now eacl-demo-datalevin\.service/u);
+  assert.match(datalevinSource, /RuntimeAssociation:[\s\S]*datalevin\.jar\.stack[\s\S]*sha256sum --check --strict[\s\S]*EACL_DATALEVIN_DIRECTORY=\/var\/lib\/eacl-demo\/datalevin[\s\S]*MemoryMax=352M[\s\S]*systemctl restart eacl-demo-datalevin\.service/u);
   assert.match(source, /DatalevinViewerCertificate[\s\S]*HTTPPort: 8081[\s\S]*DatalevinViewerRecord/u);
 });
 
@@ -69,6 +69,67 @@ test("a stack update never replaces a verified SSM release with the stack's olde
     assert.match(line, /test -e \/etc\/eacl-demo-keep-release \|\|/u, line);
   }
   assert.match(association, /sha256sum --check --strict && install -m 0644 \/opt\/eacl-demo\/function\.jar\.next \/opt\/eacl-demo\/function\.jar/u);
+});
+
+test("a Datalevin stack update never replaces a verified SSM release or rewrites its release lines", () => {
+  const association = /RuntimeAssociation:[\s\S]*?(?=\n\s{2}StatusAlarm:)/u.exec(datalevinSource)?.[0];
+  assert.ok(association);
+  // A release is verified when the environment file holds each release line
+  // once and the installed jar has the sha256 it names. The guard does not
+  // ask for a sha256 other than the stack's: consecutive commits often build
+  // the same jar, and the later release carries its own commit and deployment.
+  assert.match(association, /if \[ -n "\$artifact" \] && \[ -n "\$core" \] && \[ -n "\$demo" \] && \[ -n "\$deployment" \] && \[ "\$\(grep -Ec '\^EACL_\(ARTIFACT_SHA256\|CORE_SHA\|DEMO_SHA\|DEPLOYMENT_ID\)=' \/etc\/eacl-demo-datalevin\.env\)" -eq 4 \] && echo "\$artifact  \/opt\/eacl-demo\/datalevin\.jar" \| sha256sum --check --strict --status; then\n/u);
+  // Only the branch taken when nothing verified is installed names the
+  // stack's artifact and release parameters, and it checks what it fetched.
+  const unverified = /\n( +)else\n([\s\S]*?)\n\1fi\n/u.exec(association)?.[2];
+  assert.ok(unverified);
+  const elsewhere = association.replace(unverified, "");
+  for (const name of ["ArtifactKey", "ArtifactVersion", "ArtifactSha256", "EaclSha", "DemoSha", "DeploymentId"]) {
+    assert.ok(unverified.includes(`\${${name}}`), name);
+    assert.ok(!elsewhere.includes(`\${${name}}`), name);
+  }
+  assert.match(unverified, /get-object [^\n]* \/opt\/eacl-demo\/datalevin\.jar\.stack\n\s+echo '\$\{ArtifactSha256\}  \/opt\/eacl-demo\/datalevin\.jar\.stack' \| sha256sum --check --strict\n/u);
+  assert.doesNotMatch(elsewhere, /get-object/u);
+  // The environment file's release lines are the ones read from it, unless
+  // that branch replaced them, and nothing else writes a release line.
+  for (const [line, value] of [
+    ["EACL_ARTIFACT_SHA256", "artifact"], ["EACL_CORE_SHA", "core"], ["EACL_DEMO_SHA", "demo"], ["EACL_DEPLOYMENT_ID", "deployment"]
+  ]) {
+    assert.match(elsewhere, new RegExp(`\\n\\s+${value}=\\$\\(installed ${line}\\)\\n`, "u"), line);
+    assert.match(elsewhere, new RegExp(`\\n\\s+echo "${line}=\\$${value}"\\n`, "u"), line);
+    assert.equal((association.match(new RegExp(`${line}=`, "gu")) ?? []).length, 1, line);
+  }
+  // The jar, the environment file and the unit are only ever renamed into
+  // place, so a hard link to a replaced file is never written through.
+  assert.match(association, /mv -f "\$1\.stack" "\$1"\n/u);
+  assert.match(association, /\n\s+if \[ -e \/opt\/eacl-demo\/datalevin\.jar\.stack \]; then replace \/opt\/eacl-demo\/datalevin\.jar 0644; fi\n\s+replace \/etc\/eacl-demo-datalevin\.env 0600\n\s+replace \/etc\/systemd\/system\/eacl-demo-datalevin\.service 0644\n/u);
+  assert.doesNotMatch(association, />\s*\/etc\/eacl-demo-datalevin\.env(?!\.stack)|>\s*\/etc\/systemd\/system\/eacl-demo-datalevin\.service(?!\.stack)|(?:install|cp|cat|ln)\b[^\n|]*\s\/opt\/eacl-demo\/datalevin\.jar\n/u);
+  // The host keeps its cursor key, and the staged file that carries it is
+  // private before its first byte is written.
+  assert.match(association, /cursor_key=\$\(installed EACL_CURSOR_KEY\)\n[^\n]*\n\s+install -m 0600 \/dev\/null \/etc\/eacl-demo-datalevin\.env\.stack\n\s+\{\n[\s\S]*?\n\s+echo "EACL_CURSOR_KEY=\$cursor_key"\n[\s\S]*?\n\s+\} > \/etc\/eacl-demo-datalevin\.env\.stack\n/u);
+  assert.equal((association.match(/\$cursor_key/gu) ?? []).length, 2);
+});
+
+test("the Datalevin association restarts the service only after it replaced a file the service starts from", () => {
+  const association = /RuntimeAssociation:[\s\S]*?(?=\n\s{2}StatusAlarm:)/u.exec(datalevinSource)?.[0];
+  assert.ok(association);
+  // `enable --now` leaves a running unit alone, so the health wait would be
+  // answered by the old process whatever was just installed.
+  assert.doesNotMatch(association, /enable --now/u);
+  // The restart is owed from the moment a file is replaced, and the marker
+  // that records it is written before the rename and outlives the run.
+  assert.match(association, /else\n\s+touch \/run\/eacl-demo-datalevin\.restart-required\n\s+mv -f "\$1\.stack" "\$1"\n/u);
+  assert.equal((association.match(/touch \/run\/eacl-demo-datalevin\.restart-required/gu) ?? []).length, 1);
+  assert.match(association, /systemctl daemon-reload\n\s+systemctl enable eacl-demo-datalevin\.service\n\s+if \[ -e \/run\/eacl-demo-datalevin\.restart-required \]; then\n[^\n]*\n\s+systemctl restart eacl-demo-datalevin\.service\n\s+rm -f \/run\/eacl-demo-datalevin\.restart-required\n\s+else\n[^\n]*\n\s+systemctl start eacl-demo-datalevin\.service\n\s+fi\n\s+for attempt in \$\(seq 1 180\); do curl --fail --silent http:\/\/127\.0\.0\.1:8081\/health >\/dev\/null && exit 0; sleep 2; done\n\s+systemctl status eacl-demo-datalevin\.service --no-pager\n\s+exit 1$/u);
+  assert.equal((association.match(/systemctl restart/gu) ?? []).length, 1);
+  // Everything that can fail for a reason of its own comes before the first
+  // rename: the download, the staged files and the agent configuration.
+  const firstRename = association.indexOf("if [ -e /opt/eacl-demo/datalevin.jar.stack ]; then replace");
+  assert.ok(firstRename > 0);
+  for (const step of ["aws s3api get-object", "sha256sum --check --strict\n", "} > /etc/eacl-demo-datalevin.env.stack", "<<'SERVICE'", "amazon-cloudwatch-agent-ctl -a fetch-config"]) {
+    const found = association.indexOf(step);
+    assert.ok(found > 0 && found < firstRename, step);
+  }
 });
 
 test("Datomic EC2 admits four engine requests while Datalevin keeps its independent limit", () => {

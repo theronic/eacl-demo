@@ -114,6 +114,31 @@ metrics afterwards. Datahike Lambdas take their store cache size
 (`EACL_STORE_CACHE_SIZE`) from `scripts/deploy-live-demo.mjs` on every
 production deploy.
 
+The Datalevin host is a stack of its own, `eacl-demo-datalevin-memory-ec2`
+(`infra/profiles/datalevin-memory-ec2.yaml`). The `production` push releases
+to it the same way, replacing the jar and the release lines of
+`/etc/eacl-demo-datalevin.env` over SSM, and the rest of the host changes
+only through a stack update:
+
+```sh
+aws cloudformation deploy --stack-name eacl-demo-datalevin-memory-ec2 --template-file infra/profiles/datalevin-memory-ec2.yaml --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
+```
+
+Its `RuntimeAssociation` runs on the host whenever a stack update changes
+it, and a change to any release parameter is such a change. It keeps a
+verified release: when the env file holds each of the four release lines
+once and the installed jar has the sha256 named there, the jar and those
+lines stay as they are whatever the stack's parameters say, and nothing is
+fetched from S3. Only otherwise does it install the stack's artifact and
+release lines. The host's cursor key is kept; the remaining env lines, the
+unit and the agent configuration come from the template on every run. The
+service is restarted only when the run replaced the jar, the env file or the
+unit; a run that replaces nothing leaves a running service alone. Either way
+the run ends by waiting for `/health`. Pass the current release's
+`ArtifactKey`, `ArtifactVersion`, `ArtifactSha256`, `DemoSha`, `EaclSha`, and
+`DeploymentId` here too, so a replacement instance boots the artifact that
+is actually in production.
+
 ## 4. After the deploy
 
 - Spot-check the explorer at the live origin and one server profile's
