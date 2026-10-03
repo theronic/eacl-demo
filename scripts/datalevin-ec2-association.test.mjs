@@ -25,6 +25,14 @@ const sha256 = (text) => createHash("sha256").update(text).digest("hex");
 // names under these four directories are moved there; the directory itself may
 // lie under /var, so text is moved exactly once.
 const hostPath = /(?<![\w.-])\/(?:opt|etc|var|run)\//gu;
+// The association runs on the machine that runs this test, so it must name no
+// other path of that machine. Apart from two devices, the java binary the unit
+// names and the log group in the agent configuration, every absolute path it
+// names lies under a directory that is moved.
+const elsewhere = new Set(["/dev/null", "/dev/urandom", "/usr/bin/java", "/aws/ec2/eacl-demo-datalevin-memory"]);
+const pathsNamed = (text) => text.match(/(?<![\w.\/}-])\/[A-Za-z][\w.\/-]*/gu) ?? [];
+const outsideFakeHost = (text) => pathsNamed(text)
+  .filter((named) => !elsewhere.has(named) && named.replace(hostPath, "") === named);
 
 // A fake jar describes the service it would run: its name, then how many
 // seconds after a start it begins to answer /health. `never` is a jar that
@@ -420,6 +428,8 @@ async function fakeHost(t, {
     // Steps that fail once: "s3", "agent", "daemon-reload", "restart".
     failing = []
   } = {}) {
+    const command = associationCommand(parametersFor(stack));
+    assert.deepEqual(outsideFakeHost(command), [], "the association names a path outside the fake host, so it is not run");
     await writeFile(`${state}/artifact`, delivered);
     for (const step of failing) await writeFile(`${state}/fail.${step}`, "");
     const before = {
@@ -428,7 +438,7 @@ async function fakeHost(t, {
       starts: (await lines("starts")).length,
       staged: (await lines("staged-environment")).length
     };
-    await writeFile(at("/_script.sh"), `. ${state}/stand-ins.sh\n${onHost(associationCommand(parametersFor(stack)))}`);
+    await writeFile(at("/_script.sh"), `. ${state}/stand-ins.sh\n${onHost(command)}`);
     const { status, stdout, stderr } = image === null
       ? await run(path.join(tools.directory, "sh"), ["_script.sh"], { cwd: root, env: { PATH: tools.directory } })
       : await run("docker", ["run", "--rm", "--network", "none", "--volume", `${root}:${root}`, "--workdir", root,
@@ -501,15 +511,10 @@ test("the association is one command and names only the stack's own parameters",
 });
 
 test("the fake host stands in for every path the association names", () => {
-  // Apart from two devices, the java binary the unit names and the log group
-  // in the agent configuration, every absolute path lies under a directory
-  // that the fake host moves into its temporary directory.
-  const elsewhere = new Set(["/dev/null", "/dev/urandom", "/usr/bin/java", "/aws/ec2/eacl-demo-datalevin-memory"]);
-  const paths = associationCommand(parametersFor(stackRelease)).match(/(?<![\w.\/}-])\/[A-Za-z][\w.\/-]*/gu);
+  const command = associationCommand(parametersFor(stackRelease));
+  const paths = pathsNamed(command);
   for (const file of [jarFile, environmentFile, unitFile, ...staged, marker]) assert.ok(paths.includes(file), file);
-  for (const named of paths) {
-    assert.ok(elsewhere.has(named) || named.replace(hostPath, "") !== named, `${named} is outside the fake host`);
-  }
+  assert.deepEqual(outsideFakeHost(command), []);
   assert.deepEqual(new Set(paths.filter((named) => elsewhere.has(named))), elsewhere);
 });
 
